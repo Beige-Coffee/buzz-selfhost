@@ -10,6 +10,8 @@ on Oct 5, with secrets masked.
 
 | When (PDT) | Run | Relay version | Result |
 |---|---|---|---|
+| Oct 5 13:08 | [Script: Kubernetes, with phone pairing](2026-10-05-1308-k8s-sha-fd885b5.log) | `sha-fd885b5` | 23 of 23, the pairing service reached at `/pair` through a second ingress. |
+| Oct 5 12:50 | [Railway: phone pairing](2026-10-05-1250-railway-pairing.md) | `sha-fd885b5` | Passed, with the pairing service as a fifth service. Its start command had to be set outside the CLI. |
 | Oct 5 12:40 | [Goose with DeepSeek: private network, then add a member](2026-10-05-1240-crossagent-goose-deepseek-private-vps.md) | `sha-fd885b5` | Passed in one go, in 8 minutes, all commands on its own server. About $0.23. |
 | Oct 5 12:28 | [Codex: private network, then add a member](2026-10-05-1228-crossagent-codex-private-vps.md) | `sha-fd885b5` | Passed, in 10 minutes. Long steps outlived its 30-second command tool; it waited and reran the checks. |
 | Oct 5 12:14 | [Private network: first attempts](2026-10-05-1214-crossagent-private-first-attempts.md) | | A runner bug gave both agents an empty server address. Codex stopped and asked; Goose with Gemini used the cloud token on disk and changed a firewall without asking. Gemini then kept stopping after each step. |

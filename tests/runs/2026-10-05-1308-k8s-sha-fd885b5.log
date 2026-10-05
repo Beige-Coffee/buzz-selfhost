@@ -1,0 +1,113 @@
+# k8s on sha-fd885b5, 2026-10-05 13:08 PDT
+# skill and tests at eb7bcf5, plus uncommitted changes
+# smoke-k8s.sh 159-89-222-236.sslip.io sha-fd885b5
+
+===== Identities
+owner   38ec50e2b451211c00c9f06ab07f16575f8a204c63969fc80ea1eae8512f4252
+
+===== 1. The values file (the guide's buzz-values.yaml)
+image:
+  tag: sha-fd885b5
+relayUrl: wss://159-89-222-236.sslip.io
+ownerPubkey: 38ec50e2b451211c00c9f06ab07f16575f8a204c63969fc80ea1eae8512f4252
+quickstart: true
+postgresql:
+  enabled: true
+redis:
+  enabled: true
+minio:
+  enabled: true
+  image: ghcr.io/block/buzz-minio:latest
+  mcImage: ghcr.io/block/buzz-minio:latest
+relay:
+  corsOrigins:
+    - tauri://localhost
+    - http://tauri.localhost
+    - https://159-89-222-236.sslip.io
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+  tls:
+    - hosts: [159-89-222-236.sslip.io]
+      secretName: buzz-tls
+pairingRelay:
+  enabled: true
+  url: wss://159-89-222-236.sslip.io/pair
+extraManifests:
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: buzz-pairing
+    spec:
+      ingressClassName: traefik
+      tls:
+        - hosts: [159-89-222-236.sslip.io]
+          secretName: buzz-tls
+      rules:
+        - host: 159-89-222-236.sslip.io
+          http:
+            paths:
+              - path: /pair
+                pathType: Prefix
+                backend:
+                  service:
+                    name: buzz-pairing
+                    port:
+                      number: 5000
+
+===== 2. Install
+PASS  helm install (85s)
+$ kubectl -n buzz get pods
+NAME                            READY   STATUS      RESTARTS      AGE
+buzz-6498c99cbf-tmg2s           1/1     Running     3 (37s ago)   84s
+buzz-minio-7d75b4dfb4-wdtn6     1/1     Running     0             84s
+buzz-minio-init-1-zz6cv         0/1     Completed   0             84s
+buzz-pairing-6986f5c6f7-mh8tn   1/1     Running     0             84s
+buzz-postgresql-0               1/1     Running     0             84s
+buzz-redis-0                    1/1     Running     0             84s
+PASS  every pod ready
+INFO  relay deployment: deployment.apps/buzz
+PASS  relay runs sha-fd885b5
+
+===== 3. Certificate and liveness
+$ kubectl -n buzz get certificate
+NAME       READY   SECRET     AGE
+buzz-tls   True    buzz-tls   85s
+PASS  https://159-89-222-236.sslip.io/_liveness answers ok
+PASS  Let's Encrypt certificate
+PASS  CORS lets Buzz Desktop in
+PASS  WebSocket upgrade and NIP-42 challenge through the ingress
+INFO  relay version 0.2.1
+PASS  the relay names its pairing service, wss://159-89-222-236.sslip.io/pair
+PASS  phones reach the pairing service at /pair (WebSocket)
+
+===== 4. Members post and read; a non-member is refused
+PASS  owner creates a channel
+PASS  owner posts
+PASS  add-member through kubectl exec
+PASS  member joins and posts
+PASS  non-member refused
+PASS  upload lands at https://159-89-222-236.sslip.io/media
+PASS  download intact
+PASS  the file's URL needs auth (401)
+
+===== 5. Back up the database
+PASS  pg_dump through kubectl exec (312599 bytes)
+
+===== 6. Upgrade (helm upgrade with the same values)
+PASS  helm upgrade
+PASS  relay restarted
+PASS  liveness after the restart
+PASS  messages survive a restart
+PASS  the file survives a restart
+
+===== A person to try Buzz Desktop and a phone
+Defaulted container "relay" out of: relay, wait-for-bucket (init)
+added d3665dcb005546ad4ef56ab994b58a011813ea8933d67bc0e7129f78aada1b72 as member
+INFO  join from Buzz Desktop with wss://159-89-222-236.sslip.io, then pair a phone in Settings, Mobile
+
+===== RESULT
+relay: wss://159-89-222-236.sslip.io
+passed: 23  failed: 0

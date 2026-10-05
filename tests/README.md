@@ -92,6 +92,15 @@ Phone pairing, which the skill now adds to the compose bundle (block/buzz#7721):
 Logs: [runs/2026-10-05-1043-vps-sha-d1b7da4.log](runs/2026-10-05-1043-vps-sha-d1b7da4.log) and
 [runs/2026-10-05-1043-private-sha-8746bfe.log](runs/2026-10-05-1043-private-sha-8746bfe.log).
 
+## Results, 2026-10-05: phone pairing on Kubernetes and Railway
+
+- Kubernetes: 23 of 23 with the chart's pairing service turned on and a second ingress sending
+  `/pair` to it ([log](runs/2026-10-05-1308-k8s-sha-fd885b5.log)).
+- Railway: check-relay.sh passed with the pairing service as its own service and name
+  ([record](runs/2026-10-05-1250-railway-pairing.md)). Its start command had to be set in the
+  dashboard or Railway's API: the CLI's `environment edit` changed nothing.
+- Kubernetes on a private network: not covered yet.
+
 ## Results, 2026-10-05: other agents
 
 The skill installed with `npx skills add Beige-Coffee/buzz-selfhost --skill self-host-buzz`, then

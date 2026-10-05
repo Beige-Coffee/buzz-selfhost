@@ -1,0 +1,10 @@
+.DS_Store
+__pycache__/
+*.pyc
+node_modules/
+dist/
+.vercel/
+.env*
+tests/.buzz-cli
+NOTES.md
+tests/runs/*.tmp

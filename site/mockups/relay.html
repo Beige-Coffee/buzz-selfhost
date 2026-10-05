@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relay mockups</title>
+</head>
+<body class="mk-body">
+  <main class="mk-page">
+    <header class="mk-top">
+      <p class="label"><i></i>Mockups, not on the site</p>
+      <h1>Four ways to draw the relay</h1>
+      <p class="mk-sub">Each frame is the opening drawing from How it works. Step through the story with the switch; a message goes out every few seconds so you can see how each one reacts.</p>
+    </header>
+    <div class="mk-bar">
+      <div class="mk-seg" role="group" aria-label="Story step">
+        <button type="button" data-set="hosted" aria-pressed="true">Block runs it</button>
+        <button type="button" data-set="self" aria-pressed="false">You run it</button>
+        <button type="button" data-set="inside" aria-pressed="false">What's inside</button>
+      </div>
+      <button type="button" class="mk-send"><i></i>Send a message</button>
+    </div>
+    <div class="mk-list"></div>
+  </main>
+  <script type="module" src="./relay.ts"></script>
+</body>
+</html>

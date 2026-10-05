@@ -1,0 +1,687 @@
+# vps on sha-d1b7da4, 2026-10-05 10:43 PDT
+# skill and tests at 1d7473c, plus uncommitted changes
+# smoke.sh 137.184.191.10 137-184-191-10.sslip.io sha-d1b7da4 sha-8746bfe
+
+===== Identities
+owner   aac38aa2961f48c1424980e189a28debe937d42b13d45b0083e90fc901448cd9
+member  npub1kk0wdny69sp4xmah9p5nenxr4mxgs4f07nqkevxlq7lp9c4rarxsg48jkf
+
+===== Server: the guide, top to bottom
+
+##### 1. Create the server
+PASS  x86_64
+PASS  4 GB RAM (4009872 kB)
+
+----- server
+$ uname -m; free -h
+x86_64
+               total        used        free      shared  buff/cache   available
+Mem:           3.8Gi       419Mi       3.0Gi       4.0Mi       619Mi       3.4Gi
+Swap:             0B          0B          0B
+(exit 0)
+
+##### 2. Point your domain at it
+
+----- dig
+$ dig +short 137-184-191-10.sslip.io
+137.184.191.10
+(exit 0)
+PASS  dig resolves to this server
+
+##### 3. Install Docker
+PASS  docker installed
+
+----- compose-version
+$ docker compose version
+Docker Compose version v5.6.0
+(exit 0)
+PASS  compose 5.6.0 >= 2.24.4
+
+##### 4. Get the deploy bundle
+PASS  bundle at the image's commit
+
+----- ls
+$ ls
+Caddyfile
+README.md
+compose.caddy.yml
+compose.dev.yml
+compose.yml
+run.sh
+(exit 0)
+PASS  ls
+
+##### 5. Fill in the random secrets
+
+----- secrets
+$ for name in $(grep 'CHANGE_ME_RANDOM' .env | cut -d= -f1); do
+$   sed -i.bak "s/^${name}=.*/${name}=$(openssl rand -hex 32)/" .env
+$ done && rm -f .env.bak
+(exit 0)
+PASS  no CHANGE_ME_RANDOM left
+
+##### 6. Generate the relay key
+PASS  relay key is 64 characters
+PASS  relay key is hex
+
+----- generate-key-format
+$ docker run --rm --entrypoint /usr/local/bin/buzz-admin ghcr.io/block/buzz:sha-d1b7da4 generate-key | sed -E 's/[0-9a-f]{64}/<64 hex>/'
+Public key:  <64 hex>
+Secret key:  <64 hex>
+
+Set BUZZ_PRIVATE_KEY to the secret key to use this identity.
+(exit 0)
+
+##### 7. Set the owner
+
+----- owner
+$ sed -i.bak "s/^RELAY_OWNER_PUBKEY=.*/RELAY_OWNER_PUBKEY=aac38aa2961f48c1424980e189a28debe937d42b13d45b0083e90fc901448cd9/" .env && rm .env.bak
+(exit 0)
+PASS  no CHANGE_ME value lines
+
+##### 8. Set the URL and the version
+
+----- url
+$ sed -i.bak \
+$   -e "s|^BUZZ_IMAGE=.*|BUZZ_IMAGE=ghcr.io/block/buzz:sha-d1b7da4|" \
+$   -e "s|^BUZZ_DOMAIN=.*|BUZZ_DOMAIN=137-184-191-10.sslip.io|" \
+$   -e "s|^RELAY_URL=.*|RELAY_URL=wss://137-184-191-10.sslip.io|" \
+$   -e "s|^BUZZ_MEDIA_BASE_URL=.*|BUZZ_MEDIA_BASE_URL=https://137-184-191-10.sslip.io/media|" \
+$   -e "s|^BUZZ_MEDIA_SERVER_DOMAIN=.*|BUZZ_MEDIA_SERVER_DOMAIN=137-184-191-10.sslip.io|" \
+$   -e "s|^BUZZ_CORS_ORIGINS=.*|BUZZ_CORS_ORIGINS=tauri://localhost,http://tauri.localhost,https://137-184-191-10.sslip.io|" \
+$   .env && rm .env.bak
+(exit 0)
+
+----- url-check
+$ grep -E '^(BUZZ_IMAGE|BUZZ_DOMAIN|RELAY_URL|BUZZ_MEDIA_BASE_URL|BUZZ_MEDIA_SERVER_DOMAIN|BUZZ_CORS_ORIGINS)=' .env
+BUZZ_IMAGE=ghcr.io/block/buzz:sha-d1b7da4
+BUZZ_DOMAIN=137-184-191-10.sslip.io
+RELAY_URL=wss://137-184-191-10.sslip.io
+BUZZ_MEDIA_BASE_URL=https://137-184-191-10.sslip.io/media
+BUZZ_MEDIA_SERVER_DOMAIN=137-184-191-10.sslip.io
+BUZZ_CORS_ORIGINS=tauri://localhost,http://tauri.localhost,https://137-184-191-10.sslip.io
+(exit 0)
+PASS  six URL/version lines
+
+----- pair-url
+$ grep -q '^BUZZ_PAIRING_RELAY_URL=' .env || echo "BUZZ_PAIRING_RELAY_URL=wss://137-184-191-10.sslip.io/pair" >> .env
+(exit 0)
+PASS  pairing URL, one line
+
+##### 9. Bundle edits: MinIO images, phone pairing
+
+----- minio
+$ sed -i.bak \
+$   -e 's|image: quay.io/minio/minio:.*|image: ghcr.io/block/buzz-minio:latest|' \
+$   -e 's|image: quay.io/minio/mc:.*|image: ghcr.io/block/buzz-minio:latest|' \
+$   compose.yml && rm compose.yml.bak
+(exit 0)
+
+----- minio-check
+$ grep -n 'image:.*buzz-minio' compose.yml
+88:    image: ghcr.io/block/buzz-minio:latest
+106:    image: ghcr.io/block/buzz-minio:latest
+(exit 0)
+PASS  two MinIO images swapped
+
+----- pair-service
+$ printf '%s\n' \
+$   '  pair-relay:' \
+$   '    image: ${BUZZ_IMAGE:-ghcr.io/block/buzz:main}' \
+$   '    entrypoint: ["/usr/local/bin/buzz-pair-relay"]' \
+$   '    environment: {BUZZ_PAIR_RELAY_BIND_ADDR: "0.0.0.0:5000"}' \
+$   '    ports: ["127.0.0.1:5000:5000"]' \
+$   '    restart: unless-stopped' \
+$   '    networks: [buzz-net]' |
+$   sed -i.bak '/^services:$/r /dev/stdin' compose.yml && rm compose.yml.bak
+$ 
+(exit 0)
+PASS  pairing service in compose.yml
+PASS  compose.yml still parses, with pair-relay
+
+----- pair-route
+$ sed -i.bak 's|^  reverse_proxy relay:3000$|  reverse_proxy /pair* pair-relay:5000\n  reverse_proxy relay:3000|' Caddyfile && rm Caddyfile.bak
+$ 
+(exit 0)
+PASS  Caddy routes /pair
+PASS  .env is private after the edits
+
+##### 10. Start it
+PASS  run.sh start returned 0 (43s)
+
+----- status
+$ BUZZ_COMPOSE_TLS=true ./run.sh status
+NAME                     IMAGE                             COMMAND                  SERVICE      CREATED          STATUS                    PORTS
+buzz-prod-caddy-1        caddy:2-alpine                    "caddy run --config …"   caddy        24 seconds ago   Up 1 second               0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp, 443/udp, 2019/tcp
+buzz-prod-minio-1        ghcr.io/block/buzz-minio:latest   "minio server /data …"   minio        25 seconds ago   Up 23 seconds (healthy)   
+buzz-prod-pair-relay-1   ghcr.io/block/buzz:sha-d1b7da4    "/usr/local/bin/buzz…"   pair-relay   25 seconds ago   Up 23 seconds             3000/tcp, 8080/tcp, 9102/tcp, 127.0.0.1:5000->5000/tcp
+buzz-prod-postgres-1     postgres:17-alpine                "docker-entrypoint.s…"   postgres     25 seconds ago   Up 24 seconds (healthy)   5432/tcp
+buzz-prod-redis-1        redis:7-alpine                    "docker-entrypoint.s…"   redis        25 seconds ago   Up 23 seconds (healthy)   6379/tcp
+buzz-prod-relay-1        ghcr.io/block/buzz:sha-d1b7da4    "/usr/local/bin/buzz…"   relay        25 seconds ago   Up 16 seconds (healthy)   3000/tcp, 8080/tcp, 9102/tcp
+(exit 0)
+PASS  relay up (healthy)
+PASS  postgres up (healthy)
+PASS  redis up (healthy)
+PASS  minio up (healthy)
+PASS  caddy up
+PASS  pair-relay up
+
+##### 11. Check that it answers
+
+----- liveness
+$ curl -fsS https://137-184-191-10.sslip.io/_liveness
+ok(exit 0)
+PASS  https liveness (5s including the certificate)
+
+----- cert
+$ echo | openssl s_client -connect 137-184-191-10.sslip.io:443 -servername 137-184-191-10.sslip.io 2>/dev/null | openssl x509 -noout -issuer -subject
+issuer=C = US, O = Let's Encrypt, CN = YE2
+subject=CN = 137-184-191-10.sslip.io
+(exit 0)
+
+----- port3000
+$ curl -s -m 5 -o /dev/null -w '%{http_code}' http://137.184.191.10:3000/_liveness || echo ' closed'
+000 closed
+(exit 0)
+PASS  port 3000 not reachable from outside
+
+----- cors
+$ curl -s -o /dev/null -D - -X OPTIONS https://137-184-191-10.sslip.io/info -H 'Origin: tauri://localhost' -H 'Access-Control-Request-Method: GET' -H 'Access-Control-Request-Headers: authorization' | grep -i '^access-control-allow-origin'
+access-control-allow-origin: tauri://localhost
+(exit 0)
+PASS  CORS lets Buzz Desktop in
+PASS  phones reach the pairing service at /pair (WebSocket)
+
+----- port5000
+$ curl -s -m 5 -o /dev/null -w '%{http_code}' http://137.184.191.10:5000/ || echo ' closed'
+000 closed
+(exit 0)
+PASS  port 5000 not reachable from outside
+
+passed: 30  failed: 0
+INFO  relay identity 25b634f58aba26c8fe327ddf5584663387686b7c5402a477a86834fe216ce6f0 (from its NIP-11 document)
+INFO  community 9f77a9e8-f41e-4678-94b3-3b9dc3ec9a1a
+
+===== The owner is the owner
+
+----- list-members
+$ ./run.sh list-members
+pubkey                                                             role     added_by                                                           created_at
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+aac38aa2961f48c1424980e189a28debe937d42b13d45b0083e90fc901448cd9   owner    -                                                                  2026-10-05T17:46:24Z
+(exit 0)
+
+passed: 0  failed: 0
+PASS  RELAY_OWNER_PUBKEY became the owner
+
+===== Members post and read; a non-member is refused
+PASS  owner creates a channel
+PASS  owner posts
+
+----- add-member
+$ ./run.sh add-member npub1kk0wdny69sp4xmah9p5nenxr4mxgs4f07nqkevxlq7lp9c4rarxsg48jkf --role member
+added b59ee6cc9a2c03536fb728693cccc3aecc88552ff4c16cb0df07be12e2a3e8cd as member
+(exit 0)
+PASS  add-member
+
+passed: 1  failed: 0
+PASS  member joins the channel
+PASS  member posts
+PASS  non-member refused: relay error 403: relay_membership_required
+PASS  owner reads both messages
+
+===== Files
+PASS  member uploads a file to https://137-184-191-10.sslip.io/media
+PASS  owner downloads it intact
+INFO  the file's URL without auth answers HTTP 401
+
+===== Phones can reach the pairing service
+PASS  the relay names its pairing service, wss://137-184-191-10.sslip.io/pair
+PASS  WebSocket upgrade at https://137-184-191-10.sslip.io/pair
+
+===== Back up, lose the server's data, restore onto a fresh checkout
+
+----- backup
+$ mkdir -p ~/buzz-backup && chmod 700 ~/buzz-backup
+$ docker compose stop relay
+$ docker compose exec -T postgres pg_dump -U buzz -Fc buzz > ~/buzz-backup/postgres.dump < /dev/null
+$ for v in minio-data git-data; do
+$   docker run --rm -v buzz-prod_buzz-$v:/data:ro -v ~/buzz-backup:/backup alpine \
+$     tar czf /backup/$v.tgz -C /data .
+$ done
+$ cp .env ~/buzz-backup/env
+$ docker compose start relay
+ Container buzz-prod-relay-1 Stopping 
+ Container buzz-prod-relay-1 Stopped 
+Unable to find image 'alpine:latest' locally
+latest: Pulling from library/alpine
+6d0606d1815c: Download complete
+797dd00a0fc7: Download complete
+Digest: sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
+Status: Downloaded newer image for alpine:latest
+ Container buzz-prod-minio-1 Waiting 
+ Container buzz-prod-minio-1 Healthy 
+ Container buzz-prod-minio-init-1 Starting 
+ Container buzz-prod-minio-init-1 Started 
+ Container buzz-prod-redis-1 Waiting 
+ Container buzz-prod-minio-1 Waiting 
+ Container buzz-prod-minio-init-1 Waiting 
+ Container buzz-prod-postgres-1 Waiting 
+ Container buzz-prod-postgres-1 Healthy 
+ Container buzz-prod-minio-init-1 Exited 
+ Container buzz-prod-minio-1 Healthy 
+ Container buzz-prod-redis-1 Healthy 
+ Container buzz-prod-relay-1 Starting 
+ Container buzz-prod-relay-1 Started 
+(exit 0)
+PASS  backup
+
+----- backup-files
+$ ls -la ~/buzz-backup
+total 396
+drwx------ 2 root root   4096 Oct  5 17:47 .
+drwx------ 7 root root   4096 Oct  5 17:47 ..
+-rw------- 1 root root   4032 Oct  5 17:47 env
+-rw-r--r-- 1 root root    120 Oct  5 17:47 git-data.tgz
+-rw-r--r-- 1 root root  75923 Oct  5 17:47 minio-data.tgz
+-rw-r--r-- 1 root root 309226 Oct  5 17:47 postgres.dump
+(exit 0)
+PASS  backup has postgres.dump
+PASS  backup has minio-data.tgz
+PASS  backup has git-data.tgz
+PASS  backup has env
+PASS  relay back up after the backup
+
+passed: 6  failed: 0
+
+----- wipe
+$ BUZZ_COMPOSE_TLS=true ./run.sh stop
+$ docker volume rm buzz-prod_buzz-postgres-data buzz-prod_buzz-minio-data buzz-prod_buzz-git-data
+$ cd /root && rm -rf buzz
+ Container buzz-prod-caddy-1 Stopping 
+ Container buzz-prod-pair-relay-1 Stopping 
+ Container buzz-prod-caddy-1 Stopped 
+ Container buzz-prod-caddy-1 Removing 
+ Container buzz-prod-caddy-1 Removed 
+ Container buzz-prod-relay-1 Stopping 
+ Container buzz-prod-relay-1 Stopped 
+ Container buzz-prod-relay-1 Removing 
+ Container buzz-prod-relay-1 Removed 
+ Container buzz-prod-redis-1 Stopping 
+ Container buzz-prod-postgres-1 Stopping 
+ Container buzz-prod-minio-init-1 Stopping 
+ Container buzz-prod-minio-init-1 Stopped 
+ Container buzz-prod-minio-init-1 Removing 
+ Container buzz-prod-minio-init-1 Removed 
+ Container buzz-prod-minio-1 Stopping 
+ Container buzz-prod-redis-1 Stopped 
+ Container buzz-prod-redis-1 Removing 
+ Container buzz-prod-redis-1 Removed 
+ Container buzz-prod-minio-1 Stopped 
+ Container buzz-prod-minio-1 Removing 
+ Container buzz-prod-minio-1 Removed 
+ Container buzz-prod-postgres-1 Stopped 
+ Container buzz-prod-postgres-1 Removing 
+ Container buzz-prod-postgres-1 Removed 
+ Container buzz-prod-pair-relay-1 Stopped 
+ Container buzz-prod-pair-relay-1 Removing 
+ Container buzz-prod-pair-relay-1 Removed 
+ Network buzz-prod_buzz-net Removing 
+ Network buzz-prod_buzz-net Removed 
+buzz-prod_buzz-postgres-data
+buzz-prod_buzz-minio-data
+buzz-prod_buzz-git-data
+(exit 0)
+PASS  wipe
+
+passed: 1  failed: 0
+PASS  the relay is gone after the wipe
+PASS  fresh checkout
+
+----- pair-service
+$ printf '%s\n' \
+$   '  pair-relay:' \
+$   '    image: ${BUZZ_IMAGE:-ghcr.io/block/buzz:main}' \
+$   '    entrypoint: ["/usr/local/bin/buzz-pair-relay"]' \
+$   '    environment: {BUZZ_PAIR_RELAY_BIND_ADDR: "0.0.0.0:5000"}' \
+$   '    ports: ["127.0.0.1:5000:5000"]' \
+$   '    restart: unless-stopped' \
+$   '    networks: [buzz-net]' |
+$   sed -i.bak '/^services:$/r /dev/stdin' compose.yml && rm compose.yml.bak
+$ 
+(exit 0)
+PASS  pairing service in compose.yml
+PASS  compose.yml still parses, with pair-relay
+
+----- pair-route
+$ sed -i.bak 's|^  reverse_proxy relay:3000$|  reverse_proxy /pair* pair-relay:5000\n  reverse_proxy relay:3000|' Caddyfile && rm Caddyfile.bak
+$ 
+(exit 0)
+PASS  Caddy routes /pair
+PASS  fresh checkout at the backup's commit
+
+----- restore
+$ cp ~/buzz-backup/env .env
+$ docker compose create
+$ for v in minio-data git-data; do
+$   docker run --rm -v buzz-prod_buzz-$v:/data -v ~/buzz-backup:/backup alpine \
+$     tar xzf /backup/$v.tgz -C /data
+$ done
+$ docker compose up -d --wait postgres
+$ docker compose exec -T postgres pg_restore -U buzz -d buzz < ~/buzz-backup/postgres.dump
+$ BUZZ_COMPOSE_TLS=true ./run.sh start
+ Network buzz-prod_buzz-net Creating 
+ Network buzz-prod_buzz-net Creating 
+ Volume buzz-prod_buzz-git-data Creating 
+ Volume buzz-prod_buzz-git-data Creating 
+ Volume buzz-prod_buzz-minio-data Creating 
+ Volume buzz-prod_buzz-minio-data Creating 
+ Volume buzz-prod_buzz-postgres-data Creating 
+ Volume buzz-prod_buzz-postgres-data Creating 
+ Volume buzz-prod_buzz-git-data Created 
+ Volume buzz-prod_buzz-git-data Created 
+ Volume buzz-prod_buzz-minio-data Created 
+ Volume buzz-prod_buzz-minio-data Created 
+ Volume buzz-prod_buzz-postgres-data Created 
+ Volume buzz-prod_buzz-postgres-data Created 
+ Network buzz-prod_buzz-net Created 
+ Network buzz-prod_buzz-net Created 
+ Container buzz-prod-minio-1 Creating 
+ Container buzz-prod-postgres-1 Creating 
+ Container buzz-prod-pair-relay-1 Creating 
+ Container buzz-prod-redis-1 Creating 
+ Container buzz-prod-postgres-1 Created 
+ Container buzz-prod-pair-relay-1 Created 
+ Container buzz-prod-redis-1 Created 
+ Container buzz-prod-minio-1 Created 
+ Container buzz-prod-minio-init-1 Creating 
+ Container buzz-prod-minio-init-1 Created 
+ Container buzz-prod-relay-1 Creating 
+ Container buzz-prod-relay-1 Created 
+ Container buzz-prod-postgres-1 Starting 
+ Container buzz-prod-postgres-1 Started 
+ Container buzz-prod-postgres-1 Waiting 
+ Container buzz-prod-postgres-1 Healthy 
+ Container buzz-prod-postgres-1 Running 
+ Container buzz-prod-relay-1 Recreate 
+ Container buzz-prod-relay-1 Recreated 
+ Container buzz-prod-caddy-1 Creating 
+ Container buzz-prod-caddy-1 Created 
+ Container buzz-prod-redis-1 Starting 
+ Container buzz-prod-minio-1 Starting 
+ Container buzz-prod-pair-relay-1 Starting 
+ Container buzz-prod-redis-1 Started 
+ Container buzz-prod-minio-1 Started 
+ Container buzz-prod-minio-1 Waiting 
+ Container buzz-prod-pair-relay-1 Started 
+ Container buzz-prod-minio-1 Healthy 
+ Container buzz-prod-minio-init-1 Starting 
+ Container buzz-prod-minio-init-1 Started 
+ Container buzz-prod-postgres-1 Waiting 
+ Container buzz-prod-redis-1 Waiting 
+ Container buzz-prod-minio-1 Waiting 
+ Container buzz-prod-minio-init-1 Waiting 
+ Container buzz-prod-postgres-1 Healthy 
+ Container buzz-prod-minio-1 Healthy 
+ Container buzz-prod-redis-1 Healthy 
+ Container buzz-prod-minio-init-1 Exited 
+ Container buzz-prod-relay-1 Starting 
+ Container buzz-prod-relay-1 Started 
+ Container buzz-prod-relay-1 Waiting 
+ Container buzz-prod-relay-1 Healthy 
+ Container buzz-prod-caddy-1 Starting 
+ Container buzz-prod-caddy-1 Started 
+ Container buzz-prod-relay-1 Waiting 
+ Container buzz-prod-postgres-1 Waiting 
+ Container buzz-prod-redis-1 Waiting 
+ Container buzz-prod-caddy-1 Waiting 
+ Container buzz-prod-minio-1 Waiting 
+ Container buzz-prod-minio-init-1 Waiting 
+ Container buzz-prod-pair-relay-1 Waiting 
+ Container buzz-prod-minio-init-1 Exited 
+ Container buzz-prod-postgres-1 Healthy 
+ Container buzz-prod-minio-1 Healthy 
+ Container buzz-prod-caddy-1 Healthy 
+ Container buzz-prod-relay-1 Healthy 
+ Container buzz-prod-pair-relay-1 Healthy 
+ Container buzz-prod-redis-1 Healthy 
+(exit 0)
+PASS  restore
+PASS  no volume warnings
+PASS  relay answers after the restore
+PASS  pairing answers after the restore
+
+passed: 9  failed: 0
+PASS  messages survived the restore
+PASS  the file survived the restore
+
+----- list-members
+$ ./run.sh list-members
+pubkey                                                             role     added_by                                                           created_at
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+aac38aa2961f48c1424980e189a28debe937d42b13d45b0083e90fc901448cd9   owner    -                                                                  2026-10-05T17:46:24Z
+b59ee6cc9a2c03536fb728693cccc3aecc88552ff4c16cb0df07be12e2a3e8cd   member   -                                                                  2026-10-05T17:46:50Z
+(exit 0)
+
+passed: 0  failed: 0
+PASS  membership survived the restore
+PASS  same relay identity after the restore
+PASS  same community after the restore
+PASS  member posts after the restore
+
+===== Upgrade to sha-8746bfe
+
+----- newer
+$ OLD=$(grep '^BUZZ_IMAGE=' .env | cut -d: -f2)
+$ git fetch -q origin
+$ git merge-base --is-ancestor ${OLD#sha-} ${TAG#sha-} && echo newer
+newer
+(exit 0)
+PASS  the new tag is newer
+
+----- move-bundle
+$ git checkout compose.yml Caddyfile
+$ git checkout -q ${TAG#sha-}
+Updated 2 paths from the index
+(exit 0)
+PASS  bundle moved
+
+----- minio-again
+$ sed -i.bak \
+$   -e 's|image: quay.io/minio/minio:.*|image: ghcr.io/block/buzz-minio:latest|' \
+$   -e 's|image: quay.io/minio/mc:.*|image: ghcr.io/block/buzz-minio:latest|' \
+$   compose.yml && rm compose.yml.bak
+(exit 0)
+PASS  MinIO edit redone
+
+----- pair-service
+$ printf '%s\n' \
+$   '  pair-relay:' \
+$   '    image: ${BUZZ_IMAGE:-ghcr.io/block/buzz:main}' \
+$   '    entrypoint: ["/usr/local/bin/buzz-pair-relay"]' \
+$   '    environment: {BUZZ_PAIR_RELAY_BIND_ADDR: "0.0.0.0:5000"}' \
+$   '    ports: ["127.0.0.1:5000:5000"]' \
+$   '    restart: unless-stopped' \
+$   '    networks: [buzz-net]' |
+$   sed -i.bak '/^services:$/r /dev/stdin' compose.yml && rm compose.yml.bak
+$ 
+(exit 0)
+PASS  pairing service in compose.yml
+PASS  compose.yml still parses, with pair-relay
+
+----- pair-route
+$ sed -i.bak 's|^  reverse_proxy relay:3000$|  reverse_proxy /pair* pair-relay:5000\n  reverse_proxy relay:3000|' Caddyfile && rm Caddyfile.bak
+$ 
+(exit 0)
+PASS  Caddy routes /pair
+PASS  bundle at the new tag's commit
+
+----- new-settings
+$ comm -13 <(grep -oE '^[A-Z][A-Z0-9_]*=' .env | sort) <(grep -oE '^[A-Z][A-Z0-9_]*=' .env.example | sort)
+(exit 0)
+PASS  settings the new bundle added
+
+----- set-image
+$ sed -i.bak "s|^BUZZ_IMAGE=.*|BUZZ_IMAGE=ghcr.io/block/buzz:$TAG|" .env && rm .env.bak
+(exit 0)
+PASS  BUZZ_IMAGE
+
+----- upgrade
+$ BUZZ_COMPOSE_TLS=true ./run.sh upgrade
+ Image caddy:2-alpine Pulling 
+ Image ghcr.io/block/buzz:sha-8746bfe Pulling 
+ Image redis:7-alpine Pulling 
+ Image ghcr.io/block/buzz-minio:latest Pulling 
+ Image postgres:17-alpine Pulling 
+ Image ghcr.io/block/buzz-minio:latest Pulled 
+ c9b9f3249066 Pulling fs layer 0B
+ d7ff2ef6c333 Pulling fs layer 0B
+ 4d5bf4799dfd Pulling fs layer 0B
+ 44136fa355b3 Already exists 0B
+ 4d5bf4799dfd Downloading 1.049MB
+ d7ff2ef6c333 Downloading 1.049MB
+ 4d5bf4799dfd Downloading 2.097MB
+ d7ff2ef6c333 Downloading 3.146MB
+ 4d5bf4799dfd Downloading 4.194MB
+ c9b9f3249066 Downloading 1.863MB
+ d7ff2ef6c333 Downloading 3.146MB
+ 4d5bf4799dfd Downloading 4.194MB
+ 3b8a6a199938 Downloading 51.58kB
+ 3b8a6a199938 Download complete 0B
+ c9b9f3249066 Download complete 0B
+ d7ff2ef6c333 Downloading 4.268MB
+ 4d5bf4799dfd Downloading 5.918MB
+ Image caddy:2-alpine Pulled 
+ d7ff2ef6c333 Downloading 7.34MB
+ 4d5bf4799dfd Download complete 0B
+ Image redis:7-alpine Pulled 
+ d7ff2ef6c333 Downloading 9.437MB
+ d7ff2ef6c333 Downloading 12.49MB
+ Image postgres:17-alpine Pulled 
+ d7ff2ef6c333 Downloading 14.68MB
+ d7ff2ef6c333 Downloading 17.5MB
+ d7ff2ef6c333 Downloading 22.02MB
+ d7ff2ef6c333 Downloading 24.94MB
+ d7ff2ef6c333 Download complete 0B
+ d7ff2ef6c333 Extracting 1B
+ d7ff2ef6c333 Extracting 1B
+ d7ff2ef6c333 Extracting 1B
+ d7ff2ef6c333 Extracting 1B
+ d7ff2ef6c333 Extracting 1B
+ d7ff2ef6c333 Extracting 1B
+ d7ff2ef6c333 Extracting 1B
+ d7ff2ef6c333 Extracting 1B
+ d7ff2ef6c333 Extracting 1B
+ d7ff2ef6c333 Extracting 1B
+ d7ff2ef6c333 Extracting 1B
+ d7ff2ef6c333 Extracting 2B
+ d7ff2ef6c333 Extracting 2B
+ d7ff2ef6c333 Extracting 2B
+ d7ff2ef6c333 Extracting 2B
+ d7ff2ef6c333 Extracting 2B
+ 4d5bf4799dfd Extracting 1B
+ d7ff2ef6c333 Pull complete 0B
+ 4d5bf4799dfd Extracting 1B
+ 4d5bf4799dfd Extracting 1B
+ c9b9f3249066 Extracting 1B
+ 4d5bf4799dfd Pull complete 0B
+ c9b9f3249066 Pull complete 0B
+ Image ghcr.io/block/buzz:sha-8746bfe Pulled 
+ Container buzz-prod-caddy-1 Running 
+ Container buzz-prod-postgres-1 Running 
+ Container buzz-prod-redis-1 Running 
+ Container buzz-prod-minio-1 Running 
+ Container buzz-prod-pair-relay-1 Recreate 
+ Container buzz-prod-relay-1 Recreate 
+ Container buzz-prod-relay-1 Recreated 
+ Container buzz-prod-pair-relay-1 Recreated 
+ Container buzz-prod-minio-1 Waiting 
+ Container buzz-prod-pair-relay-1 Starting 
+ Container buzz-prod-pair-relay-1 Started 
+ Container buzz-prod-minio-1 Healthy 
+ Container buzz-prod-minio-init-1 Starting 
+ Container buzz-prod-minio-init-1 Started 
+ Container buzz-prod-minio-init-1 Waiting 
+ Container buzz-prod-postgres-1 Waiting 
+ Container buzz-prod-redis-1 Waiting 
+ Container buzz-prod-minio-1 Waiting 
+ Container buzz-prod-minio-1 Healthy 
+ Container buzz-prod-minio-init-1 Exited 
+ Container buzz-prod-redis-1 Healthy 
+ Container buzz-prod-postgres-1 Healthy 
+ Container buzz-prod-relay-1 Starting 
+ Container buzz-prod-relay-1 Started 
+ Container buzz-prod-relay-1 Waiting 
+ Container buzz-prod-relay-1 Healthy 
+ Container buzz-prod-pair-relay-1 Waiting 
+ Container buzz-prod-relay-1 Waiting 
+ Container buzz-prod-caddy-1 Waiting 
+ Container buzz-prod-postgres-1 Waiting 
+ Container buzz-prod-redis-1 Waiting 
+ Container buzz-prod-minio-1 Waiting 
+ Container buzz-prod-minio-init-1 Waiting 
+ Container buzz-prod-redis-1 Healthy 
+ Container buzz-prod-minio-init-1 Exited 
+ Container buzz-prod-pair-relay-1 Healthy 
+ Container buzz-prod-postgres-1 Healthy 
+ Container buzz-prod-minio-1 Healthy 
+ Container buzz-prod-caddy-1 Healthy 
+ Container buzz-prod-relay-1 Healthy 
+Back up these before upgrades and on a regular schedule:
+
+- deploy/compose/.env, especially BUZZ_RELAY_PRIVATE_KEY, DB/Redis/S3 secrets, and BUZZ_GIT_HOOK_HMAC_SECRET
+- The owner private key if bootstrap generated one for RELAY_OWNER_PUBKEY
+- Postgres data (prefer pg_dump or a quiesced volume snapshot)
+- MinIO/S3 bucket contents for media and git objects
+- buzz-git-data volume (BUZZ_GIT_REPO_PATH=/data/git)
+- Caddy data/config volumes if using compose.caddy.yml
+
+Keep Postgres + object/git state snapshots from the same maintenance window.
+(exit 0)
+PASS  run.sh upgrade
+PASS  relay answers after the upgrade
+PASS  pairing answers after the upgrade
+PASS  relay runs the new image
+
+----- members-after
+$ ./run.sh list-members < /dev/null
+pubkey                                                             role     added_by                                                           created_at
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+aac38aa2961f48c1424980e189a28debe937d42b13d45b0083e90fc901448cd9   owner    -                                                                  2026-10-05T17:46:24Z
+b59ee6cc9a2c03536fb728693cccc3aecc88552ff4c16cb0df07be12e2a3e8cd   member   -                                                                  2026-10-05T17:46:50Z
+(exit 0)
+
+----- status-after
+$ BUZZ_COMPOSE_TLS=true ./run.sh status
+NAME                     IMAGE                             COMMAND                  SERVICE      CREATED              STATUS                        PORTS
+buzz-prod-caddy-1        caddy:2-alpine                    "caddy run --config …"   caddy        About a minute ago   Up 47 seconds                 0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp, 443/udp, 2019/tcp
+buzz-prod-minio-1        ghcr.io/block/buzz-minio:latest   "minio server /data …"   minio        About a minute ago   Up About a minute (healthy)   
+buzz-prod-pair-relay-1   ghcr.io/block/buzz:sha-8746bfe    "/usr/local/bin/buzz…"   pair-relay   30 seconds ago       Up 19 seconds                 3000/tcp, 8080/tcp, 9102/tcp, 127.0.0.1:5000->5000/tcp
+buzz-prod-postgres-1     postgres:17-alpine                "docker-entrypoint.s…"   postgres     About a minute ago   Up About a minute (healthy)   5432/tcp
+buzz-prod-redis-1        redis:7-alpine                    "docker-entrypoint.s…"   redis        About a minute ago   Up About a minute (healthy)   6379/tcp
+buzz-prod-relay-1        ghcr.io/block/buzz:sha-8746bfe    "/usr/local/bin/buzz…"   relay        30 seconds ago       Up 17 seconds (healthy)       3000/tcp, 8080/tcp, 9102/tcp
+(exit 0)
+
+passed: 13  failed: 0
+INFO  relay version 0.2.1 before, 0.2.1 after
+PASS  messages survived the upgrade
+PASS  the file survived the upgrade
+PASS  same relay identity after the upgrade
+PASS  same community after the upgrade
+PASS  member posts after the upgrade
+PASS  owner reads it
+
+===== A person to try Buzz Desktop and a phone
+
+----- add-member
+$ ./run.sh add-member npub16dn9mjcq24r26nh4d2uefdv2qyvp865fx0t8hs88z20h32k6rdeq38fzv7 --role member
+added d3665dcb005546ad4ef56ab994b58a011813ea8933d67bc0e7129f78aada1b72 as member
+(exit 0)
+PASS  add-member
+
+passed: 1  failed: 0
+INFO  join from Buzz Desktop with wss://137-184-191-10.sslip.io, then pair a phone in Settings, Mobile
+
+===== RESULT
+relay: wss://137-184-191-10.sslip.io
+passed: 85  failed: 0

@@ -202,7 +202,7 @@ which is harmless.
     `tailscale serve` proxies WebSockets too.
 11. **Checks.** `./run.sh list-members` shows `$OWNER_HEX` with the role `owner`. Then run
     `check-relay.sh` from the agent's machine, as SKILL.md section 3 says: with the server's public
-    IP in `server` mode, and with the IP and `80 443 3000` in `private` mode, from a device on the
+    IP in `server` mode, and with the IP and `80 443 3000 5000` in `private` mode, from a device on the
     private network. It waits while Caddy gets its certificate. Then join, as SKILL.md section 4
     says.
 11P. **If other devices time out (`private`)** while `tailscale ping` works, the tailnet's access

@@ -5,10 +5,10 @@
 #
 # Usage: check-relay.sh <origin> [public-ip [port ...]]
 #   origin     https://buzz.example.org, or http://127.0.0.1:3000 for a local test
-#   public-ip  the server's public address; checks the listed ports are closed (default: 3000)
+#   public-ip  the server's public address; checks the listed ports are closed (default: 3000 5000)
 #
 #   check-relay.sh https://buzz.example.org 203.0.113.10                       # public server
-#   check-relay.sh https://buzz.tail1234.ts.net 203.0.113.10 80 443 3000      # private network
+#   check-relay.sh https://buzz.tail1234.ts.net 203.0.113.10 80 443 3000 5000 # private network
 #
 # Prints PASS or FAIL per check (SKIP for phone pairing on a relay without it) and exits non-zero
 # if any failed. Prints no secrets.
@@ -17,7 +17,7 @@ ORIGIN=${1:?usage: check-relay.sh <origin> [public-ip [port ...]]}
 ORIGIN=${ORIGIN%/}
 IP=${2:-}
 shift $(( $# < 2 ? $# : 2 ))
-PORTS=${*:-3000}
+PORTS=${*:-3000 5000}
 failed=0
 pass() { echo "PASS  $1"; }
 fail() { echo "FAIL  $1"; failed=1; }

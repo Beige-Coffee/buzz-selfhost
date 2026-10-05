@@ -187,7 +187,8 @@ which is harmless.
     `-minio-1` as `Up … (healthy)`, plus `buzz-prod-caddy-1` `Up` in `server` mode and
     `buzz-prod-pair-relay-1` `Up` in `server` and `private` modes. Caddy starts
     once the relay is healthy, so its uptime is shorter than the others'. `minio-init` runs once
-    and exits 0, so it shows `Exited`. In `private` and `local` modes the relay's port reads
+    and exits, so `status` leaves it out; `docker compose ps -a minio-init` shows `Exited (0)`.
+    In `private` and `local` modes the relay's port reads
     `127.0.0.1:3000->3000/tcp` (step 8P). On a server
     the containers restart on their own after a reboot; with Docker Desktop, only once Docker
     Desktop is running again.

@@ -62,7 +62,7 @@ which is harmless.
 
    Check: `tailscale status --json | python3 -c 'import json,sys; s=json.load(sys.stdin); print(s["Self"]["DNSName"].rstrip("."), "HTTPS on" if s.get("CertDomains") else "HTTPS off")'`
    prints the name and `HTTPS on`, like `buzz.tail1234.ts.net HTTPS on`. The name is `DOMAIN` and
-   `HOST`; confirm it with the user before step 8 (if a machine named `buzz` already exists,
+   `HOST`; confirm it with the user before step 8, unless it's exactly the name they chose (if a machine named `buzz` already exists,
    Tailscale picks `buzz-1`). Without a tag, ask them to turn off key expiry for this machine
    (admin console, Machines, the machine's menu, Disable key expiry): keys expire after 180 days
    by default, and the relay would drop off the network.

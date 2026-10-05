@@ -9,6 +9,7 @@
 | `BUZZ_COMPOSE_TLS=true: command not found` | The flag was stored in a variable and expanded. Type it before `./run.sh`, or `export BUZZ_COMPOSE_TLS=true`. |
 | `docker: 'compose' is not a docker command` | Install Docker from Docker's repository (compose.md step 3). |
 | `permission denied` on the Docker socket | The docker group applies at next login: log out and in, or prefix with `sudo`. |
+| A check fails right after a long step (Docker's install, the clone, the start) | The step may still be running: the agent's command tool stopped waiting, but the server didn't. Wait for it (`pgrep -a apt-get`, `pgrep -a git`), then rerun the check. |
 | `Could not get lock /var/lib/dpkg/lock-frontend` | First-boot updates are still running: `cloud-init status --wait`, then retry. |
 | `.env still contains CHANGE_ME placeholders` | `grep -nE '^[A-Za-z_][A-Za-z0-9_]*=.*CHANGE_ME' .env` shows which step didn't write. |
 | An error about `!reset` | Compose is older than 2.24.4. |

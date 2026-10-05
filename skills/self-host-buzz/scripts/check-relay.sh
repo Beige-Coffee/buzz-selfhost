@@ -36,9 +36,10 @@ version=$(field version)
 [ -n "$version" ] && pass "relay version $version" || fail "relay info (NIP-11) didn't answer"
 
 # Buzz Desktop joins over a WebSocket: the upgrade must come back 101. The connection then stays
-# open, so curl stops at its time limit; the status code is what counts.
+# open, so curl stops at its time limit; the status code is what counts. The short limits keep a
+# private server's full check under 30 seconds, which some agents' command tools stop at.
 upgrade() {
-  curl -s --http1.1 -m 5 -o /dev/null -w '%{http_code}' -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+  curl -s --http1.1 -m 3 -o /dev/null -w '%{http_code}' -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
     -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' "$1" 2>/dev/null
 }
 ws=$(upgrade "$ORIGIN/")
@@ -63,7 +64,7 @@ if [ -n "$IP" ]; then
   for port in $PORTS; do
     # a plain TCP connect: any listener counts as open, whatever it would answer
     state=$(python3 -c 'import socket,sys
-s = socket.socket(); s.settimeout(5)
+s = socket.socket(); s.settimeout(3)
 try:
     s.connect((sys.argv[1], int(sys.argv[2]))); print("open")
 except OSError:

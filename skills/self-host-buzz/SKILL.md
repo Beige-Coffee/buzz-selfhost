@@ -35,12 +35,16 @@ Every command was run end to end, except where a step says otherwise.
    key into their password manager themselves.
 2. **Ask first** before anything that costs money, changes DNS, deletes volumes or data, changes a
    firewall, or changes the user's account settings. A public server serves ports 80 and 443 to
-   the internet: confirm that when you confirm the setup.
+   the internet: confirm that when you confirm the setup. Use only the access the user gives you:
+   if a server's address or login is missing or doesn't work, ask, rather than looking it up with
+   cloud credentials found on the machine.
 3. **Check every step.** Run the step's check and show its output. A check passes when its output
    matches, whatever the exit status (`grep -c` exits 1 when it counts 0). At the first failing
    check, stop and look it up in [troubleshooting](references/troubleshooting.md). Run the steps
    one at a time, in order, and each check only after its step has finished: a check run
-   alongside its step fails for no reason.
+   alongside its step fails for no reason. Some steps take minutes (Docker's install, the clone,
+   the first start): if your command tool stops waiting first, the server keeps going, so wait for
+   the step to end before its check.
 4. **The URL is permanent.** The relay keys the community on the exact `RELAY_URL`; changing it
    later starts an empty community. Confirm the domain with the user before it's written. Names
    derived from an IP address (`203-0-113-10.sslip.io`, `nip.io`) die with that address: use them

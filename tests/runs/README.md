@@ -10,6 +10,9 @@ on Oct 5, with secrets masked.
 
 | When (PDT) | Run | Relay version | Result |
 |---|---|---|---|
+| Oct 5 12:40 | [Goose with DeepSeek: private network, then add a member](2026-10-05-1240-crossagent-goose-deepseek-private-vps.md) | `sha-fd885b5` | Passed in one go, in 8 minutes, all commands on its own server. About $0.23. |
+| Oct 5 12:28 | [Codex: private network, then add a member](2026-10-05-1228-crossagent-codex-private-vps.md) | `sha-fd885b5` | Passed, in 10 minutes. Long steps outlived its 30-second command tool; it waited and reran the checks. |
+| Oct 5 12:14 | [Private network: first attempts](2026-10-05-1214-crossagent-private-first-attempts.md) | | A runner bug gave both agents an empty server address. Codex stopped and asked; Goose with Gemini used the cloud token on disk and changed a firewall without asking. Gemini then kept stopping after each step. |
 | Oct 5 11:57 | [Codex: public VPS, then add a member](2026-10-05-1157-crossagent-codex-public-vps.md) | `sha-7f6ffd5` | Passed, in about 4 minutes. Its two false failures came from running checks alongside their steps. |
 | Oct 5 11:57 | [Goose with Gemini: public VPS, then add a member](2026-10-05-1157-crossagent-goose-public-vps.md) | `sha-7f6ffd5` | The install passed; it stopped before the second request and finished it when told to continue. About $0.17. |
 | Oct 5 10:43 | [Script: VPS, with phone pairing](2026-10-05-1043-vps-sha-d1b7da4.log) | `sha-d1b7da4`, then `sha-8746bfe` | 85 of 85, through a backup, restore and upgrade. An iPhone then paired and posted. |

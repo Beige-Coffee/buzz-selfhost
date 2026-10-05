@@ -136,22 +136,6 @@ const PRACTICES: Practice[] = [
   },
 ];
 
-const KEY = "buzz-selfhost-practices-v1";
-const load = (): Set<string> => {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(KEY) ?? "[]") as string[]);
-  } catch {
-    return new Set();
-  }
-};
-const save = (s: Set<string>) => {
-  try {
-    localStorage.setItem(KEY, JSON.stringify([...s]));
-  } catch {
-    /* ignore */
-  }
-};
-const plain = (html: string) => html.replace(/<[^>]+>/g, "");
 /** A practice as it reads on this track. */
 const view = (p: Practice, t: Track) => {
   const o = t === "k8s" || t === "k8s-private" ? p.k8s : isPrivate(t) ? p.private : undefined;
@@ -166,7 +150,6 @@ const view = (p: Practice, t: Track) => {
 const columns = <T>(list: T[]): T[][] => [list.slice(0, Math.ceil(list.length / 2)), list.slice(Math.ceil(list.length / 2))];
 
 export function mountPractices(host: HTMLElement): void {
-  const done = load();
   host.classList.add("practices");
 
   const visible = () => {
@@ -178,10 +161,8 @@ export function mountPractices(host: HTMLElement): void {
     const t = trackOf();
     const list = visible();
     const row = (p: Practice) => {
-      const on = done.has(p.id);
       const v = view(p, t);
-      return `<li class="bp-row${on ? " on" : ""}" data-id="${p.id}">
-        <button type="button" class="bp-check" aria-pressed="${on}" aria-label="We follow this: ${plain(v.title)}"></button>
+      return `<li class="bp-row" data-id="${p.id}">
         <details class="bp-d">
           <summary><span class="bp-title">${v.title}</span><span class="bp-tag">${p.tag}</span></summary>
           <div class="bp-more">
@@ -192,37 +173,8 @@ export function mountPractices(host: HTMLElement): void {
         </details>
       </li>`;
     };
-    host.innerHTML = `
-      <div class="bp-bar">
-        <div class="bp-count"><span class="bp-ring"><i></i></span><span class="bp-text"></span></div>
-      </div>
-      <div class="bp-cols">${columns(list).map((col) => `<ol class="bp-grid">${col.map(row).join("")}</ol>`).join("")}</div>`;
-    count();
+    host.innerHTML = `<div class="bp-cols">${columns(list).map((col) => `<ol class="bp-grid">${col.map(row).join("")}</ol>`).join("")}</div>`;
   };
-
-  const count = () => {
-    const list = visible();
-    const n = list.filter((p) => done.has(p.id)).length;
-    host.querySelector<HTMLElement>(".bp-text")!.textContent = `${n} of ${list.length} in place`;
-    host.querySelector<HTMLElement>(".bp-ring")!.style.setProperty("--p", String(n / list.length));
-  };
-
-  host.addEventListener("click", (e) => {
-    const t = e.target as HTMLElement;
-    const check = t.closest<HTMLButtonElement>(".bp-check");
-    if (check) {
-      const card = check.closest<HTMLElement>(".bp-row")!;
-      const id = card.dataset.id!;
-      const on = !done.has(id);
-      if (on) done.add(id);
-      else done.delete(id);
-      check.setAttribute("aria-pressed", String(on));
-      card.classList.toggle("on", on);
-      save(done);
-      count();
-      return;
-    }
-  });
 
   let track = trackOf();
   render();

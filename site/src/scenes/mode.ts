@@ -1,7 +1,7 @@
 import { getValues, onValues, setValues, type Mode } from "../lib/values";
 
 const NOTES: Record<Mode, string> = {
-  agent: "Your agent runs the tested steps and checks, and stops to ask you before anything that costs money or can't be undone.",
+  agent: "Your agent runs the tested steps and asks you before anything that costs money or can't be undone.",
   steps: "Every command, with the output to expect and what to do when it differs.",
 };
 

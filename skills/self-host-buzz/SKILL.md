@@ -113,8 +113,8 @@ Once the setup's own steps pass, run from this machine:
 
 ```bash
 bash $SKILL/scripts/check-relay.sh "$ORIGIN"                          # local, Railway
-bash $SKILL/scripts/check-relay.sh "$ORIGIN" <public IP>              # public server: 3000 closed
-bash $SKILL/scripts/check-relay.sh "$ORIGIN" <public IP> 80 443 3000  # private server: nothing public
+bash $SKILL/scripts/check-relay.sh "$ORIGIN" <public IP>              # public server: 3000 and 5000 closed
+bash $SKILL/scripts/check-relay.sh "$ORIGIN" <public IP> 80 443 3000 5000  # private server: nothing public
 ```
 
 `<public IP>` is the server's public address, the one you SSH to. On Kubernetes, use the address

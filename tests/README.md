@@ -99,6 +99,8 @@ Logs: [runs/2026-10-05-1043-vps-sha-d1b7da4.log](runs/2026-10-05-1043-vps-sha-d1
 - Railway: check-relay.sh passed with the pairing service as its own service and name
   ([record](runs/2026-10-05-1250-railway-pairing.md)). Its start command had to be set in the
   dashboard or Railway's API: the CLI's `environment edit` changed nothing.
+- An iPhone with the App Store app then paired from Buzz Desktop and posted on both relays; each
+  pairing service logged the pairing.
 - Kubernetes on a private network: not covered yet.
 
 ## Results, 2026-10-05: other agents

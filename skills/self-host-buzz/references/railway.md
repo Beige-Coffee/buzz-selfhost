@@ -10,7 +10,7 @@ the directory step 2 links (`cd` there in every call if each runs in a fresh she
 that `railway status` names the project before changing anything.
 
 Plans cap the services an account's live projects can hold. The template adds 3 services and a
-bucket; past the cap the deploy fails with `Too many services in project`, even into a new
+bucket, and phone pairing (step 6) one more; past the cap the deploy fails with `Too many services in project`, even into a new
 project. `railway list` shows names, not the services that count, so deploy, and if it fails
 that way, stop and ask: deleting a project the user doesn't need (it makes room at once, though
 deleted projects stay listed for two days) or changing plans is their call. Volume sizes follow
@@ -60,4 +60,25 @@ account. Tell the user; growing them is a plan change.
    `SUCCESS` (the old deployment's `SUCCESS` shows first, so wait for the change), and
    `railway service list` shows `image: ghcr.io/block/buzz:$TAG` under `block/buzz:main`. The
    first command shows `0.2.0` before; the version afterwards often stays the same between tags.
-   Then check it, as SKILL.md section 3 says, with no IP, and join, as section 4 says.
+6. **Phone pairing.** Phones join by scanning a code from Buzz Desktop, through a pairing service
+   the template doesn't run. Add it as a fifth service, from the same image, with its own Railway
+   name (it counts against the plan's services):
+   ```bash
+   railway add --image ghcr.io/block/buzz:$TAG --service buzz-pair --variables "BUZZ_PAIR_RELAY_BIND_ADDR=0.0.0.0:5000"
+   railway domain --service buzz-pair --port 5000
+   ```
+   Set `PAIR` to the `*.up.railway.app` name the second command prints. Then the service must run
+   the pairing program instead of the relay: ask the user to open the `buzz-pair` service,
+   Settings, Deploy, and set Custom Start Command to `/usr/local/bin/buzz-pair-relay` (the CLI's
+   `railway environment edit --service-config buzz-pair deploy.startCommand …` answered `No
+   changes to apply` in testing). It redeploys on its own. Check:
+   `railway service logs -s buzz-pair | tail -3` shows `buzz-pair-relay listening on 0.0.0.0:5000`,
+   not `BUZZ_RELAY_PRIVATE_KEY must be set`. Then tell the relay where it is (it redeploys):
+   ```bash
+   railway variable set -s "block/buzz:main" BUZZ_PAIRING_RELAY_URL=wss://$PAIR
+   ```
+   Check: once `railway service status -s "block/buzz:main"` is back to `SUCCESS`, check-relay.sh
+   prints `PASS  phone pairing at wss://$PAIR`. An image upgrade moves both services:
+   `railway service source connect --image ghcr.io/block/buzz:$TAG --service buzz-pair` too.
+
+Then check it, as SKILL.md section 3 says, with no IP, and join, as section 4 says.

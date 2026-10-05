@@ -53,7 +53,9 @@ name from an IP, it only lives as long as the load balancer keeps it. Check:
 
 **3. Values.** Pin the image (the chart's default, `0.1.0`, dates from June 2026, before file
 reads required membership), replace the dead MinIO images (block/buzz#7880; note `:latest` can
-change under you), and let Buzz Desktop in (block/buzz#2872). The file holds no secrets, and
+change under you), let Buzz Desktop in (block/buzz#2872), and turn on the phone pairing service,
+which the chart runs but doesn't route: the last block adds a `/pair` route to it on the same
+name and certificate. The file holds no secrets, and
 upgrades reuse it: ask the user where to keep it, such as their infrastructure repository, and run
 steps 3 and 4 from that folder (create it if needed; `cat >` replaces a file already there).
 ```bash
@@ -84,10 +86,35 @@ ingress:
   tls:
     - hosts: [$DOMAIN]
       secretName: buzz-tls
+pairingRelay:
+  enabled: true
+  url: wss://$DOMAIN/pair
+extraManifests:
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: buzz-pairing
+    spec:
+      ingressClassName: traefik
+      tls:
+        - hosts: [$DOMAIN]
+          secretName: buzz-tls
+      rules:
+        - host: $DOMAIN
+          http:
+            paths:
+              - path: /pair
+                pathType: Prefix
+                backend:
+                  service:
+                    name: buzz-pairing
+                    port:
+                      number: 5000
 YAML
 ```
-Check: `grep -E '^(relayUrl|ownerPubkey):|^  tag:' buzz-values.yaml` shows `$TAG`, `wss://$DOMAIN`
-and `$OWNER_HEX`, not empty values (a shell that lost the variables writes blanks).
+Check: `grep -E '^(relayUrl|ownerPubkey):|^  tag:|^  url:' buzz-values.yaml` shows `$TAG`,
+`wss://$DOMAIN`, `$OWNER_HEX` and `wss://$DOMAIN/pair`, not empty values (a shell that lost the
+variables writes blanks).
 
 **4. Install.** About 80 to 100 seconds in testing; run it in the background if your tool times
 out sooner. Helm's notes say "Buzz 0.1.0": that's the chart's app version, not the relay's.
@@ -96,8 +123,8 @@ helm install buzz oci://ghcr.io/block/buzz/charts/buzz --version 0.1.10 \
   --namespace buzz --create-namespace -f buzz-values.yaml --wait --timeout 10m
 ```
 
-Check: `kubectl -n buzz get pods` shows the relay (`buzz-…`), MinIO, Postgres and Redis pods
-`1/1 Running`. The relay restarts a few times while Postgres starts. The MinIO init job shows
+Check: `kubectl -n buzz get pods` shows the relay (`buzz-…`), the pairing service
+(`buzz-pairing-…`), MinIO, Postgres and Redis pods `1/1 Running`. The relay restarts a few times while Postgres starts. The MinIO init job shows
 `Completed` and is removed about two minutes later, so not seeing it afterwards is normal.
 
 **5. Relay key.** The chart generated it into the `buzz-relay` Secret. Check, without printing
@@ -111,7 +138,7 @@ and run it again);
 `kubectl -n buzz exec deploy/buzz -c relay -- /usr/local/bin/buzz-admin list-members` shows
 `$OWNER_HEX` with the role `owner`; then SKILL.md section 3. To confirm the relay's own ports
 aren't exposed, give it a node's public IP (`kubectl get nodes -o wide`, EXTERNAL-IP) and
-`3000 8080`: the load balancer forwards only 80 and 443, so a leak would show on a node. Then
+`3000 5000 8080`: the load balancer forwards only 80 and 443, so a leak would show on a node. Then
 **join**, as section 4 says.
 
 **Private network (Tailscale).** The relay gets a name on the user's tailnet,
@@ -233,5 +260,6 @@ makes the chart's generated secrets rotate, changing the relay's identity), use 
 production profile with managed Postgres, Redis and S3 and a Secret made ahead of time; see the
 chart's README. Not yet tested here.
 
-**Phone pairing.** The chart can also run Buzz's pairing relay (`pairingRelay.enabled: true`, with
-its own hostname and ingress); see the chart's README. Not yet tested here.
+**Phone pairing on a private network.** Steps 3 and 4 turn it on for a public relay. Here it would
+need its own Tailscale name: a second Tailscale ingress to the `buzz-pairing` service on port
+5000, and `pairingRelay.url` set to `wss://` that name. Not yet tested.

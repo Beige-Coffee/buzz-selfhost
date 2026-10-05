@@ -7,6 +7,7 @@
 #
 # Usage: BUZZ_CLI=path/to/buzz bash smoke-k8s.sh <domain> [image-tag]
 #   INGRESS_CLASS (default traefik), ISSUER (default letsencrypt), CHART_VERSION (default 0.1.10)
+#   JOIN_NPUB=npub1… adds that person as a member at the end, to try Buzz Desktop and a phone
 set -uo pipefail
 
 DOMAIN=${1:?usage: smoke-k8s.sh <domain> [image-tag]}
@@ -70,6 +71,30 @@ ingress:
   tls:
     - hosts: [$DOMAIN]
       secretName: buzz-tls
+pairingRelay:
+  enabled: true
+  url: wss://$DOMAIN/pair
+extraManifests:
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: buzz-pairing
+    spec:
+      ingressClassName: $CLASS
+      tls:
+        - hosts: [$DOMAIN]
+          secretName: buzz-tls
+      rules:
+        - host: $DOMAIN
+          http:
+            paths:
+              - path: /pair
+                pathType: Prefix
+                backend:
+                  service:
+                    name: buzz-pairing
+                    port:
+                      number: 5000
 YAML
 cat "$TMP/buzz-values.yaml"
 
@@ -98,6 +123,10 @@ curl -s -m 6 --http1.1 -i -N -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H
 grep -q 101 "$TMP/ws.out" && grep -q '"AUTH"' "$TMP/ws.out" && pass "WebSocket upgrade and NIP-42 challenge through the ingress" || fail "WebSocket through the ingress: $(head -c 200 "$TMP/ws.out")"
 V=$(curl -s -H 'Accept: application/nostr+json' "https://$DOMAIN/" | field version)
 info "relay version $V"
+PAIR_URL=$(curl -s -H 'Accept: application/nostr+json' "https://$DOMAIN/" | field pairing_relay_url)
+[[ $PAIR_URL == "wss://$DOMAIN/pair" ]] && pass "the relay names its pairing service, $PAIR_URL" || fail "pairing_relay_url is [$PAIR_URL]"
+PS=$(curl -s -m 3 --http1.1 -o /dev/null -w '%{http_code}' -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: c21va2UtdGVzdC0xMjM0NQ==' "https://$DOMAIN/pair" 2>/dev/null)
+[[ $PS == 101 ]] && pass "phones reach the pairing service at /pair (WebSocket)" || fail "no WebSocket at /pair: HTTP $PS"
 
 section "4. Members post and read; a non-member is refused"
 for _ in $(seq 1 180); do [[ -x $BZ ]] && break; sleep 10; done   # a CLI still building
@@ -139,6 +168,12 @@ alive && pass "liveness after the restart" || fail "no liveness after the restar
 as "$OWNER_SK" --format compact messages get --channel "$CH" --limit 10 2>&1 | grep -q "hello from a member" && pass "messages survive a restart" || fail "messages lost in a restart"
 fetch_pic && pass "the file survives a restart" || fail "the file is gone after a restart"
 
+if [[ -n ${JOIN_NPUB:-} ]]; then
+  section "A person to try Buzz Desktop and a phone"
+  kubectl -n buzz exec "$DEPLOY" -- /usr/local/bin/buzz-admin add-member --pubkey "$JOIN_NPUB" --role member && info "join from Buzz Desktop with wss://$DOMAIN, then pair a phone in Settings, Mobile"
+fi
+
 section "RESULT"
+echo "relay: wss://$DOMAIN"
 echo "passed: $PASS  failed: $FAIL"
 [[ $FAIL -eq 0 ]]

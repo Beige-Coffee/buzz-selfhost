@@ -121,7 +121,8 @@ Run from `buzz/deploy/compose`. In `private` and `local` modes, drop `BUZZ_COMPO
   railway redeploy --from-source -s "block/buzz:main" -y
   ```
 - **Upgrade.** Back up, then
-  `railway service source connect --image ghcr.io/block/buzz:<tag> --service "block/buzz:main"`.
+  `railway service source connect --image ghcr.io/block/buzz:<tag> --service "block/buzz:main"`,
+  and the same with `--service buzz-pair` if phone pairing is set up (railway.md step 6).
   The relay has no volume: what it keeps in `/data/git` is lost on every redeploy.
 
 ## Kubernetes

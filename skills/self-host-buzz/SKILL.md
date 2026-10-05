@@ -136,7 +136,8 @@ adds them ([operations.md](references/operations.md)). Self-hosted relays have n
 ([troubleshooting](references/troubleshooting.md)).
 
 **Phones.** After joining from Desktop, the user opens Settings, Mobile, scans the QR code with
-the Buzz app on their phone, and confirms the matching code. This needs the pairing service, which compose.md sets up
-(`check-relay.sh` says `PASS` for phone pairing; on Railway and Kubernetes it isn't set up here
-yet), and on a private network the phone needs the Tailscale app on. A self-hosted relay can't send push notifications to the App Store app
-(block/buzz#5206): the app shows new messages while it's open.
+the Buzz app on their phone, and confirms the matching code. This needs the pairing service, which
+every setup's steps add (`check-relay.sh` says `PASS` for phone pairing) except Kubernetes on a
+private network, which isn't covered yet. On a private network the phone needs the Tailscale app
+on. A self-hosted relay can't send push notifications to the App Store app (block/buzz#5206): the
+app shows new messages while it's open.

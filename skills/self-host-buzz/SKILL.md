@@ -84,8 +84,8 @@ from wherever the agent runs. They need `python3`, `bash`, `curl` and internet a
   a mistyped or cut-off one fails instead of making a stranger the owner.
 - **Image tag.** `TAG=$(python3 $SKILL/scripts/pick-tag.py)` prints the newest commit on main that
   has an image, like `sha-83aab8c`. Not every commit gets one. Tell the user which tag, and that
-  this skill was last tested with the `tested-image` in its header, if they'd rather stay on a
-  tested version.
+  this skill was last tested with `sha-d1b7da4` (`tested-image` in its metadata, which some agents
+  don't show), if they'd rather stay on a tested version.
 - **Domain.** `server` and Kubernetes need the community's permanent domain, such as
   `buzz.example.org`. Railway assigns one at deploy, or takes the user's (railway.md). `private` uses the machine's Tailscale name, found in its setup, and
   Kubernetes on a private network the name kubernetes.md builds. `local` needs none.

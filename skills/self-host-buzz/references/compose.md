@@ -118,7 +118,8 @@ which is harmless.
    ```
    Check: `grep -cE '^RELAY_OWNER_PUBKEY=[0-9a-f]{64}$' .env` → `1` (an unset `OWNER_HEX` would
    write an empty owner), and `grep -cE '^[A-Za-z_][A-Za-z0-9_]*=.*CHANGE_ME' .env` → `0`.
-8. **URL and version.** Confirm `$DOMAIN` with the user first (`local` has none). The CORS line
+8. **URL and version.** Confirm `$DOMAIN` with the user first, unless it's the name they chose
+   (`private`: the name step 2P's check printed; `local` has none). The CORS line
    also admits Buzz Desktop, which calls the relay's HTTP API from `tauri://localhost`
    (`http://tauri.localhost` on Windows). Without them, joining from Desktop fails with
    `Load failed` (block/buzz#2872).

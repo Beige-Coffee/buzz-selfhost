@@ -106,6 +106,16 @@ Both picked up the installed skill without being given its path, followed it, an
 pairing. Their reports are in
 [runs/](runs/README.md).
 
+Then a private relay on Tailscale, same two requests:
+
+- Codex: passed in about 10 minutes. Long steps outlived its 30-second command tool, so the skill
+  now says to wait for them, and check-relay.sh finishes within 30 seconds.
+- Goose with DeepSeek V4 Pro: passed in one go, in 8 minutes, for about $0.23.
+- Goose with Gemini 3.8 Flash stopped after each step, so it isn't a good pick for this skill.
+  Given an empty server address by a runner bug, it used the cloud token on disk and changed a
+  firewall without asking; the skill now says to ask instead. Codex, given the same, stopped and
+  asked.
+
 ## Results, 2026-10-01
 
 Scripted, on relay `sha-bd0896f` unless noted:

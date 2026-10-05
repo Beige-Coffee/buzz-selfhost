@@ -39,7 +39,7 @@
     <h1>Run Buzz on <mark>your own</mark> server</h1>
     <p class="lede">Buzz is open-source team chat for people and their agents: a Slack alternative you can run yourself, on your own terms. This guide shows you how, on your own hardware or a VPS, with an agent skill or step by step.</p>
     <div class="hero-cta">
-      <a class="btn" href="#guide">Set it up<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9.5M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <a class="btn" href="#where">Set it up<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9.5M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       <a class="btn ghost" href="#how">How it works</a>
     </div>
   </section>
@@ -92,7 +92,7 @@
       <article class="limit">
         <span class="limit-k">Pairing</span>
         <h3>Pairing needs an extra service</h3>
-        <p>Block's bundles don't start the phone pairing service, so the skill adds it. Tested with an iPhone on a VPS, public and private. Not yet on Railway or Kubernetes.</p>
+        <p>Block's bundles don't start the phone pairing service, so the skill adds it. Tested with an iPhone on a VPS (public and private), Kubernetes and Railway. Not yet on Kubernetes on a private network.</p>
         <a href="https://github.com/block/buzz/issues/7721">block/buzz#7721</a>
       </article>
     </div>
@@ -105,29 +105,30 @@
       <p class="sub">Your pick becomes the guide below.</p>
     </div>
     <div class="wide" data-widget="paths"></div>
+    <div class="wide" data-widget="relaykey"></div>
   </section>
 
   <section class="block" id="guide" data-mode="agent">
     <div class="text">
       <div data-tracks="vps vps-private">
         <h2>Self-host on a VPS</h2>
-        <p class="sub" data-tracks="vps">You'll need a VPS account, a domain, and Buzz Desktop.</p>
-        <p class="sub" data-tracks="vps-private">On a private network, with no public address. You'll need a VPS account, a Tailscale account to run the network, and Buzz Desktop.</p>
+        <p class="sub" data-tracks="vps">Rent a Linux server, point your domain at it, and install Buzz on it.</p>
+        <p class="sub" data-tracks="vps-private">Rent a Linux server and keep it on your Tailscale network, with no public address. Then install Buzz on it.</p>
       </div>
       <div data-tracks="own-public own-private practice">
         <h2 data-tracks="own-public own-private">Self-host on your hardware</h2>
         <h2 data-tracks="practice">Test Buzz locally</h2>
-        <p class="sub" data-tracks="own-public">You'll need a Linux machine, access to your router, a domain, and Buzz Desktop.</p>
-        <p class="sub" data-tracks="own-private">On a private network, with no router changes. You'll need a Linux machine, a Tailscale account to run the network, and Buzz Desktop.</p>
-        <p class="sub" data-tracks="practice">You'll need Docker Desktop and Buzz Desktop. Nothing here carries over to a server.</p>
+        <p class="sub" data-tracks="own-public">Run Buzz on a Linux machine you own, reachable from the internet through your router.</p>
+        <p class="sub" data-tracks="own-private">Run Buzz on a Linux machine you own, on your Tailscale network, with no router changes.</p>
+        <p class="sub" data-tracks="practice">Try Buzz on this computer with Docker Desktop. Nothing here carries over to a server.</p>
       </div>
       <div data-tracks="railway">
         <h2>Self-host on Railway</h2>
-        <p class="sub">You'll need a Railway account, a domain, and Buzz Desktop.</p>
+        <p class="sub">Deploy Block's template to Railway, which runs the relay for you.</p>
       </div>
       <div data-tracks="k8s k8s-private">
         <h2>Self-host on Kubernetes</h2>
-        <p class="sub">With Block's Helm chart. You'll need a cluster, a domain, and Buzz Desktop.</p>
+        <p class="sub">Install Buzz with Block's Helm chart on a cluster you already run.</p>
       </div>
       <div data-widget="mode" data-note></div>
     </div>
@@ -185,7 +186,7 @@
   <section class="block reveal" id="practices">
     <div class="text">
       <h2>Run your relay well</h2>
-      <p class="sub">Drawn from Buzz's own deploy files and code, and guidance from Docker, Let's Encrypt and CISA. Tick the ones your project follows; open one for how and why.</p>
+      <p class="sub">Drawn from Buzz's own deploy files and code, and guidance from Docker, Let's Encrypt and CISA. Open one for how and why.</p>
     </div>
     <div class="wide" data-widget="practices"></div>
   </section>
@@ -211,7 +212,7 @@
         <li>Railway: deploy, members, backup, restore</li>
         <li>The skill: every setup, cold, twice</li>
         <li>Buzz Desktop: joined all seven</li>
-        <li>iPhone: paired and posted, public and private</li>
+        <li>iPhone: paired and posted on a VPS (public and private), Kubernetes and Railway</li>
       </ul>
     </div>
     <div class="ft-col">

@@ -1,8 +1,6 @@
 import { getValues, onValues, setValues, trackHash, trackOf, type Path, type Track } from "../lib/values";
 import { mountDecide } from "./decide";
 
-const issue = (n: number) => `<a href="https://github.com/block/buzz/issues/${n}">#${n}</a>`;
-
 /** The paths that can run on a private network, tested end to end. */
 type Switchable = "vps" | "own" | "k8s";
 const SWITCHABLE: Path[] = ["vps", "own", "k8s"];
@@ -17,13 +15,13 @@ interface Option {
 }
 
 const OPTIONS: Option[] = [
-  { k: "vps", kind: "Rent", name: "A VPS", line: "A Linux server by the month, running Buzz's compose bundle." },
-  { k: "railway", kind: "One click", name: "Railway", line: "Block's template deploys the relay, Postgres, Redis and storage.", publicOnly: "Not on Railway" },
-  { k: "own", kind: "Own", name: "Your hardware", line: "The same compose bundle on a machine you own: a home server, a mini PC, a spare desktop." },
-  { k: "k8s", kind: "Cluster", name: "Kubernetes", line: "Block's Helm chart, on a cluster you already run." },
+  { k: "vps", kind: "Rent", name: "A VPS", line: "A rented Linux server. Buzz runs on it with Docker Compose." },
+  { k: "railway", kind: "Managed", name: "Railway", line: "A hosting platform. Block's template deploys Buzz and its database for you.", publicOnly: "Not on Railway" },
+  { k: "own", kind: "Own", name: "Your hardware", line: "A Linux machine you own, like a mini PC. Same Docker Compose setup as a VPS." },
+  { k: "k8s", kind: "Cluster", name: "Kubernetes", line: "For teams that already run a cluster. Installs with Block's Helm chart." },
 ];
 
-const PUBLIC = "publicly accessible, members only";
+const PUBLIC = "public URL, members only";
 
 /** What each pick means, for every track: shown in its card, and the reach line under the switch. */
 const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
@@ -32,75 +30,74 @@ const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
     facts: [
       ["Relay key", "On your server"],
       ["You maintain", "OS updates, Docker, backups"],
-      ["Best for", "A team with someone at home in a terminal"],
+      ["Best for", "Most teams. Your data stays on a server you control"],
+      ["Moving later", "Restore a backup on any server. Same URL, same community"],
     ],
   },
   "vps-private": {
-    reach: "On: only devices on your network",
+    reach: "On: only devices on your Tailscale network",
     facts: [
       ["Relay key", "On your server"],
-      ["You maintain", "OS updates, Docker, backups, the network sign-in"],
-      ["Best for", "A team that wants nothing facing the internet"],
+      ["You maintain", "OS updates, Docker, backups, Tailscale"],
+      ["Best for", "Teams with sensitive work that want nothing open to the internet"],
+      ["Moving later", "Restore a backup on any server. Keep the same Tailscale name"],
     ],
   },
   railway: {
     reach: `Not on Railway: ${PUBLIC}`,
     facts: [
-      ["Relay key", "Starts in Railway's variables; copy it out"],
-      ["You maintain", "Backups and upgrades"],
-      ["Best for", "A team with nobody to run a server"],
+      ["Relay key", "In Railway's variables; copy it somewhere safe"],
+      ["You maintain", "Backups and upgrades. Git repos are lost on redeploy"],
+      ["Best for", "Teams that want the least upkeep, and are fine with Railway holding their data"],
+      ["Moving later", "Hard: a different setup, so no direct restore. Use your own domain from day one"],
     ],
   },
   "own-public": {
     reach: `Off: ${PUBLIC}`,
     facts: [
       ["Relay key", "On your machine"],
-      ["You maintain", "OS, backups, power, two ports on your router"],
-      ["Best for", "The most control"],
+      ["You maintain", "OS updates, backups, power, port forwarding on your router"],
+      ["Best for", "Teams that want full control, with data on hardware they own"],
+      ["Moving later", "Restore a backup on any server. Same URL, same community"],
     ],
   },
   "own-private": {
-    reach: "On: only devices on your network",
+    reach: "On: only devices on your Tailscale network",
     facts: [
       ["Relay key", "On your machine"],
-      ["You maintain", "OS, backups and power; no router changes"],
-      ["Best for", "The most control, with nothing facing the internet"],
+      ["You maintain", "OS updates, backups, power"],
+      ["Best for", "Teams with the most sensitive data: their own hardware, nothing public"],
+      ["Moving later", "Restore a backup on any server. Keep the same Tailscale name"],
     ],
   },
   practice: {
-    reach: "Practice: only this laptop can reach it",
+    reach: "Local test: only this laptop can reach it",
     facts: [
       ["Relay key", "On your laptop"],
-      ["You maintain", "Nothing; delete it when you're done"],
-      ["Best for", "Seeing how it works before you pick a server"],
+      ["You maintain", "Nothing. Delete it when you're done"],
+      ["Best for", "Trying Buzz before you pick a server"],
+      ["Moving later", "Nothing moves. A server means a new community"],
     ],
   },
   k8s: {
     reach: `Off: ${PUBLIC}`,
     facts: [
       ["Relay key", "In a Kubernetes Secret"],
-      ["You maintain", "The cluster, ingress, certificates, backups"],
+      ["You maintain", "The cluster, ingress, TLS certificates, backups"],
       ["Best for", "Teams that already run Kubernetes"],
+      ["Moving later", "Copy the database and file storage to the new cluster"],
     ],
   },
   "k8s-private": {
-    reach: "On: only devices on your network",
+    reach: "On: only devices on your Tailscale network",
     facts: [
       ["Relay key", "In a Kubernetes Secret"],
-      ["You maintain", "The cluster, backups, Tailscale's operator"],
-      ["Best for", "Kubernetes teams that want nothing facing the internet"],
+      ["You maintain", "The cluster, backups, the Tailscale operator"],
+      ["Best for", "Teams that already run Kubernetes and want nothing public"],
+      ["Moving later", "Copy the database and file storage to the new cluster"],
     ],
   },
 };
-
-const COMPARE: { label: string; cells: Record<Path, string> }[] = [
-  { label: "Cost", cells: { vps: "$24 / mo, 4 GB (DigitalOcean)", railway: "$5 Hobby + $10 per GB of memory / mo", own: "Machine and power", k8s: "Your nodes, plus a load balancer when public" } },
-  { label: "Reach", cells: { vps: "The internet, or a private network", railway: "The internet", own: "The internet, or a private network", k8s: "The internet, or a private network" } },
-  { label: "Domain", cells: { vps: "Yours, or a free name from Tailscale", railway: "*.up.railway.app until you attach yours", own: "Yours, or a free name from Tailscale", k8s: "Yours at your ingress, or a free name from Tailscale" } },
-  { label: "Phones", cells: { vps: `Pairing tested; no push notifications ${issue(5206)}`, railway: `No pairing yet ${issue(7721)}; no push notifications ${issue(5206)}`, own: "Same as a VPS", k8s: `Pairing untested; no push notifications ${issue(5206)}` } },
-  { label: "Stack", cells: { vps: "Relay, Postgres 17, Redis, MinIO, Caddy", railway: "Relay, Postgres 18, Redis 8, Railway bucket; no volume for the relay", own: "Same as a VPS", k8s: "In the cluster (quickstart), or your managed Postgres, Redis and S3" } },
-  { label: "Moving later", cells: { vps: "Restore a backup anywhere, same URL", railway: "A different stack: not a straight restore", own: "Restore a backup anywhere, same URL", k8s: "Dump Postgres and copy the bucket" } },
-];
 
 const LOCK = `<svg class="lock" viewBox="0 0 20 20" aria-hidden="true"><path class="shackle" d="M6.5 9V6.6a3.5 3.5 0 0 1 7 0V9" /><rect x="4" y="9" width="12" height="8.5" rx="2.4" /></svg>`;
 const GLOBE = `<svg class="globe" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" /><path d="M3 10h14M10 3c2 2.1 2.9 4.4 2.9 7s-.9 4.9-2.9 7c-2-2.1-2.9-4.4-2.9-7S8 5.1 10 3z" /></svg>`;
@@ -110,9 +107,19 @@ const tip = (k: Path) => `<span class="pa-qw">
     <button type="button" class="pa-q" aria-label="What's a private network?" aria-expanded="false" aria-controls="pa-tip-${k}">?</button>
     <span class="pa-tip" id="pa-tip-${k}">
       <b>Private network</b>
-      <span class="pa-tip-row"><i>What it is</i>A VPN for your team. The relay gets no public address, so only devices on the VPN can reach it. This guide uses Tailscale, free for up to 6 people.</span>
-      <span class="pa-tip-row"><i>Why use it</i>Nothing is exposed to the internet: no open ports and no domain to buy.</span>
-      <span class="pa-tip-row"><i>Tradeoff</i>Everyone runs the VPN on each device that uses Buzz, phones and agents included.</span>
+      <span class="pa-tip-row"><i>What it is</i>A VPN for your team. The relay has no public address, so only devices on the VPN can reach it. This guide uses Tailscale, free for up to 6 users.</span>
+      <span class="pa-tip-row"><i>Why use it</i>No open ports, and no domain to buy.</span>
+      <span class="pa-tip-row"><i>Tradeoff</i>Every device that uses Buzz needs Tailscale, including phones and agents.</span>
+    </span>
+  </span>`;
+
+/** What the relay key is, behind the icon beside "Relay key". BUZZ_RELAY_PRIVATE_KEY in Buzz's compose .env. */
+const keyTip = (k: Path) => `<span class="pa-qw pa-qw-key">
+    <button type="button" class="pa-q" aria-label="What's the relay key?" aria-expanded="false" aria-controls="pa-key-${k}">?</button>
+    <span class="pa-tip" id="pa-key-${k}">
+      <b>Relay key</b>
+      <span class="pa-tip-row">The private key your relay signs its own events with, such as workflow messages and channel changes. Back it up and keep it secret: anyone with it can sign as your relay.</span>
+      <button type="button" class="pa-tip-go" data-open="relay-key">What's a relay key? ↓</button>
     </span>
   </span>`;
 
@@ -139,15 +146,7 @@ export function mountPaths(host: HTMLElement): void {
           ${net(o)}
         </div>`,
       ).join("")}
-    </div>
-    <details class="pa-compare">
-      <summary>Compare all four</summary>
-      <div class="table-scroll"><table>
-        <thead><tr><th></th>${OPTIONS.map((o) => `<th data-col="${o.k}">${o.name}</th>`).join("")}</tr></thead>
-        <tbody>${COMPARE.map((r) => `<tr><th scope="row">${r.label}</th>${OPTIONS.map((o) => `<td data-col="${o.k}">${r.cells[o.k]}</td>`).join("")}</tr>`).join("")}</tbody>
-      </table></div>
-      <p class="fine">Prices checked 2026-09-30. Issues are in block/buzz.</p>
-    </details>`;
+    </div>`;
 
   // Each card keeps its own switch, so a private VPS and a public machine can sit side by side.
   // The picked card's switch is the page's choice.
@@ -173,7 +172,7 @@ export function mountPaths(host: HTMLElement): void {
       card.classList.toggle("sel", on);
       card.querySelector(".pa-pick")!.setAttribute("aria-pressed", String(on));
       const f = FACTS[cardTrack(k, on ? t : "vps")];
-      card.querySelector<HTMLElement>("[data-dl]")!.innerHTML = f.facts.map(([dt, dd]) => `<div><dt>${dt}</dt><dd>${dd}</dd></div>`).join("");
+      card.querySelector<HTMLElement>("[data-dl]")!.innerHTML = f.facts.map(([dt, dd]) => `<div><dt>${dt}${dt === "Relay key" ? keyTip(k) : ""}</dt><dd>${dd}</dd></div>`).join("");
       card.querySelector<HTMLElement>("[data-net-v]")!.textContent = f.reach;
       const sw = card.querySelector<HTMLButtonElement>(".pa-switch");
       if (!sw) return;
@@ -181,7 +180,6 @@ export function mountPaths(host: HTMLElement): void {
       card.classList.toggle("is-private", p);
       sw.setAttribute("aria-checked", String(p));
     });
-    host.querySelectorAll<HTMLElement>("[data-col]").forEach((c) => c.classList.toggle("sel", c.dataset.col === v.path));
   };
 
   const remember = () => {

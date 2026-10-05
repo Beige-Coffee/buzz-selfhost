@@ -6,6 +6,7 @@ import { mountPractices } from "../scenes/practices";
 import { mountMode } from "../scenes/mode";
 import { mountAgent, mountAsks } from "../scenes/agent";
 import { mountOps } from "../scenes/ops";
+import { mountRelayKey } from "../scenes/relaykey";
 
 const registry: Record<string, (el: HTMLElement) => void> = {
   story: mountStory,
@@ -17,6 +18,7 @@ const registry: Record<string, (el: HTMLElement) => void> = {
   agent: mountAgent,
   asks: mountAsks,
   ops: mountOps,
+  relaykey: mountRelayKey,
 };
 
 export function mountWidgets(): void {

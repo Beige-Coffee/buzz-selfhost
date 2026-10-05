@@ -176,7 +176,8 @@ export function npubToHex(input: string): string | null {
 export function derived(v: Values = state): Record<string, string> {
   const t = trackOf(v);
   const practice = t === "practice";
-  const fallback = isPrivate(t) ? "buzz.your-tailnet.ts.net" : "buzz.example.org";
+  // Railway assigns a *.up.railway.app name unless you bring your own domain
+  const fallback = isPrivate(t) ? "buzz.your-tailnet.ts.net" : t === "railway" ? "your-relay.up.railway.app" : "buzz.example.org";
   const domain = v.domain.trim().toLowerCase().replace(/^\w+:\/\//, "").replace(/\/.*$/, "") || fallback;
   const tag = v.tag.trim() || DEFAULT_TAG;
   const hex = npubToHex(v.npub);
@@ -204,13 +205,13 @@ export const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;")
 export function fill(tpl: string, html = true): string {
   const d = derived();
   if (!html) return tpl.replace(/\{\{(\w+)\}\}/g, (_, k: string) => d[k] ?? `{{${k}}}`);
-  return esc(tpl).replace(/\{\{(\w+)\}\}/g, (m, k: string) => (k in d ? `<em>${esc(d[k])}</em>` : m));
+  return esc(tpl).replace(/\{\{(\w+)\}\}/g, (m, k: string) => (k in d ? `<em data-k="${k}">${esc(d[k])}</em>` : m));
 }
 
 /** Fill {{KEYS}} in trusted authored HTML; only the values are escaped. */
 export function fillRich(tpl: string): string {
   const d = derived();
-  return tpl.replace(/\{\{(\w+)\}\}/g, (m, k: string) => (k in d ? `<span class="v">${esc(d[k])}</span>` : m));
+  return tpl.replace(/\{\{(\w+)\}\}/g, (m, k: string) => (k in d ? `<span class="v" data-k="${k}">${esc(d[k])}</span>` : m));
 }
 
 /* ── static [data-tpl] elements ────────────────────────────── */

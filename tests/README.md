@@ -92,6 +92,20 @@ Phone pairing, which the skill now adds to the compose bundle (block/buzz#7721):
 Logs: [runs/2026-10-05-1043-vps-sha-d1b7da4.log](runs/2026-10-05-1043-vps-sha-d1b7da4.log) and
 [runs/2026-10-05-1043-private-sha-8746bfe.log](runs/2026-10-05-1043-private-sha-8746bfe.log).
 
+## Results, 2026-10-05: other agents
+
+The skill installed with `npx skills add Beige-Coffee/buzz-selfhost --skill self-host-buzz`, then
+the same request to two agents that aren't Claude: set up a public relay for a team using Desktop
+and phones, then add a teammate.
+
+- Codex (GPT-5.6 Sol, medium reasoning): both requests, every check passed, in about 4 minutes.
+- Goose (Gemini 3.8 Flash through OpenRouter): the install passed every check in under 4 minutes;
+  it stopped before the second request and finished it when told to continue. About $0.17.
+
+Both picked up the installed skill without being given its path, followed it, and set up phone
+pairing. Their reports are in
+[runs/](runs/README.md).
+
 ## Results, 2026-10-01
 
 Scripted, on relay `sha-bd0896f` unless noted:

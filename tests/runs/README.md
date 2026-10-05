@@ -10,6 +10,8 @@ on Oct 5, with secrets masked.
 
 | When (PDT) | Run | Relay version | Result |
 |---|---|---|---|
+| Oct 5 11:57 | [Codex: public VPS, then add a member](2026-10-05-1157-crossagent-codex-public-vps.md) | `sha-7f6ffd5` | Passed, in about 4 minutes. Its two false failures came from running checks alongside their steps. |
+| Oct 5 11:57 | [Goose with Gemini: public VPS, then add a member](2026-10-05-1157-crossagent-goose-public-vps.md) | `sha-7f6ffd5` | The install passed; it stopped before the second request and finished it when told to continue. About $0.17. |
 | Oct 5 10:43 | [Script: VPS, with phone pairing](2026-10-05-1043-vps-sha-d1b7da4.log) | `sha-d1b7da4`, then `sha-8746bfe` | 85 of 85, through a backup, restore and upgrade. An iPhone then paired and posted. |
 | Oct 5 10:43 | [Script: private network, with phone pairing](2026-10-05-1043-private-sha-8746bfe.log) | `sha-8746bfe` | 52 of 52. An iPhone then paired and posted over Tailscale. |
 | Oct 1 15:40 | [Final pass: Kubernetes, private network](2026-10-01-1540-agent-final-pass-kubernetes-private-network.md) | `sha-d1b7da4` | Passed. `buzz` was taken on the tailnet, so it used `buzz-team`. |

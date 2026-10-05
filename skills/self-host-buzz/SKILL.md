@@ -38,7 +38,9 @@ Every command was run end to end, except where a step says otherwise.
    the internet: confirm that when you confirm the setup.
 3. **Check every step.** Run the step's check and show its output. A check passes when its output
    matches, whatever the exit status (`grep -c` exits 1 when it counts 0). At the first failing
-   check, stop and look it up in [troubleshooting](references/troubleshooting.md).
+   check, stop and look it up in [troubleshooting](references/troubleshooting.md). Run the steps
+   one at a time, in order, and each check only after its step has finished: a check run
+   alongside its step fails for no reason.
 4. **The URL is permanent.** The relay keys the community on the exact `RELAY_URL`; changing it
    later starts an empty community. Confirm the domain with the user before it's written. Names
    derived from an IP address (`203-0-113-10.sslip.io`, `nip.io`) die with that address: use them

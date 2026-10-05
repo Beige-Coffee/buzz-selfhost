@@ -1,0 +1,54 @@
+/* ─────────────────────────────────────────────────────────────
+   Buzz design tokens, extracted from the Buzz repo.
+   Sources: desktop components.css, admin-web styles.css, LandingBees.tsx.
+   See research/03-design-language.md for citations.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  /* landing palette */
+  --chartreuse: #d7d72e;
+  --ink: #231e1e;
+  --pill: #171717;
+  --sky: #d7e7f6;
+  --sky-label: #d7e6f0;
+  --olive: #717106;
+  --bee-white: #ffffff;
+  --bee-yellow: #e9e94f;
+  --paper: #f6f6f1;
+  --chip: #f2f2ed;
+  --card: #fbfbf7;
+  --oxblood: #7a1025;
+  --blue: #1c70c4;
+
+  --ink-55: rgb(35 30 30 / 55%);
+  --ink-10: rgb(35 30 30 / 10%);
+
+  /* the site-wide context color language (defined in chapter 1) */
+  --c-platform: var(--ink);
+  --c-identity: var(--olive);
+  --c-memory: var(--blue);
+  --c-channel: var(--chip);
+  --c-tools: var(--sky);
+  --c-convo: var(--paper);
+  --c-trigger: var(--bee-yellow);
+  --c-limit: var(--oxblood);
+
+  /* shape & shadow */
+  --r-pill: 999px;
+  --r-card: 1.6rem;
+  --r-panel: 1.05rem;
+  --shadow-card: 0 1rem 4rem rgb(35 30 30 / 8%);
+  --shadow-card-hover: 0 1.4rem 4.5rem rgb(35 30 30 / 13%);
+
+  /* motion (desktop motion.css) */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 180ms;
+  --dur-standard: 240ms;
+  --dur-arrival: 500ms;
+
+  /* type */
+  --sans: "Inter Variable", Inter, "Avenir Next", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* layout */
+  --measure: min(1120px, calc(100% - 3rem));
+}

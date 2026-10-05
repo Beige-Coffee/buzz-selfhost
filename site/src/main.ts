@@ -1,0 +1,24 @@
+import "@fontsource-variable/inter/opsz.css";
+import "@fontsource-variable/inter/opsz-italic.css";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/700.css";
+import "./styles/tokens.css";
+import "./styles/main.css";
+import { SVG_DEFS } from "./defs";
+import { mountHeader, mountReveal, mountWidgets } from "./lib/mount";
+import { applyVisibility, initValues } from "./lib/values";
+import { enhanceCode } from "./lib/code";
+import { mountNav } from "./lib/nav";
+import { mountPermalinks } from "./lib/permalink";
+import { mountBees } from "./scenes/bees";
+
+document.body.insertAdjacentHTML("afterbegin", SVG_DEFS);
+initValues();
+mountWidgets();
+enhanceCode();
+applyVisibility();
+mountHeader();
+mountPermalinks();
+mountNav();
+mountReveal();
+mountBees();

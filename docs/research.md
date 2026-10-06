@@ -26,15 +26,17 @@ every run.
 | Railway | Deploy, members, backup, restore, pairing | Claude | Tested |
 | Local test (Linux, Apple Silicon) | Passed | Claude | Not applicable |
 
-Buzz Desktop on macOS joined and posted on all seven.
+Buzz Desktop on macOS joined and posted on all seven. On 2026-10-06 a brand-new user's run passed:
+a fresh Claude Code session given the site's prompt, a real domain, a non-root user with
+passwordless sudo, and the user's own first SSH connection
+([record](../tests/runs/2026-10-06-0940-newcomer-digitalocean-real-domain.md)). It found one new
+snag: a name that pointed somewhere before stays cached on the user's computer for half an hour
+or more after the record changes.
 
 Not tested yet:
 
-- A real domain at a registrar (every public run used an `sslip.io` name), Cloudflare's proxy, or a
-  stray AAAA record
+- Cloudflare's proxy or a stray AAAA record (a real domain was tested once, on Vercel's DNS)
 - AWS, Google Cloud or Hetzner (only DigitalOcean)
-- A non-root user with sudo (only root)
-- The user's own first SSH connection: every run had the server's key and host prepared
 - Restoring onto a different server (only onto the same one, after wiping it), and restoring on
   Kubernetes
 - A public home server (router port forwarding)

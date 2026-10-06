@@ -10,6 +10,9 @@
 #   check-relay.sh https://buzz.example.org 203.0.113.10                       # public server
 #   check-relay.sh https://buzz.tail1234.ts.net 203.0.113.10 80 443 3000 5000 # private network
 #
+# RESOLVE_IP=<server IP> checks that server directly, for when this computer still has the domain's
+# old address cached (a wildcard record or an earlier one): RESOLVE_IP=203.0.113.10 check-relay.sh ...
+#
 # Prints PASS or FAIL per check (SKIP for phone pairing on a relay without it) and exits non-zero
 # if any failed. Prints no secrets.
 set -u
@@ -19,18 +22,27 @@ IP=${2:-}
 shift $(( $# < 2 ? $# : 2 ))
 PORTS=${*:-3000 5000}
 failed=0
+# with RESOLVE_IP, every request to the relay's own name goes to that address
+host=${ORIGIN#*://}; host=${host%%/*}
+case $ORIGIN in https://*) port=443 ;; *) port=80 ;; esac
+RESOLVE=()
+if [ -n "${RESOLVE_IP:-}" ]; then
+  RESOLVE=(--resolve "${host%%:*}:${host##*:}:$RESOLVE_IP")
+  case $host in *:*) ;; *) RESOLVE=(--resolve "$host:$port:$RESOLVE_IP") ;; esac
+  echo "INFO  checking $host at $RESOLVE_IP directly (RESOLVE_IP)"
+fi
 pass() { echo "PASS  $1"; }
 fail() { echo "FAIL  $1"; failed=1; }
 
 # A new certificate can take a minute or more on the first request: retry for up to three minutes.
 live=""
 for _ in $(seq 1 36); do
-  live=$(curl -fsS -m 10 "$ORIGIN/_liveness" 2>/dev/null) && break
+  live=$(curl -fsS -m 10 ${RESOLVE[@]+"${RESOLVE[@]}"} "$ORIGIN/_liveness" 2>/dev/null) && break
   sleep 5
 done
 [ "$live" = ok ] && pass "liveness: ok" || fail "liveness: no answer from $ORIGIN/_liveness"
 
-info=$(curl -fsS -m 10 -H 'Accept: application/nostr+json' "$ORIGIN/" 2>/dev/null)
+info=$(curl -fsS -m 10 ${RESOLVE[@]+"${RESOLVE[@]}"} -H 'Accept: application/nostr+json' "$ORIGIN/" 2>/dev/null)
 field() { printf '%s' "$info" | python3 -c "import json,sys; print(json.load(sys.stdin).get('$1') or '')" 2>/dev/null; }
 version=$(field version)
 [ -n "$version" ] && pass "relay version $version" || fail "relay info (NIP-11) didn't answer"
@@ -39,7 +51,7 @@ version=$(field version)
 # open, so curl stops at its time limit; the status code is what counts. The short limits keep a
 # private server's full check under 30 seconds, which some agents' command tools stop at.
 upgrade() {
-  curl -s --http1.1 -m 3 -o /dev/null -w '%{http_code}' -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+  curl -s --http1.1 -m 3 ${RESOLVE[@]+"${RESOLVE[@]}"} -o /dev/null -w '%{http_code}' -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
     -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' "$1" 2>/dev/null
 }
 ws=$(upgrade "$ORIGIN/")
@@ -54,7 +66,7 @@ else
   echo "SKIP  phone pairing: the relay names no pairing service"
 fi
 
-allowed=$(curl -s -m 10 -o /dev/null -D - -X OPTIONS "$ORIGIN/info" \
+allowed=$(curl -s -m 10 ${RESOLVE[@]+"${RESOLVE[@]}"} -o /dev/null -D - -X OPTIONS "$ORIGIN/info" \
   -H 'Origin: tauri://localhost' -H 'Access-Control-Request-Method: GET' |
   tr -d '\r' | awk 'tolower($1) == "access-control-allow-origin:" {print $2}')
 [ "$allowed" = "tauri://localhost" ] && pass "Buzz Desktop allowed (CORS)" ||

@@ -92,6 +92,15 @@ Phone pairing, which the skill now adds to the compose bundle (block/buzz#7721):
 Logs: [runs/2026-10-05-1043-vps-sha-d1b7da4.log](runs/2026-10-05-1043-vps-sha-d1b7da4.log) and
 [runs/2026-10-05-1043-private-sha-8746bfe.log](runs/2026-10-05-1043-private-sha-8746bfe.log).
 
+## Results, 2026-10-06: a brand-new user
+
+A fresh Claude Code session with the skill from `npx skills add … -g`, given the site's VPS prompt:
+a DigitalOcean server with a non-root user (passwordless sudo, the owner's own key, connected once
+by hand), and a real subdomain whose domain also has a wildcard record. Installed in 7 minutes and
+passed every check on the server. From the owner's computer, the check failed until the
+wildcard's cached address expired; check-relay.sh now takes `RESOLVE_IP` to check the server
+directly ([record](runs/2026-10-06-0940-newcomer-digitalocean-real-domain.md)).
+
 ## Results, 2026-10-05: phone pairing on Kubernetes and Railway
 
 - Kubernetes: 23 of 23 with the chart's pairing service turned on and a second ingress sending

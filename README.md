@@ -13,4 +13,7 @@ relay: on a VPS, your own hardware, a private Tailscale network, Railway or Kube
   [`tests/runs/`](tests/runs) keeps every recorded run.
 - **Site:** [`site/`](site) renders the skill's own steps, so the guide and the skill stay in step.
 
+Working on it, as a person or an agent: start with [AGENTS.md](AGENTS.md), then
+[docs/decisions.md](docs/decisions.md) and [docs/research.md](docs/research.md).
+
 A test version, not official Block documentation. Licensed under [Apache-2.0](LICENSE).

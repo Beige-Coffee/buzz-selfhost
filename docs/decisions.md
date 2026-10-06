@@ -68,7 +68,9 @@ AAAA record, and an agent on a Mac or Linux computer with python3, bash and curl
 
 Still to do before sharing the link:
 
-1. **An agent plays a brand-new user** on AWS with a real domain: Ubuntu 24.04 on a t3.medium, a
+1. **Done 2026-10-06, on DigitalOcean instead** (no personal AWS account): it passed, and taught the
+   skill and the site about a domain's old address staying cached on the user's computer. The
+   original plan: **an agent plays a brand-new user** on AWS with a real domain: Ubuntu 24.04 on a t3.medium, a
    new key pair (`.pem`), the launch wizard's default security group (SSH only), the `ubuntu` user,
    a subdomain on Cloudflare (DNS only, and note what happens left Proxied), the skill installed
    with `npx skills add … -g`, and the site's VPS prompt as written. Nothing preset: no known_hosts

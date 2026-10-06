@@ -7,6 +7,7 @@
 | `sudo: a password is required` or `a terminal is required` | The user's sudo asks for a password, which an agent can't type. Use root, or the user allows this account sudo without a password (their call). |
 | Step 2's check shows a Cloudflare address (`104.x`, `172.64.x` to `172.71.x`, `2606:4700:…`) | The record is proxied. Set it to DNS only (the grey cloud) in Cloudflare. |
 | Step 2's check shows an IPv6 address that isn't the server's | A stray AAAA record, often the registrar's default. Let's Encrypt may try it and fail: delete it. |
+| check-relay.sh fails every check from this computer, while step 2's check on the server shows the right address | This computer still has the domain's old address cached: the name pointed somewhere before (a wildcard record, a parked page). It clears when the old record's time-to-live runs out (30 minutes for a Vercel wildcard in testing), or when the user flushes their DNS cache. Meanwhile check the server directly: `RESOLVE_IP=<server IP> bash $SKILL/scripts/check-relay.sh …`. Buzz Desktop on the same computer can't reach the relay until it clears. |
 | Step 2: `Name or service not known` | The record hasn't spread yet, or the name is misspelled. Wait a few minutes and check again. |
 | The first `python3` on a Mac opens an installer | Apple's developer tools aren't installed: `xcode-select --install`, then retry. |
 | `npub-to-hex.py`: `not a valid npub` | The npub was cut off or mistyped. Copy it again from Buzz Desktop. |

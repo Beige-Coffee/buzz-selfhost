@@ -135,7 +135,8 @@ bash $SKILL/scripts/check-relay.sh "$ORIGIN" <public IP> 80 443 3000 5000  # pri
 and ports kubernetes.md gives. Every line must say `PASS`: the relay answers, reports its version, takes WebSocket connections
 (what Buzz Desktop joins over), lets Buzz Desktop in (CORS), and phones can reach its pairing
 service. A setup without one prints `SKIP` for that line. A new certificate can take a minute or
-two on the first request; the script waits.
+two on the first request; the script waits. If this computer still has the domain's old address
+cached, put `RESOLVE_IP=<server IP>` before the command to check the server directly.
 
 ## 4. Join
 

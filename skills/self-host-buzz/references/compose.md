@@ -39,6 +39,8 @@ which is harmless.
    prints only the machine's public IP, which `curl -4 -s https://checkip.amazonaws.com` shows (and
    its IPv6, if it has one). Anything else is a proxied record or a stray AAAA record, and
    `Name or service not known` means the record hasn't spread yet ([troubleshooting](troubleshooting.md)).
+   Run the same check on the agent's machine: if the name pointed somewhere before (a wildcard
+   record, a parked page), that computer can keep the old address for half an hour or more.
    Ports 80 and 443
    must reach the machine (Let's Encrypt connects on 80): `sudo ufw status` must be `inactive` or
    allow them, and so must any firewall at the hosting provider. Nothing listens on them until

@@ -50,7 +50,7 @@
       <div class="story-step" data-state="intro"><span class="n">01</span><p>A <b>relay</b> is the server a Buzz community runs on. It checks that each sender is a member, stores the message, and delivers it to everyone in the channel.</p></div>
       <div class="story-step" data-state="hosted"><span class="n">02</span><p>On <b>buzz.xyz</b>, Block runs the relay for you: nothing to install, and your data lives on Block's servers. It's one way to run Buzz, not the only one.</p></div>
       <div class="story-step" data-state="self"><span class="n">03</span><p><b>Self-hosted</b>, the same message goes to a relay you run, on a rented server or your own hardware. The keys and the data stay with you.</p></div>
-      <div class="story-step" data-state="inside"><span class="n">04</span><p>What's inside your relay:</p>
+      <div class="story-step" data-state="inside"><span class="n">04</span><p>What's inside your relay<span class="parts-lead">:</span><span class="parts-alt">, layer by layer.</span></p>
         <ul class="parts">
           <li><b>relay</b>The Buzz server, written in Rust. It checks who's a member and delivers each message.</li>
           <li><b>Postgres</b>The database: every message, channel and member.</li>
@@ -202,8 +202,8 @@
       <p>A self-hosting guide for Buzz. Every command on this page was run end to end; the few steps that weren't say so where they appear.</p>
       <a class="ft-skill" href="skills/self-host-buzz/SKILL.md" download="SKILL.md">Download the skill<span>SKILL.md</span></a>
     </div>
-    <div class="ft-col">
-      <p class="ft-h">Tested</p>
+    <details class="ft-col" open>
+      <summary class="ft-h">Tested</summary>
       <ul>
         <li>VPS: 85 of 85, with an upgrade and phone pairing</li>
         <li>Private network: 52 of 52, with phone pairing</li>
@@ -214,18 +214,18 @@
         <li>Buzz Desktop: joined all seven</li>
         <li>iPhone: paired and posted on a VPS (public and private), Kubernetes and Railway</li>
       </ul>
-    </div>
-    <div class="ft-col">
-      <p class="ft-h">Sources</p>
+    </details>
+    <details class="ft-col" open>
+      <summary class="ft-h">Sources</summary>
       <ul>
         <li><a href="https://github.com/block/buzz/tree/main/deploy/compose">Buzz's compose bundle</a></li>
         <li><a href="https://railway.com/deploy/buzz-relay-block">Railway template</a></li>
         <li><a href="https://docs.docker.com/engine/network/packet-filtering-firewalls/">Docker and ufw</a></li>
         <li><a href="https://www.cisa.gov/sites/default/files/publications/data_backup_options.pdf">CISA: 3-2-1 backups</a></li>
       </ul>
-    </div>
-    <div class="ft-col">
-      <p class="ft-h">Upstream</p>
+    </details>
+    <details class="ft-col" open>
+      <summary class="ft-h">Upstream</summary>
       <ul>
         <li><a href="https://github.com/block/buzz/issues/7880">#7880</a> MinIO images</li>
         <li><a href="https://github.com/block/buzz/pull/4610">#4610</a> Private file reads</li>
@@ -235,7 +235,7 @@
         <li><a href="https://github.com/block/buzz/issues/2872">#2872</a> Desktop blocked by CORS</li>
         <li><a href="https://github.com/block/buzz/issues/7721">#7721</a> Phone pairing</li>
       </ul>
-    </div>
+    </details>
   </div>
   <p class="ft-base">Checked against block/buzz main at <code>d1b7da4</code>, 2026-10-01, and Compose with phone pairing at <code>8746bfe</code>, 2026-10-05.</p>
 </footer>

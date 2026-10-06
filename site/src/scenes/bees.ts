@@ -64,7 +64,8 @@ export function mountBees(): void {
   document.body.appendChild(layer);
 
   const narrow = innerWidth < 640;
-  const homes = narrow ? HOMES.filter((_, i) => i % 2 === 0) : HOMES;
+  // fewer on a phone: they share the screen with scrolling
+  const homes = narrow ? HOMES.filter((_, i) => i % 3 === 0) : HOMES;
   let W = innerWidth;
   let H = innerHeight;
   let threshold = 1;

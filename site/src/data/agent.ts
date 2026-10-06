@@ -50,13 +50,13 @@ const SSH = (address: string): Ready => ({
   t: "SSH access with a key, as root or a user whose sudo doesn't ask for a password.",
   more: {
     label: "Connect once yourself first",
-    t: `Run <code>ssh &lt;user&gt;@&lt;${address}&gt;</code> in your own terminal and answer <b>yes</b> when it asks about the server's fingerprint. Your agent can't answer that question. If the command needs anything else from you, like a passphrase or a key file (AWS gives you a <code>.pem</code>), add the key to your SSH agent first: <code>ssh-add &lt;key file&gt;</code>.`,
+    t: `Run <code>ssh &lt;user&gt;@&lt;${address}&gt; true</code> in your own terminal and answer <b>yes</b> when it asks about the server's fingerprint. Your agent can't answer that question. If the command needs anything else from you, like a passphrase or a key file (AWS gives you a <code>.pem</code>), add the key to your SSH agent first: <code>ssh-add &lt;key file&gt;</code>.`,
   },
 });
 /** The A record, where it points, and what breaks it: Cloudflare's proxy and a stray AAAA record. */
 const DNS = (target: string) => ({
   label: "Adding it",
-  t: `Where your domain's DNS is managed, add an A record for <code>{{DOMAIN}}</code> with ${target}. On Cloudflare, set it to <b>DNS only</b>, not Proxied. If the name has an AAAA record, delete it. New records usually work within minutes. No domain yet? Buy one from any registrar, or use a subdomain of one you have.`,
+  t: `Where your domain's DNS is managed, add an A record for <code>{{DOMAIN}}</code> with ${target}. On Cloudflare, set it to <b>DNS only</b>, not Proxied. If the name has an AAAA record, delete it. New records usually work within minutes. Add it before you ask your agent, and before you open the name anywhere: if it pointed somewhere before, like a wildcard record or a parked page, your computer can keep the old address for half an hour or more. No domain yet? Buy one from any registrar, or use a subdomain of one you have.`,
 });
 /** The clouds people name, and each one's catch. A private server opens no ports, so it skips those. */
 const CLOUDS = (open: boolean) => ({
@@ -64,8 +64,8 @@ const CLOUDS = (open: boolean) => ({
   t: `<dl class="ag-clouds">
     <dt>DigitalOcean</dt><dd>A Basic Droplet with 4 GB.${open ? " Its IP stays fixed, and nothing blocks 80 and 443 unless you add a Cloud Firewall." : ""}</dd>
     <dt>Hetzner</dt><dd>A CX or CPX server, which is x86, not CAX, which is ARM. Keep its IPv4 address: GitHub, where the install comes from, has no IPv6.</dd>
-    <dt>AWS</dt><dd>An x86 instance with 4 GB, such as <code>t3.medium</code>, not Graviton (<code>t4g</code>).${open ? " Allow HTTP and HTTPS in its security group, and attach an Elastic IP, or the address changes when the instance stops." : ""} You log in as <code>ubuntu</code>.</dd>
-    <dt>Google Cloud</dt><dd>An x86 machine with 4 GB, such as <code>e2-medium</code>.${open ? " Tick Allow HTTP traffic and Allow HTTPS traffic, and reserve a static external IP." : ""}</dd>
+    <dt>AWS</dt><dd>An x86 instance with 4 GB, such as <code>t3.medium</code>, not Graviton (<code>t4g</code>), with 20 GB of storage instead of the default 8.${open ? " Allow HTTP and HTTPS in its security group, and attach an Elastic IP, or the address changes when the instance stops." : ""} You log in as <code>ubuntu</code>.</dd>
+    <dt>Google Cloud</dt><dd>An x86 machine with 4 GB, such as <code>e2-medium</code>, with a 20 GB boot disk instead of the default 10.${open ? " Tick Allow HTTP traffic and Allow HTTPS traffic, and reserve a static external IP." : ""}</dd>
   </dl>`,
 });
 
@@ -105,7 +105,7 @@ const PRIVATE_READY = [
 export const AGENT_TRACKS: Record<Track, AgentTrack> = {
   vps: {
     ready: [
-      { t: "A server: Ubuntu 24.04 on x86 (not ARM), 4 GB of RAM, a fixed IP, and ports 80 and 443 open.", goto: "compose-1", more: CLOUDS(true) },
+      { t: "A server: Ubuntu 24.04 on x86 (not ARM), 4 GB of RAM, 20 GB of disk, a fixed IP, and ports 80 and 443 open.", goto: "compose-1", more: CLOUDS(true) },
       SSH("server IP"),
       { t: "An A record for <code>{{DOMAIN}}</code> with the server's IP.", goto: "compose-2", more: DNS("the server's IPv4 address") },
       NPUB,
@@ -117,7 +117,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
   },
   "own-public": {
     ready: [
-      { t: "An Ubuntu 24.04 machine on x86 (not ARM) with 4 GB of RAM and a fixed address on your network.", goto: "compose-1" },
+      { t: "An Ubuntu 24.04 machine on x86 (not ARM) with 4 GB of RAM, 20 GB of disk and a fixed address on your network.", goto: "compose-1" },
       SSH("machine address"),
       { t: "Ports 80 and 443 forwarded to it, and <code>{{DOMAIN}}</code> pointing at your home IP.", goto: "compose-2", more: DNS("your home's public IPv4 address") },
       NPUB,
@@ -139,7 +139,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
   },
   "vps-private": {
     ready: [
-      { t: "A server: Ubuntu 24.04 on x86 (not ARM) with 4 GB of RAM, and no ports open.", goto: "compose-1", more: CLOUDS(false) },
+      { t: "A server: Ubuntu 24.04 on x86 (not ARM) with 4 GB of RAM and 20 GB of disk, and no ports open.", goto: "compose-1", more: CLOUDS(false) },
       SSH("server IP"),
       ...PRIVATE_READY,
       NPUB,
@@ -150,7 +150,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
     expect: PRIVATE,
   },
   "own-private": {
-    ready: [{ t: "An Ubuntu 24.04 machine on x86 (not ARM) with 4 GB of RAM.", goto: "compose-1" }, SSH("machine address"), ...PRIVATE_READY, NPUB, AGENT],
+    ready: [{ t: "An Ubuntu 24.04 machine on x86 (not ARM) with 4 GB of RAM and 20 GB of disk.", goto: "compose-1" }, SSH("machine address"), ...PRIVATE_READY, NPUB, AGENT],
     prompt:
       "Use the self-host-buzz skill to set up a Buzz relay on my own machine, reachable only on our Tailscale network. It runs Ubuntu 24.04; SSH in as <user>@<machine address>. Tailscale name: buzz. A Tailscale auth key is in <key file>. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
     expect: PRIVATE,

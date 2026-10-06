@@ -7,6 +7,7 @@ import "./styles/main.css";
 import { SVG_DEFS } from "./defs";
 import { mountFooter, mountHeader, mountReveal, mountWidgets } from "./lib/mount";
 import { applyVisibility, initValues } from "./lib/values";
+import { initBlanks } from "./lib/blanks";
 import { enhanceCode } from "./lib/code";
 import { mountNav } from "./lib/nav";
 import { mountPermalinks } from "./lib/permalink";
@@ -14,6 +15,7 @@ import { mountBees } from "./scenes/bees";
 
 document.body.insertAdjacentHTML("afterbegin", SVG_DEFS);
 initValues();
+initBlanks();
 mountWidgets();
 enhanceCode();
 applyVisibility();

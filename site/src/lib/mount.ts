@@ -21,6 +21,12 @@ const registry: Record<string, (el: HTMLElement) => void> = {
   relaykey: mountRelayKey,
 };
 
+/** The footer's lists start folded on a phone, open everywhere else. */
+export function mountFooter(): void {
+  const narrow = matchMedia("(max-width: 640px)").matches;
+  document.querySelectorAll<HTMLDetailsElement>("details.ft-col").forEach((d) => (d.open = !narrow));
+}
+
 export function mountWidgets(): void {
   document.querySelectorAll<HTMLElement>("[data-widget]").forEach((el) => {
     const mount = registry[el.dataset.widget ?? ""];
@@ -40,9 +46,9 @@ export function mountHeader(): void {
   onScroll();
 }
 
-/** Fade sections in as they arrive. */
+/** Fade sections in as they arrive. Not on phones: there it reads as lag while you scroll. */
 export function mountReveal(): void {
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (matchMedia("(prefers-reduced-motion: reduce), (max-width: 760px)").matches) return;
   const els = document.querySelectorAll<HTMLElement>(".reveal");
   const io = new IntersectionObserver(
     (entries) =>

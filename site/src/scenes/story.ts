@@ -49,16 +49,17 @@ const SY = 25.65;
 const A = 84.3; // the yard's half-size along each axis
 const YW = 1.732 * A; // its half-width on screen
 const WALL = 10;
-const unit = `<g id="rs-unit" stroke="#231e1e" stroke-opacity="0.34" stroke-width="2.1" stroke-linejoin="round">${[5, 4, 3, 2, 1, 0]
+const unitOf = (id: string, mark: boolean) => `<g id="${id}" stroke="#231e1e" stroke-opacity="0.34" stroke-width="2.1" stroke-linejoin="round">${[5, 4, 3, 2, 1, 0]
   .map(
     (i) => `<g transform="translate(0 ${131.5 + 14 * i})">
       <polygon fill="#e4e4dd" points="${CX - W},0 ${CX},${H} ${CX + W},0 ${CX + W},${T} ${CX},${H + T} ${CX - W},${T}"/>
       <path d="M${CX} ${H}V${H + T}"/>
       <polygon fill="#f3f3ef" points="${CX},${-H} ${CX + W},0 ${CX},${H} ${CX - W},0"/>
-      ${i === 0 ? `<g transform="matrix(0.866 0.5 -0.866 0.5 ${CX} 0)" color="#231e1e" stroke="none"><use href="#block-mark" x="-15" y="-15" width="30" height="30"/></g>` : ""}
+      ${i === 0 && mark ? `<g transform="matrix(0.866 0.5 -0.866 0.5 ${CX} 0)" color="#231e1e" stroke="none"><use href="#block-mark" x="-15" y="-15" width="30" height="30"/></g>` : ""}
     </g>`,
   )
   .join("")}</g>`;
+const unit = unitOf("rs-unit", true) + unitOf("rs-unit-plain", false);
 // back to front, so nearer stacks cover farther ones
 const SLOTS: [number, number][] = [[-1, -1], [-1, 0], [0, -1], [-1, 1], [0, 0], [1, -1], [0, 1], [1, 0], [1, 1]];
 const quad = (pts: [number, number][]) => pts.map(([x, y]) => `${x},${y}`).join(" ");
@@ -67,16 +68,21 @@ const LIT = quad([[0, -32.9 - 19], [32.9, -32.9], [0, -32.9 + 19], [-32.9, -32.9
 const BLOCKS = `<svg class="rs-svg" viewBox="0 0 300 210" aria-hidden="true">
   <defs>${unit}</defs>
   <g transform="translate(150 108)">
-    <polygon class="rs-y-slab" points="${quad([[-YW, 0], [0, A], [YW, 0], [YW, 8], [0, A + 8], [-YW, 8]])}"/>
-    <polygon class="rs-y-floor" points="${quad([[-YW, 0], [0, -A], [YW, 0], [0, A]])}"/>
-    <polygon class="rs-y-in" points="${quad([[-YW, 0], [0, -A], [0, -A - WALL], [-YW, -WALL]])}"/>
-    <polygon class="rs-y-in" points="${quad([[0, -A], [YW, 0], [YW, -WALL], [0, -A - WALL]])}"/>
+    <g class="rs-yard">
+      <polygon class="rs-y-slab" points="${quad([[-YW, 0], [0, A], [YW, 0], [YW, 8], [0, A + 8], [-YW, 8]])}"/>
+      <polygon class="rs-y-floor" points="${quad([[-YW, 0], [0, -A], [YW, 0], [0, A]])}"/>
+      <polygon class="rs-y-in" points="${quad([[-YW, 0], [0, -A], [0, -A - WALL], [-YW, -WALL]])}"/>
+      <polygon class="rs-y-in" points="${quad([[0, -A], [YW, 0], [YW, -WALL], [0, -A - WALL]])}"/>
+    </g>
     ${SLOTS.map(
       ([i, j]) =>
-        `<use href="#rs-unit" transform="translate(${(i - j) * SX} ${(i + j) * SY}) scale(${K}) translate(-100 -218)"/>${i === 0 && j === 0 ? `<polygon class="rs-lit" points="${LIT}"/>` : ""}`,
+        // the middle stack comes first, where the one relay lands; the ring follows, nearest first
+        `<g class="rs-slot${i === 0 && j === 0 ? " rs-mid" : ""}" style="--i:${i === 0 && j === 0 ? 0 : 1 + Math.abs(i) + Math.abs(j) + (i + j + 2) / 10}"><use href="#rs-unit" transform="translate(${(i - j) * SX} ${(i + j) * SY}) scale(${K}) translate(-100 -218)"/></g>${i === 0 && j === 0 ? `<polygon class="rs-lit" points="${LIT}"/>` : ""}`,
     ).join("")}
-    <polygon class="rs-y-out" points="${quad([[-YW, 0], [0, A], [0, A - WALL], [-YW, -WALL]])}"/>
-    <polygon class="rs-y-out" points="${quad([[0, A], [YW, 0], [YW, -WALL], [0, A - WALL]])}"/>
+    <g class="rs-yard">
+      <polygon class="rs-y-out" points="${quad([[-YW, 0], [0, A], [0, A - WALL], [-YW, -WALL]])}"/>
+      <polygon class="rs-y-out" points="${quad([[0, A], [YW, 0], [YW, -WALL], [0, A - WALL]])}"/>
+    </g>
   </g>
 </svg>`;
 
@@ -123,6 +129,10 @@ export function mountStory(section: HTMLElement): void {
         <div class="sg-app">${buzzAppHTML()}</div>
         <div class="sg-wire" aria-hidden="true"><span class="sg-packet"></span></div>
         <div class="sg-relay">
+          <div class="rs-v rs-one">
+            <div class="rs-art"><svg class="rs-svg" viewBox="0 70 200 200" aria-hidden="true"><use href="#rs-unit-plain"/></svg></div>
+            <p class="rs-cap"><b>A relay</b><span>a community's server</span></p>
+          </div>
           <div class="rs-v rs-block">
             <div class="rs-art">${BLOCKS}</div>
             <p class="rs-cap"><b>Block's relay</b><span>yourteam.communities.buzz.xyz</span></p>

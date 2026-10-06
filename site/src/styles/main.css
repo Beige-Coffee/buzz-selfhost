@@ -121,6 +121,7 @@ h3 { font-weight: 500; letter-spacing: -0.02em; }
 .story-steps { padding: 28vh 0 38vh; }
 .story-step { min-height: 64vh; display: flex; flex-direction: column; justify-content: center; opacity: 0.25; transition: opacity 0.6s var(--ease); }
 .story-step.on { opacity: 1; }
+.parts-alt { display: none; }
 .story-step .n { font: 500 12px var(--mono); letter-spacing: 0.1em; color: var(--ink-3); margin-bottom: 14px; }
 .story-step.on .n { color: var(--ink); }
 .story-step p { margin: 0; max-width: 21em; font-size: clamp(19px, 1.75vw, 23px); line-height: 1.5; letter-spacing: -0.02em; }
@@ -156,6 +157,20 @@ h3 { font-weight: 500; letter-spacing: -0.02em; }
 .rs-y-in { fill: #e3e3dc; }
 .rs-y-out { fill: #dedfd7; }
 .rs-block .rs-lit { fill: var(--accent); stroke: none; opacity: 0; }
+/* step 1 shows one relay; on buzz.xyz (step 2) it shrinks into the middle of Block's yard as the rest appears.
+   The one's anchor (its floor point, 100,218 in the unit's drawing) sits on the yard's middle slot. */
+.rs-one .rs-art { left: 744px; top: 142px; width: 200px; height: 200px; transform-origin: 100px 148px; transform: scale(var(--one, 1.25)); }
+.rs-one .rs-cap { left: 734px; }
+.story-stage:not([data-state="intro"]) .rs-one .rs-art { transform: scale(var(--to, 0.38)); opacity: 0; transition: transform 0.8s var(--ease), opacity 0.2s ease 0.6s; }
+.story-stage[data-state="intro"] .rs-one .rs-art { transition: transform 0.8s var(--ease), opacity 0.2s ease; }
+.story-stage:not([data-state="intro"]) .rs-one .rs-cap { opacity: 0; }
+.rs-block :is(.rs-yard, .rs-slot) { transition: opacity 0.45s ease, transform 0.55s var(--ease); }
+.story-stage[data-state="intro"] .rs-block :is(.rs-yard, .rs-slot, .rs-cap) { opacity: 0; }
+.story-stage[data-state="intro"] .rs-block .rs-slot:not(.rs-mid) { transform: translateY(-10px); }
+.story-stage[data-state="hosted"] .rs-block .rs-yard { transition-delay: 0.25s; }
+.story-stage[data-state="hosted"] .rs-block .rs-slot { transition-delay: calc(0.6s + (var(--i) - 1) * 90ms); }
+.story-stage[data-state="hosted"] .rs-block .rs-mid { transition-delay: 0.62s; transition-duration: 0.15s; }
+.story-stage[data-state="hosted"] .rs-block .rs-cap { transition-delay: 0.7s; }
 /* your stack */
 .rs-l { transform: translateY(calc(var(--yc) * 1px)); transition: transform 0.85s var(--ease); }
 .rs-l :is(.rs-top, .rs-side, .rs-edge) { stroke: var(--ink); stroke-width: 1.2; stroke-linejoin: round; transition: fill 0.5s; }
@@ -241,6 +256,8 @@ h3 { font-weight: 500; letter-spacing: -0.02em; }
 .story-stage:not([data-state="intro"], [data-state="hosted"]) .portrait .sg-wire { left: 429px; }
 .portrait .rs-block .rs-art { left: 86px; top: 487px; transform: scale(0.96); }
 .portrait .rs-block .rs-cap { left: 394px; top: 562px; width: 240px; text-align: left; }
+.portrait .rs-one .rs-art { left: 130px; top: 442.7px; --one: 0.8; --to: 0.365; }
+.portrait .rs-one .rs-cap { left: 394px; top: 562px; width: 240px; text-align: left; }
 .portrait .rs-mine .rs-art { left: 334px; top: 418px; transform: scale(0.96); }
 .portrait .rs-mine .rs-cap { left: 70px; top: 562px; width: 240px; text-align: right; }
 .portrait .rs-cap b { font-size: 22px; }
@@ -950,8 +967,13 @@ h2 .hl svg { width: 19px; }
   .story { grid-template-columns: 1fr; gap: 0; }
   .story-stage { position: relative; top: auto; height: auto; min-height: 0; max-height: none; aspect-ratio: 640 / 700; width: min(100%, calc(56svh * 640 / 700)); justify-self: center; }
   .story-steps { padding: 18px 0 0; }
-  .story.stepper .story-step { display: none; min-height: 0; opacity: 1; justify-content: flex-start; }
-  .story.stepper .story-step.on { display: flex; animation: mode-in 0.45s var(--ease) both; }
+  .story.stepper .story-steps { display: grid; }
+  .story.stepper .story-step { grid-area: 1 / 1; min-height: 0; opacity: 0; visibility: hidden; justify-content: flex-start; transition: none; }
+  .story.stepper .story-step.on { opacity: 1; visibility: visible; animation: mode-in 0.45s var(--ease) both; }
+  /* the drawing above already names each part of the relay */
+  .story.stepper .parts { display: none; }
+  .story.stepper .parts-lead { display: none; }
+  .story.stepper .parts-alt { display: inline; }
   .story-step p { font-size: 18px; }
   .story-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
   .sn-prev, .sn-next { padding: 9px 16px; border: 1px solid var(--line-2); border-radius: 999px; background: #fff; color: var(--ink); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
@@ -965,7 +987,7 @@ h2 .hl svg { width: 19px; }
 @media (max-width: 640px) {
   .rk > summary { padding: 14px; }
   .rk-sum-s { flex-basis: 100%; padding-left: 42px; }
-  .rk-p { min-height: 0; }
+  .rk-p { min-height: 10em; }
   body { font-size: 16px; }
   .hd-brand span { display: none; }
   .pa-grid { grid-template-columns: 1fr; gap: 10px; }
@@ -984,8 +1006,27 @@ h2 .hl svg { width: 19px; }
   .ag-prompt { padding: 18px 18px 12px; }
   .ag-prompt-foot { flex-wrap: wrap; }
   .limits { grid-template-columns: 1fr; }
-  .ft-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ft-grid { grid-template-columns: 1fr; gap: 0; }
+  .ft-about { padding-bottom: 18px; }
+  .ft-col { border-top: 1px solid var(--line); }
+  .ft-col > summary { display: flex; align-items: center; gap: 10px; margin: 0; padding: 14px 2px; cursor: pointer; }
+  .ft-col ul { padding: 0 2px 16px; }
   .btn { padding: 12px 19px; font-size: 15px; }
+  /* where to run: only the picked card opens; the others are a line each, tap to pick */
+  .pa-card:not(.sel) { padding-bottom: 14px; }
+  .pa-card:not(.sel) .pa-net { display: none; }
+  .pa-card:not(.sel) .pa-line { font-size: 13.5px; color: var(--ink-3); }
+  .pa-card:not(.sel)::after { content: ""; position: absolute; right: 20px; top: 22px; width: 8px; height: 8px; border-right: 1.5px solid var(--ink-3); border-bottom: 1.5px solid var(--ink-3); transform: rotate(45deg); }
+}
+@media (max-width: 760px) {
+  /* a see-through, blurred header repaints on every scroll frame: plain white on phones */
+  .hd, .hd-sheet { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgb(255 255 255 / 98%); }
+}
+.ft-col > summary { list-style: none; }
+.ft-col > summary::-webkit-details-marker { display: none; }
+@media (min-width: 641px) {
+  .ft-col > summary { pointer-events: none; }
+  .ft-col > summary::before { display: none; }
 }
 /* ── bees on the opening screen ─────────────── */
 /* wing beat and slot masks from Buzz Desktop's FlappingBee (block/buzz, Apache 2.0) */

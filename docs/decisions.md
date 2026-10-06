@@ -59,23 +59,30 @@ block/buzz#7721, and a CI job that runs the local setup on every change to the b
 
 ## Before testers get the link
 
-In the site as of commit `18a5bee`:
+The owner's call (2026-10-05): the public site carries no "untested" labels and no test-version
+label; test status lives in [research.md](research.md). The skill's steps, which the site renders,
+leave test status out too. The site's footer links "Source on GitHub" and "Report a problem" (this
+repo's issues), and the site's Get ready list covers what a new user needs first: connect over SSH
+once yourself, a user whose sudo doesn't ask for a password, DNS only on Cloudflare with no stray
+AAAA record, and an agent on a Mac or Linux computer with python3, bash and curl.
 
-- Kubernetes presented as "Already run Kubernetes?"
-- The clouds under VPS, with the x86 catch
-- `npx skills add` first
-- Apache-2.0 license
+Still to do before sharing the link:
 
-Still to do:
+1. **An agent plays a brand-new user** on AWS with a real domain: Ubuntu 24.04 on a t3.medium, a
+   new key pair (`.pem`), the launch wizard's default security group (SSH only), the `ubuntu` user,
+   a subdomain on Cloudflare (DNS only, and note what happens left Proxied), the skill installed
+   with `npx skills add … -g`, and the site's VPS prompt as written. Nothing preset: no known_hosts
+   entry, no prepared SSH command. The point is whether the site's Get ready lines (allow HTTP and
+   HTTPS, attach an Elastic IP, connect once, `ssh-add` the `.pem`) are enough. Needs the owner's
+   AWS credentials, a Cloudflare token limited to that domain's DNS, and approval to spend; tear
+   down the instance, the Elastic IP and the DNS record after.
+2. **The owner follows the site by hand** as a new user (planned for 2026-10-06).
 
-- Label what isn't tested: a public home server (port forwarding), Railway with a custom domain,
-  the chart's production profile, Buzz Desktop on Windows, phone pairing on Kubernetes on a
-  private network.
-- Say what it's built on: an Agent Skill in the open standard, validated with `skills-ref`, with a
-  link to the repo and the license.
-- Mark the site as a test version, not official Block documentation.
-- A feedback path for testers (the owner picks the channel), and a short brief: use a throwaway
-  server, push notifications aren't covered, expect rough edges.
+## When the skill moves to block/buzz
+
+The site's footer links ("Source on GitHub", "Report a problem", marked by a comment in
+`site/index.html`) and the `npx skills add` command (`SKILL_REPO` in `site/src/scenes/agent.ts`)
+must point at block/buzz instead of Beige-Coffee/buzz-selfhost.
 
 ## Copy and style
 

@@ -26,9 +26,24 @@ every run.
 | Railway | Deploy, members, backup, restore, pairing | Claude | Tested |
 | Local test (Linux, Apple Silicon) | Passed | Claude | Not applicable |
 
-Buzz Desktop on macOS joined and posted on all seven. Not tested: a public home server (router
-port forwarding), Railway with a custom domain, the chart's production profile, Buzz Desktop on
-Windows. Buzz ships new images daily; the skill was last tested end to end on `sha-d1b7da4`, and
+Buzz Desktop on macOS joined and posted on all seven.
+
+Not tested yet:
+
+- A real domain at a registrar (every public run used an `sslip.io` name), Cloudflare's proxy, or a
+  stray AAAA record
+- AWS, Google Cloud or Hetzner (only DigitalOcean)
+- A non-root user with sudo (only root)
+- The user's own first SSH connection: every run had the server's key and host prepared
+- Restoring onto a different server (only onto the same one, after wiping it), and restoring on
+  Kubernetes
+- A public home server (router port forwarding)
+- Railway with a custom domain, and whether a Railway trial has room for one relay (the site says
+  three services and a storage bucket, plus one service for phone pairing)
+- The chart's production profile
+- Phone pairing on Kubernetes on a private network, and on Android
+- Buzz Desktop on Windows, and the agent running on Windows
+- Scheduled backups and Docker log limits for a server that runs for months Buzz ships new images daily; the skill was last tested end to end on `sha-d1b7da4`, and
 the Compose path again on `sha-fd885b5`.
 
 ## Agents other than Claude

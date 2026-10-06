@@ -140,6 +140,6 @@ Run from `buzz/deploy/compose`. In `private` and `local` modes, drop `BUZZ_COMPO
   kubectl -n buzz get secret buzz-relay -o yaml > buzz-relay-secret.yaml
   ```
   Check: four non-empty files, and `tar tzf minio-data.tgz | grep -c buzz-media` above 0. The
-  Secret file holds the relay key: encrypt the copies. Restoring on Kubernetes is not yet tested.
+  Secret file holds the relay key: encrypt the copies.
 - **Upgrade.** Change `image.tag` in `buzz-values.yaml`, then
   `helm upgrade buzz oci://ghcr.io/block/buzz/charts/buzz --version 0.1.10 -n buzz -f buzz-values.yaml --wait`.

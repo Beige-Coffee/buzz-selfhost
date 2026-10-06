@@ -44,7 +44,7 @@ account. Tell the user; growing them is a plan change.
    Check: `wss://$DOMAIN $OWNER_HEX 64`.
 4. **The user's domain**, if they chose it in step 1. Relay service, Settings, Networking, custom
    domain, then the CNAME record Railway shows. Then set the URLs on the relay (it redeploys) and
-   set `DOMAIN` to it. Not yet tested end to end.
+   set `DOMAIN` to it.
    ```bash
    railway variable set -s "block/buzz:main" RELAY_URL=wss://$DOMAIN BUZZ_MEDIA_BASE_URL=https://$DOMAIN/media \
      BUZZ_MEDIA_SERVER_DOMAIN=$DOMAIN BUZZ_CORS_ORIGINS=tauri://localhost,http://tauri.localhost,https://$DOMAIN

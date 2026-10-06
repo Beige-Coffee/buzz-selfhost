@@ -636,6 +636,7 @@ td.sel, th.sel { background: rgb(215 215 46 / 16%); }
 .vl-field i { margin-left: 6px; font-style: normal; font-weight: 400; }
 .vl-field i.ok { color: #6d6d06; }
 .vl-field i.bad { color: #a3203a; }
+.vl-field i.vl-perm { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
 .vl-field input {
   width: 100%; padding: 11px 12px; font: 14px var(--mono); color: var(--ink);
   background: #fafaf8; border: 1px solid var(--line-2); border-radius: 12px;
@@ -831,6 +832,8 @@ ul.plain li a { margin-left: 4px; font: 12.5px var(--mono); color: var(--ink-3);
 .ag-more > summary:hover { color: var(--ink); }
 .ag-more-body { margin: 6px 0 2px; padding: 10px 12px; border-radius: 10px; background: #f6f6f1; font-size: 14.5px; line-height: 1.55; color: var(--ink-2); }
 .ag-more-body code { font-size: 0.86em; overflow-wrap: anywhere; }
+/* the one thing that can't be undone: its summary underlined, in ink */
+.ag-warn > summary { font-weight: 600; color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 4px; }
 /* the clouds, each with its catch */
 .ag-clouds { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 14px; margin: 0; }
 .ag-clouds dt { font-weight: 600; color: var(--ink); }

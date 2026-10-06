@@ -8,7 +8,7 @@ export function mountPanel(host: HTMLElement): void {
     <p class="vl-pick"><span>Running on</span><b data-picked></b><a href="#where">Change</a></p>
     <div class="vl-row">
       <label class="vl-field" data-tracks="vps vps-private own-public own-private railway k8s k8s-private">
-        <span><b data-tracks="vps own-public k8s">Domain</b><b data-tracks="railway">Your domain, optional</b><b data-tracks="vps-private own-private k8s-private">Tailscale name</b></span>
+        <span><b data-tracks="vps own-public k8s">Domain</b><b data-tracks="railway">Your domain, optional</b><b data-tracks="vps-private own-private k8s-private">Tailscale name</b><i class="vl-perm" title="Can't be changed later: Buzz stores your community under this exact address, and a different one later starts a new, empty community.">permanent</i></span>
         <input name="domain" placeholder="buzz.example.org" autocomplete="off" spellcheck="false" value="${attr(v.domain)}">
       </label>
       <label class="vl-field">

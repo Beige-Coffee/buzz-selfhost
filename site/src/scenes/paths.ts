@@ -16,7 +16,7 @@ interface Option {
 
 const OPTIONS: Option[] = [
   { k: "vps", kind: "Rent", name: "A VPS", line: "A rented Linux server. Buzz runs on it with Docker Compose." },
-  { k: "railway", kind: "Managed", name: "Railway", line: "A hosting platform. Block's template deploys Buzz and its database for you.", publicOnly: "Not on Railway" },
+  { k: "railway", kind: "Managed", name: "Railway", line: "Block's one-click option. Railway, a hosting service, runs Buzz for you: no server to rent or maintain.", publicOnly: "Not on Railway" },
   { k: "own", kind: "Own", name: "Your hardware", line: "A Linux machine you own, like a mini PC. Same Docker Compose setup as a VPS." },
   { k: "k8s", kind: "Cluster", name: "Kubernetes", line: "For teams that already run a cluster. Installs with Block's Helm chart." },
 ];

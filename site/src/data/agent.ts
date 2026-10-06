@@ -21,93 +21,128 @@ export interface Expect {
 
 export interface AgentTrack {
   /** what the reader does before asking; `goto` opens that step in the step-by-step view; `more` folds out under it */
-  ready: { t: string; goto?: string; more?: { label: string; t: string } }[];
+  ready: { t: string; goto?: string; warn?: { label: string; t: string }; more?: { label: string; t: string } }[];
   prompt: string;
   expect: Expect[];
 }
 
 type Ready = AgentTrack["ready"][number];
 const DESKTOP = "https://github.com/block/buzz/releases/latest";
+const ALIASES = "https://github.com/block/buzz/pull/5410";
 
 // the skill's scripts run where the agent runs: python3, bash and curl (SKILL.md compatibility)
 const AGENT: Ready = {
-  t: "An agent that runs commands on a Mac or Linux computer, such as Claude Code, Codex or Goose.",
+  t: "A coding agent that runs commands on your Mac or Linux computer: Claude Code, Codex or Goose.",
   more: {
-    label: "What it needs there",
-    t: "<code>python3</code>, <code>bash</code> and <code>curl</code>, which Linux has. On a Mac, if <code>python3</code> asks for developer tools, install them with <code>xcode-select --install</code>. Pick a capable model: small, fast ones tend to stop after every step.",
+    label: "What the agent needs",
+    t: "The skill runs scripts on your computer with <code>python3</code>, <code>bash</code> and <code>curl</code>. Linux has all three. On a Mac, if <code>python3</code> asks you to install developer tools, run <code>xcode-select --install</code> first. Use a capable model: small, fast models tend to stop after every step.",
   },
 };
 // Buzz Desktop shows the npub on its Join a community screen, under "Joining a private community?", and in Settings.
 const NPUB: Ready = {
-  t: `Buzz Desktop, and your npub from it in the npub field on this page. <a class="ag-get" href="${DESKTOP}">Get Buzz Desktop ↗</a>`,
+  t: "Buzz Desktop on your computer, and your npub typed into <b>Your npub</b> in the Running on box. Your npub is your public ID in Buzz: a long code that starts with <code>npub1</code>.",
   more: {
-    label: "Where to find it",
-    t: "Buzz Desktop is on Block's releases page, for Mac, Linux and Windows. Open it, choose <b>Join a community</b>, and copy your npub from <b>Joining a private community?</b> It starts with <code>npub1</code>. It makes you the community's owner, which can't be changed later, so copy it from the Buzz Desktop you'll use.",
+    label: "How to get them",
+    t: `Download Buzz Desktop for Mac, Linux or Windows from <a href="${DESKTOP}">Block's releases page</a>. Open it, choose <b>Join a community</b>, and copy your npub from <b>Joining a private community?</b> The relay makes this npub the community's owner, and the owner can't be changed later, so copy it from the Buzz Desktop you'll keep using.`,
   },
 };
-// a first connection asks to trust the server's fingerprint, which an agent's shell can't answer
-const SSH = (address: string): Ready => ({
-  t: "SSH access with a key, as root or a user whose sudo doesn't ask for a password.",
+// a first connection asks to trust the fingerprint, which an agent's shell can't answer (SKILL.md, SSH to a server)
+const SSH = (machine: string, address: string): Ready => ({
+  t: `SSH access to the ${machine} with a key, not a password, as root or as a user whose <code>sudo</code> doesn't ask for a password.`,
   more: {
     label: "Connect once yourself first",
-    t: `Run <code>ssh &lt;user&gt;@&lt;${address}&gt; true</code> in your own terminal and answer <b>yes</b> when it asks about the server's fingerprint. Your agent can't answer that question. If the command needs anything else from you, like a passphrase or a key file (AWS gives you a <code>.pem</code>), add the key to your SSH agent first: <code>ssh-add &lt;key file&gt;</code>.`,
+    t: `Before you ask your agent, run <code>ssh &lt;user&gt;@&lt;${address}&gt; true</code> in your own terminal. The first time, SSH asks whether to trust the ${machine}'s fingerprint: type <b>yes</b>. Your agent can't answer that question, so its first connection would fail. If the command also asks for a passphrase, or needs a key file (AWS gives you a <code>.pem</code> file), run <code>ssh-add &lt;key file&gt;</code> first, so your agent can use the key without asking.`,
   },
 });
-/** The A record, where it points, and what breaks it: Cloudflare's proxy and a stray AAAA record. */
+/** The address is the community's for good (block/buzz#4952): say so where the reader picks it, and why. */
+const FOREVER = (what: string, extra = ""): { label: string; t: string } => ({
+  label: `The ${what} can't be changed later`,
+  t: `Buzz stores your community under this exact address. If you switch to a different ${what} later, the relay starts a new, empty community there, and your messages, channels and members stay behind at the old address.${extra ? ` ${extra}` : ""} An open pull request to Buzz, <a href="${ALIASES}">block/buzz#5410</a>, would let a community answer on a second address, but it isn't merged. Until it is, pick a ${what} you're happy to keep.`,
+});
+/** The A record: where it points, and what breaks it (Cloudflare's proxy, a stray AAAA record, a cached old address). */
 const DNS = (target: string) => ({
-  label: "Adding it",
-  t: `Where your domain's DNS is managed, add an A record for <code>{{DOMAIN}}</code> with ${target}. On Cloudflare, set it to <b>DNS only</b>, not Proxied. If the name has an AAAA record, delete it. New records usually work within minutes. Add it before you ask your agent, and before you open the name anywhere: if it pointed somewhere before, like a wildcard record or a parked page, your computer can keep the old address for half an hour or more. No domain yet? Buy one from any registrar, or use a subdomain of one you have.`,
+  label: "How to add the A record",
+  t: `Open the DNS settings wherever your domain is managed: your registrar, Cloudflare or similar. Add an A record whose name is the part before your domain (<code>buzz</code> for <code>buzz.example.org</code>) and whose value is ${target}. On Cloudflare, set Proxy status to <b>DNS only</b>. If the name has an AAAA record, delete it. Add the record before you ask your agent, and before you open the address anywhere: if the name pointed somewhere before, such as a wildcard record or a parked page, your computer can keep the old address for 30 minutes or more. No domain yet? Buy one from any registrar, or use a subdomain of a domain you own.`,
 });
 /** The clouds people name, and each one's catch. A private server opens no ports, so it skips those. */
 const CLOUDS = (open: boolean) => ({
-  label: "On AWS, Google Cloud, DigitalOcean or Hetzner",
+  label: "Which server to rent on AWS, Google Cloud, DigitalOcean or Hetzner",
   t: `<dl class="ag-clouds">
-    <dt>DigitalOcean</dt><dd>A Basic Droplet with 4 GB.${open ? " Its IP stays fixed, and nothing blocks 80 and 443 unless you add a Cloud Firewall." : ""}</dd>
-    <dt>Hetzner</dt><dd>A CX or CPX server, which is x86, not CAX, which is ARM. Keep its IPv4 address: GitHub, where the install comes from, has no IPv6.</dd>
-    <dt>AWS</dt><dd>An x86 instance with 4 GB, such as <code>t3.medium</code>, not Graviton (<code>t4g</code>), with 20 GB of storage instead of the default 8.${open ? " Allow HTTP and HTTPS in its security group, and attach an Elastic IP, or the address changes when the instance stops." : ""} You log in as <code>ubuntu</code>.</dd>
-    <dt>Google Cloud</dt><dd>An x86 machine with 4 GB, such as <code>e2-medium</code>, with a 20 GB boot disk instead of the default 10.${open ? " Tick Allow HTTP traffic and Allow HTTPS traffic, and reserve a static external IP." : ""}</dd>
+    <dt>DigitalOcean</dt><dd>A Basic Droplet with 4 GB of RAM.${open ? " Its IP address doesn't change, and nothing blocks ports 80 and 443 unless you add a Cloud Firewall." : ""}</dd>
+    <dt>Hetzner</dt><dd>A CX or CPX server (x86), not CAX (ARM), with 4 GB of RAM. Keep its IPv4 address when you create it: GitHub, where the install downloads from, has no IPv6.</dd>
+    <dt>AWS</dt><dd>An x86 instance with 4 GB of RAM, such as <code>t3.medium</code>, not Graviton (<code>t4g</code>). Set its storage to 20 GB; the default is 8.${open ? " In its security group, allow HTTP and HTTPS. Attach an Elastic IP, or the address changes whenever the instance stops." : ""} You log in as <code>ubuntu</code>.</dd>
+    <dt>Google Cloud</dt><dd>An x86 machine with 4 GB of RAM, such as <code>e2-medium</code>. Make its boot disk 20 GB; the default is 10.${open ? " Tick Allow HTTP traffic and Allow HTTPS traffic, and reserve a static external IP address." : ""}</dd>
   </dl>`,
 });
+const DOMAIN_LINE = "A domain for the community, typed into <b>Domain</b> in the Running on box";
 
-// compose.md step 6, kubernetes.md step 5: the agent asks; the reader runs the command in their own terminal
-const KEY: Expect = { who: "you", icon: "key", t: "Save the relay key", d: "Run the command it gives you in your own terminal, and put the key in your password manager. It never shows you the key." };
-const INSTALL: Expect = { who: "agent", icon: "agent", t: "Installs Docker and Buzz", d: "and writes the keys. It never shows them." };
+// compose.md 2P and kubernetes.md P1: the reader does these in the Tailscale admin console
+const PRIVATE_READY: Ready[] = [
+  { t: "A Tailscale account with HTTPS turned on: in the Tailscale admin console, open <b>DNS</b> and choose <b>Enable HTTPS</b>.", goto: "compose-2P" },
+  {
+    t: "A Tailscale auth key, created in the admin console under <b>Settings</b>, <b>Keys</b>, with <b>Ephemeral</b> off, and saved to a file only you can read (<code>chmod 600 &lt;file&gt;</code>). An ephemeral machine is removed from your network when it goes offline.",
+    goto: "compose-2P",
+  },
+];
+const TS_NAME: Ready = {
+  t: "The relay's name on your Tailscale network, typed into <b>Tailscale name</b> in the Running on box, like <code>buzz.your-tailnet.ts.net</code>.",
+  warn: FOREVER("name", "Renaming the machine or your tailnet later changes it too, and a private community can't add a public address later."),
+};
+
+// compose.md step 6, kubernetes.md step 5: the reader prints the key in their own terminal, never in the conversation
+const KEY = (how: string): Expect => ({
+  who: "you",
+  icon: "key",
+  t: "Save the relay key",
+  d: `The relay key is the community's permanent identity. ${how} It prints the key: save it in your password manager. Your agent never prints it.`,
+});
+const SSH_KEY = KEY("Run the <code>ssh</code> command your agent gives you in your own terminal, not in the chat.");
+const KUBE_KEY = KEY("Run the <code>kubectl</code> command your agent gives you in your own terminal, with the same cluster access.");
+const INSTALL: Expect = {
+  who: "agent",
+  icon: "agent",
+  t: "Installs Docker and Buzz",
+  d: "Docker from Docker's own repository, then Block's Compose bundle for Buzz. It writes the passwords and the relay key into a file on the server without printing them.",
+};
 const JOIN = (d: string): Expect => ({ who: "you", icon: "join", t: "Join from Buzz Desktop", d });
+const JOIN_AT = (url: string) => JOIN(`In Buzz Desktop, choose <b>Join a community</b> and paste <code>${url}</code>.`);
 const PHONE = (d: string): Expect => ({ who: "you", icon: "phone", t: "Pair your phone", d, note: "optional" });
+const QUICKSTART = "the chart's quickstart profile: Postgres, Redis and file storage run inside the cluster, with one relay.";
 
 // compose.md, server mode: confirm the URL and ports (SKILL.md rules 2 and 4), steps 1 to 5, the key (6), then 7 to 11
 const SERVER: Expect[] = [
-  { who: "you", ask: true, icon: "ask", t: "Confirm your permanent URL", d: "It asks whether <code>{{DOMAIN}}</code> is for good, with the server answering on ports 80 and 443. A different URL later starts an empty community." },
+  { who: "you", ask: true, icon: "ask", t: "Confirm the domain", d: "It asks you to confirm <code>{{DOMAIN}}</code>, and that the server can be reached on ports 80 and 443. The domain can't be changed later." },
   INSTALL,
-  KEY,
-  { who: "agent", icon: "agent", t: "Starts the relay and checks it", d: "HTTPS, Buzz Desktop's connection, and that you're the owner." },
-  JOIN("Paste <code>{{RELAY_URL}}</code> into Join a community."),
-  PHONE("In Buzz Desktop, Settings, Mobile, scan the code with the Buzz app."),
+  SSH_KEY,
+  { who: "agent", icon: "agent", t: "Starts the relay and checks it", d: "It checks HTTPS, that Buzz Desktop can connect, that ports 3000 and 5000 are closed to the internet, and that your npub is the owner." },
+  JOIN_AT("{{RELAY_URL}}"),
+  PHONE("In Buzz Desktop, open <b>Settings</b>, then <b>Mobile</b>, and scan the QR code with the Buzz app on your phone."),
 ];
 
 // compose.md, private mode: join the tailnet (2P), key expiry only without a tag, confirm the name before step 8
 const PRIVATE: Expect[] = [
-  { who: "agent", icon: "agent", t: "Joins your Tailscale network", d: "with your auth key. It never shows it." },
-  { who: "you", icon: "clock", t: "Turn off key expiry", d: "Only if your auth key has no tag: for this machine, in the Tailscale admin console.", note: "if needed" },
-  { who: "you", ask: true, icon: "ask", t: "Confirm your permanent URL", d: "It asks whether <code>{{DOMAIN}}</code> is for good. A community can't add a public address later." },
+  { who: "agent", icon: "agent", t: "Joins your Tailscale network", d: "It installs Tailscale on the server and signs it in with the auth key from your file, without printing the key." },
+  {
+    who: "you",
+    icon: "clock",
+    t: "Turn off key expiry",
+    d: "Only if your auth key has no tag. In the Tailscale admin console, open the server's menu and choose <b>Disable key expiry</b>. Otherwise the server drops off your network when its key expires.",
+    note: "if needed",
+  },
+  { who: "you", ask: true, icon: "ask", t: "Confirm the name", d: "It asks you to confirm <code>{{DOMAIN}}</code>, the server's name on your Tailscale network. The name can't be changed later." },
   INSTALL,
-  KEY,
-  { who: "agent", icon: "agent", t: "Starts the relay and checks it", d: "and that nothing is public." },
-  JOIN("With Tailscale on, paste <code>{{RELAY_URL}}</code> into Join a community."),
-  PHONE("In Buzz Desktop, Settings, Mobile, scan the code with the Buzz app, with Tailscale on."),
-];
-
-const PRIVATE_READY = [
-  { t: "A Tailscale account, with HTTPS turned on.", goto: "compose-2P" },
-  { t: "A Tailscale auth key, not ephemeral, saved in a file only you can read.", goto: "compose-2P" },
+  SSH_KEY,
+  { who: "agent", icon: "agent", t: "Starts the relay and checks it", d: "It checks HTTPS through Tailscale, that Buzz Desktop can connect, that your npub is the owner, and that no ports are open to the internet." },
+  JOIN("With Tailscale running on your computer, choose <b>Join a community</b> in Buzz Desktop and paste <code>{{RELAY_URL}}</code>."),
+  PHONE("With Tailscale running on your phone, open <b>Settings</b>, then <b>Mobile</b>, in Buzz Desktop, and scan the QR code with the Buzz app."),
 ];
 
 export const AGENT_TRACKS: Record<Track, AgentTrack> = {
   vps: {
     ready: [
-      { t: "A server: Ubuntu 24.04 on x86 (not ARM), 4 GB of RAM, 20 GB of disk, a fixed IP, and ports 80 and 443 open.", goto: "compose-1", more: CLOUDS(true) },
-      SSH("server IP"),
-      { t: "An A record for <code>{{DOMAIN}}</code> with the server's IP.", goto: "compose-2", more: DNS("the server's IPv4 address") },
+      { t: "A rented server: Ubuntu 24.04, x86 (not ARM), 4 GB of RAM, 20 GB of disk, a fixed public IP address, and ports 80 and 443 open to the internet.", goto: "compose-1", more: CLOUDS(true) },
+      SSH("server", "server IP"),
+      { t: `${DOMAIN_LINE}, with an A record pointing at the server's IP address.`, goto: "compose-2", warn: FOREVER("domain"), more: DNS("the server's public IPv4 address") },
       NPUB,
       AGENT,
     ],
@@ -117,9 +152,10 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
   },
   "own-public": {
     ready: [
-      { t: "An Ubuntu 24.04 machine on x86 (not ARM) with 4 GB of RAM, 20 GB of disk and a fixed address on your network.", goto: "compose-1" },
-      SSH("machine address"),
-      { t: "Ports 80 and 443 forwarded to it, and <code>{{DOMAIN}}</code> pointing at your home IP.", goto: "compose-2", more: DNS("your home's public IPv4 address") },
+      { t: "A Linux machine you own: Ubuntu 24.04, x86 (not ARM), 4 GB of RAM, 20 GB of disk, and a fixed address on your home network.", goto: "compose-1" },
+      SSH("machine", "machine address"),
+      { t: "Your router forwarding ports 80 and 443 to the machine.", goto: "compose-2" },
+      { t: `${DOMAIN_LINE}, with an A record pointing at your home's public IP address.`, warn: FOREVER("domain"), more: DNS("your home's public IPv4 address") },
       NPUB,
       AGENT,
     ],
@@ -128,20 +164,28 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
     expect: SERVER,
   },
   practice: {
-    ready: [{ t: "Docker Desktop, running, with port 3000 free.", goto: "compose-1" }, NPUB, AGENT],
+    ready: [{ t: "Docker Desktop installed and running on this computer, with nothing else using port 3000.", goto: "compose-1" }, NPUB, AGENT],
     prompt: "Use the self-host-buzz skill to set up a local test Buzz relay on this machine. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
     // compose.md step 1: old buzz-prod volumes are removed only after asking; local tests skip the key copy
     expect: [
-      { who: "you", ask: true, icon: "ask", t: "Remove an earlier test's data", d: "Only if an earlier test left its data behind.", note: "if needed" },
-      { who: "agent", icon: "agent", t: "Writes the keys and starts the relay", d: "then checks it answers on this computer." },
-      JOIN("Paste <code>ws://127.0.0.1:3000</code> into Join a community."),
+      {
+        who: "you",
+        ask: true,
+        icon: "ask",
+        t: "Remove an earlier test's data",
+        d: "If an earlier local test left Docker volumes whose names start with <code>buzz-prod</code>, it asks before deleting them: they keep the old database password.",
+        note: "if needed",
+      },
+      { who: "agent", icon: "agent", t: "Writes the keys and starts the relay", d: "Then it checks the relay answers at <code>ws://127.0.0.1:3000</code> on this computer." },
+      JOIN_AT("ws://127.0.0.1:3000"),
     ],
   },
   "vps-private": {
     ready: [
-      { t: "A server: Ubuntu 24.04 on x86 (not ARM) with 4 GB of RAM and 20 GB of disk, and no ports open.", goto: "compose-1", more: CLOUDS(false) },
-      SSH("server IP"),
+      { t: "A rented server: Ubuntu 24.04, x86 (not ARM), 4 GB of RAM and 20 GB of disk. It needs no ports open to the internet.", goto: "compose-1", more: CLOUDS(false) },
+      SSH("server", "server IP"),
       ...PRIVATE_READY,
+      TS_NAME,
       NPUB,
       AGENT,
     ],
@@ -150,7 +194,14 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
     expect: PRIVATE,
   },
   "own-private": {
-    ready: [{ t: "An Ubuntu 24.04 machine on x86 (not ARM) with 4 GB of RAM and 20 GB of disk.", goto: "compose-1" }, SSH("machine address"), ...PRIVATE_READY, NPUB, AGENT],
+    ready: [
+      { t: "A Linux machine you own: Ubuntu 24.04, x86 (not ARM), 4 GB of RAM and 20 GB of disk.", goto: "compose-1" },
+      SSH("machine", "machine address"),
+      ...PRIVATE_READY,
+      TS_NAME,
+      NPUB,
+      AGENT,
+    ],
     prompt:
       "Use the self-host-buzz skill to set up a Buzz relay on my own machine, reachable only on our Tailscale network. It runs Ubuntu 24.04; SSH in as <user>@<machine address>. Tailscale name: buzz. A Tailscale auth key is in <key file>. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
     expect: PRIVATE,
@@ -158,60 +209,94 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
   // kubernetes.md: confirm the URL (SKILL.md rule 4), step 1 (costs), 2 (DNS), 3 and 4 (install), 5 (the key), 6 (checks)
   k8s: {
     ready: [
-      { t: "A cluster, with <code>kubectl</code> and <code>helm</code> pointed at it.", goto: "kubernetes-1" },
-      { t: "An ingress controller and cert-manager, or your go-ahead to add them.", goto: "kubernetes-1" },
-      { t: "A domain you can point at the ingress.", goto: "kubernetes-2", more: DNS("the ingress's address, which your agent gives you") },
+      { t: "A Kubernetes cluster, with <code>kubectl</code> and <code>helm</code> on your computer connected to it.", goto: "kubernetes-1" },
+      { t: "An ingress controller and cert-manager in the cluster. If it has neither, your agent can install Traefik and cert-manager once you approve the cost of a load balancer.", goto: "kubernetes-1" },
+      {
+        t: `${DOMAIN_LINE}. Your agent gives you the load balancer's address to point it at.`,
+        goto: "kubernetes-2",
+        warn: FOREVER("domain"),
+        more: DNS("the load balancer address your agent gives you (on AWS, the load balancer has a name instead: add a CNAME record to it)"),
+      },
       NPUB,
       AGENT,
     ],
     prompt: "Use the self-host-buzz skill to install Buzz on our Kubernetes cluster with Block's Helm chart. Domain: {{DOMAIN}}. Keep the values file in <folder>. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
     expect: [
-      { who: "you", ask: true, icon: "ask", t: "Confirm your permanent URL", d: "It asks whether <code>{{DOMAIN}}</code> is for good. A different URL later starts an empty community." },
-      { who: "you", ask: true, icon: "ask", t: "Approve the costs", d: "Four data volumes, and a load balancer if it has to add Traefik and cert-manager." },
-      { who: "you", icon: "dns", t: "Point your domain at the load balancer", d: "An A record for <code>{{DOMAIN}}</code>, or a CNAME on AWS, at the address it gives you." },
-      { who: "agent", icon: "agent", t: "Installs Buzz with Block's Helm chart", d: "the tested quickstart profile." },
-      { ...KEY, d: "Run the command it gives you in your own terminal, with the same cluster access, and put the key in your password manager." },
-      { who: "agent", icon: "agent", t: "Checks it", d: "the certificate, and that you're the owner." },
-      JOIN("Paste <code>{{RELAY_URL}}</code> into Join a community."),
+      { who: "you", ask: true, icon: "ask", t: "Confirm the domain", d: "It asks you to confirm <code>{{DOMAIN}}</code>. The domain can't be changed later." },
+      { who: "you", ask: true, icon: "ask", t: "Approve the costs", d: "The quickstart profile's four storage volumes, and a load balancer if it has to install Traefik and cert-manager." },
+      {
+        who: "you",
+        icon: "dns",
+        t: "Point your domain at the load balancer",
+        d: "Add an A record for <code>{{DOMAIN}}</code> with the address it gives you. On AWS, the load balancer has a name instead of an address: add a CNAME record to it.",
+      },
+      { who: "agent", icon: "agent", t: "Installs Buzz with Block's Helm chart", d: `With ${QUICKSTART}` },
+      KUBE_KEY,
+      { who: "agent", icon: "agent", t: "Checks it", d: "It checks the HTTPS certificate, and that your npub is the owner." },
+      JOIN_AT("{{RELAY_URL}}"),
     ],
   },
   // kubernetes.md, private network: P2 (operator), P3 (the name, confirmed), P4 (install), the key, checks
   "k8s-private": {
     ready: [
-      { t: "A cluster, with <code>kubectl</code> and <code>helm</code> pointed at it. No ingress or load balancer needed.", goto: "kubernetes-P2" },
-      { t: "Your tailnet set up: HTTPS on, two tags and a grant in the policy, and an OAuth client saved in two files.", goto: "kubernetes-P1" },
+      { t: "A Kubernetes cluster, with <code>kubectl</code> and <code>helm</code> on your computer connected to it. It doesn't need an ingress controller or a load balancer.", goto: "kubernetes-P2" },
+      {
+        t: "Your Tailscale network prepared in the admin console: HTTPS turned on, the tags <code>tag:k8s-operator</code> and <code>tag:k8s</code> in the access policy, and an OAuth client whose ID and secret are saved in two files only you can read.",
+        goto: "kubernetes-P1",
+      },
+      TS_NAME,
       NPUB,
       AGENT,
     ],
     prompt:
       "Use the self-host-buzz skill to install Buzz on our Kubernetes cluster, reachable only on our Tailscale network. Name: {{DOMAIN}}. The OAuth client's ID and secret are in <ID file> and <secret file>. Keep the values file in <folder>. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
     expect: [
-      { who: "agent", icon: "agent", t: "Sets up Tailscale's operator", d: "with your OAuth client. It never shows it." },
-      { who: "you", ask: true, icon: "ask", t: "Confirm your permanent URL", d: "It asks whether <code>wss://{{DOMAIN}}</code> is for good. Renaming the tailnet later changes it too." },
-      { who: "agent", icon: "agent", t: "Installs Buzz with Block's Helm chart", d: "the tested quickstart profile." },
-      { ...KEY, d: "Run the command it gives you in your own terminal, with the same cluster access, and put the key in your password manager." },
-      { who: "agent", icon: "agent", t: "Checks it", d: "that nothing is public, and that you're the owner." },
-      JOIN("With Tailscale on, paste <code>{{RELAY_URL}}</code> into Join a community."),
+      { who: "agent", icon: "agent", t: "Sets up Tailscale's Kubernetes operator", d: "It installs the operator in the cluster with your OAuth client, without printing its secret." },
+      { who: "you", ask: true, icon: "ask", t: "Confirm the name", d: "It asks you to confirm <code>wss://{{DOMAIN}}</code>. The name can't be changed later, and renaming your tailnet would change it too." },
+      { who: "agent", icon: "agent", t: "Installs Buzz with Block's Helm chart", d: `With ${QUICKSTART}` },
+      KUBE_KEY,
+      { who: "agent", icon: "agent", t: "Checks it", d: "It checks that no ports are open to the internet, and that your npub is the owner." },
+      JOIN("With Tailscale running on your computer, choose <b>Join a community</b> in Buzz Desktop and paste <code>{{RELAY_URL}}</code>."),
     ],
   },
   // railway.md: step 1 (name), 2 (deploy, CLI or the template page), 3 (the key), 4 (your domain), 5 (image), checks
   railway: {
     ready: [
       // railway.md: the template adds three services and a bucket; phone pairing (step 6) one more service
-      { t: "A Railway account with room for three services and a storage bucket, and one more service for phone pairing." },
-      { t: "The Railway CLI, logged in, if you want your agent to deploy for you." },
-      { t: "Optionally, your own domain. Otherwise Railway names the relay." },
+      { t: "A Railway account on a plan with room for three services and a storage bucket, plus one more service for phone pairing." },
+      { t: "Optional: the Railway CLI installed and logged in (<code>railway login</code>), so your agent can deploy for you. Without it, you deploy from Railway's template page yourself." },
+      {
+        t: "Optional: your own domain, typed into <b>Domain</b> in the Running on box. Without one, the community's address is the <code>*.up.railway.app</code> name Railway assigns.",
+        warn: FOREVER("address"),
+      },
       NPUB,
       AGENT,
     ],
     prompt: "Use the self-host-buzz skill to set up Buzz on Railway with Block's template. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
     expect: [
-      { who: "you", ask: true, icon: "ask", t: "Choose the name", d: "Keep the <code>*.up.railway.app</code> name Railway assigns, or use your own domain. It's permanent once anyone joins." },
-      { who: "you", ask: true, icon: "ask", t: "Approve the deploy", d: "With the Railway CLI, it asks before creating the project, which costs money. Without it, you deploy from Railway's template page, with the owner key it gives you." },
-      { who: "you", icon: "key", t: "Save the relay key", d: "Copy <code>BUZZ_RELAY_PRIVATE_KEY</code> from the relay's Variables in Railway into your password manager." },
-      { who: "you", icon: "dns", t: "Add your domain", d: "Only if you chose your own: in the relay's Settings, Networking, then the CNAME record Railway shows.", note: "if needed" },
-      { who: "agent", icon: "agent", t: "Updates the image and checks it", d: "a current Buzz image, so files need a member's signature." },
-      JOIN("At the address it gives you, in Join a community."),
+      { who: "you", ask: true, icon: "ask", t: "Choose the address", d: "Keep the <code>*.up.railway.app</code> name Railway assigns, or use your own domain. Whichever you choose can't be changed once anyone joins." },
+      {
+        who: "you",
+        ask: true,
+        icon: "ask",
+        t: "Approve the deploy",
+        d: "With the Railway CLI, it asks before creating the project, which Railway bills for. Without the CLI, you deploy from Railway's template page, pasting the owner key your agent gives you (your npub in hex).",
+      },
+      {
+        who: "you",
+        icon: "key",
+        t: "Save the relay key",
+        d: "The relay key is the community's permanent identity. In Railway, open the relay service, then <b>Variables</b>, and copy <code>BUZZ_RELAY_PRIVATE_KEY</code> into your password manager.",
+      },
+      {
+        who: "you",
+        icon: "dns",
+        t: "Add your domain",
+        d: "Only if you chose your own domain: in the relay service's <b>Settings</b>, under <b>Networking</b>, add it, then create the CNAME record Railway shows wherever your DNS is managed.",
+        note: "if needed",
+      },
+      { who: "agent", icon: "agent", t: "Updates the image and checks it", d: "Railway's template starts an older Buzz image, so it moves the relay to a current one, where reading uploaded files requires a member's signature." },
+      JOIN("In Buzz Desktop, choose <b>Join a community</b> and paste the address your agent gives you."),
     ],
   },
 };
@@ -262,8 +347,8 @@ export interface OpDetail {
 export type OpSetup = "compose" | "railway" | "k8s";
 export const opSetup = (t: Track): OpSetup => (t === "railway" ? "railway" : t === "k8s" || t === "k8s-private" ? "k8s" : "compose");
 
-const PEOPLE_WHY = "Members copy their public ID from Buzz Desktop's Join screen and send it to you. Self-hosted relays have no invite links yet.";
-const UPGRADE_WHY = "Back up first: the relay migrates its database on start, so going back means restoring.";
+const PEOPLE_WHY = "Each new member installs Buzz Desktop and sends you their npub, from <b>Join a community</b>, under <b>Joining a private community?</b> Self-hosted relays have no invite links yet.";
+const UPGRADE_WHY = "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup.";
 const agent = (t: string): OpStep => ({ who: "agent", icon: "agent", t });
 const asks = (t: string): OpStep => ({ who: "you", icon: "ask", t });
 const PEOPLE: OpDetail = { why: PEOPLE_WHY, steps: [agent("Checks the npub is valid, then adds it"), agent("Confirms it's on the member list")] };
@@ -272,7 +357,7 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
   compose: {
     people: PEOPLE,
     backup: {
-      why: "Everything that can't be rebuilt, together. Restore once to prove it works.",
+      why: "Saves the database, uploaded files, git repositories and the <code>.env</code> file (passwords and the relay key) together. Restore it once to prove it works.",
       steps: [
         asks("Asks before stopping the relay for about half a minute"),
         agent("Saves the database, files, git repos and .env"),
@@ -281,7 +366,7 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
       ],
     },
     restore: {
-      why: "From the backup, on this machine or a new one.",
+      why: "Puts a backup back, on this server or a new one. It replaces the relay's current data.",
       steps: [asks("Asks first: it replaces the relay's data"), agent("Puts back the database, files, git repos and .env"), agent("Starts the relay again")],
     },
     upgrade: {
@@ -304,22 +389,22 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
       ],
     },
     backup: {
-      why: "The database and the bucket, saved on this computer. It needs pg_dump 18 and the AWS CLI. Git repositories aren't kept on Railway.",
+      why: "Saves the database and the file bucket to this computer, which needs <code>pg_dump</code> 18 and the AWS CLI installed. Git repositories aren't kept on Railway.",
       steps: [agent("Saves a database dump and a copy of the bucket here"), agent("Uses each service's credentials without printing them")],
     },
     restore: {
-      why: "From the backup on this computer.",
+      why: "Puts the backup on this computer back into Railway. It replaces the relay's current data.",
       steps: [asks("Asks first: it replaces the relay's data"), agent("Stops the relay, then restores the database and the bucket"), agent("Redeploys the relay")],
     },
     upgrade: {
-      why: `${UPGRADE_WHY} Git repositories don't survive the redeploy.`,
+      why: `${UPGRADE_WHY} Git repositories are lost when Railway redeploys the relay.`,
       steps: [agent("Backs up the database and the bucket first"), agent("Points the relay, and phone pairing if you set it up, at the new image")],
     },
   },
   k8s: {
     people: PEOPLE,
     backup: {
-      why: "With the quickstart profile: the database, the bucket, the git volume and the relay's Secret. In production, use your managed database's and bucket's own backups.",
+      why: "With the quickstart profile, saves the database, the file bucket, the git volume and the relay's Secret, which holds the relay key. In production, use your managed database's and bucket's own backups.",
       steps: [
         asks("Asks first. The relay keeps running."),
         agent("Saves all four in a folder only you can read"),

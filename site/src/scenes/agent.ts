@@ -6,7 +6,7 @@ import { derived, esc, fill, fillRich, getValues, onValues, renderTemplates, set
 const AGENT_KEY = "buzz-selfhost-agent-v1";
 type AgentKind = "claude" | "agents";
 const INSTALL: Record<AgentKind, { label: string; dir: string; note: string }> = {
-  claude: { label: "Claude Code", dir: "~/.claude/skills", note: "Goose reads this folder too." },
+  claude: { label: "Claude Code", dir: "~/.claude/skills", note: "Claude Code reads its skills from this folder, and so does Goose." },
   agents: { label: "Goose, Codex and others", dir: "~/.agents/skills", note: "The shared skills folder Goose and Codex read." },
 };
 
@@ -111,7 +111,11 @@ export function mountAgent(host: HTMLElement): void {
     const miss = missing(track);
     const hint = host.querySelector<HTMLElement>(".ag-hint");
     if (hint)
-      hint.textContent = miss.length ? `Add your ${miss.join(" and ")} on this page.` : "Filled in from this page.";
+      hint.textContent = miss.length
+        ? `Type your ${miss.join(" and ")} into the Running on box to fill ${miss.length > 1 ? "them" : "it"} in.`
+        : p.prompt.includes("{{DOMAIN}}")
+          ? "Your domain and npub come from the Running on box."
+          : "Your npub comes from the Running on box.";
     host.querySelector(".ag-prompt")?.classList.toggle("incomplete", miss.length > 0);
     renderTemplates(host);
   };
@@ -137,8 +141,8 @@ export function mountAgent(host: HTMLElement): void {
               .map(
                 (r) =>
                   `<li><span data-rich="${attr(r.t)}"></span>${r.goto ? ` <button type="button" class="ag-how" data-goto="${r.goto}">How</button>` : ""}${
-                    r.more ? `<details class="ag-more"><summary>${r.more.label}</summary><div class="ag-more-body" data-rich="${attr(r.more.t)}"></div></details>` : ""
-                  }</li>`,
+                    r.warn ? `<details class="ag-more ag-warn"><summary>${r.warn.label}</summary><div class="ag-more-body" data-rich="${attr(r.warn.t)}"></div></details>` : ""
+                  }${r.more ? `<details class="ag-more"><summary>${r.more.label}</summary><div class="ag-more-body" data-rich="${attr(r.more.t)}"></div></details>` : ""}</li>`,
               )
               .join("")}</ul>
           </div>
@@ -147,10 +151,10 @@ export function mountAgent(host: HTMLElement): void {
           <span class="tl-n" aria-hidden="true"><span>2</span></span>
           <div class="tl-body">
             <h3>Install the skill</h3>
-            <p class="tl-why">Once, on the computer your agent runs on. It needs Node.js, and nothing runs until your agent does.</p>
+            <p class="tl-why">Run this once in a terminal on the computer your agent runs on. It needs Node.js, for <code>npx</code>. It copies the skill into your agent's skills folder; nothing runs until your agent uses it.</p>
             <div class="ag-npx"><pre class="cmd">${esc(NPX_CMD)}</pre></div>
             <details class="ag-alt">
-              <summary>No Node.js? Download it into your agent's skills folder instead</summary>
+              <summary>No Node.js? Download the skill into your agent's skills folder instead</summary>
               <div class="ag-tabs" role="tablist" aria-label="Your agent">${(Object.keys(INSTALL) as AgentKind[])
                 .map((k) => `<button type="button" role="tab" data-kind="${k}" aria-selected="${k === kind}">${INSTALL[k].label}</button>`)
                 .join("")}</div>
@@ -186,7 +190,7 @@ export function mountAgent(host: HTMLElement): void {
           <span class="tl-n" aria-hidden="true"><span>4</span></span>
           <div class="tl-body">
             <h3>What to expect</h3>
-            <p class="tl-why">In order: what your agent does on its own, and where it stops for you. Its own screen will look different.</p>
+            <p class="tl-why">What happens after you send the prompt, in order. Steps marked Your agent run on their own; the others need you. Your agent's own messages will be worded differently.</p>
             ${expectHTML(t.expect)}
           </div>
         </li>

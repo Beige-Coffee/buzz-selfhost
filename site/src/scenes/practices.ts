@@ -26,12 +26,13 @@ const PRACTICES: Practice[] = [
     id: "url",
     tag: "Setup",
     title: "Pick the permanent URL before anyone joins",
-    why: "The relay keys the community on the exact <code>RELAY_URL</code>. A new URL is a new, empty community, and everything in the old one stays behind.",
+    why: "Buzz stores the community under its exact address, <code>RELAY_URL</code>. A new address is a new, empty community, and everything in the old one stays behind. An open pull request, block/buzz#5410, would let a community answer on a second address; it isn't merged yet.",
     do: "Use a domain you control, not a generated one, and set <code>RELAY_URL</code> once.",
     doRailway: "Attach your own domain before inviting anyone, instead of the <code>*.up.railway.app</code> address.",
     private: { do: "Pick the Tailscale name you'll keep, and set <code>RELAY_URL</code> once. Renaming the machine or the network changes the URL." },
     sources: [
       ["block/buzz#6803", "https://github.com/block/buzz/issues/6803"],
+      ["block/buzz#5410", "https://github.com/block/buzz/pull/5410"],
     ],
   },
   {

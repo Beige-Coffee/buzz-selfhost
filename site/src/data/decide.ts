@@ -103,7 +103,7 @@ export const RESULTS: Record<Track, Result> = {
     name: "Kubernetes on a private network",
     set: { path: "k8s", reach: "private" },
     why: "The cluster you already operate, with no load balancer and nothing public.",
-    trade: ["Needs Tailscale's Kubernetes operator and an OAuth client you create.", "Every device needs Tailscale. Phone pairing isn't tested here yet."],
+    trade: ["Needs Tailscale's Kubernetes operator and an OAuth client you create.", "Every device needs Tailscale. The skill doesn't set up phone pairing here."],
   },
   practice: {
     name: "Local test",

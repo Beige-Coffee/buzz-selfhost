@@ -106,7 +106,8 @@ function linkValues(panel: HTMLElement): void {
   });
 }
 
-const PICK: Record<Track, string> = {
+/** The setup, in words, as the Running on box names it. */
+export const PICK: Record<Track, string> = {
   vps: "A VPS, on the internet",
   "vps-private": "A VPS, on a private network",
   railway: "Railway",

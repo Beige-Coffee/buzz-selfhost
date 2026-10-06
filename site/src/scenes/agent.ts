@@ -1,4 +1,5 @@
-import { AGENT_TRACKS, DAY_TWO_PROMPTS, type Expect, type ExpectIcon } from "../data/agent";
+import { AGENT_TRACKS, type Expect, type ExpectIcon } from "../data/agent";
+import { blanksHTML, fillBlanks } from "../lib/blanks";
 import { copyText, enhanceCode } from "../lib/code";
 import { derived, esc, fill, fillRich, getValues, onValues, renderTemplates, setValues, trackOf, type Track } from "../lib/values";
 
@@ -71,7 +72,8 @@ function highlight(md: string): string {
 }
 
 const icon = (d: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
-const ICONS: Record<ExpectIcon, string> = {
+/** The timeline icons, shared with the operations section. */
+export const ICONS: Record<ExpectIcon, string> = {
   ask: icon(`<path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4.5"/><path d="M12 18h.01"/>`),
   agent: icon(`<path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/>`),
   key: icon(`<circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3M17 6l3 3M14 9l2.5 2.5"/>`),
@@ -104,13 +106,12 @@ export function mountAgent(host: HTMLElement): void {
     host.querySelectorAll<HTMLElement>("[data-rich]").forEach((el) => (el.innerHTML = fillRich(el.dataset.rich!)));
     const p = AGENT_TRACKS[track];
     const prompt = host.querySelector<HTMLElement>(".ag-prompt-text");
-    if (prompt) prompt.innerHTML = fillRich(esc(p.prompt));
+    // blanks first: an unset npub fills in as "<your npub>", which is the panel's, not a blank
+    if (prompt) prompt.innerHTML = fillRich(blanksHTML(esc(p.prompt)));
     const miss = missing(track);
     const hint = host.querySelector<HTMLElement>(".ag-hint");
     if (hint)
-      hint.textContent =
-        (miss.length ? `Add your ${miss.join(" and ")} on this page.` : "Filled in from this page.") +
-        (p.prompt.includes("<") ? " Replace anything in <angle brackets>." : "");
+      hint.textContent = miss.length ? `Add your ${miss.join(" and ")} on this page.` : "Filled in from this page.";
     host.querySelector(".ag-prompt")?.classList.toggle("incomplete", miss.length > 0);
     renderTemplates(host);
   };
@@ -136,7 +137,7 @@ export function mountAgent(host: HTMLElement): void {
               .map(
                 (r) =>
                   `<li><span data-rich="${attr(r.t)}"></span>${r.goto ? ` <button type="button" class="ag-how" data-goto="${r.goto}">How</button>` : ""}${
-                    r.more ? `<details class="ag-more"><summary>${r.more.label}</summary><p data-rich="${attr(r.more.t)}"></p></details>` : ""
+                    r.more ? `<details class="ag-more"><summary>${r.more.label}</summary><div class="ag-more-body" data-rich="${attr(r.more.t)}"></div></details>` : ""
                   }</li>`,
               )
               .join("")}</ul>
@@ -226,7 +227,7 @@ export function mountAgent(host: HTMLElement): void {
     }
     const copy = t.closest<HTMLButtonElement>(".ag-copy");
     if (copy) {
-      copyText(fill(AGENT_TRACKS[track].prompt, false), () => {
+      copyText(fill(fillBlanks(AGENT_TRACKS[track].prompt), false), () => {
         copy.textContent = "Copied";
         window.setTimeout(() => (copy.textContent = "Copy prompt"), 1600);
       });
@@ -247,24 +248,4 @@ export function mountAgent(host: HTMLElement): void {
 
   render();
   onValues(() => (trackOf() !== track ? render() : refill()));
-}
-
-/** Operations as prompts to paste: `data-asks` names the row. */
-export function mountAsks(host: HTMLElement): void {
-  const items = DAY_TWO_PROMPTS[host.dataset.asks ?? ""] ?? [];
-  host.classList.add("asks");
-  host.innerHTML = `<span class="asks-l">Ask your agent</span>${items
-    .map(
-      (it) => `<div class="ask"><p>${esc(it.prompt)}</p><button type="button" class="ask-copy" data-copy="${attr(it.prompt)}">Copy</button></div>
-        <p class="fine">${it.note}</p>`,
-    )
-    .join("")}`;
-  host.addEventListener("click", (e) => {
-    const b = (e.target as HTMLElement).closest<HTMLButtonElement>(".ask-copy");
-    if (!b) return;
-    copyText(b.dataset.copy!, () => {
-      b.textContent = "Copied";
-      window.setTimeout(() => (b.textContent = "Copy"), 1400);
-    });
-  });
 }

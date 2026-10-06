@@ -4,8 +4,8 @@ import { mountPanel } from "../scenes/panel";
 import { mountSetup } from "../scenes/setup";
 import { mountPractices } from "../scenes/practices";
 import { mountMode } from "../scenes/mode";
-import { mountAgent, mountAsks } from "../scenes/agent";
-import { mountOps } from "../scenes/ops";
+import { mountAgent } from "../scenes/agent";
+import { mountOperations } from "../scenes/operations";
 import { mountRelayKey } from "../scenes/relaykey";
 
 const registry: Record<string, (el: HTMLElement) => void> = {
@@ -16,8 +16,7 @@ const registry: Record<string, (el: HTMLElement) => void> = {
   practices: mountPractices,
   mode: mountMode,
   agent: mountAgent,
-  asks: mountAsks,
-  ops: mountOps,
+  operations: mountOperations,
   relaykey: mountRelayKey,
 };
 

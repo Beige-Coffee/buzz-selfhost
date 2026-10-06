@@ -92,7 +92,7 @@
       <article class="limit">
         <span class="limit-k">Pairing</span>
         <h3>Pairing needs an extra service</h3>
-        <p>Block's bundles don't start the phone pairing service, so the skill adds it. Tested with an iPhone on a VPS (public and private), Kubernetes and Railway. Not yet on Kubernetes on a private network.</p>
+        <p>Block's bundles don't start the phone pairing service, so the skill adds it, on every setup except Kubernetes on a private network.</p>
         <a href="https://github.com/block/buzz/issues/7721">block/buzz#7721</a>
       </article>
     </div>
@@ -147,40 +147,7 @@
       <h2>People, backups, upgrades</h2>
       <div data-widget="mode"></div>
     </div>
-    <div class="wide ops">
-      <article class="card op">
-        <div class="op-l">
-          <h3>Add people</h3>
-          <p>Members copy their public ID from Buzz Desktop's Join screen and send it to you. Self-hosted relays have no invite links yet.</p>
-        </div>
-        <div class="op-r">
-          <div class="mode-agent" data-widget="asks" data-asks="people"></div>
-          <div class="mode-steps" data-widget="ops" data-ops="people"></div>
-        </div>
-      </article>
-      <article class="card op">
-        <div class="op-l">
-          <h3>Back up</h3>
-          <p data-tracks="vps vps-private own-public own-private practice">Keep <code>.env</code>, a Postgres dump, and the MinIO and git volumes, taken with the relay stopped for about half a minute. Restore once to prove it works.</p>
-          <p data-tracks="railway">Keep the relay key, a Postgres dump and a copy of the bucket. <code>railway run</code> hands each command its service's credentials, so none get copied out.</p>
-          <p data-tracks="k8s k8s-private">With the quickstart profile, keep a Postgres dump, the MinIO bucket, the git volume and the relay's Secret. In production, use your managed database's and bucket's own backups.</p>
-        </div>
-        <div class="op-r">
-          <div class="mode-agent" data-widget="asks" data-asks="backup"></div>
-          <div class="mode-steps" data-widget="ops" data-ops="backup restore"></div>
-        </div>
-      </article>
-      <article class="card op">
-        <div class="op-l">
-          <h3>Upgrade</h3>
-          <p>Upgrade on purpose, after a backup. The relay migrates its database on start, so going back means restoring the backup.</p>
-        </div>
-        <div class="op-r">
-          <div class="mode-agent" data-widget="asks" data-asks="upgrade"></div>
-          <div class="mode-steps" data-widget="ops" data-ops="upgrade"></div>
-        </div>
-      </article>
-    </div>
+    <div class="wide" data-widget="operations"></div>
   </section>
 
   <section class="block reveal" id="practices">
@@ -199,8 +166,10 @@
   <div class="ft-grid">
     <div class="ft-about">
       <a class="ft-brand" href="#top"><svg viewBox="0 0 466 309" aria-hidden="true"><use href="#bee"/></svg><span>Run your own Buzz</span></a>
-      <p>A self-hosting guide for Buzz. Every command on this page was run end to end; the few steps that weren't say so where they appear.</p>
+      <p>A self-hosting guide for Buzz. Its commands were run end to end on real servers.</p>
       <a class="ft-skill" href="skills/self-host-buzz/SKILL.md" download="SKILL.md">Download the skill<span>SKILL.md</span></a>
+      <!-- these and SKILL_REPO in src/scenes/agent.ts move to block/buzz if the skill lands there -->
+      <p class="ft-links"><a href="https://github.com/Beige-Coffee/buzz-selfhost">Source on GitHub</a><a href="https://github.com/Beige-Coffee/buzz-selfhost/issues/new">Report a problem</a></p>
     </div>
     <details class="ft-col" open>
       <summary class="ft-h">Tested</summary>
@@ -237,7 +206,7 @@
       </ul>
     </details>
   </div>
-  <p class="ft-base">Checked against block/buzz main at <code>d1b7da4</code>, 2026-10-01, and Compose with phone pairing at <code>8746bfe</code>, 2026-10-05.</p>
+  <p class="ft-base">An <a href="https://agentskills.io">Agent Skill</a> in the open standard, validated with skills-ref. <a href="https://github.com/Beige-Coffee/buzz-selfhost/blob/main/LICENSE">Apache-2.0</a>.<br>Checked against block/buzz main at <code>d1b7da4</code>, 2026-10-01, and Compose with phone pairing at <code>8746bfe</code>, 2026-10-05.</p>
 </footer>
 
 </body>

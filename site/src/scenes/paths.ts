@@ -31,7 +31,7 @@ const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
       ["Relay key", "On your server"],
       ["You maintain", "OS updates, Docker, backups"],
       ["Best for", "Most teams. Your data stays on a server you control"],
-      ["Moving later", "Restore a backup on any server. Same URL, same community"],
+      ["Moving later", "Restore a backup on a new server, then point your domain at it. Same URL, same community"],
     ],
   },
   "vps-private": {
@@ -40,7 +40,7 @@ const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
       ["Relay key", "On your server"],
       ["You maintain", "OS updates, Docker, backups, Tailscale"],
       ["Best for", "Teams with sensitive work that want nothing open to the internet"],
-      ["Moving later", "Restore a backup on any server. Keep the same Tailscale name"],
+      ["Moving later", "Restore a backup on a new server, under the same Tailscale name"],
     ],
   },
   railway: {
@@ -58,7 +58,7 @@ const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
       ["Relay key", "On your machine"],
       ["You maintain", "OS updates, backups, power, port forwarding on your router"],
       ["Best for", "Teams that want full control, with data on hardware they own"],
-      ["Moving later", "Restore a backup on any server. Same URL, same community"],
+      ["Moving later", "Restore a backup on a new server, then point your domain at it. Same URL, same community"],
     ],
   },
   "own-private": {
@@ -67,7 +67,7 @@ const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
       ["Relay key", "On your machine"],
       ["You maintain", "OS updates, backups, power"],
       ["Best for", "Teams with the most sensitive data: their own hardware, nothing public"],
-      ["Moving later", "Restore a backup on any server. Keep the same Tailscale name"],
+      ["Moving later", "Restore a backup on a new server, under the same Tailscale name"],
     ],
   },
   practice: {
@@ -85,7 +85,7 @@ const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
       ["Relay key", "In a Kubernetes Secret"],
       ["You maintain", "The cluster, ingress, TLS certificates, backups"],
       ["Best for", "Teams that already run Kubernetes"],
-      ["Moving later", "Copy the database and file storage to the new cluster"],
+      ["Moving later", "Restore the skill's backup on the new cluster with your own tools"],
     ],
   },
   "k8s-private": {
@@ -94,7 +94,7 @@ const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
       ["Relay key", "In a Kubernetes Secret"],
       ["You maintain", "The cluster, backups, the Tailscale operator"],
       ["Best for", "Teams that already run Kubernetes and want nothing public"],
-      ["Moving later", "Copy the database and file storage to the new cluster"],
+      ["Moving later", "Restore the skill's backup on the new cluster with your own tools"],
     ],
   },
 };

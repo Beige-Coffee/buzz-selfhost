@@ -7,7 +7,7 @@ description: >
   the permanent URL, HTTPS, members, backups, restore and upgrades. Use when someone wants to
   self-host Buzz or run a Buzz relay, or to add members to, back up, restore or upgrade one.
 license: Apache-2.0
-compatibility: Needs python3 and curl. Then Docker, kubectl and helm, or the Railway CLI, depending on the setup.
+compatibility: Runs from macOS or Linux (Windows isn't tested) with python3, bash and curl. Then Docker, kubectl and helm, or the Railway CLI, depending on the setup.
 metadata:
   tested: "2026-10-01"
   tested-image: sha-d1b7da4
@@ -74,7 +74,9 @@ and upgrades on a running relay, read [operations.md](references/operations.md).
 ## 2. Inputs, for every setup
 
 `$SKILL` below is this skill's folder (where this file is): run the scripts by that full path,
-from wherever the agent runs. They need `python3`, `bash`, `curl` and internet access.
+from wherever the agent runs. They need `python3`, `bash`, `curl` and internet access, on macOS or
+Linux (Windows isn't tested). On a Mac without Apple's developer tools, the first `python3` opens
+an installer instead: ask the user to run `xcode-select --install` first.
 
 - **Owner.** Ask for the owner's public ID (npub) as Buzz Desktop shows it on its Join screen, on
   the device they'll use: an npub from anywhere else may be an old identity. If the user gives one
@@ -97,6 +99,14 @@ Then:
 | `server`, Railway, Kubernetes | `$DOMAIN` | `wss://$DOMAIN` | `https://$DOMAIN` |
 | `private` | the Tailscale name | `wss://<name>` | `https://<name>` |
 | `local` | `127.0.0.1` | `ws://127.0.0.1:3000` | `http://127.0.0.1:3000` |
+
+**SSH to a server.** An agent's shell can't answer SSH's questions: the new server's fingerprint,
+or a key's passphrase. Before the first server step, ask the user to connect once from their own
+terminal (`ssh <user>@<server> true`), which saves the server's host key. A key with a passphrase
+goes into their SSH agent first (`ssh-add <key file>`); an AWS key is the `.pem` file from the
+console, and its user is `ubuntu`. For a server the user created minutes ago,
+`-o StrictHostKeyChecking=accept-new` on the first call also works; ask first. Then put
+`-o BatchMode=yes` on every ssh call, so a missing key fails at once instead of waiting for input.
 
 **One shell per command?** If each command runs in a fresh shell (one SSH call per command),
 nothing carries over: `cd ~/buzz/deploy/compose` in every call once it exists, and set `SKILL`,

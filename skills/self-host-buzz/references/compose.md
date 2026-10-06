@@ -14,16 +14,18 @@ and `local` modes, drop `BUZZ_COMPOSE_TLS=true`** everywhere, including operatio
 Caddy, and the flag would start it on the public ports. `add-member` and `list-members` work
 either way.
 
-A server is Ubuntu 24.04 on x86 with 4 GB of RAM, as root or a user with sudo. (x86 for now: the
-MinIO image the bundle needs is amd64-only.) A local test runs on Linux the same way, or on macOS
+A server is Ubuntu 24.04 on x86 with 4 GB of RAM and at least 20 GB of disk, as root or a user
+whose sudo doesn't ask for a password: an agent can't type it. (x86 for now: the MinIO image the
+bundle needs is amd64-only.) A local test runs on Linux the same way, or on macOS
 or Windows with Docker Desktop. On an Apple Silicon Mac the relay runs natively and MinIO runs
 through Docker's x86 emulation (tested): Docker warns that the image's platform doesn't match,
 which is harmless.
 
 1. **Machine.**
-   - Server: `cloud-init status --wait; uname -m; free -h` → `status: done`, `x86_64`, and about
-     3.7Gi or more. The first command waits for a new server's first-boot updates, which
-     otherwise hold apt's lock and break the installs below.
+   - Server: `cloud-init status --wait; uname -m; free -h; df -h /` → `status: done`, `x86_64`,
+     about 3.7Gi or more of memory, and a disk `Size` of 20G or more. The first command waits for
+     a new server's first-boot updates, which otherwise hold apt's lock and break the installs
+     below. As a user other than root, also `sudo -n true && echo sudo ok` → `sudo ok`.
    - Docker Desktop (`local`): `docker version --format '{{.Server.Version}}'` prints the engine's
      version (it fails when Docker Desktop isn't running), and `docker compose version` → 2.24.4
      or later.
@@ -33,15 +35,17 @@ which is harmless.
      password, which won't match the new `.env`. If some are left, ask before removing them with
      `docker volume rm`. Then, with Docker Desktop, skip to step 4.
 2. **DNS and ports (`server`).** An A record for `$DOMAIN` points at this machine. Check, on the
-   server: `python3 -c "import socket; print(socket.gethostbyname('$DOMAIN'))"` prints the
-   machine's public IP, which `curl -4 -s https://checkip.amazonaws.com` shows. Ports 80 and 443
+   server: `python3 -c "import socket; print(sorted({a[4][0] for a in socket.getaddrinfo('$DOMAIN', 443)}))"`
+   prints only the machine's public IP, which `curl -4 -s https://checkip.amazonaws.com` shows (and
+   its IPv6, if it has one). Anything else is a proxied record or a stray AAAA record, and
+   `Name or service not known` means the record hasn't spread yet ([troubleshooting](troubleshooting.md)).
+   Ports 80 and 443
    must reach the machine (Let's Encrypt connects on 80): `sudo ufw status` must be `inactive` or
    allow them, and so must any firewall at the hosting provider. Nothing listens on them until
    step 10; step 11's `check-relay.sh` is the real test. On the user's own hardware, also forward
    80 and 443 on the router to the machine, with the A record at the home IP. Many home internet
    providers block incoming connections (CGNAT); if Let's Encrypt can't reach port 80, ask the
-   provider, or use a VPS or the `private` mode instead. Router forwarding isn't covered by the
-   tests.
+   provider, or use a VPS or the `private` mode instead.
 2P. **Join the private network (`private`, instead of step 2).** Ask the user to turn on HTTPS
    for their tailnet (admin console, DNS, Enable HTTPS; this lists the machine's name in public
    certificate logs). The machine's Tailscale name becomes `RELAY_URL` for good: a community can't
@@ -209,11 +213,14 @@ which is harmless.
 11P. **If other devices time out (`private`)** while `tailscale ping` works, the tailnet's access
     policy blocks them. The default policy allows everything; a customized one needs a grant such
     as `{"src": ["autogroup:member"], "dst": ["autogroup:self"], "ip": ["tcp:443"]}` (the user's
-    own devices; tested) or a `tag:buzz` on the relay with `tcp:443` granted to members (for a
-    team; not yet tested). That's the user's policy to change: ask. Members install Tailscale and
+    own devices) or a `tag:buzz` on the relay with `tcp:443` granted to members (for a team). That's the user's policy to change: ask. Members install Tailscale and
     join the tailnet before they join the community, on their phones too: the phone app reaches the
     relay only while Tailscale is on. Known gap: webhooks to tailnet addresses are refused
     (block/buzz#6500).
+
+**For a server that runs for months.** Docker keeps each container's log without limit; ask the
+user about capping it (`log-opts` in `/etc/docker/daemon.json`, which applies to containers created
+afterwards). Nothing schedules backups: ask how often to run operations.md's backup.
 
 **Optional hardening (`server`; ask first: a wrong SSH rule locks the user out).** Docker
 publishes 80 and 443 around `ufw`, so a host firewall mainly guards SSH and anything else on the

@@ -258,8 +258,8 @@ the provider's volumes list afterwards.
 **Production.** For production, or for Argo CD and Flux (they render with `helm template`, which
 makes the chart's generated secrets rotate, changing the relay's identity), use the chart's
 production profile with managed Postgres, Redis and S3 and a Secret made ahead of time; see the
-chart's README. Not yet tested here.
+chart's README.
 
 **Phone pairing on a private network.** Steps 3 and 4 turn it on for a public relay. Here it would
 need its own Tailscale name: a second Tailscale ingress to the `buzz-pairing` service on port
-5000, and `pairingRelay.url` set to `wss://` that name. Not yet tested.
+5000, and `pairingRelay.url` set to `wss://` that name.

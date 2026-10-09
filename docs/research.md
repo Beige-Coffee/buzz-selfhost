@@ -111,3 +111,23 @@ and [#7869](https://github.com/block/buzz/pull/7869) with [#7870](https://github
 - **Kubernetes:** the chart (0.1.10) runs the pairing service but doesn't route to it; a second
   ingress for `/pair` on the same name and certificate does. Its default image is from June 2026.
 - **Buzz images:** the relay image runs on x86 and ARM; `ghcr.io/block/buzz-minio` is x86 only.
+
+## Found on 2026-10-09, not yet in the skill
+
+- **Silo replaced MinIO** in Block's bundle (block/buzz#8023, merged Oct 7). Silo's images run on
+  Intel and ARM, so the x86-only rule (compose.md, decisions.md) may be out of date: test an ARM
+  server. The skill's MinIO step skips itself on the new bundle, but `tests/smoke-vps.sh` still
+  checks for MinIO and fails on it (expected 2, got 0). Moving an existing relay's MinIO data to
+  Silo is untested.
+- **The relay has a built-in admin console**, off by default: moderation reports, bans, timeouts,
+  deleting messages, member feedback, and adding moderators. `BUZZ_ADMIN_HOST=admin.<domain>`, with
+  that name routed to the relay, turns it on. The owner gets operator access automatically, and
+  Buzz Desktop finds it under Settings, Admin (a different host name than the relay's needs one
+  click on Save). Tested on a Compose relay on Oct 9. A candidate optional step for the skill.
+- **Buzz Desktop's Invites screen** lets an owner or admin add members by public ID, remove them,
+  make admins and create invite links. The relay now answers `/api/invites`, so the skill's "no
+  invite links yet" may be out of date. Untested.
+- **Changing the owner:** `buzz-admin` says the owner is changed by editing `RELAY_OWNER_PUBKEY`,
+  while the skill says the owner can't be changed. Check what a change does; Pavlenex's Umbrel page
+  says it adds an owner without removing the old one.
+

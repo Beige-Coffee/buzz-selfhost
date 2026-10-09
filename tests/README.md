@@ -59,6 +59,19 @@ adds Traefik and cert-manager), and a domain at the ingress; `<ip>.sslip.io` wor
 KUBECONFIG=path/to/kubeconfig BUZZ_CLI=path/to/buzz bash tests/smoke-k8s.sh <domain> [image-tag]
 ```
 
+## Umbrel: `umbrel/`
+
+The Umbrel package in [`../umbrel/buzz`](../umbrel/buzz), on umbrelOS running in Docker on a
+DigitalOcean droplet, with members reaching it through a Cloudflare quick tunnel. Steps and what's
+left untested: [`../docs/umbrel.md`](../docs/umbrel.md).
+
+```bash
+python3 tests/umbrel/server.py up
+bash tests/umbrel/install.sh
+BUZZ_CLI=path/to/buzz OWNER_HEX=<hex> bash tests/umbrel/e2e.sh
+python3 tests/umbrel/server.py down
+```
+
 ## Logs
 
 Each script saves what it prints to `runs/<date>-<time>-<setup>-<version>.log`, after `lib/redact.py`
@@ -77,6 +90,15 @@ python3 tests/lib/export-runs.py ~/.claude/projects/<project>/<session-id>
 
 No script here yet. The steps and operations were run against projects made with
 `railway deploy -t buzz-relay-block`, by hand on 2026-09-30 and by script on 2026-10-01.
+
+## Results, 2026-10-09: Umbrel
+
+The Umbrel package on umbrelOS 2.0.0, relay `sha-16eb0b6`, through a Cloudflare quick tunnel:
+installed through Umbrel, set up through its page, every `check-relay.sh` line passed (phone
+pairing included), members posted and read, a stranger was refused, a file went up and came back,
+and all of it held after Umbrel restarted the app ([log](runs/2026-10-09-1430-umbrel-cloudflare-quick-tunnel.log)).
+Not yet run: Buzz Desktop joining it, a phone pairing, and Umbrel's Cloudflare Tunnel app with a
+real domain.
 
 ## Results, 2026-10-05
 

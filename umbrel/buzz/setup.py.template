@@ -1,0 +1,315 @@
+"""Buzz on Umbrel: the setup and status page.
+
+Takes the owner's public ID and the community's domain, writes the relay's settings, and checks
+that the relay runs here and answers at its public address. Umbrel renders this file from a
+template, so it must not contain a dollar sign.
+"""
+import concurrent.futures
+import html
+import http.client
+import http.server
+import json
+import os
+import re
+import ssl
+import urllib.parse
+
+SETTINGS_DIR = "/settings"
+RELAY_ENV = os.path.join(SETTINGS_DIR, "relay.env")
+SETUP_JSON = os.path.join(SETTINGS_DIR, "setup.json")
+GATEWAY_URL = "buzz-gateway:80"
+
+BECH32 = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+
+
+def bech32_polymod(values):
+    generator = [0x3B6A57B2, 0x26508E6D, 0x1EA119FA, 0x3D4233DD, 0x2A1462B3]
+    check = 1
+    for value in values:
+        top = check >> 25
+        check = ((check & 0x1FFFFFF) << 5) ^ value
+        for i in range(5):
+            if (top >> i) & 1:
+                check ^= generator[i]
+    return check
+
+
+def owner_hex(text):
+    """The owner's 64-character hex key, from an npub (checksum verified) or hex."""
+    value = text.strip().lower()
+    if value.startswith("nostr:"):
+        value = value[6:]
+    if re.fullmatch(r"[0-9a-f]{64}", value):
+        return value
+    if value.startswith("nsec"):
+        raise ValueError("That is a private key. Never paste it anywhere. Use your public ID, which starts with npub.")
+    if not value.startswith("npub1") or len(value) != 63:
+        raise ValueError("Paste your public ID from Buzz Desktop. It starts with npub1 and is 63 characters long.")
+    data = []
+    for char in value[5:]:
+        if char not in BECH32:
+            raise ValueError("That public ID has a character a public ID can't contain. Copy it again from Buzz Desktop.")
+        data.append(BECH32.index(char))
+    expanded = [ord(c) >> 5 for c in "npub"] + [0] + [ord(c) & 31 for c in "npub"]
+    if bech32_polymod(expanded + data) != 1:
+        raise ValueError("That public ID doesn't check out: a character is wrong or missing. Copy it again from Buzz Desktop.")
+    acc = bits = 0
+    key = bytearray()
+    for value5 in data[:-6]:
+        acc = (acc << 5) | value5
+        bits += 5
+        while bits >= 8:
+            bits -= 8
+            key.append((acc >> bits) & 0xFF)
+    if len(key) != 32:
+        raise ValueError("That public ID is the wrong length. Copy it again from Buzz Desktop.")
+    return key.hex()
+
+
+def clean_domain(text):
+    domain = re.sub(r"^[a-z]+://", "", text.strip().lower()).split("/")[0].rstrip(".")
+    label = r"[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
+    if len(domain) > 253 or not re.fullmatch(r"(" + label + r"\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]", domain):
+        raise ValueError("Enter a domain name, like buzz.example.com.")
+    if domain.endswith((".local", ".localhost", ".internal", ".lan", ".home.arpa", ".ts.net")):
+        raise ValueError("Use a public domain you control, routed here by Cloudflare Tunnel.")
+    return domain
+
+
+def read_setup():
+    try:
+        with open(SETUP_JSON) as f:
+            setup = json.load(f)
+        if os.path.getsize(RELAY_ENV) > 0:
+            return setup
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def write_atomic(path, text):
+    temporary = path + ".tmp"
+    with open(temporary, "w") as f:
+        f.write(text)
+    os.replace(temporary, path)
+
+
+def save(owner_text, owner_key, domain):
+    write_atomic(SETUP_JSON, json.dumps({"owner": owner_text, "domain": domain}))
+    # The relay watches this file and restarts when it changes.
+    write_atomic(RELAY_ENV, "\n".join([
+        "RELAY_OWNER_PUBKEY=" + owner_key,
+        "BUZZ_DOMAIN=" + domain,
+        "RELAY_URL=wss://" + domain,
+        "BUZZ_MEDIA_BASE_URL=https://" + domain + "/media",
+        "BUZZ_MEDIA_SERVER_DOMAIN=" + domain,
+        "BUZZ_CORS_ORIGINS=https://" + domain + ",tauri://localhost,http://tauri.localhost",
+        "BUZZ_PAIRING_RELAY_URL=wss://" + domain + "/pair",
+    ]) + "\n")
+
+
+def request(host, port, path, tls=False, headers=None, timeout=5):
+    """(status, body) or (None, reason). A WebSocket upgrade comes back 101 with no body."""
+    try:
+        if tls:
+            conn = http.client.HTTPSConnection(host, port, timeout=timeout, context=ssl.create_default_context())
+        else:
+            conn = http.client.HTTPConnection(host, port, timeout=timeout)
+        conn.request("GET", path, headers=headers or {})
+        response = conn.getresponse()
+        body = b"" if response.status == 101 else response.read(4096)
+        conn.close()
+        return response.status, body
+    except (OSError, http.client.HTTPException) as error:
+        return None, str(error).encode()
+
+
+UPGRADE = {"Connection": "Upgrade", "Upgrade": "websocket", "Sec-WebSocket-Version": "13",
+           "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ=="}
+
+
+def checks(domain):
+    jobs = {
+        "relay": lambda: request("buzz_relay_1", 8080, "/_readiness"),
+        "public": lambda: request(domain, 443, "/_liveness", tls=True),
+        "pair": lambda: request(domain, 443, "/pair", tls=True, headers=UPGRADE),
+    }
+    with concurrent.futures.ThreadPoolExecutor(len(jobs)) as pool:
+        futures = {name: pool.submit(job) for name, job in jobs.items()}
+        results = {name: future.result() for name, future in futures.items()}
+    return {
+        "relay": results["relay"][0] == 200,
+        "public": results["public"][0] == 200 and results["public"][1].strip() == b"ok",
+        "public_status": results["public"][0],
+        "pair": results["pair"][0] == 101,
+    }
+
+
+STYLE = """
+:root { color-scheme: light dark; --fg: #1b1b1b; --muted: #5f5f5f; --line: #e3e3e3; --bg: #fff;
+  --card: #f7f7f5; --accent: #1b1b1b; --accent-fg: #fff; --ok: #1a7f37; --warn: #9a6700; --bad: #b42318; }
+@media (prefers-color-scheme: dark) { :root { --fg: #ececec; --muted: #a3a3a3; --line: #333; --bg: #141414;
+  --card: #1d1d1d; --accent: #ececec; --accent-fg: #141414; --ok: #4ac26b; --warn: #d4a72c; --bad: #f47067; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, sans-serif; }
+main { max-width: 640px; margin: 0 auto; padding: 40px 16px 64px; }
+h1 { font-size: 28px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 32px 0 8px; }
+p { margin: 8px 0; } .muted { color: var(--muted); } .small { font-size: 14px; }
+label { display: block; font-weight: 600; margin-top: 20px; }
+input[type=text] { width: 100%; font: inherit; padding: 10px 12px; margin-top: 6px; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--bg); color: var(--fg); }
+button { font: inherit; font-weight: 600; padding: 10px 18px; border: 0; border-radius: 8px; background: var(--accent);
+  color: var(--accent-fg); cursor: pointer; margin-top: 20px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px 20px 16px; margin-top: 24px; }
+.error { border-color: var(--bad); color: var(--bad); padding: 12px 20px; }
+ol, ul { padding-left: 22px; } li { margin: 6px 0; }
+code { font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--card); padding: 1px 5px; border-radius: 4px; }
+.status { list-style: none; padding: 0; } .status li { display: flex; gap: 10px; align-items: baseline; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; transform: translateY(1px); }
+.ok .dot { background: var(--ok); } .wait .dot { background: var(--warn); } .bad .dot { background: var(--bad); }
+.copy { display: flex; gap: 8px; } .copy input { margin-top: 0; } .copy button { margin-top: 0; white-space: nowrap; }
+details { margin-top: 32px; } summary { cursor: pointer; font-weight: 600; }
+"""
+
+SCRIPT = """
+function copyAddress(button) {
+  var field = document.getElementById("address");
+  field.select();
+  var done = function () { button.textContent = "Copied"; setTimeout(function () { button.textContent = "Copy"; }, 1500); };
+  if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(field.value).then(done); }
+  else { document.execCommand("copy"); done(); }
+}
+"""
+
+
+def tunnel_steps(domain):
+    return (
+        "<ol>"
+        "<li>Install <b>Cloudflare Tunnel</b> from the Umbrel App Store and connect it to your Cloudflare "
+        "account. Its page explains how.</li>"
+        "<li>In Cloudflare's dashboard, open the tunnel and add a public hostname: <code>" + html.escape(domain) +
+        "</code>, with the service type <b>HTTP</b> and the URL <code>" + GATEWAY_URL + "</code>.</li>"
+        "<li>Come back here. This page checks the address every few seconds.</li>"
+        "</ol>"
+    )
+
+
+def form(setup, error, values):
+    owner = values.get("owner", setup["owner"] if setup else "")
+    domain = values.get("domain", setup["domain"] if setup else "")
+    return (
+        '<form method="post" action="save">'
+        '<label for="owner">Your public ID</label>'
+        '<p class="muted small">Buzz Desktop shows it on its Join screen: choose Add community, then Join a '
+        "community. It starts with npub, and makes you the community's owner.</p>"
+        '<input type="text" id="owner" name="owner" placeholder="npub1..." autocomplete="off" spellcheck="false" value="' +
+        html.escape(owner, quote=True) + '">'
+        '<label for="domain">Domain</label>'
+        '<p class="muted small">A domain you control, like buzz.example.com. Members connect to it. It is the '
+        "community's permanent address: a different domain later starts a new, empty community.</p>"
+        '<input type="text" id="domain" name="domain" placeholder="buzz.example.com" autocomplete="off" '
+        'spellcheck="false" value="' + html.escape(domain, quote=True) + '">'
+        "<button>Save</button></form>"
+        + ('<div class="card error">' + html.escape(error) + "</div>" if error else "")
+    )
+
+
+def item(state, text):
+    return '<li class="' + state + '"><span class="dot"></span><span>' + text + "</span></li>"
+
+
+def page(error=None, values=None):
+    values = values or {}
+    setup = read_setup()
+    refresh = ""
+    if not setup:
+        body = (
+            "<p>Run your Buzz community on this Umbrel. Enter two things to start the relay.</p>"
+            + form(None, error, values)
+            + '<h2>Before members can connect</h2><p class="muted small">Route your domain to this Umbrel with '
+            "Cloudflare Tunnel. You can do this before or after saving.</p>"
+            + tunnel_steps("your domain")
+        )
+    else:
+        domain = setup["domain"]
+        state = checks(domain)
+        address = "wss://" + domain
+        live = state["relay"] and state["public"]
+        if not live:
+            refresh = '<meta http-equiv="refresh" content="8">'
+        status = "<ul class=\"status\">"
+        status += item("ok" if state["relay"] else "wait",
+                       "Relay running on this Umbrel" if state["relay"] else "Starting the relay. This takes about a minute the first time.")
+        if state["public"]:
+            status += item("ok", "Reachable at <code>https://" + html.escape(domain) + "</code>")
+        else:
+            reason = " (HTTP " + str(state["public_status"]) + ")" if state["public_status"] else ""
+            status += item("wait", "Not reachable at <code>https://" + html.escape(domain) + "</code> yet" + reason)
+        status += item("ok" if state["pair"] else "wait", "Phones can pair" if state["pair"] else "Phone pairing not reachable yet")
+        status += "</ul>"
+        body = '<div class="card">' + status + "</div>"
+        if not state["public"]:
+            body += "<h2>Route your domain here with Cloudflare Tunnel</h2>" + tunnel_steps(domain)
+        body += (
+            "<h2>Join</h2><p>In Buzz Desktop, choose Add community, then Join a community, and paste this address. "
+            "Use the identity whose public ID you entered.</p>"
+            '<div class="copy"><input type="text" id="address" readonly value="' + html.escape(address, quote=True) +
+            '"><button type="button" onclick="copyAddress(this)">Copy</button></div>'
+            "<h2>Members</h2><p>Each member sends you their public ID from Buzz Desktop's Join screen. Add them in "
+            "Buzz Desktop under Settings, Invites.</p>"
+            "<h2>Phones</h2><p>In Buzz Desktop, open Settings, Mobile, and scan the code with the Buzz app. "
+            "Push notifications aren't available for self-hosted communities yet.</p>"
+            "<details" + (" open" if error else "") + "><summary>Change settings</summary>"
+            '<p class="muted small">Changing the domain starts a new, empty community at the new address.</p>'
+            + form(setup, error, values) + "</details>"
+        )
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">' + refresh +
+        "<title>Buzz</title><style>" + STYLE + "</style><script>" + SCRIPT + "</script></head>"
+        '<body><main><h1>Buzz</h1><p class="muted">Your community\'s relay, on this Umbrel.</p>' + body +
+        "</main></body></html>"
+    )
+
+
+class Handler(http.server.BaseHTTPRequestHandler):
+    def send_page(self, text, status=200):
+        data = text.encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_GET(self):
+        if urllib.parse.urlsplit(self.path).path in ("/", ""):
+            self.send_page(page())
+        else:
+            self.send_page("Not found", 404)
+
+    def do_POST(self):
+        if urllib.parse.urlsplit(self.path).path != "/save":
+            return self.send_page("Not found", 404)
+        origin = self.headers.get("Origin")
+        if origin and urllib.parse.urlsplit(origin).netloc != self.headers.get("Host"):
+            return self.send_page("This form only accepts requests from its own page.", 403)
+        length = min(int(self.headers.get("Content-Length") or 0), 10000)
+        fields = urllib.parse.parse_qs(self.rfile.read(length).decode(errors="replace"))
+        values = {name: fields.get(name, [""])[0] for name in ("owner", "domain")}
+        try:
+            key = owner_hex(values["owner"])
+            domain = clean_domain(values["domain"])
+        except ValueError as error:
+            return self.send_page(page(str(error), values), 400)
+        save(values["owner"].strip(), key, domain)
+        self.send_response(303)
+        self.send_header("Location", "./")
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        pass
+
+
+if __name__ == "__main__":
+    http.server.ThreadingHTTPServer(("0.0.0.0", 8080), Handler).serve_forever()

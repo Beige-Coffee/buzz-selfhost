@@ -1,0 +1,47 @@
+# Buzz on Umbrel: umbrelOS 2.0.0 in Docker on a DigitalOcean droplet, the app installed through
+# Umbrel, members reaching it through a Cloudflare quick tunnel. Relay sha-16eb0b6.
+#
+# Run 1: setup through the app's page, then the relay checks. Its member checks failed on a bug in
+# this script (buzz-admin add-member needs --pubkey), so they're cut here; run 2 reran them.
+
+== Tunnel
+PASS  quick tunnel at https://portfolio-hindu-heights-museum.trycloudflare.com
+== Setup, through the app's page
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, through Cloudflare
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  WebSocket upgrade (what Buzz Desktop joins over)
+PASS  phone pairing at wss://portfolio-hindu-heights-museum.trycloudflare.com/pair
+PASS  Buzz Desktop allowed (CORS)
+
+# Run 2: the same tunnel and settings (SKIP_SETUP=1), with the script fixed.
+
+== Tunnel
+PASS  quick tunnel at https://portfolio-hindu-heights-museum.trycloudflare.com
+== The relay, through Cloudflare
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  WebSocket upgrade (what Buzz Desktop joins over)
+PASS  phone pairing at wss://portfolio-hindu-heights-museum.trycloudflare.com/pair
+PASS  Buzz Desktop allowed (CORS)
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 17  failed: 0
+relay: wss://portfolio-hindu-heights-museum.trycloudflare.com

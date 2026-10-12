@@ -10,8 +10,6 @@ A guide site, an agent skill and end-to-end tests for self-hosting Buzz
 - `site/`: the guide at https://buzz-selfhost.vercel.app (Vite and vanilla TypeScript).
   `site/build/skill.ts` parses the skill's Markdown at build time, so the site's step-by-step view
   is the skill itself: change commands in the skill, never in the site.
-- `umbrel/buzz/`: a Buzz package for the Umbrel App Store, not yet submitted. Status, design and
-  how to test it: [`docs/umbrel.md`](docs/umbrel.md).
 - `tests/`: smoke tests that run the skill's commands on real servers. `tests/runs/` keeps every
   run, script and agent, with secrets masked; `tests/README.md` has the results by date.
 - [`docs/decisions.md`](docs/decisions.md): what was decided for the site and the skill, and why.

@@ -27,6 +27,9 @@ Docker template" people mention is Hostinger's own.
   equal to a VPS: a team without a cluster should never pick it.
 - **A local test** on the reader's machine, for trying Buzz out.
 - No new platforms (Render, Fly.io, Coolify) until a tester asks: each is more to test and keep up.
+- **Umbrel** isn't a setup here yet. A tested package for Umbrel's App Store lives on the `umbrel`
+  branch ([status](https://github.com/Beige-Coffee/buzz-selfhost/blob/umbrel/docs/umbrel.md)) until
+  Umbrel accepts it, so `main`, which the site links testers to, shows only what the guide supports.
 
 ## Public or private
 

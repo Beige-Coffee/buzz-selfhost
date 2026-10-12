@@ -1,7 +1,8 @@
 # Buzz on Umbrel
 
 Status on 2026-10-12: a working Umbrel App Store package in [`umbrel/buzz/`](../umbrel/buzz/),
-tested end to end on umbrelOS 2.0, including Buzz Desktop and a phone. Not yet submitted to Umbrel.
+tested end to end on umbrelOS 2.0 and 1.7, with Buzz Desktop, a phone, and an update. Not yet
+submitted to Umbrel.
 
 ## Why our own package
 
@@ -56,12 +57,23 @@ reaching it through a Cloudflare quick tunnel (no account or domain needed):
 owner joined from Buzz Desktop, added a member by public ID in Settings, Invites (the relay records
 the owner as having added it, and that member then posted), and paired an iPhone from Settings,
 Mobile and posted from it ([log](../tests/runs/2026-10-12-1305-umbrel-desktop-and-phone.log)).
+Then, the same day:
+
+- The owner opened the app from Umbrel's home screen, behind Umbrel's login: the setup page showed
+  all three checks green and the join address. The home screen shows a placeholder icon, since
+  Umbrel adds icons from its own assets repo.
+- Updating through Umbrel: the package moved to relay `sha-30873ba` under a new manifest version,
+  and the message, the file, the settings and the member from before all survived, 12 of 12
+  ([log](../tests/runs/2026-10-12-1350-umbrel-update.log)).
+- umbrelOS 1.7.4, beside the 2.0 install on the same droplet: 19 of 19
+  ([log](../tests/runs/2026-10-12-1405-umbrel-os-1.7.log)).
 
 ## Not yet tested
 
 - Umbrel's Cloudflare Tunnel app with a real domain. It needs a Cloudflare account and a domain.
-- Opening the app from Umbrel's home screen, which needs an Umbrel login.
-- umbrelOS 1.7, an ARM device, and an update from one package version to the next.
+- ARM, the chip in a Raspberry Pi. An Apple Silicon Mac runs the arm64 umbrelOS image natively;
+  Umbrel's guide says its container works there under OrbStack. Umbrel asks for the chip type to
+  be tested, not a particular device.
 
 ## Before submitting
 
@@ -76,8 +88,13 @@ Mobile and posted from it ([log](../tests/runs/2026-10-12-1305-umbrel-desktop-an
 python3 tests/umbrel/server.py up       # about $0.07 an hour while it exists
 bash tests/umbrel/install.sh            # umbrelOS 2.0.0 in Docker, then the app through Umbrel
 BUZZ_CLI=path/to/buzz OWNER_HEX=<the owner's hex key> bash tests/umbrel/e2e.sh
+BUZZ_CLI=path/to/buzz MEMBER_KEYS=<a member's key file> bash tests/umbrel/update.sh <tag> <digest>
 python3 tests/umbrel/server.py down     # deletes the droplet and its firewall
 ```
+
+Another umbrelOS version runs beside the first: `UMBREL_CONTAINER=umbrelos-17 bash
+tests/umbrel/install.sh 1.7.4`, then `e2e.sh` with the same `UMBREL_CONTAINER` and its own
+`DOMAIN_FILE`.
 
 `e2e.sh` starts a quick tunnel and prints the relay's address for joining from Buzz Desktop. The
 address changes whenever the tunnel restarts, and with it the community, so it suits tests only.

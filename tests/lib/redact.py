@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Mask secrets in test output. As a filter (stdin to stdout) it guards the logs in tests/runs/;
 export-runs.py imports redact() for the agent transcripts. With --private it also masks personal
-details that aren't secrets (emails, home folders, the tailnet's name), for files that get committed.
+details that aren't secrets (emails, home folders, the tailnet's name) and what ties a run to a real
+server or person (public IP addresses, sslip.io and nip.io names, npubs, 64-hex keys and hashes),
+for files that get committed.
 
 Masks what looks like a credential and keeps everything else readable: Tailscale keys and client
 IDs, cloud and API tokens, JWTs, Nostr nsec keys, private key blocks, passwords inside URLs, labeled
@@ -47,6 +49,12 @@ PRIVATE = [
     (re.compile(r"-Users-[A-Za-z0-9._]+-"), "-Users-user-"),  # Claude Code's per-project folder names
     (re.compile(r"^([dl-][rwxsStT@+.-]{9,11}\s+\d+\s+)(?!root\b)[A-Za-z0-9._-]+", re.M), r"\1user"),  # ls -l owner
     (re.compile(r"\btail[0-9a-f]{6}\.ts\.net\b"), "tail1234.ts.net"),
+    # a test server's name and address: 203-0-113-10.sslip.io, then any public IPv4 address
+    (re.compile(r"\b\d{1,3}(?:[-.]\d{1,3}){3}\.(sslip|nip)\.io\b"), r"<ip>.\1.io"),
+    (re.compile(r"(?<![\d.])(?!(?:0|10|127)\.)(?!192\.168\.)(?!169\.254\.)(?!172\.(?:1[6-9]|2\d|3[01])\.)"
+                r"(?!100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)\d{1,3}(?:\.\d{1,3}){3}(?![\d.]*\d)"), "<ip>"),
+    (re.compile(r"\bnpub1[02-9ac-hj-np-z]{58}\b"), "npub1<masked>"),
+    (re.compile(r"(?<![0-9A-Fa-f])[0-9a-f]{64}(?![0-9A-Fa-f])"), "<hex>"),
 ]
 
 

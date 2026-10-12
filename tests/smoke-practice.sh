@@ -68,7 +68,7 @@ CH=$(field channel_id <"$TMP/channel.json")
 [[ -n $CH ]] && pass "owner creates a channel" || fail "owner creates a channel: $(cat "$TMP/channel.json")"
 as "$OWNER_SK" messages send --channel "$CH" --content "hello from practice" >"$TMP/send.json" 2>&1 &&
   pass "owner posts" || fail "owner posts: $(cat "$TMP/send.json")"
-as "$OWNER_SK" --format compact messages get --channel "$CH" --limit 5 2>&1 | grep -q "hello from practice" &&
+as "$OWNER_SK" --format compact messages get --channel "$CH" --limit 5 2>&1 | grep "hello from practice" >/dev/null &&
   pass "owner reads it back" || fail "owner can't read the message"
 if as "$STRANGER_SK" messages send --channel "$CH" --content "should be refused" >"$TMP/stranger.json" 2>&1; then
   fail "a non-member posted"

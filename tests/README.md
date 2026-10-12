@@ -99,8 +99,11 @@ pairing included), members posted and read, a stranger was refused, a file went 
 and all of it held after Umbrel restarted the app ([log](runs/2026-10-09-1430-umbrel-cloudflare-quick-tunnel.log)).
 On 2026-10-12, on a fresh server: 19 of 19 again, then Buzz Desktop joined as the owner, added a
 member by public ID from Settings, Invites (that member then posted), and an iPhone paired and posted
-([log](runs/2026-10-12-1305-umbrel-desktop-and-phone.log)). Not yet run: Umbrel's Cloudflare Tunnel
-app with a real domain.
+([log](runs/2026-10-12-1305-umbrel-desktop-and-phone.log)). The owner also opened it from Umbrel's home
+screen; an update through Umbrel to relay `sha-30873ba` kept everything, 12 of 12
+([log](runs/2026-10-12-1350-umbrel-update.log)); and umbrelOS 1.7.4 passed 19 of 19
+([log](runs/2026-10-12-1405-umbrel-os-1.7.log)). Not yet run: Umbrel's Cloudflare Tunnel app with a
+real domain, and ARM.
 
 ## Results, 2026-10-05
 

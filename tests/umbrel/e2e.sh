@@ -10,12 +10,14 @@ T=$HERE/..
 SKILL=$HERE/../../skills/self-host-buzz
 BZ=${BUZZ_CLI:?set BUZZ_CLI to the buzz CLI}
 OWNER_HEX=${OWNER_HEX:?set OWNER_HEX}
+C=${UMBREL_CONTAINER:-umbrelos-test}
+DOMAIN_FILE=${DOMAIN_FILE:-$HOME/.buzz-test/umbrel-domain}
 TMP=$(mktemp -d)
 PASS=0 FAIL=0
 pass() { echo "PASS  $1"; PASS=$((PASS + 1)); }
 fail() { echo "FAIL  $1"; FAIL=$((FAIL + 1)); }
 field() { python3 -c "import json,sys; print(json.load(sys.stdin).get('$1', ''))" 2>/dev/null; }
-umbrel() { $U "docker exec umbrelos-test sh -c $(printf '%q' "$1")"; }
+umbrel() { $U "docker exec $C sh -c $(printf '%q' "$1")"; }
 
 echo "== Tunnel"
 if [ -z "${DOMAIN:-}" ]; then
@@ -27,7 +29,7 @@ if [ -z "${DOMAIN:-}" ]; then
   done
 fi
 [ -n "$DOMAIN" ] && pass "quick tunnel at https://$DOMAIN" || { fail "no quick tunnel address"; exit 1; }
-echo "$DOMAIN" > "$HOME/.buzz-test/umbrel-domain"
+echo "$DOMAIN" > "$DOMAIN_FILE"
 
 if [ -z "${SKIP_SETUP:-}" ]; then
 echo "== Setup, through the app's page"

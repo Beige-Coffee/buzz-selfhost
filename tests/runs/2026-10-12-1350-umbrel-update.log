@@ -1,0 +1,21 @@
+# Buzz on Umbrel: updating the app through Umbrel, on umbrelOS 2.0.0. The package moved from relay
+# sha-16eb0b6 to sha-30873ba under a new manifest version (tests/umbrel/update.sh), on the relay the
+# owner had joined from Buzz Desktop and a phone earlier the same day.
+
+== Before the update
+INFO  relay image ghcr.io/block/buzz:sha-16eb0b6
+PASS  member posts
+PASS  member uploads a file
+== Update through Umbrel to sha-30873ba
+PASS  Umbrel updated the app and reports it ready
+PASS  the relay now runs sha-30873ba
+== After the update
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  WebSocket upgrade (what Buzz Desktop joins over)
+PASS  phone pairing at wss://loaded-final-carefully-fibre.trycloudflare.com/pair
+PASS  Buzz Desktop allowed (CORS)
+PASS  the message from before the update is still there
+PASS  the file from before the update comes back intact
+PASS  the member still belongs and posts
+passed: 12  failed: 0

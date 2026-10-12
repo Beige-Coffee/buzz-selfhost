@@ -1,9 +1,9 @@
 # Buzz on Umbrel
 
 Status on 2026-10-12: a working Umbrel App Store package in [`umbrel/buzz/`](../umbrel/buzz/),
-tested end to end on umbrelOS 2.0 and 1.7, on Intel and ARM, with Buzz Desktop, a phone, and an
-update. Not yet
-submitted to Umbrel.
+tested end to end on umbrelOS 2.0 and 1.7, on Intel and ARM, with Buzz Desktop, a phone, an update,
+and both address options. Not yet submitted to Umbrel. It lives on this `umbrel` branch, not on
+`main`, until Umbrel accepts it.
 
 ## Why our own package
 
@@ -21,15 +21,24 @@ Credit #5928 when we submit.
 
 ## How it works
 
-- **Reaching it:** members connect through Umbrel's Cloudflare Tunnel app, on a domain the owner
-  controls. Cloudflare decrypts the traffic, and its free plan refuses uploads over 100 MB, so the
-  package caps the relay's uploads at 100 MB. A second option to weigh later: the app's own
-  Tailscale node with Funnel, for owners without a domain (a random-looking `ts.net` address).
+- **The address, two options.** The address is permanent: Buzz can't change a community's
+  address yet ([block/buzz#4952](https://github.com/block/buzz/issues/4952)), so a different address
+  later starts a new, empty community. The setup page says so before anything starts.
+  - **Your own domain (recommended):** routed here by Umbrel's Cloudflare Tunnel app. The owner can
+    move the community to another server later and keep it. Cloudflare decrypts the traffic, and its
+    free plan refuses uploads over 100 MB, so the package caps the relay's uploads at 100 MB.
+  - **Free Tailscale address (to try it out):** the app's own Tailscale machine, published with
+    Tailscale Funnel, so members don't need Tailscale. It stays the same until the owner changes it,
+    but it belongs to their Tailscale account and can't become their own domain later, so Save
+    stays disabled until they tick a box that says so. The machine runs in userspace (no extra
+    privileges) and never touches Umbrel's own Tailscale app.
 - **Setup page** (`setup.py.template`, Python's standard library in the official image): asks for
-  the owner's public ID and the domain, checks the npub's checksum, refuses a private key, and
-  writes the relay's settings. Then it shows whether the relay runs, whether the domain reaches it,
-  and whether phones can pair, with the join, members and phone steps. Umbrel's rules require a
-  page like this for an app with no web interface of its own.
+  the owner's public ID and the address, checks the npub's checksum, refuses a private key, and
+  writes the relay's settings. For the Tailscale address it shows Tailscale's sign-in link, then
+  Tailscale's link to turn on Funnel, and takes the machine's address once it's signed in (only
+  once: a renamed machine never moves the community). Then it shows whether the relay runs,
+  whether the address reaches it, and whether phones can pair, with the join, members and phone
+  steps. Umbrel's rules require a page like this for an app with no web interface of its own.
 - **Relay:** waits for the settings, makes its own key on first start, and restarts itself when the
   settings change. The key is random, not derived from Umbrel's seed: Umbrel's rules forbid
   derived private keys.
@@ -58,6 +67,13 @@ reaching it through a Cloudflare quick tunnel (no account or domain needed):
 owner joined from Buzz Desktop, added a member by public ID in Settings, Invites (the relay records
 the owner as having added it, and that member then posted), and paired an iPhone from Settings,
 Mobile and posted from it ([log](../tests/runs/2026-10-12-1305-umbrel-desktop-and-phone.log)).
+
+2026-10-12, both address options on a fresh droplet ([log](../tests/runs/2026-10-12-1550-umbrel-two-address-options.log)):
+the own-domain path 19 of 19; then the same install switched to the free Tailscale address. The
+owner signed in with the page's link and turned Funnel on with Tailscale's link, and the address
+answered publicly within 15 seconds. 17 of 17 through it, including a restart through Umbrel that
+kept the address, the messages and the file. The owner then joined from Buzz Desktop at the
+Tailscale address and paired an iPhone without Tailscale on it; both posted.
 Then, the same day:
 
 - The owner opened the app from Umbrel's home screen, behind Umbrel's login: the setup page showed
@@ -104,6 +120,13 @@ tests/umbrel/install.sh 1.7.4`, then `e2e.sh` with the same `UMBREL_CONTAINER` a
 address changes whenever the tunnel restarts, and with it the community, so it suits tests only.
 
 ## Gotchas found while testing
+
+- The Tailscale image's own startup, containerboot, gives an interactive sign-in 60 seconds, then
+  restarts with a new link, so a sign-in that takes longer never sticks. The package starts
+  `tailscaled` and `tailscale up` itself, which wait with no time limit.
+- `tailscale funnel` on a network without Funnel prints a one-click consent link
+  (`https://login.tailscale.com/f/funnel?node=<ID>`), waits, and finishes on its own once the owner
+  turns Funnel on. The setup page shows that link.
 
 - With `--network host`, Umbrel's own example, umbrelOS's NetworkManager takes over a cloud
   server's network card and the server drops off the network. `install.sh` uses Docker's bridge

@@ -1,0 +1,72 @@
+# Buzz on Umbrel with two address options, on a fresh DigitalOcean droplet, umbrelOS 2.0.0 in Docker,
+# relay sha-16eb0b6. First the own-domain path again (tests/umbrel/e2e.sh through a Cloudflare quick
+# tunnel), then the same install switched to the free Tailscale address: the app's own Tailscale
+# machine, signed in by the owner, with Funnel turned on by the owner, then e2e.sh against it.
+
+## Own-domain path
+== e2e (own-domain path, through a quick tunnel)
+== Tunnel
+PASS  relay address https://became-monica-accessed-search.trycloudflare.com
+== Setup, through the app's page
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, through Cloudflare
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  WebSocket upgrade (what Buzz Desktop joins over)
+PASS  phone pairing at wss://became-monica-accessed-search.trycloudflare.com/pair
+PASS  Buzz Desktop allowed (CORS)
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 19  failed: 0
+relay: wss://became-monica-accessed-search.trycloudflare.com
+== done: exit 0
+
+## Free Tailscale address
+# Switched through the setup page (mode=tailscale, the acknowledgment ticked). The owner signed in
+# with the page's link; Tailscale's Funnel command printed its consent link, the owner turned Funnel
+# on, and the address answered publicly within 15 seconds.
+== Tunnel
+PASS  relay address https://buzz.tail1234.ts.net
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  WebSocket upgrade (what Buzz Desktop joins over)
+PASS  phone pairing at wss://buzz.tail1234.ts.net/pair
+PASS  Buzz Desktop allowed (CORS)
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+passed: 17  failed: 0
+relay: wss://buzz.tail1234.ts.net
+
+# Then by hand: the owner joined from Buzz Desktop at the Tailscale address and posted, and paired
+# an iPhone (no Tailscale on it) that posted; the pairing service logged both sides.

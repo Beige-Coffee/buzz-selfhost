@@ -112,6 +112,46 @@ services:
       start_period: 60s
     restart: on-failure
 
+  # The free Tailscale address, only when the owner picks it on the setup page: this app's own
+  # Tailscale machine, publishing the gateway with Tailscale Funnel. It never touches Umbrel's
+  # Tailscale app, and it runs in userspace, so it needs no extra privileges.
+  tailscale:
+    image: tailscale/tailscale:v1.102.5@sha256:c507f3a2a6ab1cabd8d809b98edeb41edbd5c3fb6ad9632ffd098b4c7d0b4065
+    # Starts Tailscale directly rather than through the image's containerboot, which gives an
+    # interactive sign-in 60 seconds before restarting with a new link.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -u
+        until [ -e /settings/tailscale-enabled ]; do sleep 5; done
+        sock=/tmp/tailscaled.sock
+        ts() { tailscale --socket="$$sock" "$$@"; }
+        tailscaled --tun=userspace-networking --statedir=/var/lib/tailscale --socket="$$sock" &
+        daemon=$$!
+        trap 'kill -TERM "$$daemon" 2> /dev/null; wait "$$daemon"; exit 0' TERM INT
+        until [ -S "$$sock" ]; do sleep 1; done
+        # Waits for the sign-in with no time limit; the setup page shows the link from the status.
+        ts up --hostname=buzz --accept-dns=false > /dev/null 2>&1 &
+        # Reports the machine's state to the setup page, publishes the gateway with Funnel once
+        # signed in, and stops when the owner switches to a domain.
+        while kill -0 "$$daemon" 2> /dev/null; do
+          [ -e /settings/tailscale-enabled ] || { kill -TERM "$$daemon"; wait "$$daemon"; exit 0; }
+          ts status --json > /settings/tailscale-status.json.tmp 2> /dev/null &&
+            mv -f /settings/tailscale-status.json.tmp /settings/tailscale-status.json
+          if grep -q '"BackendState": "Running"' /settings/tailscale-status.json 2> /dev/null &&
+            ! ts funnel status 2> /dev/null | grep -q buzz-gateway &&
+            ! pgrep -f "funnel --bg" > /dev/null; then
+            ts funnel --bg http://buzz-gateway:80 > /settings/tailscale-funnel.log 2>&1 &
+          fi
+          sleep 5
+        done
+        exit 1
+    volumes:
+      - ${APP_DATA_DIR}/data/tailscale:/var/lib/tailscale
+      - ${APP_DATA_DIR}/data/settings:/settings
+    restart: on-failure
+
   # Phones pair with Buzz Desktop through this service, at wss://<domain>/pair.
   pair:
     image: ghcr.io/block/buzz:sha-16eb0b6@sha256:2221d408d56af6479e9eae216cfb5a55e4346c3e8826b6176ad15f5792150ea8

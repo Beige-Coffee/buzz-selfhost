@@ -1,8 +1,9 @@
 """Buzz on Umbrel: the setup and status page.
 
-Takes the owner's public ID and the community's domain, writes the relay's settings, and checks
-that the relay runs here and answers at its public address. Umbrel renders this file from a
-template, so it must not contain a dollar sign.
+Takes the owner's public ID and the community's address, writes the relay's settings, and checks
+that the relay runs here and answers at its public address. The address is either the owner's own
+domain, routed here by Cloudflare Tunnel, or a free Tailscale address from this app's own Tailscale
+machine. Umbrel renders this file from a template, so it must not contain a dollar sign.
 """
 import concurrent.futures
 import html
@@ -12,12 +13,17 @@ import json
 import os
 import re
 import ssl
+import threading
+import time
 import urllib.parse
 
 SETTINGS_DIR = "/settings"
 RELAY_ENV = os.path.join(SETTINGS_DIR, "relay.env")
 SETUP_JSON = os.path.join(SETTINGS_DIR, "setup.json")
+TAILSCALE_ON = os.path.join(SETTINGS_DIR, "tailscale-enabled")
+TAILSCALE_STATUS = os.path.join(SETTINGS_DIR, "tailscale-status.json")
 GATEWAY_URL = "buzz-gateway:80"
+ISSUE = "https://github.com/block/buzz/issues/4952"
 
 BECH32 = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 
@@ -72,19 +78,17 @@ def clean_domain(text):
     if len(domain) > 253 or not re.fullmatch(r"(" + label + r"\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]", domain):
         raise ValueError("Enter a domain name, like buzz.example.com.")
     if domain.endswith((".local", ".localhost", ".internal", ".lan", ".home.arpa", ".ts.net")):
-        raise ValueError("Use a public domain you control, routed here by Cloudflare Tunnel.")
+        raise ValueError("Use a public domain you control, routed here by Cloudflare Tunnel. "
+                         "For a Tailscale address, choose the free Tailscale address instead.")
     return domain
 
 
-def read_setup():
+def read_json(path):
     try:
-        with open(SETUP_JSON) as f:
-            setup = json.load(f)
-        if os.path.getsize(RELAY_ENV) > 0:
-            return setup
+        with open(path) as f:
+            return json.load(f)
     except (OSError, ValueError):
-        pass
-    return None
+        return None
 
 
 def write_atomic(path, text):
@@ -94,11 +98,22 @@ def write_atomic(path, text):
     os.replace(temporary, path)
 
 
-def save(owner_text, owner_key, domain):
-    write_atomic(SETUP_JSON, json.dumps({"owner": owner_text, "domain": domain}))
+def relay_domain():
+    """The address the relay runs at, once its settings are written."""
+    try:
+        with open(RELAY_ENV) as f:
+            for line in f:
+                if line.startswith("BUZZ_DOMAIN="):
+                    return line.strip().split("=", 1)[1]
+    except OSError:
+        pass
+    return None
+
+
+def write_relay_env(key, domain):
     # The relay watches this file and restarts when it changes.
     write_atomic(RELAY_ENV, "\n".join([
-        "RELAY_OWNER_PUBKEY=" + owner_key,
+        "RELAY_OWNER_PUBKEY=" + key,
         "BUZZ_DOMAIN=" + domain,
         "RELAY_URL=wss://" + domain,
         "BUZZ_MEDIA_BASE_URL=https://" + domain + "/media",
@@ -106,6 +121,45 @@ def save(owner_text, owner_key, domain):
         "BUZZ_CORS_ORIGINS=https://" + domain + ",tauri://localhost,http://tauri.localhost",
         "BUZZ_PAIRING_RELAY_URL=wss://" + domain + "/pair",
     ]) + "\n")
+
+
+def save(owner_text, key, mode, domain):
+    write_atomic(SETUP_JSON, json.dumps({"owner": owner_text, "owner_hex": key, "mode": mode, "domain": domain}))
+    if mode == "tailscale":
+        # This app's Tailscale machine starts; the watcher writes the relay's settings once the
+        # machine has its address.
+        write_atomic(TAILSCALE_ON, "on\n")
+        if domain:
+            write_relay_env(key, domain)
+        elif os.path.exists(RELAY_ENV):
+            os.remove(RELAY_ENV)
+    else:
+        if os.path.exists(TAILSCALE_ON):
+            os.remove(TAILSCALE_ON)
+        write_relay_env(key, domain)
+
+
+def tailscale_state():
+    """(backend state, machine address, login link, machine ID) from this app's Tailscale machine."""
+    status = read_json(TAILSCALE_STATUS) or {}
+    me = status.get("Self") or {}
+    return (status.get("BackendState") or "", (me.get("DNSName") or "").rstrip("."),
+            status.get("AuthURL") or "", me.get("ID") or "")
+
+
+def tailscale_watcher():
+    """Once the Tailscale machine is signed in, its address becomes the community's. Only once:
+    a later change of the machine's name would start a new community, so it never moves on its own."""
+    while True:
+        try:
+            setup = read_json(SETUP_JSON)
+            if setup and setup.get("mode") == "tailscale" and not setup.get("domain"):
+                state, name, _, _ = tailscale_state()
+                if state == "Running" and name.endswith(".ts.net"):
+                    save(setup["owner"], setup["owner_hex"], "tailscale", name)
+        except (OSError, KeyError, ValueError):
+            pass
+        time.sleep(3)
 
 
 def request(host, port, path, tls=False, headers=None, timeout=5):
@@ -155,11 +209,18 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 syste
 main { max-width: 640px; margin: 0 auto; padding: 40px 16px 64px; }
 h1 { font-size: 28px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 32px 0 8px; }
 p { margin: 8px 0; } .muted { color: var(--muted); } .small { font-size: 14px; }
+a { color: inherit; }
 label { display: block; font-weight: 600; margin-top: 20px; }
 input[type=text] { width: 100%; font: inherit; padding: 10px 12px; margin-top: 6px; border: 1px solid var(--line);
   border-radius: 8px; background: var(--bg); color: var(--fg); }
-button { font: inherit; font-weight: 600; padding: 10px 18px; border: 0; border-radius: 8px; background: var(--accent);
-  color: var(--accent-fg); cursor: pointer; margin-top: 20px; }
+button, .button { display: inline-block; font: inherit; font-weight: 600; padding: 10px 18px; border: 0; border-radius: 8px;
+  background: var(--accent); color: var(--accent-fg); cursor: pointer; margin-top: 20px; text-decoration: none; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+fieldset { border: 0; padding: 0; margin: 24px 0 0; } legend { font-weight: 600; padding: 0; }
+.choice { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-top: 12px; }
+.choice > label:first-child { margin-top: 0; }
+.choice input[type=radio], .check input { margin-right: 8px; }
+.check { font-weight: 400; margin-top: 12px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px 20px 16px; margin-top: 24px; }
 .error { border-color: var(--bad); color: var(--bad); padding: 12px 20px; }
 ol, ul { padding-left: 22px; } li { margin: 6px 0; }
@@ -179,6 +240,14 @@ function copyAddress(button) {
   if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(field.value).then(done); }
   else { document.execCommand("copy"); done(); }
 }
+function updateSave() {
+  var tailscale = document.getElementById("mode-tailscale");
+  var ack = document.getElementById("ack");
+  var save = document.getElementById("save");
+  if (tailscale && ack && save) { save.disabled = tailscale.checked && !ack.checked; }
+}
+document.addEventListener("change", updateSave);
+document.addEventListener("DOMContentLoaded", updateSave);
 """
 
 
@@ -195,8 +264,11 @@ def tunnel_steps(domain):
 
 
 def form(setup, error, values):
-    owner = values.get("owner", setup["owner"] if setup else "")
-    domain = values.get("domain", setup["domain"] if setup else "")
+    setup = setup or {}
+    owner = values.get("owner", setup.get("owner", ""))
+    mode = values.get("mode", setup.get("mode", "domain"))
+    domain = values.get("domain", setup.get("domain", "") if setup.get("mode") == "domain" else "")
+    checked = ' checked' if values.get("ack") == "yes" or (not values and setup.get("mode") == "tailscale") else ""
     return (
         '<form method="post" action="save">'
         '<label for="owner">Your public ID</label>'
@@ -204,12 +276,25 @@ def form(setup, error, values):
         "community. It starts with npub, and makes you the community's owner.</p>"
         '<input type="text" id="owner" name="owner" placeholder="npub1..." autocomplete="off" spellcheck="false" value="' +
         html.escape(owner, quote=True) + '">'
-        '<label for="domain">Domain</label>'
-        '<p class="muted small">A domain you control, like buzz.example.com. Members connect to it. It is the '
-        "community's permanent address: a different domain later starts a new, empty community.</p>"
+        "<fieldset><legend>Address</legend>"
+        '<p class="muted small">Members connect to this address. It is the community\'s permanent identity: '
+        "Buzz can't change a community's address yet (<a href=\"" + ISSUE + '" target="_blank" rel="noopener">'
+        "block/buzz#4952</a>).</p>"
+        '<div class="choice"><label><input type="radio" name="mode" value="domain" id="mode-domain"' +
+        (" checked" if mode != "tailscale" else "") + "> Your own domain (recommended)</label>"
+        '<p class="muted small">Yours for good: you can move the community to another server later and keep '
+        "it. Routed here by Cloudflare Tunnel.</p>"
         '<input type="text" id="domain" name="domain" placeholder="buzz.example.com" autocomplete="off" '
-        'spellcheck="false" value="' + html.escape(domain, quote=True) + '">'
-        "<button>Save</button></form>"
+        'spellcheck="false" value="' + html.escape(domain, quote=True) + '"></div>'
+        '<div class="choice"><label><input type="radio" name="mode" value="tailscale" id="mode-tailscale"' +
+        (" checked" if mode == "tailscale" else "") + "> Free Tailscale address (to try it out)</label>"
+        '<p class="muted small">A public address like <code>buzz.tail1234.ts.net</code>, from a free Tailscale '
+        "account you sign in to next. Members don't need Tailscale. The address belongs to that Tailscale "
+        "account.</p>"
+        '<label class="check"><input type="checkbox" name="ack" value="yes" id="ack"' + checked + ">"
+        "I understand that moving to my own domain later starts a new, empty community. Messages and files "
+        "won't come with it.</label></div></fieldset>"
+        '<button id="save">Save</button></form>'
         + ('<div class="card error">' + html.escape(error) + "</div>" if error else "")
     )
 
@@ -218,51 +303,101 @@ def item(state, text):
     return '<li class="' + state + '"><span class="dot"></span><span>' + text + "</span></li>"
 
 
+def tailscale_steps():
+    """The Tailscale sign-in and Funnel steps, or None once the machine has its address."""
+    state, name, auth_url, node = tailscale_state()
+    if state == "NeedsLogin" and auth_url:
+        return ("<h2>Sign in to Tailscale</h2><p>Sign in, or make a free account, to give this Umbrel its "
+                'Buzz address.</p><a class="button" href="' + html.escape(auth_url, quote=True) +
+                '" target="_blank" rel="noopener">Sign in to Tailscale</a>')
+    if state == "NeedsMachineAuth":
+        return ('<h2>Approve this machine</h2><p>Your Tailscale network requires approving new machines. Approve '
+                '<b>buzz</b> in <a href="https://login.tailscale.com/admin/machines" target="_blank" '
+                'rel="noopener">Tailscale\'s admin console</a>.</p>')
+    if state != "Running" or not name:
+        return "<h2>Starting Tailscale</h2><p>This takes a few seconds.</p>"
+    return None
+
+
+def funnel_steps(node):
+    # Tailscale's own link from the Funnel command, if it printed one, else the same consent page
+    # built from the machine's ID.
+    link = ""
+    try:
+        with open(os.path.join(SETTINGS_DIR, "tailscale-funnel.log")) as f:
+            found = re.search(r"https://login\.tailscale\.com/\S+", f.read())
+            link = found.group(0) if found else ""
+    except OSError:
+        pass
+    if not link:
+        link = "https://login.tailscale.com/f/funnel?node=" + urllib.parse.quote(node) if node else \
+            "https://login.tailscale.com/admin/machines"
+    return ("<h2>Turn on public access</h2><p>Tailscale Funnel makes the address reachable for members "
+            "without Tailscale. Turn it on for this machine, and if Tailscale asks, turn on HTTPS "
+            'certificates too.</p><a class="button" href="' + html.escape(link, quote=True) +
+            '" target="_blank" rel="noopener">Turn on Funnel</a>'
+            '<p class="muted small">This page checks the address every few seconds.</p>')
+
+
 def page(error=None, values=None):
     values = values or {}
-    setup = read_setup()
+    setup = read_json(SETUP_JSON)
     refresh = ""
     if not setup:
-        body = (
-            "<p>Run your Buzz community on this Umbrel. Enter two things to start the relay.</p>"
-            + form(None, error, values)
-            + '<h2>Before members can connect</h2><p class="muted small">Route your domain to this Umbrel with '
-            "Cloudflare Tunnel. You can do this before or after saving.</p>"
-            + tunnel_steps("your domain")
-        )
+        return wrap("<p>Run your Buzz community on this Umbrel. Choose its address and its owner to start "
+                    "the relay.</p>" + form(None, error, values), refresh)
+    mode = setup.get("mode", "domain")
+    if mode == "tailscale":
+        steps = tailscale_steps()
+        if not steps and not relay_domain():
+            steps = "<h2>Getting the address</h2><p>This takes a few seconds.</p>"
+        if steps:
+            body = steps + "<details><summary>Change settings</summary>" + form(setup, error, values) + "</details>"
+            return wrap(body, '<meta http-equiv="refresh" content="5">')
+    domain = relay_domain() or setup.get("domain") or ""
+    state = checks(domain)
+    address = "wss://" + domain
+    if not (state["relay"] and state["public"]):
+        refresh = '<meta http-equiv="refresh" content="8">'
+    status = '<ul class="status">'
+    status += item("ok" if state["relay"] else "wait",
+                   "Relay running on this Umbrel" if state["relay"] else "Starting the relay. This takes about a minute the first time.")
+    if state["public"]:
+        status += item("ok", "Reachable at <code>https://" + html.escape(domain) + "</code>")
     else:
-        domain = setup["domain"]
-        state = checks(domain)
-        address = "wss://" + domain
-        live = state["relay"] and state["public"]
-        if not live:
-            refresh = '<meta http-equiv="refresh" content="8">'
-        status = "<ul class=\"status\">"
-        status += item("ok" if state["relay"] else "wait",
-                       "Relay running on this Umbrel" if state["relay"] else "Starting the relay. This takes about a minute the first time.")
-        if state["public"]:
-            status += item("ok", "Reachable at <code>https://" + html.escape(domain) + "</code>")
+        reason = " (HTTP " + str(state["public_status"]) + ")" if state["public_status"] else ""
+        status += item("wait", "Not reachable at <code>https://" + html.escape(domain) + "</code> yet" + reason)
+    status += item("ok" if state["pair"] else "wait", "Phones can pair" if state["pair"] else "Phone pairing not reachable yet")
+    status += "</ul>"
+    body = '<div class="card">' + status + "</div>"
+    if not state["public"]:
+        if mode == "tailscale":
+            body += funnel_steps(tailscale_state()[3])
         else:
-            reason = " (HTTP " + str(state["public_status"]) + ")" if state["public_status"] else ""
-            status += item("wait", "Not reachable at <code>https://" + html.escape(domain) + "</code> yet" + reason)
-        status += item("ok" if state["pair"] else "wait", "Phones can pair" if state["pair"] else "Phone pairing not reachable yet")
-        status += "</ul>"
-        body = '<div class="card">' + status + "</div>"
-        if not state["public"]:
             body += "<h2>Route your domain here with Cloudflare Tunnel</h2>" + tunnel_steps(domain)
-        body += (
-            "<h2>Join</h2><p>In Buzz Desktop, choose Add community, then Join a community, and paste this address. "
-            "Use the identity whose public ID you entered.</p>"
-            '<div class="copy"><input type="text" id="address" readonly value="' + html.escape(address, quote=True) +
-            '"><button type="button" onclick="copyAddress(this)">Copy</button></div>'
-            "<h2>Members</h2><p>Each member sends you their public ID from Buzz Desktop's Join screen. Add them in "
-            "Buzz Desktop under Settings, Invites.</p>"
-            "<h2>Phones</h2><p>In Buzz Desktop, open Settings, Mobile, and scan the code with the Buzz app. "
-            "Push notifications aren't available for self-hosted communities yet.</p>"
-            "<details" + (" open" if error else "") + "><summary>Change settings</summary>"
-            '<p class="muted small">Changing the domain starts a new, empty community at the new address.</p>'
-            + form(setup, error, values) + "</details>"
-        )
+    if mode == "tailscale":
+        body += ('<p class="muted small">A free Tailscale address. Moving to your own domain later starts a new, '
+                 "empty community; Buzz can't change a community's address yet (<a href=\"" + ISSUE +
+                 '" target="_blank" rel="noopener">block/buzz#4952</a>). In <a href="https://login.tailscale.com/'
+                 'admin/machines" target="_blank" rel="noopener">Tailscale\'s admin console</a>, turn off key '
+                 "expiry for this machine, or the address goes offline after 180 days.</p>")
+    body += (
+        "<h2>Join</h2><p>In Buzz Desktop, choose Add community, then Join a community, and paste this address. "
+        "Use the identity whose public ID you entered.</p>"
+        '<div class="copy"><input type="text" id="address" readonly value="' + html.escape(address, quote=True) +
+        '"><button type="button" onclick="copyAddress(this)">Copy</button></div>'
+        "<h2>Members</h2><p>Each member sends you their public ID from Buzz Desktop's Join screen. Add them in "
+        "Buzz Desktop under Settings, Invites.</p>"
+        "<h2>Phones</h2><p>In Buzz Desktop, open Settings, Mobile, and scan the code with the Buzz app. "
+        "Push notifications aren't available for self-hosted communities yet.</p>"
+        "<details" + (" open" if error else "") + "><summary>Change settings</summary>"
+        '<p class="muted small">A different address starts a new, empty community at that address.</p>'
+        + form(setup, error, values) + "</details>"
+    )
+    return wrap(body, refresh)
+
+
+def wrap(body, refresh):
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">' + refresh +
@@ -296,13 +431,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send_page("This form only accepts requests from its own page.", 403)
         length = min(int(self.headers.get("Content-Length") or 0), 10000)
         fields = urllib.parse.parse_qs(self.rfile.read(length).decode(errors="replace"))
-        values = {name: fields.get(name, [""])[0] for name in ("owner", "domain")}
+        values = {name: fields.get(name, [""])[0] for name in ("owner", "mode", "domain", "ack")}
+        values["mode"] = "tailscale" if values["mode"] == "tailscale" else "domain"
         try:
             key = owner_hex(values["owner"])
-            domain = clean_domain(values["domain"])
+            if values["mode"] == "tailscale":
+                if values["ack"] != "yes":
+                    raise ValueError("Tick the box to confirm you understand a Tailscale address can't be "
+                                     "changed to your own domain later without starting over.")
+                setup = read_json(SETUP_JSON) or {}
+                # Keep the machine's address if it already has one: it's still the same community.
+                domain = setup.get("domain", "") if setup.get("mode") == "tailscale" else ""
+            else:
+                domain = clean_domain(values["domain"])
         except ValueError as error:
             return self.send_page(page(str(error), values), 400)
-        save(values["owner"].strip(), key, domain)
+        save(values["owner"].strip(), key, values["mode"], domain)
         self.send_response(303)
         self.send_header("Location", "./")
         self.end_headers()
@@ -312,4 +456,5 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    threading.Thread(target=tailscale_watcher, daemon=True).start()
     http.server.ThreadingHTTPServer(("0.0.0.0", 8080), Handler).serve_forever()

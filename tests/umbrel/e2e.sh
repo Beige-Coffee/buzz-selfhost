@@ -29,7 +29,7 @@ if [ -z "${DOMAIN:-}" ]; then
     sleep 3
   done
 fi
-[ -n "$DOMAIN" ] && pass "quick tunnel at https://$DOMAIN" || { fail "no quick tunnel address"; exit 1; }
+[ -n "$DOMAIN" ] && pass "relay address https://$DOMAIN" || { fail "no quick tunnel address"; exit 1; }
 echo "$DOMAIN" > "$DOMAIN_FILE"
 
 if [ -z "${SKIP_SETUP:-}" ]; then
@@ -40,7 +40,7 @@ code=$(umbrel "ip=\$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IP
 [ "$code" = 303 ] && pass "the page saves the owner and domain (HTTP 303)" || fail "saving got HTTP $code"
 fi
 
-echo "== The relay, through Cloudflare"
+echo "== The relay, at its public address"
 for _ in $(seq 1 40); do
   curl -fsS -m 5 "https://$DOMAIN/_liveness" 2>/dev/null | grep -q ok && break
   sleep 5

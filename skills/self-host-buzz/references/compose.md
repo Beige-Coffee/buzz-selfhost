@@ -1,7 +1,9 @@
 # Docker Compose: a VPS, your own hardware, or a local test
 
-The official bundle in `deploy/compose` of block/buzz: the relay, Postgres, Redis and MinIO,
-with Caddy in front for HTTPS in `server` mode. Three modes:
+The official bundle in `deploy/compose` of block/buzz: the relay, Postgres, Redis and an S3 store
+for uploaded files, with Caddy in front for HTTPS in `server` mode. The store is Silo, a maintained
+fork of MinIO, in bundles from 2026-10-07 on (block/buzz#8023), and MinIO before. Its service,
+container and volume keep MinIO's names either way. Three modes:
 
 - `server`: reachable by anyone with the URL, over HTTPS. Members still need to be added.
 - `private`: reachable only over the user's Tailscale network; no public ports. Steps marked
@@ -15,11 +17,12 @@ Caddy, and the flag would start it on the public ports. `add-member` and `list-m
 either way.
 
 A server is Ubuntu 24.04 on x86 with 4 GB of RAM and at least 20 GB of disk, as root or a user
-whose sudo doesn't ask for a password: an agent can't type it. (x86 for now: the MinIO image the
-bundle needs is amd64-only.) A local test runs on Linux the same way, or on macOS
-or Windows with Docker Desktop. On an Apple Silicon Mac the relay runs natively and MinIO runs
-through Docker's x86 emulation (tested): Docker warns that the image's platform doesn't match,
-which is harmless.
+whose sudo doesn't ask for a password: an agent can't type it. (x86 is what's tested. Silo's images
+also run on ARM, but a bundle from before 2026-10-07 needs x86: its MinIO image is amd64-only.) A
+local test runs on Linux the same way, or on macOS or Windows with Docker Desktop. On an Apple
+Silicon Mac the relay runs natively. A bundle from before 2026-10-07 runs MinIO through Docker's
+x86 emulation there (tested): Docker warns that the image's platform doesn't match, which is
+harmless.
 
 1. **Machine.**
    - Server: `cloud-init status --wait; uname -m; free -h; df -h /` → `status: done`, `x86_64`,
@@ -154,11 +157,12 @@ which is harmless.
    sed -i.bak "s/^BUZZ_HTTP_PORT=.*/BUZZ_HTTP_PORT=127.0.0.1:3000/" .env && rm .env.bak
    ```
    Check: `grep '^BUZZ_HTTP_PORT=' .env` → `BUZZ_HTTP_PORT=127.0.0.1:3000` (one line).
-9. **Bundle edits.** Two edits to tracked files, which upgrades and restores redo
+9. **Bundle edits.** Up to two edits to tracked files, which upgrades and restores redo
    (operations.md).
    - **MinIO images.** If `grep -n 'image:.*quay.io/minio' compose.yml` finds lines, those images
-     are gone from quay.io (block/buzz#7880); if it finds none, skip this edit. Swap in the build
-     Block's own CI uses:
+     are gone from quay.io (block/buzz#7880). If it finds none, skip this edit: bundles from
+     2026-10-07 on use Silo's images instead (`grep -c 'image: pgsty/' compose.yml` → `2`). Swap
+     in the build Block's own CI uses:
      ```bash
      sed -i.bak \
        -e 's|image: quay.io/minio/minio:.*|image: ghcr.io/block/buzz-minio:latest|' \
@@ -189,11 +193,11 @@ which is harmless.
      Check: `grep -c buzz-pair-relay compose.yml` → `1`, and in `server` mode
      `grep -c 'pair-relay:5000' Caddyfile` → `1`.
 10. **Start.** `BUZZ_COMPOSE_TLS=true ./run.sh start` in `server` mode, `./run.sh start` otherwise
-    (35 to 55 seconds on a fresh 2-CPU server, downloads included). Check: `./run.sh status`
+    (30 to 55 seconds on a fresh 2-CPU server, downloads included). Check: `./run.sh status`
     (with the flag in `server` mode) shows `buzz-prod-relay-1`, `-postgres-1`, `-redis-1` and
-    `-minio-1` as `Up … (healthy)`, plus `buzz-prod-caddy-1` `Up` in `server` mode and
-    `buzz-prod-pair-relay-1` `Up` in `server` and `private` modes. Caddy starts
-    once the relay is healthy, so its uptime is shorter than the others'. `minio-init` runs once
+    `-minio-1` (the file store, Silo or MinIO) as `Up … (healthy)`, plus `buzz-prod-caddy-1` `Up`
+    in `server` mode and `buzz-prod-pair-relay-1` `Up` in `server` and `private` modes. Caddy
+    starts once the relay is healthy, so its uptime is shorter than the others'. `minio-init` runs once
     and exits, so `status` leaves it out; `docker compose ps -a minio-init` shows `Exited (0)`.
     In `private` and `local` modes the relay's port reads
     `127.0.0.1:3000->3000/tcp` (step 8P). On a server

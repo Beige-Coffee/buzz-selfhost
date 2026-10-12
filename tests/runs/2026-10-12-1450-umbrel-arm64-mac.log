@@ -1,0 +1,39 @@
+# Buzz on Umbrel on ARM: umbrelOS 2.0.0's arm64 image in Docker Desktop on an Apple Silicon Mac
+# (UMBREL_LOCAL=1), the app installed through Umbrel, then tests/umbrel/e2e.sh through a Cloudflare quick
+# tunnel. Relay sha-16eb0b6; the relay container ran the arm64 image. Docker Desktop needed nothing beyond
+# install.sh's bridge network and masked NetworkManager.
+
+== install umbrelOS 2.0.0 (arm64) on Docker Desktop
+  "state": "ready",
+== e2e
+== Tunnel
+PASS  quick tunnel at https://defines-charged-uniprotkb-bernard.trycloudflare.com
+== Setup, through the app's page
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, through Cloudflare
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  WebSocket upgrade (what Buzz Desktop joins over)
+PASS  phone pairing at wss://defines-charged-uniprotkb-bernard.trycloudflare.com/pair
+PASS  Buzz Desktop allowed (CORS)
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 19  failed: 0
+relay: wss://defines-charged-uniprotkb-bernard.trycloudflare.com
+== done: exit 0

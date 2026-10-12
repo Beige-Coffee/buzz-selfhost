@@ -6,6 +6,7 @@
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 U="bash $HERE/ssh.sh"
+[ -n "${UMBREL_LOCAL:-}" ] && U="bash -c"  # this machine's Docker
 C=${UMBREL_CONTAINER:-umbrelos-test}
 T=$HERE/..
 SKILL=$HERE/../../skills/self-host-buzz
@@ -49,8 +50,9 @@ t = re.sub(r'(?m)^version: ".*"$', 'version: "' + tag.removeprefix("sha-") + '"'
 open(p, "w").write(t)
 PY
 STORE=/home/umbrel/umbrel/app-stores/getumbrel-umbrel-apps-github-53f74447
-COPYFILE_DISABLE=1 tar -C "$TMP/pkg" -czf - buzz | $U "rm -rf /root/buzz-update && mkdir -p /root/buzz-update && tar -C /root/buzz-update -xzf - 2>/dev/null &&
-  tar -C /root/buzz-update -cf - buzz | docker exec -i $C sh -c 'rm -rf $STORE/buzz && tar -C $STORE -xf - && find $STORE/buzz -name .gitkeep -delete && chown -R 1000:1000 $STORE/buzz'"
+if [ -n "${UMBREL_LOCAL:-}" ]; then UPD=$HOME/.buzz-test/umbrel-update; else UPD=/root/buzz-update; fi
+COPYFILE_DISABLE=1 tar --no-xattrs -C "$TMP/pkg" -czf - buzz | $U "rm -rf $UPD && mkdir -p $UPD && tar -C $UPD -xzf - 2>/dev/null &&
+  tar --no-xattrs -C $UPD -cf - buzz | docker exec -i $C sh -c 'rm -rf $STORE/buzz && tar -C $STORE -xf - && find $STORE/buzz -name .gitkeep -delete && chown -R 1000:1000 $STORE/buzz'"
 umbrel 'umbreld client apps.update.mutate --appId buzz > /dev/null 2>&1'
 for _ in $(seq 1 60); do
   state=$(umbrel 'umbreld client apps.state.query --appId buzz 2>&1' | tr -d '\n ')

@@ -7,15 +7,23 @@ Run from `buzz/deploy/compose`. In `private` and `local` modes, drop `BUZZ_COMPO
 - **Add a member.** Members copy their public ID from Buzz Desktop's Join screen. Check it with
   `python3 $SKILL/scripts/npub-to-hex.py <npub>`, then
   `./run.sh add-member <npub-or-hex> --role member`, one at a time with `sleep 1` between adds
-  (adds in the same second collide). `./run.sh list-members` confirms; it prints hex.
+  (adds in the same second collide). `./run.sh list-members` confirms; it prints hex. The owner
+  can also add people in Buzz Desktop (Settings, Invites), or send them an invite link from there.
+  **To change the owner**, set `OWNER_HEX` from the new owner's npub, run compose.md step 7's
+  command and check, then `BUZZ_COMPOSE_TLS=true ./run.sh restart` (members lose the connection
+  for about 20 seconds). Check: `./run.sh list-members` shows the new key as `owner` and the old one
+  as `admin`. `./run.sh remove-member <old hex>` removes the old one, if the user wants; the
+  current owner can't be removed.
 - **Agents.** Each agent gets its own key, added as a member of every channel it answers in. A
   reply that mentions a non-member is refused, and a key without relay membership gets
   `relay error 403: relay_membership_required`.
-- **Back up** what can't be rebuilt: Postgres, the MinIO and git volumes, and `.env`, together,
-  with the relay stopped (ask first: members lose the connection for about half a minute). Redis
-  holds nothing that needs keeping. The list `run.sh` prints after an upgrade also names Caddy's
-  volumes, which hold only certificates Caddy gets again on its own, and an owner key a bootstrap
-  script makes; with the owner's npub from Buzz Desktop, that key stays in their Buzz Desktop.
+- **Back up** what can't be rebuilt: Postgres, the file store's and git volumes, and `.env`,
+  together, with the relay stopped (ask first: members lose the connection for about half a
+  minute). The file store's volume keeps MinIO's name with Silo too, so the commands are the same
+  for every tag. Redis holds nothing that needs keeping. The list `run.sh` prints after an upgrade
+  also names Caddy's volumes, which hold only certificates Caddy gets again on its own, and an
+  owner key a bootstrap script makes; with the owner's npub from Buzz Desktop, that key stays in
+  their Buzz Desktop.
   Plain `docker compose` works in every mode here: these commands touch only the relay, Postgres
   and the volumes.
   ```bash
@@ -43,6 +51,8 @@ Run from `buzz/deploy/compose`. In `private` and `local` modes, drop `BUZZ_COMPO
   (`TAG=$(grep '^BUZZ_IMAGE=' ~/buzz-backup/env | cut -d: -f2)`), or on this one after
   `BUZZ_COMPOSE_TLS=true ./run.sh stop` and
   `docker volume rm buzz-prod_buzz-postgres-data buzz-prod_buzz-minio-data buzz-prod_buzz-git-data`.
+  If this one was upgraded since the backup, also move the bundle back to the backup's tag first,
+  the way Upgrade moves it (the two `git checkout` lines, then compose.md step 9).
   `docker compose create` makes the volumes the way Compose expects, so it doesn't warn later.
   ```bash
   cp ~/buzz-backup/env .env
@@ -56,18 +66,29 @@ Run from `buzz/deploy/compose`. In `private` and `local` modes, drop `BUZZ_COMPO
   BUZZ_COMPOSE_TLS=true ./run.sh start
   ```
   Tested: messages, files, members, the relay's identity and the community all came back.
-- **Upgrade.** Back up first. Members lose the connection for about 10 seconds, and the relay
-  migrates its database on start, so going back means restoring the backup with the old tag. Pick
-  the new tag on the agent's machine (`python3 $SKILL/scripts/pick-tag.py`) and set `TAG` to it on
-  the server. If `grep '^BUZZ_IMAGE=' .env` already shows it, there's nothing to do. Otherwise:
+- **Upgrade.** Back up first. Members lose the connection for about 10 seconds (half a minute
+  when the upgrade swaps MinIO for Silo), and the relay migrates its database on start, so going
+  back means restoring the backup with the old tag. Pick the new tag on the agent's machine
+  (`python3 $SKILL/scripts/pick-tag.py`) and set `TAG` to it on the server. If
+  `grep '^BUZZ_IMAGE=' .env` already shows it, there's nothing to do. Otherwise:
   ```bash
   OLD=$(grep '^BUZZ_IMAGE=' .env | cut -d: -f2)
   git fetch -q origin
   git merge-base --is-ancestor ${OLD#sha-} ${TAG#sha-} && echo newer
   ```
   Check: `newer`. If it prints nothing, stop: the tag is older than the running one, whose
-  migrations the old code can't read. The bundle and the image move together. The first line
-  undoes compose.md step 9's edits, which would block the checkout:
+  migrations the old code can't read. From a tag before 2026-10-07 to a later one, the upgrade
+  also swaps MinIO for Silo (block/buzz#8023), which takes over MinIO's volume as it is, as Silo's
+  [migration guide](https://silo.pgsty.com/compatibility/migration/) describes. Either way, list
+  what the file store holds, to compare after (the git self-test's `probe/` objects change at
+  every start, so they're left out):
+  ```bash
+  docker compose run --rm --no-deps -T --entrypoint sh minio-init -c 'mc alias set local http://minio:9000 "$BUZZ_S3_ACCESS_KEY" "$BUZZ_S3_SECRET_KEY" >/dev/null && mc ls --recursive "local/$BUZZ_S3_BUCKET"' < /dev/null | awk '{print $NF}' | grep -v '^probe/' | sort > ~/buzz-files-before.txt
+  ```
+  Check: `wc -l < ~/buzz-files-before.txt` prints a number above 0 (the self-test's `packs/`
+  objects count too). In `server` mode Compose warns about an orphan container, Caddy's: harmless.
+  The bundle and the image move together. The first line undoes compose.md step 9's edits, which
+  would block the checkout:
   ```bash
   git checkout compose.yml Caddyfile
   git checkout -q ${TAG#sha-}
@@ -82,10 +103,20 @@ Run from `buzz/deploy/compose`. In `private` and `local` modes, drop `BUZZ_COMPO
   BUZZ_COMPOSE_TLS=true ./run.sh upgrade
   ```
   Check: `git rev-parse HEAD | cut -c1-7` prints the tag without `sha-`;
-  `docker compose ps --format '{{.Service}} {{.Image}} {{.Status}}' relay` shows the new image and
+  `docker compose ps --format '{{.Service}} {{.Image}} {{.Status}}' relay minio` shows the new
+  relay image, `pgsty/silo:…` for `minio` on a bundle from 2026-10-07 on, and both
   `Up … (healthy)` (the version in check-relay.sh often stays the same between commits);
   `./run.sh list-members` still lists the members; `check-relay.sh`, run the way the install ran
-  it, passes.
+  it, passes. Then the files: list them again, and read one uploaded file back through the store
+  (its name is its sha256). Skip the last two lines if nobody has uploaded a file yet.
+  ```bash
+  docker compose run --rm --no-deps -T --entrypoint sh minio-init -c 'mc alias set local http://minio:9000 "$BUZZ_S3_ACCESS_KEY" "$BUZZ_S3_SECRET_KEY" >/dev/null && mc ls --recursive "local/$BUZZ_S3_BUCKET"' < /dev/null | awk '{print $NF}' | grep -v '^probe/' | sort > ~/buzz-files-after.txt
+  comm -23 ~/buzz-files-before.txt ~/buzz-files-after.txt | wc -l
+  key=$(grep -E '^[0-9a-f]{64}\.[a-z0-9]+$' ~/buzz-files-before.txt | head -1)
+  [ "$(docker compose run --rm --no-deps -T --entrypoint sh -e KEY="$key" minio-init -c 'mc alias set local http://minio:9000 "$BUZZ_S3_ACCESS_KEY" "$BUZZ_S3_SECRET_KEY" >/dev/null && mc cat "local/$BUZZ_S3_BUCKET/$KEY"' < /dev/null | sha256sum | cut -c1-64)" = "${key%%.*}" ] && echo intact
+  ```
+  Check: `0` (nothing from before is missing), then `intact`. If a check fails, go back: Restore,
+  with the bundle moved back to the old tag.
 
 ## Railway
 

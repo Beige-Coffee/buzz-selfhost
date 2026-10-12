@@ -9,16 +9,16 @@ description: >
 license: Apache-2.0
 compatibility: Runs from macOS or Linux (Windows isn't tested) with python3, bash and curl. Then Docker, kubectl and helm, or the Railway CLI, depending on the setup.
 metadata:
-  tested: "2026-10-01"
-  tested-image: sha-d1b7da4
+  tested: "2026-10-12"
+  tested-image: sha-30873ba
 ---
 
 # Self-host a Buzz relay
 
-A Buzz community lives on a relay: a Rust server, plus Postgres (messages, channels, members),
-MinIO (uploaded files), a git folder (repositories), Redis (who's online) and an `.env` file (the
-relay key and passwords). This skill installs one, checks every step, and runs day-two tasks.
-Every command was run end to end, except where a step says otherwise.
+A Buzz community lives on a relay: a Rust server, plus Postgres (messages, channels, members), an
+S3 store for uploaded files (Silo or MinIO), a git folder (repositories), Redis (who's online) and
+an `.env` file (the relay key and passwords). This skill installs one, checks every step, and runs
+day-two tasks. Every command was run end to end, except where a step says otherwise.
 
 ## Rules
 
@@ -40,11 +40,12 @@ Every command was run end to end, except where a step says otherwise.
    cloud credentials found on the machine.
 3. **Check every step.** Run the step's check and show its output. A check passes when its output
    matches, whatever the exit status (`grep -c` exits 1 when it counts 0). At the first failing
-   check, stop and look it up in [troubleshooting](references/troubleshooting.md). Run the steps
-   one at a time, in order, and each check only after its step has finished: a check run
-   alongside its step fails for no reason. Some steps take minutes (Docker's install, the clone,
-   the first start): if your command tool stops waiting first, the server keeps going, so wait for
-   the step to end before its check.
+   check, stop and look it up in [troubleshooting](references/troubleshooting.md); if it isn't
+   there, see [When something fails](#when-something-fails). Run the steps one at a time, in
+   order, and each check only after its step has finished: a check run alongside its step fails
+   for no reason. Some steps take minutes (Docker's install, the clone, the first start): if your
+   command tool stops waiting first, the server keeps going, so wait for the step to end before
+   its check.
 4. **The URL is permanent.** The relay keys the community on the exact `RELAY_URL`; changing it
    later starts an empty community. Confirm the domain with the user before it's written. Names
    derived from an IP address (`203-0-113-10.sslip.io`, `nip.io`) die with that address: use them
@@ -81,12 +82,13 @@ an installer instead: ask the user to run `xcode-select --install` first.
 - **Owner.** Ask for the owner's public ID (npub) as Buzz Desktop shows it on its Join screen, on
   the device they'll use: an npub from anywhere else may be an old identity. If the user gives one
   without saying where it came from, ask before the step that writes it; the steps before it can
-  run meanwhile. The owner can't be changed or removed later.
+  run meanwhile. Changing the owner later takes a restart, and the old owner stays on as an admin
+  (operations.md).
   `OWNER_HEX=$(python3 $SKILL/scripts/npub-to-hex.py <npub>)`. It checks the npub's checksum, so
   a mistyped or cut-off one fails instead of making a stranger the owner.
 - **Image tag.** `TAG=$(python3 $SKILL/scripts/pick-tag.py)` prints the newest commit on main that
   has an image, like `sha-83aab8c`. Not every commit gets one. Tell the user which tag, and that
-  this skill was last tested with `sha-d1b7da4` (`tested-image` in its metadata, which some agents
+  this skill was last tested with `sha-30873ba` (`tested-image` in its metadata, which some agents
   don't show), if they'd rather stay on a tested version.
 - **Domain.** `server` and Kubernetes need the community's permanent domain, such as
   `buzz.example.org`. Railway assigns one at deploy, or takes the user's (railway.md). `private` uses the machine's Tailscale name, found in its setup, and
@@ -142,9 +144,10 @@ cached, put `RESOLVE_IP=<server IP>` before the command to check the server dire
 
 Tell the user to choose *Join a community* in Buzz Desktop and paste `$RELAY_URL` exactly, with
 the owner's identity. Members send the owner their public ID from the same screen, and the owner
-adds them ([operations.md](references/operations.md)). Self-hosted relays have no invite links yet.
-`Not a member yet` means the relay works but doesn't know that identity
-([troubleshooting](references/troubleshooting.md)).
+adds them ([operations.md](references/operations.md)) or in Buzz Desktop under Settings, Invites.
+That screen also makes invite links: a new member pastes one where they'd paste the community's
+URL, and joins without being added. `Not a member yet` means the relay works but doesn't know that
+identity ([troubleshooting](references/troubleshooting.md)).
 
 **Phones.** After joining from Desktop, the user opens Settings, Mobile, scans the QR code with
 the Buzz app on their phone, and confirms the matching code. This needs the pairing service, which
@@ -152,3 +155,19 @@ every setup's steps add (`check-relay.sh` says `PASS` for phone pairing) except 
 private network, which isn't covered yet. On a private network the phone needs the Tailscale app
 on. A self-hosted relay can't send push notifications to the App Store app (block/buzz#5206): the
 app shows new messages while it's open.
+
+## When something fails
+
+If a check fails and [troubleshooting](references/troubleshooting.md) has no fix, draft a GitHub
+issue for Beige-Coffee/buzz-selfhost, so the skill gets fixed: the setup and mode, the cloud or
+hardware, the agent and model, the image tag, the failing step, and the command with its check
+output. Mask IP addresses, domains, npubs and keys first (`<ip>`, `<domain>`, `npub1<masked>`,
+`<hex>`), and leave out every secret (rule 1). Show the draft to the user, and file it only with
+their OK. If `gh auth status` shows them signed in to GitHub:
+
+```bash
+gh issue create --repo Beige-Coffee/buzz-selfhost --title "Setup problem: <step>" --body-file <draft file>
+```
+
+Otherwise give them the text and https://github.com/Beige-Coffee/buzz-selfhost/issues/new, where
+the Setup problem form asks for the same things.

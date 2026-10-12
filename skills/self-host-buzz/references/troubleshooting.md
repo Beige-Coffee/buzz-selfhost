@@ -21,7 +21,7 @@
 | `Could not get lock /var/lib/dpkg/lock-frontend` | First-boot updates are still running: `cloud-init status --wait`, then retry. |
 | `.env still contains CHANGE_ME placeholders` | `grep -nE '^[A-Za-z_][A-Za-z0-9_]*=.*CHANGE_ME' .env` shows which step didn't write. |
 | An error about `!reset` | Compose is older than 2.24.4. |
-| Pull fails for `quay.io/minio/…` | Do compose.md step 9. |
+| Pull fails for `quay.io/minio/…` | A bundle from before 2026-10-07: do compose.md step 9. Newer bundles use Silo's images from Docker Hub. |
 | Relay never turns healthy | `docker logs --tail 100 buzz-prod-relay-1` (`./run.sh logs` follows the log and never returns). `RELAY_OWNER_PUBKEY` must be 64 hex characters, not an npub. |
 | TLS error or refused on 443 | DNS doesn't point here yet, or a firewall blocks 80. `docker logs --tail 100 buzz-prod-caddy-1`. |
 | 401 when joining | The URL pasted in Buzz Desktop differs from `RELAY_URL`, byte for byte. |
@@ -30,13 +30,15 @@
 | Pairing a phone: Desktop says `WebSocket connection failed: HTTP error: 404 Not Found` | The pairing service isn't running or isn't routed. On Compose: step 9's pairing edit, and 10P on a private network. `check-relay.sh` tests it. |
 | The phone app: `Relay URL must use HTTPS` or `cannot target private network addresses` | The relay's address is a bare IP like `ws://10.0.0.1` (block/buzz#4198). Use a name with HTTPS: a domain, or the Tailscale name. |
 | Compose warns a volume `was not created by Docker Compose` | The restore skipped `docker compose create`. Harmless; the data is fine. |
+| Compose warns `Found orphan containers (buzz-prod-caddy-1)` | A plain `docker compose` command in `server` mode, which leaves out Caddy's file. Harmless. Never add `--remove-orphans`: it would remove Caddy. |
+| After an upgrade to a Silo bundle, `minio` isn't healthy, or the file checks fail | Silo didn't take over the MinIO volume: `docker logs --tail 50 buzz-prod-minio-1`. Go back: restore the backup with the bundle at the old tag (operations.md), and report it (SKILL.md, When something fails). |
 | `pg_restore: cannot drop inherited constraint` | Restoring over a live database. Restore into an empty one (operations.md). |
 | Private: other devices time out, `tailscale ping` works | The tailnet's access policy blocks them (compose.md step 11P). |
 | Private: the relay vanishes from the tailnet months later | Its Tailscale key expired. Re-authenticate the machine, then disable key expiry for it (compose.md step 2P). |
 | Kubernetes: MinIO in `ImagePullBackOff` | The values file lacks the two MinIO image lines (kubernetes.md step 3). |
 | Kubernetes or Compose: `here-document … delimited by end-of-file` | A heredoc was indented. Run it unindented. |
 | Kubernetes: relay crash-loops with `pool timed out` at first install | Postgres is still starting; it settles within a minute or two. |
-| Docker warns `The requested image's platform (linux/amd64) does not match` | Apple Silicon running the amd64 MinIO image through emulation. Harmless. |
+| Docker warns `The requested image's platform (linux/amd64) does not match` | Apple Silicon running the amd64 MinIO image of a bundle from before 2026-10-07 through emulation. Harmless. |
 | Local: `port is already allocated` on 3000 | Another program uses port 3000. Stop it, or change `BUZZ_HTTP_PORT`, `RELAY_URL`, `BUZZ_MEDIA_BASE_URL` and `BUZZ_CORS_ORIGINS` together. |
 | Postgres refuses the relay's password after an earlier try | Leftover `buzz-prod` volumes keep the old password. Ask, then `docker volume rm` them and start again. |
 | Relay logs `transport drop` warnings at start | The git storage self-test. Harmless when it ends with `conformance probe passed`. |

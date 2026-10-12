@@ -62,19 +62,6 @@ adds Traefik and cert-manager), and a domain at the ingress; `<ip>.sslip.io` wor
 KUBECONFIG=path/to/kubeconfig BUZZ_CLI=path/to/buzz bash tests/smoke-k8s.sh <domain> [image-tag]
 ```
 
-## Umbrel: `umbrel/`
-
-The Umbrel package in [`../umbrel/buzz`](../umbrel/buzz), on umbrelOS running in Docker on a
-DigitalOcean droplet, with members reaching it through a Cloudflare quick tunnel. Steps and what's
-left untested: [`../docs/umbrel.md`](../docs/umbrel.md).
-
-```bash
-python3 tests/umbrel/server.py up
-bash tests/umbrel/install.sh
-BUZZ_CLI=path/to/buzz OWNER_HEX=<hex> bash tests/umbrel/e2e.sh
-python3 tests/umbrel/server.py down
-```
-
 ## Logs
 
 Each script saves what it prints to `runs/<date>-<time>-<setup>-<version>.log`, after `lib/redact.py`
@@ -116,20 +103,6 @@ droplet, rebuilt between runs:
   ([log](runs/2026-10-12-1614-vps-sha-30873ba.log)).
 - The first tries, also in [runs/](runs/README.md), passed 90 of 91 and 107 of 108: each failed one
   check of the test's own, since fixed.
-
-## Results, 2026-10-09: Umbrel
-
-The Umbrel package on umbrelOS 2.0.0, relay `sha-16eb0b6`, through a Cloudflare quick tunnel:
-installed through Umbrel, set up through its page, every `check-relay.sh` line passed (phone
-pairing included), members posted and read, a stranger was refused, a file went up and came back,
-and all of it held after Umbrel restarted the app ([log](runs/2026-10-09-1430-umbrel-cloudflare-quick-tunnel.log)).
-On 2026-10-12, on a fresh server: 19 of 19 again, then Buzz Desktop joined as the owner, added a
-member by public ID from Settings, Invites (that member then posted), and an iPhone paired and posted
-([log](runs/2026-10-12-1305-umbrel-desktop-and-phone.log)). The owner also opened it from Umbrel's home
-screen; an update through Umbrel to relay `sha-30873ba` kept everything, 12 of 12
-([log](runs/2026-10-12-1350-umbrel-update.log)); and umbrelOS 1.7.4 passed 19 of 19
-([log](runs/2026-10-12-1405-umbrel-os-1.7.log)). Not yet run: Umbrel's Cloudflare Tunnel app with a
-real domain, and ARM.
 
 ## Results, 2026-10-05
 

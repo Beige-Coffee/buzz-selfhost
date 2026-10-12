@@ -54,7 +54,7 @@
         <ul class="parts">
           <li><b>relay</b>The Buzz server, written in Rust. It checks who's a member and delivers each message.</li>
           <li><b>Postgres</b>The database: every message, channel and member.</li>
-          <li><b>MinIO</b>File storage, S3-compatible: the images and files people upload.</li>
+          <li><b>Silo</b>File storage, S3-compatible: the images and files people upload. Bundles before 2026-10-07 used MinIO.</li>
           <li><b>git</b>A folder of the git repositories people push to the relay.</li>
           <li><b>.env</b>The settings file: the relay's private key and the passwords.</li>
           <li><b>Redis</b>A cache in memory: who's online and who's typing. It rebuilds itself on restart.</li>
@@ -78,10 +78,10 @@
         <a href="https://github.com/block/buzz/issues/6803">block/buzz#6803</a>
       </article>
       <article class="limit">
-        <span class="limit-k">Invites</span>
-        <h3>No invite links</h3>
-        <p>Members send you the public ID from Buzz Desktop's Join screen, and you add them.</p>
-        <a href="https://github.com/block/buzz/issues/6923">block/buzz#6923</a>
+        <span class="limit-k">Address</span>
+        <h3>One address per community</h3>
+        <p>A community answers only on the address it started on, so a new domain starts a new, empty community. An open pull request would add a second address.</p>
+        <a href="https://github.com/block/buzz/pull/5410">block/buzz#5410</a>
       </article>
       <article class="limit">
         <span class="limit-k">Phones</span>
@@ -174,7 +174,7 @@
     <details class="ft-col" open>
       <summary class="ft-h">Tested</summary>
       <ul>
-        <li>VPS: 85 of 85, with an upgrade and phone pairing</li>
+        <li>VPS: 91 of 91 on Silo, and 108 of 108 upgrading from MinIO</li>
         <li>Private network: 52 of 52, with phone pairing</li>
         <li>Kubernetes: 21 of 21, private 17 of 17</li>
         <li>Local test: Linux and Apple Silicon</li>
@@ -196,17 +196,17 @@
     <details class="ft-col" open>
       <summary class="ft-h">Upstream</summary>
       <ul>
-        <li><a href="https://github.com/block/buzz/issues/7880">#7880</a> MinIO images</li>
+        <li><a href="https://github.com/block/buzz/issues/7880">#7880</a> MinIO images, on Kubernetes</li>
         <li><a href="https://github.com/block/buzz/pull/4610">#4610</a> Private file reads</li>
         <li><a href="https://github.com/block/buzz/issues/6803">#6803</a> Moving communities</li>
-        <li><a href="https://github.com/block/buzz/issues/6923">#6923</a> Invite links</li>
+        <li><a href="https://github.com/block/buzz/pull/5410">#5410</a> A second address</li>
         <li><a href="https://github.com/block/buzz/issues/5206">#5206</a> Phone notifications</li>
         <li><a href="https://github.com/block/buzz/issues/2872">#2872</a> Desktop blocked by CORS</li>
         <li><a href="https://github.com/block/buzz/issues/7721">#7721</a> Phone pairing</li>
       </ul>
     </details>
   </div>
-  <p class="ft-base">An <a href="https://agentskills.io">Agent Skill</a> in the open standard, validated with skills-ref. <a href="https://github.com/Beige-Coffee/buzz-selfhost/blob/main/LICENSE">Apache-2.0</a>.<br>Checked against block/buzz main at <code>d1b7da4</code>, 2026-10-01, and Compose with phone pairing at <code>8746bfe</code>, 2026-10-05.</p>
+  <p class="ft-base">An <a href="https://agentskills.io">Agent Skill</a> in the open standard, validated with skills-ref. <a href="https://github.com/Beige-Coffee/buzz-selfhost/blob/main/LICENSE">Apache-2.0</a>.<br>Checked against block/buzz main at <code>d1b7da4</code>, 2026-10-01, Compose with phone pairing at <code>8746bfe</code>, 2026-10-05, and Compose with Silo at <code>30873ba</code>, 2026-10-12.</p>
 </footer>
 
 </body>

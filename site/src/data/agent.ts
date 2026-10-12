@@ -43,7 +43,7 @@ const NPUB: Ready = {
   t: "Buzz Desktop on your computer, and your npub typed into <b>Your npub</b> in the Running on box. Your npub is your public ID in Buzz: a long code that starts with <code>npub1</code>.",
   more: {
     label: "How to get them",
-    t: `Download Buzz Desktop for Mac, Linux or Windows from <a href="${DESKTOP}">Block's releases page</a>. Open it, choose <b>Join a community</b>, and copy your npub from <b>Joining a private community?</b> The relay makes this npub the community's owner, and the owner can't be changed later, so copy it from the Buzz Desktop you'll keep using.`,
+    t: `Download Buzz Desktop for Mac, Linux or Windows from <a href="${DESKTOP}">Block's releases page</a>. Open it, choose <b>Join a community</b>, and copy your npub from <b>Joining a private community?</b> The relay makes this npub the community's owner, so copy it from the Buzz Desktop you'll keep using.`,
   },
 };
 // a first connection asks to trust the fingerprint, which an agent's shell can't answer (SKILL.md, SSH to a server)
@@ -347,7 +347,7 @@ export interface OpDetail {
 export type OpSetup = "compose" | "railway" | "k8s";
 export const opSetup = (t: Track): OpSetup => (t === "railway" ? "railway" : t === "k8s" || t === "k8s-private" ? "k8s" : "compose");
 
-const PEOPLE_WHY = "Each new member installs Buzz Desktop and sends you their npub, from <b>Join a community</b>, under <b>Joining a private community?</b> Self-hosted relays have no invite links yet.";
+const PEOPLE_WHY = "In Buzz Desktop, the owner or an admin can add people under <b>Settings</b>, <b>Invites</b>, by their npub or with an invite link. Or have your agent add them: each new member installs Buzz Desktop and sends you their npub, from <b>Join a community</b>, under <b>Joining a private community?</b>";
 const UPGRADE_WHY = "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup.";
 const agent = (t: string): OpStep => ({ who: "agent", icon: "agent", t });
 const asks = (t: string): OpStep => ({ who: "you", icon: "ask", t });

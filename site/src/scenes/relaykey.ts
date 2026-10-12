@@ -8,7 +8,7 @@ import { bee } from "../defs";
  * - chat messages are signed events (kind 9); a bad signature is refused ("invalid: invalid schnorr signature")
  * - the relay signs with BUZZ_RELAY_PRIVATE_KEY: the NIP-43 member list (kind 13534), system notices
  *   (kind 40099), git repo state (kind 30618); NIP-11 publishes its public key as `self`
- * - no invite links here: self-hosted relays have no invite UI yet (block/buzz#6923), so the steps leave them out
+ * - no invite links here: Buzz Desktop makes them (Settings, Invites), and the steps keep to what the relay signs
  */
 
 const KEY = `<svg class="rk-i-key" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3M17 6l3 3M14 9l2.5 2.5"/></svg>`;

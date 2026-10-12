@@ -10,6 +10,7 @@ on Oct 5, with secrets masked.
 
 | When (PDT) | Run | Relay version | Result |
 |---|---|---|---|
+| Oct 12 15:50 | [Script, then by hand: the Umbrel package's two address options](2026-10-12-1550-umbrel-two-address-options.log) | `sha-16eb0b6` | Own domain 19 of 19; free Tailscale address 17 of 17 with a restart. The owner signed in to Tailscale, turned Funnel on, and joined from Desktop and a phone. |
 | Oct 12 14:50 | [Script: the Umbrel package on ARM, in Docker Desktop on an Apple Silicon Mac](2026-10-12-1450-umbrel-arm64-mac.log) | `sha-16eb0b6` | 19 of 19, with umbrelOS's arm64 image and the relay's arm64 image. |
 | Oct 12 14:05 | [Script: the Umbrel package on umbrelOS 1.7.4](2026-10-12-1405-umbrel-os-1.7.log) | `sha-16eb0b6` | 19 of 19, beside the 2.0 install on the same droplet. |
 | Oct 12 13:50 | [Script: updating the Umbrel package through Umbrel](2026-10-12-1350-umbrel-update.log) | `sha-16eb0b6`, then `sha-30873ba` | 12 of 12: the message, the file, the settings and the member survived. |

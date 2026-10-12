@@ -12,18 +12,18 @@ description: >-
   Buzz mobile app.
 
 
-  Setup needs two things, entered on the app's page after install:
+  Setup asks for two things on the app's page after install: your public ID from Buzz Desktop,
+  which makes you the community's owner, and the community's address. The address is permanent:
+  Buzz can't change a community's address yet, so a different address later starts a new, empty
+  community.
 
 
-  - Your public ID from Buzz Desktop, which makes you the community's owner
+  - Your own domain (recommended), routed to this Umbrel by the Cloudflare Tunnel app. You can
+  move the community to another server later and keep it. Cloudflare decrypts the traffic between
+  members and your Umbrel, and uploads are limited to 100 MB.
 
-  - A domain you control, routed to this Umbrel by the Cloudflare Tunnel app, so members can reach
-  the community from anywhere
-
-
-  The domain is the community's permanent address: a different domain later starts a new, empty
-  community. Cloudflare decrypts the traffic between members and your Umbrel, and uploads are
-  limited to 100 MB.
+  - A free Tailscale address, to try it out. Members don't need Tailscale, but the address belongs
+  to your Tailscale account and can't become your own domain later.
 
 
   Phones pair through Buzz Desktop. Push notifications aren't available for self-hosted

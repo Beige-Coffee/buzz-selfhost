@@ -104,7 +104,10 @@ screen; an update through Umbrel to relay `sha-30873ba` kept everything, 12 of 1
 ([log](runs/2026-10-12-1350-umbrel-update.log)); and umbrelOS 1.7.4 passed 19 of 19
 ([log](runs/2026-10-12-1405-umbrel-os-1.7.log)). Not yet run: Umbrel's Cloudflare Tunnel app with a
 real domain. ARM passed too, 19 of 19, with umbrelOS's arm64 image in Docker Desktop on an Apple
-Silicon Mac ([log](runs/2026-10-12-1450-umbrel-arm64-mac.log)).
+Silicon Mac ([log](runs/2026-10-12-1450-umbrel-arm64-mac.log)). With two address options added, the
+own-domain path passed 19 of 19 again and the free Tailscale address 17 of 17, including a restart;
+the owner joined over the Tailscale address from Desktop and a phone
+([log](runs/2026-10-12-1550-umbrel-two-address-options.log)).
 
 ## Results, 2026-10-05
 

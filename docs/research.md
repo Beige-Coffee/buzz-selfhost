@@ -10,6 +10,8 @@ in [decisions.md](decisions.md). Last updated 2026-10-05.
 - The Agent Skills standard
 - Open Buzz issues the site links to
 - Platform facts worth knowing
+- Checked on 2026-10-12
+- Found on 2026-10-09, not yet in the skill
 
 ## What's tested
 
@@ -19,7 +21,7 @@ every run.
 
 | Setup | Scripted | Agent runs | iPhone pairing |
 | --- | --- | --- | --- |
-| VPS, public | 85 of 85, through backup, restore and upgrade | Claude, Codex, Goose | Tested |
+| VPS, public | 91 of 91 on `sha-30873ba` (Silo), and 108 of 108 from MinIO to Silo | Claude, Codex, Goose | Tested |
 | VPS, private (Tailscale) | 52 of 52 | Claude, Codex, Goose | Tested |
 | Kubernetes, public | 23 of 23 | Claude | Tested |
 | Kubernetes, private (Tailscale) | 17 of 17 | Claude | Not covered |
@@ -82,12 +84,12 @@ to start a required security review.
 | [#6092](https://github.com/block/buzz/issues/6092) Android push | No push notifications on Android at all | None; needs [#3229](https://github.com/block/buzz/issues/3229) |
 | [#7721](https://github.com/block/buzz/issues/7721) Phone pairing | The bundle never starts the pairing service | None upstream; the skill adds it |
 | [#4198](https://github.com/block/buzz/issues/4198) Phones on private IPs | The app rejects bare private addresses like `ws://10.0.0.1` | [#7266](https://github.com/block/buzz/pull/7266) |
-| [#6923](https://github.com/block/buzz/issues/6923), [#4209](https://github.com/block/buzz/issues/4209) Invite links | No invite screen for self-hosted communities | None; [#4311](https://github.com/block/buzz/pull/4311) fixes a nearby bug |
+| [#6923](https://github.com/block/buzz/issues/6923), [#4209](https://github.com/block/buzz/issues/4209) Invite links | Nothing on current images: Desktop has Settings, Invites, and the relay's invite API works (tested Oct 12) | Both still open; [#4311](https://github.com/block/buzz/pull/4311) fixes a nearby bug |
 | [#2872](https://github.com/block/buzz/issues/2872) Desktop and CORS | The bundle's default blocks Buzz Desktop | [#2888](https://github.com/block/buzz/pull/2888) |
 | [#6803](https://github.com/block/buzz/issues/6803) Moving from buzz.xyz | No way to bring a hosted community to your relay | None |
 | [#5731](https://github.com/block/buzz/issues/5731) Export and restore | No portable export of a whole workspace | None |
 | [#4952](https://github.com/block/buzz/issues/4952) Two addresses | A community answers on one address only | [#5410](https://github.com/block/buzz/pull/5410), [#5674](https://github.com/block/buzz/pull/5674) |
-| [#7880](https://github.com/block/buzz/issues/7880) MinIO images | The bundle and chart point at images quay.io no longer serves | Drafts [#7875](https://github.com/block/buzz/pull/7875), [#8023](https://github.com/block/buzz/pull/8023) |
+| [#7880](https://github.com/block/buzz/issues/7880) MinIO images | The chart the skill pins (0.1.10) still needs the image override | Fixed for Compose by [#8023](https://github.com/block/buzz/pull/8023), merged Oct 7 |
 | [#6500](https://github.com/block/buzz/issues/6500) Webhooks on Tailscale | Workflow webhooks refuse tailnet addresses | [#6553](https://github.com/block/buzz/pull/6553) |
 
 Merged: [#4610](https://github.com/block/buzz/pull/4610) (opening a file needs a member's signature;
@@ -110,24 +112,32 @@ and [#7869](https://github.com/block/buzz/pull/7869) with [#7870](https://github
   names in public certificate logs.
 - **Kubernetes:** the chart (0.1.10) runs the pairing service but doesn't route to it; a second
   ingress for `/pair` on the same name and certificate does. Its default image is from June 2026.
-- **Buzz images:** the relay image runs on x86 and ARM; `ghcr.io/block/buzz-minio` is x86 only.
+- **Buzz images:** the relay and Silo images run on x86 and ARM; `ghcr.io/block/buzz-minio`, which
+  bundles before Oct 7 need, is x86 only.
+
+## Checked on 2026-10-12
+
+- **Silo replaced MinIO** in Block's Compose bundle (block/buzz#8023, merged Oct 7 as `d742fc5`).
+  Silo is a maintained MinIO fork with x86 and ARM images on Docker Hub, pulled without a login.
+  The bundle keeps MinIO's names (service `minio`, volume `buzz-prod_buzz-minio-data`, bucket
+  `buzz-media`, `http://minio:9000`), so backups and restores didn't change. Block's bundle doesn't
+  move the data; its README points to Silo's migration guide, which reuses the volume in place.
+  Tested: `sha-9c6fa14` (MinIO 2025-09-07, `ghcr.io/block/buzz-minio`) upgraded to `sha-30873ba`
+  kept every object, a file from before read back intact, and new uploads worked. Going back to the
+  pre-upgrade backup on the old tag also worked. ARM servers are untested.
+- **The bucket holds more than uploads:** each upload makes a file, a `_meta` record and, for
+  images, a thumbnail. The git self-test adds `probe/` and `packs/` objects at every relay start.
+- **Invite links work on a self-hosted relay.** The relay's `/api/invites`, which Buzz Desktop's
+  Settings, Invites calls, worked on `sha-9c6fa14` and `sha-30873ba`. Desktop's side wasn't tried.
+  #6923 and #4209 are still open upstream.
+- **The owner can be changed:** a new `RELAY_OWNER_PUBKEY` and a restart make the old owner an
+  admin, who `remove-member` can then remove. The current owner can't be removed. Tested on Compose
+  only.
 
 ## Found on 2026-10-09, not yet in the skill
 
-- **Silo replaced MinIO** in Block's bundle (block/buzz#8023, merged Oct 7). Silo's images run on
-  Intel and ARM, so the x86-only rule (compose.md, decisions.md) may be out of date: test an ARM
-  server. The skill's MinIO step skips itself on the new bundle, but `tests/smoke-vps.sh` still
-  checks for MinIO and fails on it (expected 2, got 0). Moving an existing relay's MinIO data to
-  Silo is untested.
 - **The relay has a built-in admin console**, off by default: moderation reports, bans, timeouts,
   deleting messages, member feedback, and adding moderators. `BUZZ_ADMIN_HOST=admin.<domain>`, with
   that name routed to the relay, turns it on. The owner gets operator access automatically, and
   Buzz Desktop finds it under Settings, Admin (a different host name than the relay's needs one
   click on Save). Tested on a Compose relay on Oct 9. A candidate optional step for the skill.
-- **Buzz Desktop's Invites screen** lets an owner or admin add members by public ID, remove them,
-  make admins and create invite links. The relay now answers `/api/invites`, so the skill's "no
-  invite links yet" may be out of date. Untested.
-- **Changing the owner:** `buzz-admin` says the owner is changed by editing `RELAY_OWNER_PUBKEY`,
-  while the skill says the owner can't be changed. Check what a change does; Pavlenex's Umbrel page
-  says it adds an owner without removing the old one.
-

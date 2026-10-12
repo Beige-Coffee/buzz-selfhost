@@ -16,9 +16,9 @@ chart (`deploy/charts/buzz`) and Railway's template. Block publishes nothing els
 Docker template" people mention is Hostinger's own.
 
 - **A VPS** is the default. Name the clouds people think in (AWS, Google Cloud, DigitalOcean,
-  Hetzner) and the catches: the server must be x86, because the MinIO image the bundle needs
-  (`ghcr.io/block/buzz-minio`) is amd64-only, which rules out ARM servers like AWS Graviton (the
-  relay image itself runs on both); ports 80 and 443 open; a fixed IP.
+  Hetzner) and the catches: x86 is the tested platform, which rules out ARM servers like AWS
+  Graviton. Bundles from before 2026-10-07 need it (their MinIO image is amd64-only); Silo also
+  runs on ARM, untested. Ports 80 and 443 open; a fixed IP.
 - **Railway** has the least to run, and the most limits: its own stack, no volume for git
   repositories, a plan cap on services, and phone pairing needs a fifth service.
 - **Your own hardware** keeps everything at home. Steer it to Tailscale: reaching a home server
@@ -82,6 +82,16 @@ Still to do before sharing the link:
    AWS credentials, a Cloudflare token limited to that domain's DNS, and approval to spend; tear
    down the instance, the Elastic IP and the DNS record after.
 2. **The owner follows the site by hand** as a new user (planned for 2026-10-06).
+
+## Silo, invites, the owner, reporting problems (2026-10-12)
+
+The skill follows the bundle at the installed tag: older tags keep the MinIO swap, newer ones skip
+it. Every Compose upgrade compares the stored files before and after, and going back means the
+pre-upgrade backup on the old tag. The skill points to Desktop's Settings, Invites for adding
+people and making invite links, and says the owner can be changed. When a check fails and
+troubleshooting has no fix, the agent drafts a masked issue and files it only with the user's OK;
+the Setup problem form has the same fields. The site follows: Silo in "What's inside your relay",
+"One address per community" in place of "No invite links", and `DEFAULT_TAG` at `sha-30873ba`.
 
 ## When the skill moves to block/buzz
 

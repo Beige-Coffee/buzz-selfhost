@@ -1,0 +1,66 @@
+name: Setup problem
+description: A step of the self-host-buzz skill failed, and troubleshooting.md has no fix for it.
+title: "Setup problem: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting it. Before you paste anything, mask IP addresses, domains, npubs and
+        keys (write `<ip>`, `<domain>`, `npub1<masked>`, `<hex>`). Never paste a secret: the relay
+        key, values from `.env`, passwords, tokens or auth keys.
+  - type: dropdown
+    id: setup
+    attributes:
+      label: Setup
+      options:
+        - A VPS or own hardware, public (compose.md, server mode)
+        - A VPS or own hardware, private network (compose.md, private mode)
+        - Local test on this machine (compose.md, local mode)
+        - Railway
+        - Kubernetes, public
+        - Kubernetes, private network
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: cloud
+    attributes:
+      label: Cloud or hardware
+      placeholder: DigitalOcean, Ubuntu 24.04 x86, 4 GB
+    validations:
+      required: true
+  - type: input
+    id: agent
+    attributes:
+      label: Agent and model
+      placeholder: Claude Code with Claude Opus 5.5
+    validations:
+      required: true
+  - type: input
+    id: tag
+    attributes:
+      label: Image tag
+      description: The relay image the install or upgrade used.
+      placeholder: sha-30873ba
+    validations:
+      required: true
+  - type: input
+    id: step
+    attributes:
+      label: The failing step
+      placeholder: compose.md step 10, Start
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: The command and its check output
+      description: What ran, and what the check printed, masked.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: What you tried, and whether a rerun passed.

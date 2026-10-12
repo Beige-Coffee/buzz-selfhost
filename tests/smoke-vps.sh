@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Server half of the smoke test for the guide's "Self-host on a VPS" path.
 # Runs on a fresh Ubuntu 24.04 x86 server, as root, and executes the guide's commands verbatim
-# (copied from site/src/data/steps.ts and the Day two cards; keep them in sync).
+# (copied from the skill's compose.md and operations.md; keep them in sync).
 # tests/smoke.sh drives it over SSH and runs the member side from a laptop with the buzz CLI.
 #
 # Usage:
@@ -64,11 +64,41 @@ SNIP
 IFS= read -r -d '' CADDY_EDIT <<'SNIP' || true
 sed -i.bak 's|^  reverse_proxy relay:3000$|  reverse_proxy /pair* pair-relay:5000\n  reverse_proxy relay:3000|' Caddyfile && rm Caddyfile.bak
 SNIP
+# compose.md step 9's MinIO edit, verbatim. Only bundles from before Silo (block/buzz#8023) need it.
+IFS= read -r -d '' MINIO_EDIT <<'SNIP' || true
+sed -i.bak \
+  -e 's|image: quay.io/minio/minio:.*|image: ghcr.io/block/buzz-minio:latest|' \
+  -e 's|image: quay.io/minio/mc:.*|image: ghcr.io/block/buzz-minio:latest|' \
+  compose.yml && rm compose.yml.bak
+SNIP
+# object_store_edit: step 9's grep decides. A MinIO bundle gets the image swap and its check; a Silo
+# bundle gets no edit, and its check is that compose.yml names Silo's two images.
+object_store_edit() {
+  run minio-grep "grep -n 'image:.*quay.io/minio' compose.yml"
+  if [[ -s $OUT/minio-grep.out ]]; then
+    run minio "$MINIO_EDIT"
+    expect "a MinIO bundle: two MinIO images swapped" "2" "$(grep -c 'image:.*buzz-minio' compose.yml)"
+  else
+    expect "a Silo bundle: no MinIO edit, Silo's two images" "2" "$(grep -c 'image: pgsty/' compose.yml)"
+  fi
+}
+store_image() { docker compose ps --format '{{.Image}}' minio 2>/dev/null; }
+# operations.md's file list and file check, verbatim: every object in the store but the git
+# self-test's probe/ scratch, which grows at each relay start, then one upload read back through mc.
+# list_files FILE: the list, into FILE.
+list_files() {
+  run "list-$(basename "$1" .txt)" "docker compose run --rm --no-deps -T --entrypoint sh minio-init -c 'mc alias set local http://minio:9000 \"\$BUZZ_S3_ACCESS_KEY\" \"\$BUZZ_S3_SECRET_KEY\" >/dev/null && mc ls --recursive \"local/\$BUZZ_S3_BUCKET\"' < /dev/null | awk '{print \$NF}' | grep -v '^probe/' | sort > $1"
+}
+IFS= read -r -d '' FETCH_FILE <<'SNIP' || true
+key=$(grep -E '^[0-9a-f]{64}\.[a-z0-9]+$' ~/buzz-files-before.txt | head -1)
+[ "$(docker compose run --rm --no-deps -T --entrypoint sh -e KEY="$key" minio-init -c 'mc alias set local http://minio:9000 "$BUZZ_S3_ACCESS_KEY" "$BUZZ_S3_SECRET_KEY" >/dev/null && mc cat "local/$BUZZ_S3_BUCKET/$KEY"' < /dev/null | sha256sum | cut -c1-64)" = "${key%%.*}" ] && echo intact
+SNIP
 # pairing_edits MODE: the edits for server or private mode, with their checks
 pairing_edits() {
   run pair-service "$PAIR_EDIT"
   expect "pairing service in compose.yml" "1" "$(grep -c buzz-pair-relay compose.yml)"
-  docker compose --env-file .env config --services 2>/dev/null | grep -qx pair-relay && pass "compose.yml still parses, with pair-relay" || fail "compose.yml doesn't parse after the pairing edit"
+  # grep reads all of config's output: with pipefail, grep -q could end the pipe early and fail it
+  docker compose --env-file .env config --services 2>/dev/null | grep -x pair-relay >/dev/null && pass "compose.yml still parses, with pair-relay" || fail "compose.yml doesn't parse after the pairing edit"
   if [[ $1 == server ]]; then
     run pair-route "$CADDY_EDIT"
     expect "Caddy routes /pair" "1" "$(grep -c 'pair-relay:5000' Caddyfile)"
@@ -127,13 +157,8 @@ sed -i.bak \"s/^BUZZ_RELAY_PRIVATE_KEY=.*/BUZZ_RELAY_PRIVATE_KEY=\${key}/\" .env
     expect "pairing URL, one line" "BUZZ_PAIRING_RELAY_URL=wss://$HOST/pair" "$(grep '^BUZZ_PAIRING_RELAY_URL=' .env)"
   fi
 
-  section "9. Bundle edits: MinIO images, phone pairing"
-  run minio "sed -i.bak \\
-  -e 's|image: quay.io/minio/minio:.*|image: ghcr.io/block/buzz-minio:latest|' \\
-  -e 's|image: quay.io/minio/mc:.*|image: ghcr.io/block/buzz-minio:latest|' \\
-  compose.yml && rm compose.yml.bak"
-  run minio-check "grep -n 'image:.*buzz-minio' compose.yml"
-  expect "two MinIO images swapped" "2" "$(wc -l <"$OUT/minio-check.out" | tr -d ' ')"
+  section "9. Bundle edits: MinIO images (bundles before Silo), phone pairing"
+  object_store_edit
   [[ $MODE != local ]] && pairing_edits "$MODE"
   expect ".env is private after the edits" "600" "$(stat -c %a .env)"
 }
@@ -192,6 +217,10 @@ install)
   done
   grep -qE "buzz-prod-caddy-1 .*Up" "$OUT/status.out" && pass "caddy up" || fail "caddy not up"
   grep -qE "buzz-prod-pair-relay-1 .*Up" "$OUT/status.out" && pass "pair-relay up" || fail "pair-relay not up"
+  run store-image "docker compose ps --format '{{.Service}} {{.Image}}' minio"
+  if grep -q 'image: pgsty/silo' compose.yml; then
+    grep -q ' pgsty/silo:' "$OUT/store-image.out" && pass "the object store (service minio) runs Silo" || fail "the object store isn't Silo"
+  fi
 
   section "11. Check that it answers"
   SECONDS=0
@@ -333,6 +362,12 @@ docker compose start relay' && pass "backup" || fail "backup"
   for f in postgres.dump minio-data.tgz git-data.tgz env; do
     [[ -s ~/buzz-backup/$f ]] && pass "backup has $f" || fail "backup missing $f"
   done
+  run backup-bucket 'tar tzf ~/buzz-backup/minio-data.tgz | grep -c buzz-media'
+  N=$(tail -1 "$OUT/backup-bucket.out")
+  [[ $N =~ ^[0-9]+$ && $N -gt 0 ]] && pass "the object store's archive holds the bucket ($N entries)" || fail "no buzz-media in minio-data.tgz"
+  run backup-dump 'docker compose exec -T postgres pg_restore -l < ~/buzz-backup/postgres.dump | wc -l'
+  N=$(tail -1 "$OUT/backup-dump.out" | tr -d ' ')
+  [[ $N =~ ^[0-9]+$ && $N -ge 100 ]] && pass "the dump reads back ($N lines)" || fail "the dump doesn't read back"
   wait_alive && pass "relay back up after the backup" || fail "relay down after the backup"
   finish
   ;;
@@ -353,12 +388,9 @@ restore)
   run reclone 'TAG=$(grep '"'"'^BUZZ_IMAGE='"'"' ~/buzz-backup/env | cut -d: -f2)
 git clone https://github.com/block/buzz.git
 cd buzz && git checkout -q ${TAG#sha-} && cd deploy/compose
-cp .env.example .env && chmod 600 .env
-sed -i.bak \
-  -e '"'"'s|image: quay.io/minio/minio:.*|image: ghcr.io/block/buzz-minio:latest|'"'"' \
-  -e '"'"'s|image: quay.io/minio/mc:.*|image: ghcr.io/block/buzz-minio:latest|'"'"' \
-  compose.yml && rm compose.yml.bak' >/dev/null && pass "fresh checkout" || fail "fresh checkout"
+cp .env.example .env && chmod 600 .env' >/dev/null && pass "fresh checkout" || fail "fresh checkout"
   cd "$COMPOSE_DIR" || exit 1
+  object_store_edit
   pairing_edits server
   expect "fresh checkout at the backup's commit" "$(grep '^BUZZ_IMAGE=' ~/buzz-backup/env | cut -d: -f2 | sed 's/^sha-//')" "$(git rev-parse HEAD | cut -c1-7)"
   run restore 'cp ~/buzz-backup/env .env
@@ -380,6 +412,11 @@ BUZZ_COMPOSE_TLS=true ./run.sh start' && pass "restore" || fail "restore"
 upgrade)
   NEW_TAG="${2:-}"
   cd "$COMPOSE_DIR" || exit 1
+  STORE_BEFORE=$(store_image)
+  list_files ~/buzz-files-before.txt
+  run count-before 'wc -l < ~/buzz-files-before.txt'
+  N=$(tail -1 "$OUT/count-before.out" | tr -d ' ')
+  [[ $N =~ ^[0-9]+$ && $N -gt 0 ]] && pass "the store lists $N objects before the upgrade" || fail "the store lists no objects before the upgrade"
   if [[ -n $NEW_TAG ]]; then
     TAG=$NEW_TAG
     run newer 'OLD=$(grep '"'"'^BUZZ_IMAGE='"'"' .env | cut -d: -f2)
@@ -388,10 +425,7 @@ git merge-base --is-ancestor ${OLD#sha-} ${TAG#sha-} && echo newer'
     expect "the new tag is newer" "newer" "$(cat "$OUT/newer.out")"
     run move-bundle 'git checkout compose.yml Caddyfile
 git checkout -q ${TAG#sha-}' && pass "bundle moved" || fail "bundle moved"
-    run minio-again 'sed -i.bak \
-  -e '"'"'s|image: quay.io/minio/minio:.*|image: ghcr.io/block/buzz-minio:latest|'"'"' \
-  -e '"'"'s|image: quay.io/minio/mc:.*|image: ghcr.io/block/buzz-minio:latest|'"'"' \
-  compose.yml && rm compose.yml.bak' && pass "MinIO edit redone" || fail "MinIO edit redone"
+    object_store_edit
     pairing_edits server
     expect "bundle at the new tag's commit" "${TAG#sha-}" "$(git rev-parse HEAD | cut -c1-7)"
     run new-settings 'comm -13 <(grep -oE '"'"'^[A-Z][A-Z0-9_]*='"'"' .env | sort) <(grep -oE '"'"'^[A-Z][A-Z0-9_]*='"'"' .env.example | sort)'
@@ -404,6 +438,18 @@ git checkout -q ${TAG#sha-}' && pass "bundle moved" || fail "bundle moved"
   expect "pairing answers after the upgrade" "101" "$(ws_status "https://$(domain)/pair")"
   [[ -n $NEW_TAG ]] && expect "relay runs the new image" "relay ghcr.io/block/buzz:$NEW_TAG healthy" \
     "$(docker compose ps --format '{{.Service}} {{.Image}} {{.Status}}' relay | sed -E 's/ Up .*\((healthy)\)$/ \1/')"
+  STORE_AFTER=$(store_image)
+  echo "INFO  object store image: $STORE_BEFORE before, $STORE_AFTER after"
+  if grep -q 'image: pgsty/silo' compose.yml; then
+    [[ $STORE_AFTER == pgsty/silo:* ]] && pass "the object store runs Silo after the upgrade" || fail "the object store isn't Silo after the upgrade"
+  fi
+  expect "the object store is healthy after the upgrade" "minio healthy" \
+    "$(docker compose ps --format '{{.Service}} {{.Status}}' minio | sed -E 's/ Up .*\((healthy)\)$/ \1/')"
+  list_files ~/buzz-files-after.txt
+  run files-missing 'comm -23 ~/buzz-files-before.txt ~/buzz-files-after.txt | wc -l'
+  expect "no object from before the upgrade is missing after it" "0" "$(tail -1 "$OUT/files-missing.out" | tr -d ' ')"
+  run file-intact "$FETCH_FILE"
+  expect "a file from before the upgrade reads back intact from the store" "intact" "$(tail -1 "$OUT/file-intact.out")"
   run members-after './run.sh list-members < /dev/null'
   run status-after 'BUZZ_COMPOSE_TLS=true ./run.sh status'
   finish

@@ -8,15 +8,17 @@
 # python3, and the buzz CLI built from block/buzz (cargo build --release -p buzz-cli --bin buzz).
 #
 # Usage: BUZZ_CLI=path/to/buzz bash smoke.sh <server-ip> <domain> [image-tag [upgrade-tag]]
-#   upgrade-tag        a newer tag to upgrade to at the end (default: run.sh upgrade on the same tag)
+#   upgrade-tag        a newer tag to upgrade to at the end, after a fresh backup (default: run.sh
+#                      upgrade on the same tag). From a tag before 2026-10-07 to a later one, this moves
+#                      uploaded files from MinIO to Silo (block/buzz#8023).
 #   SSH_KEY=path       key for root@<server-ip> (default: ssh's own)
 #   KNOWN_HOSTS=path   known_hosts file to use (default: ssh's own)
 #   JOIN_NPUB=npub1…   adds that person as a member at the end, to try Buzz Desktop and a phone
 set -uo pipefail
 
-IP=${1:?usage: smoke.sh <server-ip> <domain> [image-tag]}
+IP=${1:?usage: smoke.sh <server-ip> <domain> [image-tag [upgrade-tag]]}
 DOMAIN=${2:?domain}
-TAG=${3:-sha-83aab8c}
+TAG=${3:-sha-30873ba}
 UPGRADE_TAG=${4:-}
 HERE=$(cd "$(dirname "$0")" && pwd)
 source "$HERE/lib/log.sh" && run_logged vps "$TAG" "$0" "$@"
@@ -118,6 +120,33 @@ PAIR_URL=$(nip11 | field pairing_relay_url)
 [[ $PAIR_URL == "wss://$DOMAIN/pair" ]] && pass "the relay names its pairing service, $PAIR_URL" || fail "pairing_relay_url is [$PAIR_URL], not wss://$DOMAIN/pair"
 [[ $(ws_status "https://$DOMAIN/pair") == 101 ]] && pass "WebSocket upgrade at https://$DOMAIN/pair" || fail "no WebSocket at https://$DOMAIN/pair"
 
+section "Invites: the relay API behind Buzz Desktop's Settings, Invites"
+# invite_post SECRET PATH BODY: a NIP-98 signed POST, as Buzz Desktop sends it. Prints the HTTP status;
+# the response goes to $TMP/invite.json. The secret reaches nip98.py on stdin, never in a process list.
+invite_post() {
+  local auth
+  auth=$(python3 "$HERE/lib/nip98.py" POST "https://$DOMAIN$2" "$3" <<<"$1")
+  curl -sS -m 15 -o "$TMP/invite.json" -w '%{http_code}' -X POST "https://$DOMAIN$2" \
+    -H "Authorization: $auth" -H 'Content-Type: application/json' --data-binary "$3" 2>/dev/null
+}
+STATUS=$(invite_post "$OWNER_SK" /api/invites '{}')
+CODE=$(field code <"$TMP/invite.json")
+INVITE_URL=$(field url <"$TMP/invite.json")
+[[ $STATUS == 200 && -n $CODE ]] && pass "owner creates an invite" || fail "owner creates an invite: HTTP $STATUS $(cat "$TMP/invite.json")"
+[[ $INVITE_URL == "https://$DOMAIN/invite/$CODE" ]] && pass "the invite link is https://$DOMAIN/invite/<code>" || fail "the invite link is [$INVITE_URL]"
+info "the invite link's page answers HTTP $(curl -s -o /dev/null -w '%{http_code}' "$INVITE_URL")"
+STATUS=$(invite_post "$MEMBER_SK" /api/invites '{}')
+[[ $STATUS == 403 ]] && pass "a member who isn't an admin can't create one (HTTP 403)" || fail "a member creates an invite: HTTP $STATUS"
+read -r GUEST_SK GUEST_HEX <<<"$(python3 "$HERE/lib/keygen.py")"
+STATUS=$(invite_post "$GUEST_SK" /api/invites/claim "{\"code\":\"$CODE\"}")
+[[ $STATUS == 200 && $(field status <"$TMP/invite.json") == joined ]] &&
+  pass "a new identity joins with the invite, as $(field role <"$TMP/invite.json")" || fail "claiming the invite: HTTP $STATUS $(cat "$TMP/invite.json")"
+as "$GUEST_SK" channels join --channel "$CH" >"$TMP/join.json" 2>&1 &&
+  as "$GUEST_SK" messages send --channel "$CH" --content "hello from an invited member" >"$TMP/send.json" 2>&1 &&
+  pass "the invited member posts" || fail "the invited member posts: $(cat "$TMP/join.json" "$TMP/send.json")"
+server list-members
+grep -q "$GUEST_HEX" "$TMP/phase.log" && pass "list-members shows the invited member" || fail "the invited member isn't in list-members"
+
 section "Back up, lose the server's data, restore onto a fresh checkout"
 server backup
 server wipe
@@ -134,6 +163,7 @@ as "$MEMBER_SK" messages send --channel "$CH" --content "after the restore" >"$T
 
 section "Upgrade${UPGRADE_TAG:+ to $UPGRADE_TAG}"
 VERSION_BEFORE=$(nip11 | field version)
+[[ -n $UPGRADE_TAG ]] && server backup # operations.md: back up first
 server upgrade $UPGRADE_TAG
 info "relay version $VERSION_BEFORE before, $(nip11 | field version) after"
 read_both && pass "messages survived the upgrade" || fail "messages after the upgrade: $(cat "$TMP/read.json")"
@@ -142,8 +172,18 @@ fetch_pic && pass "the file survived the upgrade" || fail "the file is gone afte
 [[ -z $COMMUNITY || $(community_id) == "$COMMUNITY" ]] && pass "same community after the upgrade" || fail "the community changed in the upgrade"
 as "$MEMBER_SK" messages send --channel "$CH" --content "after the upgrade" >"$TMP/send.json" 2>&1 &&
   pass "member posts after the upgrade" || fail "member posts after the upgrade: $(cat "$TMP/send.json")"
-as "$OWNER_SK" --format compact messages get --channel "$CH" --limit 20 2>&1 | grep -q "after the upgrade" &&
+as "$OWNER_SK" --format compact messages get --channel "$CH" --limit 20 2>&1 | grep "after the upgrade" >/dev/null &&
   pass "owner reads it" || fail "owner can't read the post-upgrade message"
+python3 "$HERE/lib/png.py" "$TMP/pic2.png"
+PIC2_SHA=$(shasum -a 256 "$TMP/pic2.png" | cut -c1-64)
+as "$MEMBER_SK" upload file --file "$TMP/pic2.png" >"$TMP/upload2.json" 2>&1
+PIC2_URL=$(field url <"$TMP/upload2.json")
+[[ $PIC2_URL == "https://$DOMAIN/media/$PIC2_SHA.png" ]] && pass "member uploads a new file after the upgrade" ||
+  fail "upload after the upgrade: $(cat "$TMP/upload2.json")"
+rm -f "$TMP/got2.png"
+as "$OWNER_SK" media get "$PIC2_URL" -o "$TMP/got2.png" >/dev/null 2>&1 &&
+  [[ $(shasum -a 256 "$TMP/got2.png" | cut -c1-64) == "$PIC2_SHA" ]] &&
+  pass "owner downloads the new file intact" || fail "owner downloads the file uploaded after the upgrade"
 
 if [[ -n ${JOIN_NPUB:-} ]]; then
   section "A person to try Buzz Desktop and a phone"

@@ -79,7 +79,7 @@ elif grep -q relay_membership_required "$TMP/stranger.json"; then
 else
   fail "non-member failed for another reason: $(cat "$TMP/stranger.json")"
 fi
-as "$OWNER_SK" --format compact messages get --channel "$CH" --limit 10 2>&1 | grep -q "hello from a member" &&
+as "$OWNER_SK" --format compact messages get --channel "$CH" --limit 10 2>&1 | grep "hello from a member" >/dev/null &&
   pass "owner reads the member's message" || fail "owner can't read the member's message"
 python3 "$HERE/lib/png.py" "$TMP/pic.png"
 PIC_SHA=$(shasum -a 256 "$TMP/pic.png" | cut -c1-64)

@@ -10,6 +10,10 @@ on Oct 5, with secrets masked.
 
 | When (PDT) | Run | Relay version | Result |
 |---|---|---|---|
+| Oct 12 16:36 | [Script: VPS, an upgrade from MinIO to Silo, then going back by hand](2026-10-12-1636-vps-sha-9c6fa14.log) | `sha-9c6fa14`, then `sha-30873ba` | 108 of 108. Silo took over the MinIO volume: no object went missing, a file from before read back intact, and new uploads worked. The pre-upgrade backup then restored onto the old tag. |
+| Oct 12 16:30 | [Script: VPS on a Silo bundle](2026-10-12-1630-vps-sha-30873ba.log) | `sha-30873ba` | 91 of 91, through a backup, a restore and an upgrade. Invite links worked. |
+| Oct 12 16:23 | [Script: VPS, MinIO to Silo, first try](2026-10-12-1623-vps-sha-9c6fa14.log) | `sha-9c6fa14`, then `sha-30873ba` | 107 of 108: every upgrade check passed; a parse check of the test's own failed on a pipe race, fixed and rerun. |
+| Oct 12 16:14 | [Script: VPS on a Silo bundle, first try, then a new owner by hand](2026-10-12-1614-vps-sha-30873ba.log) | `sha-30873ba` | 90 of 91: the test's file check picked a `_meta` record, fixed and rerun. By hand: a new `RELAY_OWNER_PUBKEY` became the owner and the old owner an admin. |
 | Oct 12 15:50 | [Script, then by hand: the Umbrel package's two address options](2026-10-12-1550-umbrel-two-address-options.log) | `sha-16eb0b6` | Own domain 19 of 19; free Tailscale address 17 of 17 with a restart. The owner signed in to Tailscale, turned Funnel on, and joined from Desktop and a phone. |
 | Oct 12 14:50 | [Script: the Umbrel package on ARM, in Docker Desktop on an Apple Silicon Mac](2026-10-12-1450-umbrel-arm64-mac.log) | `sha-16eb0b6` | 19 of 19, with umbrelOS's arm64 image and the relay's arm64 image. |
 | Oct 12 14:05 | [Script: the Umbrel package on umbrelOS 1.7.4](2026-10-12-1405-umbrel-os-1.7.log) | `sha-16eb0b6` | 19 of 19, beside the 2.0 install on the same droplet. |

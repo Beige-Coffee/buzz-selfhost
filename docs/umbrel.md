@@ -1,7 +1,7 @@
 # Buzz on Umbrel
 
-Status on 2026-10-09: a working Umbrel App Store package in [`umbrel/buzz/`](../umbrel/buzz/),
-tested end to end on umbrelOS 2.0, not yet submitted to Umbrel.
+Status on 2026-10-12: a working Umbrel App Store package in [`umbrel/buzz/`](../umbrel/buzz/),
+tested end to end on umbrelOS 2.0, including Buzz Desktop and a phone. Not yet submitted to Umbrel.
 
 ## Why our own package
 
@@ -52,10 +52,13 @@ reaching it through a Cloudflare quick tunnel (no account or domain needed):
 [Log](../tests/runs/2026-10-09-1430-umbrel-cloudflare-quick-tunnel.log). The scripts are in
 [`tests/umbrel/`](../tests/umbrel/).
 
+2026-10-12, a fresh droplet, the same package: 19 of 19 again, then the owner's steps by hand. The
+owner joined from Buzz Desktop, added a member by public ID in Settings, Invites (the relay records
+the owner as having added it, and that member then posted), and paired an iPhone from Settings,
+Mobile and posted from it ([log](../tests/runs/2026-10-12-1305-umbrel-desktop-and-phone.log)).
+
 ## Not yet tested
 
-- Buzz Desktop joining, adding a member from Settings → Invites, and pairing a phone. The server
-  was deleted before the owner could run them.
 - Umbrel's Cloudflare Tunnel app with a real domain. It needs a Cloudflare account and a domain.
 - Opening the app from Umbrel's home screen, which needs an Umbrel login.
 - umbrelOS 1.7, an ARM device, and an update from one package version to the next.

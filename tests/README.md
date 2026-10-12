@@ -97,8 +97,10 @@ The Umbrel package on umbrelOS 2.0.0, relay `sha-16eb0b6`, through a Cloudflare 
 installed through Umbrel, set up through its page, every `check-relay.sh` line passed (phone
 pairing included), members posted and read, a stranger was refused, a file went up and came back,
 and all of it held after Umbrel restarted the app ([log](runs/2026-10-09-1430-umbrel-cloudflare-quick-tunnel.log)).
-Not yet run: Buzz Desktop joining it, a phone pairing, and Umbrel's Cloudflare Tunnel app with a
-real domain.
+On 2026-10-12, on a fresh server: 19 of 19 again, then Buzz Desktop joined as the owner, added a
+member by public ID from Settings, Invites (that member then posted), and an iPhone paired and posted
+([log](runs/2026-10-12-1305-umbrel-desktop-and-phone.log)). Not yet run: Umbrel's Cloudflare Tunnel
+app with a real domain.
 
 ## Results, 2026-10-05
 

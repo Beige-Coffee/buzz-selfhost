@@ -6,16 +6,19 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 VERSION=${1:-2.0.0}
 COPYFILE_DISABLE=1 tar -C "$HERE/../../umbrel" -czf - buzz |
   bash "$HERE/ssh.sh" 'rm -rf /root/buzz-pkg && mkdir -p /root/buzz-pkg && tar -C /root/buzz-pkg -xzf - 2>/dev/null'
-bash "$HERE/ssh.sh" "VERSION=$VERSION bash -s" <<'REMOTE'
+# Not VERSION: Docker's install script reads that name as the Docker version to install.
+bash "$HERE/ssh.sh" "UMBREL_VERSION=$VERSION bash -s" <<'REMOTE'
 set -euo pipefail
+trap 'echo "install.sh: failed at line $LINENO of the server script" >&2' ERR
 cloud-init status --wait > /dev/null
 command -v docker > /dev/null || curl -fsSL https://get.docker.com | sh > /tmp/docker-install.log 2>&1
 if ! docker inspect umbrelos-test > /dev/null 2>&1; then
+  docker pull -q "ghcr.io/getumbrel/umbrelos:$UMBREL_VERSION" > /dev/null
   # Umbrel's own example uses --network host. On a cloud server, umbrelOS's NetworkManager then
   # takes over the server's network card and the server drops off the network. So: Docker's
   # bridge network, with NetworkManager masked inside the container.
   docker create -it --name umbrelos-test --hostname umbrel --privileged \
-    --volume umbrelos-test:/data "ghcr.io/getumbrel/umbrelos:$VERSION" /sbin/init > /dev/null
+    --volume umbrelos-test:/data "ghcr.io/getumbrel/umbrelos:$UMBREL_VERSION" /sbin/init > /dev/null
   for unit in NetworkManager.service NetworkManager-wait-online.service; do
     ln -sf /dev/null "/tmp/$unit" && docker cp "/tmp/$unit" "umbrelos-test:/etc/systemd/system/$unit"
   done

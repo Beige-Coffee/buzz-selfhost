@@ -103,7 +103,8 @@ member by public ID from Settings, Invites (that member then posted), and an iPh
 screen; an update through Umbrel to relay `sha-30873ba` kept everything, 12 of 12
 ([log](runs/2026-10-12-1350-umbrel-update.log)); and umbrelOS 1.7.4 passed 19 of 19
 ([log](runs/2026-10-12-1405-umbrel-os-1.7.log)). Not yet run: Umbrel's Cloudflare Tunnel app with a
-real domain, and ARM.
+real domain. ARM passed too, 19 of 19, with umbrelOS's arm64 image in Docker Desktop on an Apple
+Silicon Mac ([log](runs/2026-10-12-1450-umbrel-arm64-mac.log)).
 
 ## Results, 2026-10-05
 

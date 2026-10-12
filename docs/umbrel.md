@@ -1,7 +1,8 @@
 # Buzz on Umbrel
 
 Status on 2026-10-12: a working Umbrel App Store package in [`umbrel/buzz/`](../umbrel/buzz/),
-tested end to end on umbrelOS 2.0 and 1.7, with Buzz Desktop, a phone, and an update. Not yet
+tested end to end on umbrelOS 2.0 and 1.7, on Intel and ARM, with Buzz Desktop, a phone, and an
+update. Not yet
 submitted to Umbrel.
 
 ## Why our own package
@@ -67,13 +68,15 @@ Then, the same day:
   ([log](../tests/runs/2026-10-12-1350-umbrel-update.log)).
 - umbrelOS 1.7.4, beside the 2.0 install on the same droplet: 19 of 19
   ([log](../tests/runs/2026-10-12-1405-umbrel-os-1.7.log)).
+- ARM: umbrelOS 2.0.0's arm64 image in Docker Desktop on an Apple Silicon Mac, the relay on its arm64
+  image: 19 of 19 ([log](../tests/runs/2026-10-12-1450-umbrel-arm64-mac.log)). Docker Desktop needed
+  nothing beyond `install.sh`'s bridge network and masked NetworkManager.
 
 ## Not yet tested
 
 - Umbrel's Cloudflare Tunnel app with a real domain. It needs a Cloudflare account and a domain.
-- ARM, the chip in a Raspberry Pi. An Apple Silicon Mac runs the arm64 umbrelOS image natively;
-  Umbrel's guide says its container works there under OrbStack. Umbrel asks for the chip type to
-  be tested, not a particular device.
+- A real Raspberry Pi: ARM itself passed on a Mac, but not the Pi's slower processor and storage.
+  Umbrel asks for the chip type to be tested, not a particular device.
 
 ## Before submitting
 
@@ -92,7 +95,8 @@ BUZZ_CLI=path/to/buzz MEMBER_KEYS=<a member's key file> bash tests/umbrel/update
 python3 tests/umbrel/server.py down     # deletes the droplet and its firewall
 ```
 
-Another umbrelOS version runs beside the first: `UMBREL_CONTAINER=umbrelos-17 bash
+`UMBREL_LOCAL=1` runs the same scripts on this machine's Docker instead of the droplet, which is how
+the ARM test ran on an Apple Silicon Mac. Another umbrelOS version runs beside the first: `UMBREL_CONTAINER=umbrelos-17 bash
 tests/umbrel/install.sh 1.7.4`, then `e2e.sh` with the same `UMBREL_CONTAINER` and its own
 `DOMAIN_FILE`.
 

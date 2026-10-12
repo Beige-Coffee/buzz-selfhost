@@ -10,6 +10,7 @@ on Oct 5, with secrets masked.
 
 | When (PDT) | Run | Relay version | Result |
 |---|---|---|---|
+| Oct 12 14:50 | [Script: the Umbrel package on ARM, in Docker Desktop on an Apple Silicon Mac](2026-10-12-1450-umbrel-arm64-mac.log) | `sha-16eb0b6` | 19 of 19, with umbrelOS's arm64 image and the relay's arm64 image. |
 | Oct 12 14:05 | [Script: the Umbrel package on umbrelOS 1.7.4](2026-10-12-1405-umbrel-os-1.7.log) | `sha-16eb0b6` | 19 of 19, beside the 2.0 install on the same droplet. |
 | Oct 12 13:50 | [Script: updating the Umbrel package through Umbrel](2026-10-12-1350-umbrel-update.log) | `sha-16eb0b6`, then `sha-30873ba` | 12 of 12: the message, the file, the settings and the member survived. |
 | Oct 12 13:05 | [Script, then by hand: the Umbrel package with Buzz Desktop and a phone](2026-10-12-1305-umbrel-desktop-and-phone.log) | `sha-16eb0b6` | 19 of 19 on a fresh server, after an install-script fix. The owner joined from Desktop, added a member from Invites, and paired an iPhone; all posted. |

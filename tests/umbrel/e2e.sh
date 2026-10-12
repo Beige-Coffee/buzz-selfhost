@@ -6,6 +6,7 @@
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 U="bash $HERE/ssh.sh"
+[ -n "${UMBREL_LOCAL:-}" ] && U="bash -c"  # this machine's Docker
 T=$HERE/..
 SKILL=$HERE/../../skills/self-host-buzz
 BZ=${BUZZ_CLI:?set BUZZ_CLI to the buzz CLI}

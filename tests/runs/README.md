@@ -10,6 +10,10 @@ on Oct 5, with secrets masked.
 
 | When (PDT) | Run | Relay version | Result |
 |---|---|---|---|
+| Oct 12 16:36 | [Script: VPS, an upgrade from MinIO to Silo, then going back by hand](2026-10-12-1636-vps-sha-9c6fa14.log) | `sha-9c6fa14`, then `sha-30873ba` | 108 of 108. Silo took over the MinIO volume: no object went missing, a file from before read back intact, and new uploads worked. The pre-upgrade backup then restored onto the old tag. |
+| Oct 12 16:30 | [Script: VPS on a Silo bundle](2026-10-12-1630-vps-sha-30873ba.log) | `sha-30873ba` | 91 of 91, through a backup, a restore and an upgrade. Invite links worked. |
+| Oct 12 16:23 | [Script: VPS, MinIO to Silo, first try](2026-10-12-1623-vps-sha-9c6fa14.log) | `sha-9c6fa14`, then `sha-30873ba` | 107 of 108: every upgrade check passed; a parse check of the test's own failed on a pipe race, fixed and rerun. |
+| Oct 12 16:14 | [Script: VPS on a Silo bundle, first try, then a new owner by hand](2026-10-12-1614-vps-sha-30873ba.log) | `sha-30873ba` | 90 of 91: the test's file check picked a `_meta` record, fixed and rerun. By hand: a new `RELAY_OWNER_PUBKEY` became the owner and the old owner an admin. |
 | Oct 12 14:05 | [Script: the Umbrel package on umbrelOS 1.7.4](2026-10-12-1405-umbrel-os-1.7.log) | `sha-16eb0b6` | 19 of 19, beside the 2.0 install on the same droplet. |
 | Oct 12 13:50 | [Script: updating the Umbrel package through Umbrel](2026-10-12-1350-umbrel-update.log) | `sha-16eb0b6`, then `sha-30873ba` | 12 of 12: the message, the file, the settings and the member survived. |
 | Oct 12 13:05 | [Script, then by hand: the Umbrel package with Buzz Desktop and a phone](2026-10-12-1305-umbrel-desktop-and-phone.log) | `sha-16eb0b6` | 19 of 19 on a fresh server, after an install-script fix. The owner joined from Desktop, added a member from Invites, and paired an iPhone; all posted. |

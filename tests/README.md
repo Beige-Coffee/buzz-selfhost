@@ -22,11 +22,14 @@ BUZZ_CLI=path/to/buzz SSH_KEY=path/to/key bash tests/smoke.sh <server-ip> <domai
 
 It installs with the guide's steps (`smoke-vps.sh install`), then from your laptop: the owner
 creates a channel and posts, a member added by npub posts, a stranger is refused, a file goes
-up and comes back intact. Then it backs up, deletes the checkout and the data volumes,
-restores onto a fresh checkout, and checks that messages, the file, members, the relay's
-identity and the community all came back. Last, it upgrades: to `upgrade-tag` if given, moving
-the bundle and the image together the way the skill's operations.md says, and checks the same
-things again. About 10 minutes.
+up and comes back intact, and an invite link from the owner lets a new identity join. Then it
+backs up, deletes the checkout and the data volumes, restores onto a fresh checkout, and checks
+that messages, the file, members, the relay's identity and the community all came back. Last, it
+upgrades: to `upgrade-tag` if given, after a fresh backup, moving the bundle and the image
+together the way the skill's operations.md says. It checks the same things again, plus that no
+stored object went missing, that a file from before reads back intact from the store, and that a
+new upload works. From a tag before 2026-10-07 to a later one, the upgrade moves the files from
+MinIO to Silo. About 10 minutes.
 
 ## Practice path: `smoke-practice.sh`
 
@@ -90,6 +93,29 @@ python3 tests/lib/export-runs.py ~/.claude/projects/<project>/<session-id>
 
 No script here yet. The steps and operations were run against projects made with
 `railway deploy -t buzz-relay-block`, by hand on 2026-09-30 and by script on 2026-10-01.
+
+## Results, 2026-10-12: Silo in place of MinIO
+
+Block's Compose bundle stores uploaded files with Silo instead of MinIO from 2026-10-07 on
+(block/buzz#8023), under MinIO's service, container and volume names. On one DigitalOcean
+droplet, rebuilt between runs:
+
+- A fresh install on `sha-30873ba`: 91 of 91, through a backup, a restore and an upgrade
+  ([log](runs/2026-10-12-1630-vps-sha-30873ba.log)).
+- An install on `sha-9c6fa14` (MinIO), backed up and restored, then backed up again and upgraded
+  to `sha-30873ba` the way operations.md says: 108 of 108. Silo took over the MinIO volume in
+  place: no stored object went missing, a file uploaded before read back intact through the store
+  and through the relay, and a new upload worked. The members, the relay's identity and the
+  community survived. By hand after it, going back worked: the pre-upgrade backup restored with
+  the bundle moved back to `sha-9c6fa14` ([log](runs/2026-10-12-1636-vps-sha-9c6fa14.log)).
+- Invite links, on both tags: the owner made one through the relay's invite API (what Buzz
+  Desktop's Settings, Invites calls), a plain member got 403, and a new identity joined with it
+  and posted.
+- Changing `RELAY_OWNER_PUBKEY` and restarting made the new key the owner and the old owner an
+  admin, who could then be removed; the current owner can't be
+  ([log](runs/2026-10-12-1614-vps-sha-30873ba.log)).
+- The first tries, also in [runs/](runs/README.md), passed 90 of 91 and 107 of 108: each failed one
+  check of the test's own, since fixed.
 
 ## Results, 2026-10-09: Umbrel
 

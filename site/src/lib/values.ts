@@ -22,9 +22,9 @@ export interface Values {
   mode: Mode;
 }
 
-/** The image every setup was last tested on (2026-10-01). Not every main commit gets an image. */
-export const DEFAULT_TAG = "sha-d1b7da4";
-const OLD_DEFAULT_TAGS = ["sha-53a1210", "sha-83aab8c"];
+/** The image the Compose setups were last tested on (2026-10-12, with Silo). Not every main commit gets an image. */
+export const DEFAULT_TAG = "sha-30873ba";
+const OLD_DEFAULT_TAGS = ["sha-53a1210", "sha-83aab8c", "sha-d1b7da4"];
 const KEY = "buzz-selfhost-values-v2";
 const DEFAULTS: Values = { path: "vps", ownMode: "public", reach: "public", domain: "", npub: "", tag: "", mode: "agent" };
 const PATHS: Path[] = ["vps", "railway", "own", "k8s"];

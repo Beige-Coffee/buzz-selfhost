@@ -12,7 +12,7 @@ import { buzzAppHTML } from "./buzzapp";
 const LAYERS: { name: string; is: string; holds: string }[] = [
   { name: "relay", is: "Buzz server, in Rust", holds: "checks members, delivers" },
   { name: "Postgres", is: "database", holds: "messages, channels, members" },
-  { name: "MinIO", is: "file storage (S3)", holds: "uploaded images and files" },
+  { name: "Silo", is: "file storage (S3)", holds: "uploaded images and files" },
   { name: "git", is: "git repositories", holds: "code pushed to the relay" },
   { name: ".env", is: "settings file", holds: "relay key, passwords" },
   { name: "Redis", is: "in-memory cache", holds: "who's online, typing" },
@@ -143,7 +143,7 @@ export function mountStory(section: HTMLElement): void {
           </div>
         </div>
         <div class="sg-tree sg-tree-repo">${tree("github.com/block/buzz", [
-          ["desktop/", "Buzz Desktop, the app you saw"],
+          ["desktop/", "Buzz 0.X, the earlier desktop app"],
           ["mobile/", "the phone apps"],
           ["crates/", "the relay and its tools, in Rust"],
           ["deploy/", "what you run on a server"],

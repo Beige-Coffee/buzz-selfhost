@@ -22,9 +22,9 @@ export interface Values {
   mode: Mode;
 }
 
-/** The image every setup was last tested on (2026-10-01). Not every main commit gets an image. */
-export const DEFAULT_TAG = "sha-d1b7da4";
-const OLD_DEFAULT_TAGS = ["sha-53a1210", "sha-83aab8c"];
+/** The image the Compose setups were last tested on (2026-10-12, with Silo). Not every main commit gets an image. */
+export const DEFAULT_TAG = "sha-e8781ca";
+const OLD_DEFAULT_TAGS = ["sha-53a1210", "sha-83aab8c", "sha-d1b7da4", "sha-30873ba"];
 const KEY = "buzz-selfhost-values-v2";
 const DEFAULTS: Values = { path: "vps", ownMode: "public", reach: "public", domain: "", npub: "", tag: "", mode: "agent" };
 const PATHS: Path[] = ["vps", "railway", "own", "k8s"];
@@ -183,17 +183,17 @@ export function derived(v: Values = state): Record<string, string> {
   const hex = npubToHex(v.npub);
   return {
     DOMAIN: domain,
-    HOST: practice ? "127.0.0.1" : domain,
-    RELAY_URL: practice ? "ws://127.0.0.1:3000" : `wss://${domain}`,
-    HTTP_ORIGIN: practice ? "http://127.0.0.1:3000" : `https://${domain}`,
+    HOST: practice ? "localhost" : domain,
+    RELAY_URL: practice ? "wss://localhost" : `wss://${domain}`,
+    HTTP_ORIGIN: practice ? "https://localhost" : `https://${domain}`,
     OWNER_HEX: hex ?? "CHANGE_ME_OWNER_PUBKEY_HEX",
     OWNER_NPUB: v.npub.trim() || "<your npub>",
     TAG: tag,
     // sha-<7> tags name the main commit the image was built from; the bundle is checked out there
     COMMIT: /^sha-[0-9a-f]{7,40}$/.test(tag) ? tag.slice(4) : "main",
     IMAGE: `ghcr.io/block/buzz:${tag}`,
-    // Caddy is only for public servers: practice has no TLS, and Tailscale serves the private ones
-    RUN: practice || isPrivate(t) ? "./run.sh" : "BUZZ_COMPOSE_TLS=true ./run.sh",
+    // Caddy serves public servers and the local test (with its own local authority); Tailscale serves the private ones
+    RUN: isPrivate(t) ? "./run.sh" : "BUZZ_COMPOSE_TLS=true ./run.sh",
     SKILL_URL: new URL("skills/self-host-buzz/SKILL.md", document.baseURI).href,
     SKILL_ARCHIVE: new URL("skills/self-host-buzz.tar.gz", document.baseURI).href,
   };

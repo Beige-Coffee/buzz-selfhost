@@ -1,5 +1,3 @@
-import { bee } from "../defs";
-
 /**
  * "What's a relay key?": a dropdown under the path cards. Five steps, each a small drawing in How it works's
  * style that plays once when you arrive; steps only change when you ask. Drawn twice: wide (560 x 380) for a
@@ -8,7 +6,7 @@ import { bee } from "../defs";
  * - chat messages are signed events (kind 9); a bad signature is refused ("invalid: invalid schnorr signature")
  * - the relay signs with BUZZ_RELAY_PRIVATE_KEY: the NIP-43 member list (kind 13534), system notices
  *   (kind 40099), git repo state (kind 30618); NIP-11 publishes its public key as `self`
- * - no invite links here: self-hosted relays have no invite UI yet (block/buzz#6923), so the steps leave them out
+ * - no invite links here: Buzz makes them (Settings, Community admin, Membership), and the steps keep to what the relay signs
  */
 
 const KEY = `<svg class="rk-i-key" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3M17 6l3 3M14 9l2.5 2.5"/></svg>`;
@@ -145,13 +143,13 @@ function frames(L: Layout): string[] {
     d === undefined ? `<div class="${cls} ghost"><i></i><span></span></div>` : `<div class="${cls}"${A(d)}><i>M</i><span>Release is Friday</span></div>`;
   const deskHTML = (sent?: number) => `
     <div class="rk-desk" style="${at(desk.x, desk.y, desk.w, desk.h)}">
-      <div class="rk-desk-bar"><i></i><i></i><i></i></div>
+      <div class="rk-desk-top"><i></i><i></i><i></i><span class="rk-desk-tabs"><b></b><b class="on"></b><b></b><b></b></span><span class="rk-desk-me"></span></div>
       <div class="rk-desk-body">
-        <div class="rk-desk-side">${bee('class="rk-bee"')}<i></i><i class="on"></i><i></i></div>
-        <div class="rk-desk-main"><p># release</p><div class="rk-msgs">${msg()}${sent === undefined ? "" : msg(sent)}</div><div class="rk-comp"></div></div>
+        <div class="rk-desk-side"><span class="rk-desk-seg"></span><i></i><i class="on"></i><i></i></div>
+        <div class="rk-desk-main"><p># release</p><div class="rk-msgs">${msg()}${sent === undefined ? "" : msg(sent)}</div><div class="rk-comp"><b></b></div></div>
       </div>
     </div>
-    <div class="rk-cap" style="${at(desk.x - 10, L.capY, desk.w + 20)}"><b>Maya</b><span>Buzz Desktop</span></div>`;
+    <div class="rk-cap" style="${at(desk.x - 10, L.capY, desk.w + 20)}"><b>Maya</b><span>Buzz</span></div>`;
   const phoneHTML = (got?: number) => `
     <div class="rk-phone" style="${at(phone.x, phone.y, phone.w, phone.h)}">
       <i class="rk-notch"></i><p># release</p>

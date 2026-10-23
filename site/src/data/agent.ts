@@ -7,7 +7,7 @@
  */
 import type { Track } from "../lib/values";
 
-export type ExpectIcon = "ask" | "agent" | "key" | "join" | "phone" | "dns" | "clock";
+export type ExpectIcon = "ask" | "agent" | "key" | "join" | "phone" | "dns" | "clock" | "lock";
 export interface Expect {
   who: "agent" | "you";
   icon: ExpectIcon;
@@ -27,7 +27,9 @@ export interface AgentTrack {
 }
 
 type Ready = AgentTrack["ready"][number];
-const DESKTOP = "https://github.com/block/buzz/releases/latest";
+// Buzz 1.0 publishes only prereleases, so its /releases/latest is a 404; Buzz 0.X still has an Intel Mac build
+const DESKTOP = "https://github.com/block/buzz-app/releases";
+const DESKTOP_0X = "https://github.com/block/buzz/releases/latest";
 const ALIASES = "https://github.com/block/buzz/pull/5410";
 
 // the skill's scripts run where the agent runs: python3, bash and curl (SKILL.md compatibility)
@@ -38,12 +40,13 @@ const AGENT: Ready = {
     t: "The skill runs scripts on your computer with <code>python3</code>, <code>bash</code> and <code>curl</code>. Linux has all three. On a Mac, if <code>python3</code> asks you to install developer tools, run <code>xcode-select --install</code> first. Use a capable model: small, fast models tend to stop after every step.",
   },
 };
-// Buzz Desktop shows the npub on its Join a community screen, under "Joining a private community?", and in Settings.
+// Buzz 1.0 shows the npub in Settings, Identity (before any community, only ⌘, opens Settings); Buzz 0.X on its
+// Join a community screen. Buzz 1.0 doesn't back the private key up.
 const NPUB: Ready = {
-  t: "Buzz Desktop on your computer, and your npub typed into <b>Your npub</b> in the Running on box. Your npub is your public ID in Buzz: a long code that starts with <code>npub1</code>.",
+  t: "Buzz on your computer, and your npub typed into <b>Your npub</b> in the Running on box. Your npub is your public ID in Buzz: a long code that starts with <code>npub1</code>.",
   more: {
     label: "How to get them",
-    t: `Download Buzz Desktop for Mac, Linux or Windows from <a href="${DESKTOP}">Block's releases page</a>. Open it, choose <b>Join a community</b>, and copy your npub from <b>Joining a private community?</b> The relay makes this npub the community's owner, and the owner can't be changed later, so copy it from the Buzz Desktop you'll keep using.`,
+    t: `Download Buzz for a Mac with Apple Silicon, Windows or Linux from <a href="${DESKTOP}">Block's releases page</a>: the newest release is at the top. Open it and choose <b>Create a new identity</b>, or <b>Continue with your Buzz identity</b> to keep the one from an earlier Buzz on this computer. Open <b>Settings</b> (your picture at the top right, or ⌘, on a Mac and Ctrl+, on Windows and Linux), then <b>Identity</b>, and copy <b>Nostr address (npub)</b>. The relay makes this npub the community's owner, so copy it from the Buzz you'll keep using. On the same page, choose <b>Copy private key</b> and save it in your password manager: Buzz doesn't back it up, and you need it to use this identity on another computer. On an Intel Mac, use Buzz 0.X from <a href="${DESKTOP_0X}">its releases page</a>, which shows your npub on its <b>Join a community</b> screen.`,
   },
 };
 // a first connection asks to trust the fingerprint, which an agent's shell can't answer (SKILL.md, SSH to a server)
@@ -104,9 +107,16 @@ const INSTALL: Expect = {
   t: "Installs Docker and Buzz",
   d: "Docker from Docker's own repository, then Block's Compose bundle for Buzz. It writes the passwords and the relay key into a file on the server without printing them.",
 };
-const JOIN = (d: string): Expect => ({ who: "you", icon: "join", t: "Join from Buzz Desktop", d });
-const JOIN_AT = (url: string) => JOIN(`In Buzz Desktop, choose <b>Join a community</b> and paste <code>${url}</code>.`);
+const JOIN = (d: string): Expect => ({ who: "you", icon: "join", t: "Join from Buzz", d });
+/** Buzz 1.0's first screen joins the first community; after that, the community button's Join a community does. */
+const JOIN_IN = (what: string) =>
+  `On Buzz's first screen, <b>Join a community</b>, paste ${what} into <b>Invite link or community URL</b> and choose <b>Join</b>. If Buzz is already in another community, open the community button at the top right and choose <b>Join a community</b> there.`;
+const JOIN_AT = (url: string) => JOIN(JOIN_IN(`<code>${url}</code>`));
+const TS_JOIN = JOIN(`Connect Tailscale on your computer first. ${JOIN_IN("<code>{{RELAY_URL}}</code>")}`);
 const PHONE = (d: string): Expect => ({ who: "you", icon: "phone", t: "Pair your phone", d, note: "optional" });
+// Buzz 1.0's Pair mobile asks the phone for a six-digit code; an older phone app shows a code to compare instead
+const PAIR =
+  "In Buzz, open <b>Settings</b>, then <b>Pair mobile</b>. In the Buzz app on your phone, choose <b>Add community</b>, scan the QR code, and type the six-digit code Buzz shows. If your phone shows a code instead, check it matches and choose <b>Codes match</b> in Buzz.";
 const QUICKSTART = "the chart's quickstart profile: Postgres, Redis and file storage run inside the cluster, with one relay.";
 
 // compose.md, server mode: confirm the URL and ports (SKILL.md rules 2 and 4), steps 1 to 5, the key (6), then 7 to 11
@@ -114,9 +124,9 @@ const SERVER: Expect[] = [
   { who: "you", ask: true, icon: "ask", t: "Confirm the domain", d: "It asks you to confirm <code>{{DOMAIN}}</code>, and that the server can be reached on ports 80 and 443. The domain can't be changed later." },
   INSTALL,
   SSH_KEY,
-  { who: "agent", icon: "agent", t: "Starts the relay and checks it", d: "It checks HTTPS, that Buzz Desktop can connect, that ports 3000 and 5000 are closed to the internet, and that your npub is the owner." },
+  { who: "agent", icon: "agent", t: "Starts the relay and checks it", d: "It checks HTTPS, that Buzz can join and start chats, that ports 3000 and 5000 are closed to the internet, and that your npub is the owner." },
   JOIN_AT("{{RELAY_URL}}"),
-  PHONE("In Buzz Desktop, open <b>Settings</b>, then <b>Mobile</b>, and scan the QR code with the Buzz app on your phone."),
+  PHONE(PAIR),
 ];
 
 // compose.md, private mode: join the tailnet (2P), key expiry only without a tag, confirm the name before step 8
@@ -132,9 +142,9 @@ const PRIVATE: Expect[] = [
   { who: "you", ask: true, icon: "ask", t: "Confirm the name", d: "It asks you to confirm <code>{{DOMAIN}}</code>, the server's name on your Tailscale network. The name can't be changed later." },
   INSTALL,
   SSH_KEY,
-  { who: "agent", icon: "agent", t: "Starts the relay and checks it", d: "It checks HTTPS through Tailscale, that Buzz Desktop can connect, that your npub is the owner, and that no ports are open to the internet." },
-  JOIN("With Tailscale running on your computer, choose <b>Join a community</b> in Buzz Desktop and paste <code>{{RELAY_URL}}</code>."),
-  PHONE("With Tailscale running on your phone, open <b>Settings</b>, then <b>Mobile</b>, in Buzz Desktop, and scan the QR code with the Buzz app."),
+  { who: "agent", icon: "agent", t: "Starts the relay and checks it", d: "It checks HTTPS through Tailscale, that Buzz can join and start chats, that your npub is the owner, and that no ports are open to the internet." },
+  TS_JOIN,
+  PHONE(`Connect Tailscale on your phone first. ${PAIR}`),
 ];
 
 export const AGENT_TRACKS: Record<Track, AgentTrack> = {
@@ -147,7 +157,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to set up a Buzz relay on my server, public on the internet. It's a fresh Ubuntu 24.04 VPS; SSH in as <user>@<server IP>. Domain: {{DOMAIN}}. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
+      "Use the self-host-buzz skill to set up a Buzz relay on my server, public on the internet. It's a fresh Ubuntu 24.04 VPS; SSH in as <user>@<server IP>. Domain: {{DOMAIN}}. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
     expect: SERVER,
   },
   "own-public": {
@@ -160,13 +170,14 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to set up a Buzz relay on my own machine, public on the internet. It runs Ubuntu 24.04, and ports 80 and 443 are forwarded to it; SSH in as <user>@<machine address>. Domain: {{DOMAIN}}. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
+      "Use the self-host-buzz skill to set up a Buzz relay on my own machine, public on the internet. It runs Ubuntu 24.04, and ports 80 and 443 are forwarded to it; SSH in as <user>@<machine address>. Domain: {{DOMAIN}}. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
     expect: SERVER,
   },
   practice: {
-    ready: [{ t: "Docker Desktop installed and running on this computer, with nothing else using port 3000.", goto: "compose-1" }, NPUB, AGENT],
-    prompt: "Use the self-host-buzz skill to set up a local test Buzz relay on this machine. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
-    // compose.md step 1: old buzz-prod volumes are removed only after asking; local tests skip the key copy
+    ready: [{ t: "Docker Desktop installed and running on this computer, with nothing else using ports 80 and 443.", goto: "compose-1" }, NPUB, AGENT],
+    prompt: "Use the self-host-buzz skill to set up a local test Buzz relay on this machine. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
+    // compose.md step 1: old buzz-prod volumes are removed only after asking; local tests skip the key copy.
+    // Step 12: Buzz 1.0 joins only https and wss, so the reader trusts Caddy's local authority, with their password.
     expect: [
       {
         who: "you",
@@ -176,8 +187,19 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
         d: "If an earlier local test left Docker volumes whose names start with <code>buzz-prod</code>, it asks before deleting them: they keep the old database password.",
         note: "if needed",
       },
-      { who: "agent", icon: "agent", t: "Writes the keys and starts the relay", d: "Then it checks the relay answers at <code>ws://127.0.0.1:3000</code> on this computer." },
-      JOIN_AT("ws://127.0.0.1:3000"),
+      {
+        who: "agent",
+        icon: "agent",
+        t: "Writes the keys and starts the relay",
+        d: "It serves the relay at <code>https://localhost</code> through Caddy, the web server in Buzz's bundle, with a certificate Caddy makes on this computer. Phones can't pair with a local test.",
+      },
+      {
+        who: "you",
+        icon: "lock",
+        t: "Trust the local certificate",
+        d: "Buzz joins only addresses whose certificate your computer trusts. Run the <code>sudo</code> command your agent gives you in your own terminal and type your password. When you're done testing, your agent gives you the commands to remove the trust and the test.",
+      },
+      JOIN_AT("wss://localhost"),
     ],
   },
   "vps-private": {
@@ -190,7 +212,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to set up a Buzz relay on my server, reachable only on our Tailscale network. It's a fresh Ubuntu 24.04 VPS; SSH in as <user>@<server IP>. Tailscale name: buzz. A Tailscale auth key is in <key file>. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
+      "Use the self-host-buzz skill to set up a Buzz relay on my server, reachable only on our Tailscale network. It's a fresh Ubuntu 24.04 VPS; SSH in as <user>@<server IP>. Tailscale name: buzz. A Tailscale auth key is in <key file>. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
     expect: PRIVATE,
   },
   "own-private": {
@@ -203,7 +225,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to set up a Buzz relay on my own machine, reachable only on our Tailscale network. It runs Ubuntu 24.04; SSH in as <user>@<machine address>. Tailscale name: buzz. A Tailscale auth key is in <key file>. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
+      "Use the self-host-buzz skill to set up a Buzz relay on my own machine, reachable only on our Tailscale network. It runs Ubuntu 24.04; SSH in as <user>@<machine address>. Tailscale name: buzz. A Tailscale auth key is in <key file>. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
     expect: PRIVATE,
   },
   // kubernetes.md: confirm the URL (SKILL.md rule 4), step 1 (costs), 2 (DNS), 3 and 4 (install), 5 (the key), 6 (checks)
@@ -220,7 +242,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       NPUB,
       AGENT,
     ],
-    prompt: "Use the self-host-buzz skill to install Buzz on our Kubernetes cluster with Block's Helm chart. Domain: {{DOMAIN}}. Keep the values file in <folder>. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
+    prompt: "Use the self-host-buzz skill to install Buzz on our Kubernetes cluster with Block's Helm chart. Domain: {{DOMAIN}}. Keep the values file in <folder>. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
     expect: [
       { who: "you", ask: true, icon: "ask", t: "Confirm the domain", d: "It asks you to confirm <code>{{DOMAIN}}</code>. The domain can't be changed later." },
       { who: "you", ask: true, icon: "ask", t: "Approve the costs", d: "The quickstart profile's four storage volumes, and a load balancer if it has to install Traefik and cert-manager." },
@@ -249,14 +271,14 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to install Buzz on our Kubernetes cluster, reachable only on our Tailscale network. Name: {{DOMAIN}}. The OAuth client's ID and secret are in <ID file> and <secret file>. Keep the values file in <folder>. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
+      "Use the self-host-buzz skill to install Buzz on our Kubernetes cluster, reachable only on our Tailscale network. Name: {{DOMAIN}}. The OAuth client's ID and secret are in <ID file> and <secret file>. Keep the values file in <folder>. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
     expect: [
       { who: "agent", icon: "agent", t: "Sets up Tailscale's Kubernetes operator", d: "It installs the operator in the cluster with your OAuth client, without printing its secret." },
       { who: "you", ask: true, icon: "ask", t: "Confirm the name", d: "It asks you to confirm <code>wss://{{DOMAIN}}</code>. The name can't be changed later, and renaming your tailnet would change it too." },
       { who: "agent", icon: "agent", t: "Installs Buzz with Block's Helm chart", d: `With ${QUICKSTART}` },
       KUBE_KEY,
       { who: "agent", icon: "agent", t: "Checks it", d: "It checks that no ports are open to the internet, and that your npub is the owner." },
-      JOIN("With Tailscale running on your computer, choose <b>Join a community</b> in Buzz Desktop and paste <code>{{RELAY_URL}}</code>."),
+      TS_JOIN,
     ],
   },
   // railway.md: step 1 (name), 2 (deploy, CLI or the template page), 3 (the key), 4 (your domain), 5 (image), checks
@@ -272,7 +294,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       NPUB,
       AGENT,
     ],
-    prompt: "Use the self-host-buzz skill to set up Buzz on Railway with Block's template. Owner: {{OWNER_NPUB}}, copied from Buzz Desktop's Join a community screen.",
+    prompt: "Use the self-host-buzz skill to set up Buzz on Railway with Block's template. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
     expect: [
       { who: "you", ask: true, icon: "ask", t: "Choose the address", d: "Keep the <code>*.up.railway.app</code> name Railway assigns, or use your own domain. Whichever you choose can't be changed once anyone joins." },
       {
@@ -295,8 +317,8 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
         d: "Only if you chose your own domain: in the relay service's <b>Settings</b>, under <b>Networking</b>, add it, then create the CNAME record Railway shows wherever your DNS is managed.",
         note: "if needed",
       },
-      { who: "agent", icon: "agent", t: "Updates the image and checks it", d: "Railway's template starts an older Buzz image, so it moves the relay to a current one, where reading uploaded files requires a member's signature." },
-      JOIN("In Buzz Desktop, choose <b>Join a community</b> and paste the address your agent gives you."),
+      { who: "agent", icon: "agent", t: "Updates the image and checks it", d: "Railway's template starts a July image, so it moves the relay to a current one: Buzz needs it to start chats, and it requires a member's signature to read uploaded files." },
+      JOIN(JOIN_IN("the address your agent gives you")),
     ],
   },
 };
@@ -347,7 +369,8 @@ export interface OpDetail {
 export type OpSetup = "compose" | "railway" | "k8s";
 export const opSetup = (t: Track): OpSetup => (t === "railway" ? "railway" : t === "k8s" || t === "k8s-private" ? "k8s" : "compose");
 
-const PEOPLE_WHY = "Each new member installs Buzz Desktop and sends you their npub, from <b>Join a community</b>, under <b>Joining a private community?</b> Self-hosted relays have no invite links yet.";
+const PEOPLE_WHY =
+  "In Buzz, the owner or an admin can add people: <b>Settings</b>, <b>Community admin</b>, <b>Membership</b>, <b>Invite members</b>, then <b>Add directly</b> with their npub, or <b>Invite with a link</b> to copy a link anyone can join with until it expires. Or have your agent add them: each new member installs Buzz and sends you their npub, from <b>Settings</b>, <b>Identity</b>.";
 const UPGRADE_WHY = "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup.";
 const agent = (t: string): OpStep => ({ who: "agent", icon: "agent", t });
 const asks = (t: string): OpStep => ({ who: "you", icon: "ask", t });

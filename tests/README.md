@@ -4,7 +4,8 @@ These run the guide's commands for real and check the result end to end: members
 read, a non-member is refused, files upload and download, and a backup survives losing the
 server's data. Test identities are made on your laptop, so servers only see public keys.
 
-You need the `buzz` CLI, built from block/buzz (about a minute):
+You need the `buzz` CLI, built from block/buzz (about a minute), or the one inside Buzz 0.X's app
+(`/Applications/Buzz.app/Contents/MacOS/buzz` on a Mac):
 
 ```bash
 git clone https://github.com/block/buzz.git && cd buzz
@@ -27,18 +28,30 @@ backs up, deletes the checkout and the data volumes, restores onto a fresh check
 that messages, the file, members, the relay's identity and the community all came back. Last, it
 upgrades: to `upgrade-tag` if given, after a fresh backup, moving the bundle and the image
 together the way the skill's operations.md says. It checks the same things again, plus that no
-stored object went missing, that a file from before reads back intact from the store, and that a
-new upload works. From a tag before 2026-10-07 to a later one, the upgrade moves the files from
-MinIO to Silo. About 10 minutes.
+stored object went missing, that a file from before reads back intact from the store, that a
+new upload works, and the partition audit operations.md describes. From a tag before 2026-10-07
+to a later one, the upgrade moves the files from MinIO to Silo. Last, what Buzz 1.0 does: the
+owner starts a chat (a private channel labelled `buzz.solo`, which needs channel labels) that
+names an agent, and the agent, with its own key and the owner's NIP-OA attestation, posts in it
+without being added as a member; its key alone, and an agent of a non-member, are refused. About
+12 minutes.
 
-## Practice path: `smoke-practice.sh`
+## Local test: `smoke-local.sh`
 
-The laptop path (`ws://127.0.0.1:3000`, no TLS), run on a Linux server that already has Docker,
-and reached through an SSH tunnel on your own port 3000:
+The skill's local test on this computer, with Docker Desktop or Docker on Linux: the bundle at
+`https://localhost`, served by Caddy with a certificate from Caddy's own local authority. It checks
+the relay against that authority alone, with curl and a WebSocket client that answers the relay's
+NIP-42 challenge the way Buzz 1.0's window does, so nothing on the computer has to trust it first.
+Ports 80 and 443 must be free.
 
 ```bash
-BUZZ_CLI=path/to/buzz SSH_KEY=path/to/key bash tests/smoke-practice.sh <server-ip> [image-tag]
+bash tests/smoke-local.sh [image-tag]
+KEEP=1 bash tests/smoke-local.sh   # leave it running, to join it from Buzz 1.0
 ```
+
+Without `KEEP=1` it removes the relay, its volumes and its folder at the end, with the skill's own
+commands. With it, it prints how to remove them later. The old test of the plain local address
+(`ws://127.0.0.1:3000`, `smoke-practice.sh`) is gone with that address: Buzz 1.0 refuses `ws://`.
 
 ## Private network: `smoke-private.sh`
 
@@ -92,7 +105,39 @@ python3 tests/lib/export-runs.py ~/.claude/projects/<project>/<session-id>
 ## Railway
 
 No script here yet. The steps and operations were run against projects made with
-`railway deploy -t buzz-relay-block`, by hand on 2026-09-30 and by script on 2026-10-01.
+`railway deploy -t buzz-relay-block`, by hand on 2026-09-30 and by script on 2026-10-01. The
+deploy, the image update and the checks ran again on 2026-10-23.
+
+## Results, 2026-10-23: Buzz 1.0
+
+Buzz 1.0 (block/buzz-app) is the app the skill now describes. On one DigitalOcean droplet, rebuilt
+between runs, and on an Apple Silicon Mac with Docker Desktop:
+
+- An install on `sha-30873ba`, backed up and restored, then upgraded to `sha-e8781ca`: 119 of 119
+  ([log](runs/2026-10-23-1154-vps-sha-30873ba.log)). Before the upgrade the relay had no channel
+  labels (`nip-cl`), which Buzz 1.0's New chat needs; after it, the chat test passed. The
+  partition audit said `degraded`, as block/buzz expects after an upgrade from an image before
+  2026-10-20.
+- A fresh install on `sha-e8781ca`, through a backup, a restore and an upgrade: 101 of 101, with
+  the partition audit `ok` ([log](runs/2026-10-23-1202-vps-sha-e8781ca.log)).
+- On both: the owner started a chat that named an agent; the agent, admitted through its owner's
+  attestation, posted in it without being added as a member; its key alone, and an agent of a
+  non-member, were refused. The updated check-relay.sh passed every line against the relay.
+- The local test at `https://localhost` on the Mac: 52 of 52
+  ([log](runs/2026-10-23-1208-local-sha-e8781ca.log)), removal included, then 51 of 51 left
+  running for a person to join ([log](runs/2026-10-23-1210-local-sha-e8781ca.log)): Caddy's local
+  authority, check-relay.sh with `CA_FILE`, the live connection with NIP-42, files, an invite link
+  of the form `https://localhost/invite/<code>`, and a chat's label. macOS doesn't trust the
+  authority until the user runs compose.md step 12's command; joining from Buzz 1.0 after that is
+  checked by hand.
+- On the Mac's first try, Docker Desktop's credential helper (`docker-credential-desktop get`)
+  hung and stopped every image pull; the public images pulled without it (`DOCKER_CONFIG` set to
+  an empty folder), and the skill's troubleshooting now says so.
+- Railway, later that day from the Railway CLI: Block's template still deploys, though Railway
+  listed it as degraded. Every railway.md check passed. On the template's `sha-788b3c0`,
+  check-relay.sh failed only channel labels (`nip-cl`); after the image update to `sha-9e8c9fc`,
+  it passed every line ([record](runs/2026-10-23-1425-railway-template-check.md)). It cost $0.0002,
+  and the project was deleted.
 
 ## Results, 2026-10-12: Silo in place of MinIO
 

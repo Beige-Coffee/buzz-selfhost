@@ -10,7 +10,8 @@ C=${UMBREL_CONTAINER:-umbrelos-test}
 # run a shell command, stdin passed through, on the test server or with UMBREL_LOCAL on this machine
 target() { if [ -n "${UMBREL_LOCAL:-}" ]; then bash -c "$1"; else bash "$HERE/ssh.sh" "$1"; fi; }
 if [ -n "${UMBREL_LOCAL:-}" ]; then PKG=$HOME/.buzz-test/umbrel-pkg; else PKG=/root/buzz-pkg; fi
-COPYFILE_DISABLE=1 tar --no-xattrs -C "$HERE/../../umbrel" -czf - buzz |
+# PKG_ROOT is the folder holding buzz/, by default this branch's umbrel/; an earlier version for the update test
+COPYFILE_DISABLE=1 tar --no-xattrs -C "${PKG_ROOT:-$HERE/../../umbrel}" -czf - buzz |
   target "rm -rf $PKG && mkdir -p $PKG && tar -C $PKG -xzf - 2>/dev/null"
 # Not VERSION: Docker's install script reads that name as the Docker version to install.
 target "UMBREL_VERSION=$VERSION C=$C PKG=$PKG bash -s" <<'REMOTE'

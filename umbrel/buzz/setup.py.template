@@ -50,15 +50,15 @@ def owner_hex(text):
     if value.startswith("nsec"):
         raise ValueError("That is a private key. Never paste it anywhere. Use your public ID, which starts with npub.")
     if not value.startswith("npub1") or len(value) != 63:
-        raise ValueError("Paste your public ID from Buzz Desktop. It starts with npub1 and is 63 characters long.")
+        raise ValueError("Paste your public ID from Buzz: Settings, Identity, Nostr address. It starts with npub1 and is 63 characters long.")
     data = []
     for char in value[5:]:
         if char not in BECH32:
-            raise ValueError("That public ID has a character a public ID can't contain. Copy it again from Buzz Desktop.")
+            raise ValueError("That public ID has a character a public ID can't contain. Copy it again from Buzz.")
         data.append(BECH32.index(char))
     expanded = [ord(c) >> 5 for c in "npub"] + [0] + [ord(c) & 31 for c in "npub"]
     if bech32_polymod(expanded + data) != 1:
-        raise ValueError("That public ID doesn't check out: a character is wrong or missing. Copy it again from Buzz Desktop.")
+        raise ValueError("That public ID doesn't check out: a character is wrong or missing. Copy it again from Buzz.")
     acc = bits = 0
     key = bytearray()
     for value5 in data[:-6]:
@@ -68,7 +68,7 @@ def owner_hex(text):
             bits -= 8
             key.append((acc >> bits) & 0xFF)
     if len(key) != 32:
-        raise ValueError("That public ID is the wrong length. Copy it again from Buzz Desktop.")
+        raise ValueError("That public ID is the wrong length. Copy it again from Buzz.")
     return key.hex()
 
 
@@ -272,8 +272,8 @@ def form(setup, error, values):
     return (
         '<form method="post" action="save">'
         '<label for="owner">Your public ID</label>'
-        '<p class="muted small">Buzz Desktop shows it on its Join screen: choose Add community, then Join a '
-        "community. It starts with npub, and makes you the community's owner.</p>"
+        '<p class="muted small">In Buzz, open Settings, Identity, and copy the Nostr address (npub). In Buzz '
+        "0.X, it's on the Join a community screen. It makes you the community's owner.</p>"
         '<input type="text" id="owner" name="owner" placeholder="npub1..." autocomplete="off" spellcheck="false" value="' +
         html.escape(owner, quote=True) + '">'
         "<fieldset><legend>Address</legend>"
@@ -356,7 +356,7 @@ def page(error=None, values=None):
             return wrap(body, '<meta http-equiv="refresh" content="5">')
     domain = relay_domain() or setup.get("domain") or ""
     state = checks(domain)
-    address = "wss://" + domain
+    address = "https://" + domain
     if not (state["relay"] and state["public"]):
         refresh = '<meta http-equiv="refresh" content="8">'
     status = '<ul class="status">'
@@ -382,14 +382,15 @@ def page(error=None, values=None):
                  'admin/machines" target="_blank" rel="noopener">Tailscale\'s admin console</a>, turn off key '
                  "expiry for this machine, or the address goes offline after 180 days.</p>")
     body += (
-        "<h2>Join</h2><p>In Buzz Desktop, choose Add community, then Join a community, and paste this address. "
-        "Use the identity whose public ID you entered.</p>"
+        "<h2>Join</h2><p>In Buzz, choose Join a community and paste this address, with the identity whose "
+        "public ID you entered. Buzz 0.X takes it as <code>wss://" + html.escape(domain) + "</code>.</p>"
         '<div class="copy"><input type="text" id="address" readonly value="' + html.escape(address, quote=True) +
         '"><button type="button" onclick="copyAddress(this)">Copy</button></div>'
-        "<h2>Members</h2><p>Each member sends you their public ID from Buzz Desktop's Join screen. Add them in "
-        "Buzz Desktop under Settings, Invites.</p>"
-        "<h2>Phones</h2><p>In Buzz Desktop, open Settings, Mobile, and scan the code with the Buzz app. "
-        "Push notifications aren't available for self-hosted communities yet.</p>"
+        "<h2>Members</h2><p>In Buzz, open Settings, Community admin, Membership, Invite members: send a link, "
+        "or add someone directly by their public ID. In Buzz 0.X, it's Settings, Invites.</p>"
+        "<h2>Phones</h2><p>In Buzz, open Settings, Pair mobile, and scan the code with the Buzz app on the "
+        "phone (Buzz 0.X: Settings, Mobile). Push notifications aren't available for self-hosted "
+        "communities yet.</p>"
         "<details" + (" open" if error else "") + "><summary>Change settings</summary>"
         '<p class="muted small">A different address starts a new, empty community at that address.</p>'
         + form(setup, error, values) + "</details>"

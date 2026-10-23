@@ -29,7 +29,7 @@ services:
     restart: on-failure
 
   relay:
-    image: ghcr.io/block/buzz:sha-16eb0b6@sha256:2221d408d56af6479e9eae216cfb5a55e4346c3e8826b6176ad15f5792150ea8
+    image: ghcr.io/block/buzz:sha-9e8c9fc@sha256:7d2d9d9c54c7daaa052032e7ced2c63f15e5e77d3f7853e30f26ed8fc1b3025e
     # Generates the relay's own key on first start, waits for the setup page, then runs the
     # relay. When the setup page changes the settings, it exits so the relay restarts with them.
     entrypoint:
@@ -154,7 +154,7 @@ services:
 
   # Phones pair with Buzz Desktop through this service, at wss://<domain>/pair.
   pair:
-    image: ghcr.io/block/buzz:sha-16eb0b6@sha256:2221d408d56af6479e9eae216cfb5a55e4346c3e8826b6176ad15f5792150ea8
+    image: ghcr.io/block/buzz:sha-9e8c9fc@sha256:7d2d9d9c54c7daaa052032e7ced2c63f15e5e77d3f7853e30f26ed8fc1b3025e
     entrypoint: ["/usr/local/bin/buzz-pair-relay"]
     environment:
       BUZZ_PAIR_RELAY_BIND_ADDR: 0.0.0.0:5000

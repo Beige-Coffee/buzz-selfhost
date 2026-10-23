@@ -2,7 +2,10 @@
 # The update path on the test Umbrel: a member posts and uploads, the package moves to a newer relay
 # image under a new manifest version, Umbrel updates the app, and then the relay must answer at the
 # same address with the message, the file, the settings and the member intact.
-# Usage: BUZZ_CLI=path/to/buzz MEMBER_KEYS=<file: "secret hex"> bash tests/umbrel/update.sh <tag> <index-digest>
+# Usage: BUZZ_CLI=path/to/buzz bash tests/umbrel/update.sh <tag> <index-digest>
+#        BUZZ_CLI=path/to/buzz PKG_DIR=umbrel/buzz bash tests/umbrel/update.sh   # update to that package as is
+# The member is made here and added with buzz-admin, unless MEMBER_KEYS names a file of "secret hex"
+# for an existing one.
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 U="bash $HERE/ssh.sh"
@@ -11,10 +14,11 @@ C=${UMBREL_CONTAINER:-umbrelos-test}
 T=$HERE/..
 SKILL=$HERE/../../skills/self-host-buzz
 BZ=${BUZZ_CLI:?set BUZZ_CLI to the buzz CLI}
-TAG=${1:?usage: update.sh <tag> <index-digest>}
-DIGEST=${2:?usage: update.sh <tag> <index-digest>}
+TAG=${1:-}
+DIGEST=${2:-}
+[ -n "${PKG_DIR:-}" ] || [ -n "$DIGEST" ] || { echo "usage: update.sh <tag> <index-digest>, or PKG_DIR=<package> update.sh"; exit 2; }
 DOMAIN=$(cat "${DOMAIN_FILE:-$HOME/.buzz-test/umbrel-domain}")
-read -r SK _ < "${MEMBER_KEYS:?set MEMBER_KEYS}"
+if [ -n "${MEMBER_KEYS:-}" ]; then read -r SK _ < "$MEMBER_KEYS"; else SK=""; fi
 TMP=$(mktemp -d)
 PASS=0 FAIL=0
 pass() { echo "PASS  $1"; PASS=$((PASS + 1)); }
@@ -25,6 +29,10 @@ as() { BUZZ_RELAY_URL="https://$DOMAIN" BUZZ_PRIVATE_KEY="$SK" "$BZ" "$@"; }
 image() { umbrel "docker inspect -f '{{.Config.Image}}' buzz_relay_1" | sed 's/@.*//'; }
 
 echo "== Before the update"
+if [ -z "$SK" ]; then
+  read -r SK HEX <<<"$(python3 "$T/lib/keygen.py")"
+  umbrel "docker exec buzz_relay_1 bash -c 'set -a; . /data/settings/relay.env; . /data/secrets/relay.env; set +a; buzz-admin add-member --pubkey $(python3 "$T/lib/npub.py" "$HEX")' > /dev/null 2>&1"
+fi
 echo "INFO  relay image $(image)"
 as channels create --name update-test --type stream --visibility open > "$TMP/ch.json" 2>&1
 CH=$(field channel_id < "$TMP/ch.json")
@@ -35,8 +43,12 @@ as upload file --file "$TMP/pic.png" > "$TMP/up.json" 2>&1
 URL=$(field url < "$TMP/up.json")
 [ "$URL" = "https://$DOMAIN/media/$SHA.png" ] && pass "member uploads a file" || fail "upload: $(head -c 200 "$TMP/up.json")"
 
-echo "== Update through Umbrel to $TAG"
-mkdir -p "$TMP/pkg" && cp -R "$HERE/../../umbrel/buzz" "$TMP/pkg/buzz"
+mkdir -p "$TMP/pkg"
+if [ -n "${PKG_DIR:-}" ]; then
+  cp -R "$PKG_DIR" "$TMP/pkg/buzz"
+  TAG=$(grep -o -m1 -E 'ghcr\.io/block/buzz:sha-[0-9a-f]+' "$TMP/pkg/buzz/docker-compose.yml" | sed 's|.*:||')
+else
+cp -R "$HERE/../../umbrel/buzz" "$TMP/pkg/buzz"
 python3 - "$TMP/pkg/buzz" "$TAG" "$DIGEST" <<'PY'
 import re, sys
 root, tag, digest = sys.argv[1:]
@@ -49,6 +61,8 @@ t = open(p).read()
 t = re.sub(r'(?m)^version: ".*"$', 'version: "' + tag.removeprefix("sha-") + '"', t)
 open(p, "w").write(t)
 PY
+fi
+echo "== Update through Umbrel to $TAG"
 STORE=/home/umbrel/umbrel/app-stores/getumbrel-umbrel-apps-github-53f74447
 if [ -n "${UMBREL_LOCAL:-}" ]; then UPD=$HOME/.buzz-test/umbrel-update; else UPD=/root/buzz-update; fi
 COPYFILE_DISABLE=1 tar --no-xattrs -C "$TMP/pkg" -czf - buzz | $U "rm -rf $UPD && mkdir -p $UPD && tar -C $UPD -xzf - 2>/dev/null &&

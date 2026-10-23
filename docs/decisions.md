@@ -42,8 +42,8 @@ refused (block/buzz#6500). For a team that mostly uses phones, recommend public.
 
 ## Phones
 
-- **Pairing works.** A member joins from Buzz Desktop, opens Settings, Mobile, and scans the QR
-  code with the Buzz app. Block's bundles don't start the pairing service (block/buzz#7721), so the
+- **Pairing works.** A member joins from Buzz, opens Settings, Pair mobile (Buzz 0.X: Settings,
+  Mobile), and scans the QR code with the Buzz app. Block's bundles don't start the pairing service (block/buzz#7721), so the
   skill adds it. Tested with an iPhone on a VPS (public and private), Kubernetes and Railway; not
   yet on Kubernetes on a private network.
 - **Push notifications don't**, on any self-hosted relay: the App Store app only takes pushes
@@ -51,6 +51,38 @@ refused (block/buzz#6500). For a team that mostly uses phones, recommend public.
   your own gateway (block/buzz#7760). Android has no push at all yet (block/buzz#6092). Say so
   plainly: the app shows new messages while it's open.
 - block/buzz#4198 stops only bare private addresses like `ws://10.0.0.1`. Tailscale names pass.
+
+## Two desktop apps (2026-10-23)
+
+The guide and the skill describe Buzz 1.0 (block/buzz-app). Buzz 0.X comes up only where it
+differs: Intel Macs, which Buzz 1.0 doesn't support; its screens (npub on the Join screen,
+Settings, Invites, Settings, Mobile); and the CORS entries it needs. Pairing is now Settings, Pair
+mobile, then Add community on the phone. The prompts say where the npub comes from (Settings,
+Identity), and Get ready tells people to save their private key, since Buzz 1.0 doesn't back it
+up.
+
+## The drawings are Buzz 1.0's (2026-10-23)
+
+How it works, the Join screen and the relay key explainer's window draw Buzz 1.0 in light mode,
+from the owner's screenshots and block/buzz-app's tokens: a gray track with a white pill for the
+open tab, the open channel in solid Citrus (`#beda36`), gray bubbles under each name, round
+avatars for people and square ones for agents. The explainer's phone stays as it was: the phone
+app didn't change.
+
+## The local test moves to https://localhost (2026-10-23)
+
+Buzz 1.0 refuses `ws://`, so `local` mode now runs the bundle's own Caddy overlay at
+`https://localhost`, with a certificate from Caddy's local authority that the user trusts once,
+with their password; the agent never runs that command. Chosen over mkcert (nothing more to
+install) and over `tailscale serve` on the laptop (needs a tailnet, and the name is permanent).
+The authority's key stays in Caddy's volume on that machine; the skill gives the commands to
+remove the test and the trust. Phones can't pair with it, since pairing trusts only public
+authorities. The old plain test (`ws://127.0.0.1:3000`, Buzz 0.X only) and its script are gone.
+
+## The tested image moves to sha-e8781ca (2026-10-23)
+
+Buzz 1.0's New chat needs channel labels, in images from 2026-10-15. The site's `DEFAULT_TAG`
+follows `tested-image`, and a reader still on an older default gets the new one.
 
 ## Getting the skill
 

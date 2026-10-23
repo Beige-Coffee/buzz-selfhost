@@ -6,7 +6,6 @@
 #
 # Usage:
 #   bash smoke-vps.sh install <domain> <image-tag> <owner-hex>
-#   bash smoke-vps.sh practice <image-tag> <owner-hex>      (the laptop path, on a server with Docker)
 #   bash smoke-vps.sh private <image-tag> <owner-hex> <tailnet machine name>   (needs /root/.ts-authkey)
 #   bash smoke-vps.sh add-member <hex>
 #   bash smoke-vps.sh list-members | backup | wipe | restore
@@ -230,7 +229,7 @@ install)
   run port3000 "curl -s -m 5 -o /dev/null -w '%{http_code}' http://$PUBLIC_IP:3000/_liveness || echo ' closed'"
   grep -q "closed" "$OUT/port3000.out" && pass "port 3000 not reachable from outside" || fail "port 3000 reachable"
   run cors "curl -s -o /dev/null -D - -X OPTIONS https://$DOMAIN/info -H 'Origin: tauri://localhost' -H 'Access-Control-Request-Method: GET' -H 'Access-Control-Request-Headers: authorization' | grep -i '^access-control-allow-origin'"
-  grep -qi "tauri://localhost" "$OUT/cors.out" && pass "CORS lets Buzz Desktop in" || fail "CORS refuses Buzz Desktop's origin"
+  grep -qi "tauri://localhost" "$OUT/cors.out" && pass "CORS lets Buzz 0.X in" || fail "CORS refuses Buzz 0.X's origin"
   expect "phones reach the pairing service at /pair (WebSocket)" "101" "$(ws_status "https://$DOMAIN/pair")"
   run port5000 "curl -s -m 5 -o /dev/null -w '%{http_code}' http://$PUBLIC_IP:5000/ || echo ' closed'"
   grep -q "closed" "$OUT/port5000.out" && pass "port 5000 not reachable from outside" || fail "port 5000 reachable"
@@ -294,43 +293,12 @@ private)
   grep -q "101" "$OUT/websocket.out" && pass "WebSocket upgrade through tailscale serve" || fail "no WebSocket upgrade"
   grep -q '"AUTH"' "$OUT/websocket.out" && pass "relay sends its NIP-42 challenge" || fail "no NIP-42 challenge"
   run cors "curl -s -o /dev/null -D - -X OPTIONS https://$HOST/info -H 'Origin: tauri://localhost' -H 'Access-Control-Request-Method: GET' | grep -i '^access-control-allow-origin'"
-  grep -qi "tauri://localhost" "$OUT/cors.out" && pass "CORS lets Buzz Desktop in" || fail "CORS refuses Buzz Desktop's origin"
+  grep -qi "tauri://localhost" "$OUT/cors.out" && pass "CORS lets Buzz 0.X in" || fail "CORS refuses Buzz 0.X's origin"
   expect "phones reach the pairing service at /pair (WebSocket)" "101" "$(ws_status "https://$HOST/pair")"
   for port in 80 443 3000 5000; do
     run "public-$port" "curl -s -m 5 -o /dev/null -w '%{http_code}' http://$PUBLIC_IP:$port/ || echo ' closed'"
     grep -q "closed" "$OUT/public-$port.out" && pass "public port $port closed" || fail "public port $port answers"
   done
-  finish
-  ;;
-
-# ══ practice: the laptop path (no domain, no TLS, 127.0.0.1:3000) ════
-practice)
-  TAG="${2:?image tag}"
-  OWNER_HEX="${3:?owner hex}"
-  IMAGE="ghcr.io/block/buzz:${TAG}"
-  export DEBIAN_FRONTEND=noninteractive
-  command -v docker >/dev/null || { fail "docker is not installed (run the install phase's step 3 first)"; finish; }
-
-  section "Check this machine"
-  run machine 'docker compose version
-lsof -nP -iTCP:3000 -sTCP:LISTEN'
-  grep -q LISTEN "$OUT/machine.out" && fail "port 3000 is taken" || pass "port 3000 is free"
-
-  cd /root
-  bundle "$IMAGE" "$OWNER_HEX" "127.0.0.1" "ws://127.0.0.1:3000" "http://127.0.0.1:3000" local
-
-  section "Start it"
-  run start './run.sh start' >/dev/null && pass "run.sh start returned 0" || fail "run.sh start failed"
-  run status './run.sh status'
-  for svc in relay postgres redis minio; do
-    grep -qE "buzz-prod-$svc-1 .*Up .*\(healthy\)" "$OUT/status.out" && pass "$svc up (healthy)" || fail "$svc not healthy"
-  done
-  grep -q "buzz-prod-caddy-1" "$OUT/status.out" && fail "caddy is running in practice mode" || pass "no caddy"
-
-  section "Check that it answers"
-  run liveness 'curl -fsS http://127.0.0.1:3000/_liveness' && pass "liveness on 127.0.0.1:3000" || fail "liveness"
-  run cors "curl -s -o /dev/null -D - -X OPTIONS http://127.0.0.1:3000/info -H 'Origin: tauri://localhost' -H 'Access-Control-Request-Method: GET' | grep -i '^access-control-allow-origin'"
-  grep -qi "tauri://localhost" "$OUT/cors.out" && pass "CORS lets Buzz Desktop in" || fail "CORS refuses Buzz Desktop's origin"
   finish
   ;;
 
@@ -450,6 +418,14 @@ git checkout -q ${TAG#sha-}' && pass "bundle moved" || fail "bundle moved"
   expect "no object from before the upgrade is missing after it" "0" "$(tail -1 "$OUT/files-missing.out" | tr -d ' ')"
   run file-intact "$FETCH_FILE"
   expect "a file from before the upgrade reads back intact from the store" "intact" "$(tail -1 "$OUT/file-intact.out")"
+  # operations.md: the partition audit says ok, or degraded after an upgrade from an image before 2026-10-20
+  run partition-audit "docker compose exec -T relay /usr/local/bin/buzz-admin partition-audit < /dev/null | grep -m1 '\"outcome\"'"
+  AUDIT=$(grep -oE '"outcome": "[a-z]+"' "$OUT/partition-audit.out" | head -1 | cut -d'"' -f4)
+  case $AUDIT in
+    ok | degraded) pass "the partition audit says $AUDIT, not unsafe" ;;
+    "") echo "INFO  no partition audit in this image" ;;
+    *) fail "the partition audit says $AUDIT" ;;
+  esac
   run members-after './run.sh list-members < /dev/null'
   run status-after 'BUZZ_COMPOSE_TLS=true ./run.sh status'
   finish

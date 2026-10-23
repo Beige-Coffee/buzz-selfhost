@@ -2,28 +2,38 @@
 
 ## Docker Compose
 
-Run from `buzz/deploy/compose`. In `private` and `local` modes, drop `BUZZ_COMPOSE_TLS=true`.
+Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
 
-- **Add a member.** Members copy their public ID from Buzz Desktop's Join screen. Check it with
+- **Add a member.** Members copy their npub from the Buzz app: in Buzz 1.0, Settings, Identity,
+  "Nostr address (npub)"; in Buzz 0.X, the Join screen. Check it with
   `python3 $SKILL/scripts/npub-to-hex.py <npub>`, then
   `./run.sh add-member <npub-or-hex> --role member`, one at a time with `sleep 1` between adds
   (adds in the same second collide). `./run.sh list-members` confirms; it prints hex. The owner
-  can also add people in Buzz Desktop (Settings, Invites), or send them an invite link from there.
+  can also do it in Buzz 1.0: Settings, Community admin, Membership, Invite members, then "Add
+  directly", or "Invite with a link" for a link anyone can join with until it expires (Buzz 0.X:
+  Settings, Invites).
   **To change the owner**, set `OWNER_HEX` from the new owner's npub, run compose.md step 7's
   command and check, then `BUZZ_COMPOSE_TLS=true ./run.sh restart` (members lose the connection
   for about 20 seconds). Check: `./run.sh list-members` shows the new key as `owner` and the old one
   as `admin`. `./run.sh remove-member <old hex>` removes the old one, if the user wants; the
   current owner can't be removed.
-- **Agents.** Each agent gets its own key, added as a member of every channel it answers in. A
-  reply that mentions a non-member is refused, and a key without relay membership gets
-  `relay error 403: relay_membership_required`.
+- **Agents.** Buzz 1.0 runs agents on the owner's computer, each with its own key and the
+  owner's signed attestation (NIP-OA). The relay admits them through the owner's membership,
+  because `.env` has `BUZZ_ALLOW_NIP_OA_AUTH=true` (the bundle's default, as in the chart and
+  Railway's template): don't add them as members. They lose access if the owner leaves or is
+  removed, and the app adds them to the channels and chats it uses them in. Tested: an agent
+  posted in a chat that named it, its key without the attestation was refused, and so was an agent
+  of a non-member. Showing agents online needs an image from 2026-10-13 or later. An agent with
+  only a key of its own, such as a bot on the buzz CLI or one of Buzz 0.X's, is added like a
+  member, and to every channel it answers in: a reply that mentions a non-member is refused, and
+  a key without relay membership gets `relay error 403: relay_membership_required`.
 - **Back up** what can't be rebuilt: Postgres, the file store's and git volumes, and `.env`,
   together, with the relay stopped (ask first: members lose the connection for about half a
   minute). The file store's volume keeps MinIO's name with Silo too, so the commands are the same
   for every tag. Redis holds nothing that needs keeping. The list `run.sh` prints after an upgrade
   also names Caddy's volumes, which hold only certificates Caddy gets again on its own, and an
-  owner key a bootstrap script makes; with the owner's npub from Buzz Desktop, that key stays in
-  their Buzz Desktop.
+  owner key a bootstrap script makes; with the owner's npub from the Buzz app, that key stays in
+  their app.
   Plain `docker compose` works in every mode here: these commands touch only the relay, Postgres
   and the volumes.
   ```bash
@@ -107,8 +117,14 @@ Run from `buzz/deploy/compose`. In `private` and `local` modes, drop `BUZZ_COMPO
   relay image, `pgsty/silo:…` for `minio` on a bundle from 2026-10-07 on, and both
   `Up … (healthy)` (the version in check-relay.sh often stays the same between commits);
   `./run.sh list-members` still lists the members; `check-relay.sh`, run the way the install ran
-  it, passes. Then the files: list them again, and read one uploaded file back through the store
-  (its name is its sha256). Skip the last two lines if nobody has uploaded a file yet.
+  it, passes. Then the relay's partition audit:
+  `docker compose exec -T relay /usr/local/bin/buzz-admin partition-audit < /dev/null | grep -m1 '"outcome"'`
+  → `"outcome": "ok",`. After an upgrade from an image before 2026-10-20 it says
+  `"outcome": "degraded",` (tested from `sha-30873ba`): older images kept every row in one
+  catch-all partition, which the audit flags while the relay keeps working, so it's harmless.
+  `unsafe` or `error` is not: go back, as below, and report it. Then the files: list them again,
+  and read one uploaded file back through the store (its name is its sha256). Skip the last two
+  lines if nobody has uploaded a file yet.
   ```bash
   docker compose run --rm --no-deps -T --entrypoint sh minio-init -c 'mc alias set local http://minio:9000 "$BUZZ_S3_ACCESS_KEY" "$BUZZ_S3_SECRET_KEY" >/dev/null && mc ls --recursive "local/$BUZZ_S3_BUCKET"' < /dev/null | awk '{print $NF}' | grep -v '^probe/' | sort > ~/buzz-files-after.txt
   comm -23 ~/buzz-files-before.txt ~/buzz-files-after.txt | wc -l

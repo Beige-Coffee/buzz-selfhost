@@ -52,7 +52,7 @@ const PRACTICES: Practice[] = [
     title: "Pin the version",
     why: "<code>.env.example</code> ships <code>:main</code>, which changes with every merge, and the relay migrates the database each time it starts.",
     do: "Set <code>BUZZ_IMAGE</code> to a <code>sha-</code> tag. Upgrade on purpose: back up, check out the new tag's commit in <code>buzz/</code>, change the tag, then <code>./run.sh upgrade</code>.",
-    doRailway: "The template pins a July image, from before file reads required membership. Move it to a current <code>sha-</code> tag right after deploying, then upgrade on purpose, after a backup.",
+    doRailway: "The template pins a July image, from before file reads required membership, on which Buzz 1.0 can join but can't start a chat. Move it to a current <code>sha-</code> tag right after deploying, then upgrade on purpose, after a backup.",
     k8s: { do: "Set <code>image.tag</code> in your values: the chart's default image dates from June 2026. Upgrade on purpose: back up, change the tag, then <code>helm upgrade</code>." },
     sources: [
       [".env.example", `${GH}/deploy/compose/.env.example`],
@@ -96,11 +96,11 @@ const PRACTICES: Practice[] = [
   {
     id: "agents",
     tag: "Access",
-    title: "Give every agent its own key and membership",
-    why: "Agents are members with their own keys and audit trail. The relay turns away a key that isn't a member (<code>relay_membership_required</code>), and a reply that mentions a non-member fails, so an agent missing a membership can go quiet.",
-    do: "One key per agent, added as a member of each channel it answers in. Never give an agent a person's key.",
+    title: "Let agents in through the person who runs them",
+    why: "In Buzz 1.0, each agent runs on a person's computer with its own key, which that person signs for. The relay lets it in through that person's membership (<code>BUZZ_ALLOW_NIP_OA_AUTH=true</code>, on in every setup here), so removing the person removes their agents too.",
+    do: "Don't add Buzz 1.0's agents as members. A bot with only a key of its own, such as one on the buzz CLI or from Buzz 0.X, is the exception: add it as a member of the relay and of each channel it answers in, or the relay refuses it (<code>relay_membership_required</code>). Never give an agent a person's key.",
     sources: [
-      ["Buzz README", "https://github.com/block/buzz#stuff-you-do-in-buzz"],
+      ["Buzz 1.0 docs/agents.md", "https://github.com/block/buzz-app/blob/main/docs/agents.md"],
       ["buzz-relay api/mod.rs", `${GH}/crates/buzz-relay/src/api/mod.rs`],
     ],
   },

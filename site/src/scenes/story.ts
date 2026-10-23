@@ -143,7 +143,7 @@ export function mountStory(section: HTMLElement): void {
           </div>
         </div>
         <div class="sg-tree sg-tree-repo">${tree("github.com/block/buzz", [
-          ["desktop/", "Buzz Desktop, the app you saw"],
+          ["desktop/", "Buzz 0.X, the earlier desktop app"],
           ["mobile/", "the phone apps"],
           ["crates/", "the relay and its tools, in Rust"],
           ["deploy/", "what you run on a server"],

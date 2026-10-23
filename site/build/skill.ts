@@ -227,7 +227,7 @@ function ops(dir: string): SkillOp[] {
       const title = head[1].replace(/[.:]\s*$/, "").trim();
       const kind = OP_KINDS[title.toLowerCase()] ?? fail(`operations.md ${name}: unknown task "${title}"`);
       let markdown = joinRest(head[2], item.split("\n").slice(1), true);
-      // the skill's own rule: drop the flag in private and local modes, which the page's {{RUN}} does per setup
+      // the skill's own rule: drop the flag in private mode, which the page's {{RUN}} does per setup
       if (name === "Docker Compose") markdown = markdown.replace(/BUZZ_COMPOSE_TLS=true \.\/run\.sh/g, "{{RUN}}");
       out.push({ tracks, kind, title, html: toHTML(markdown) });
     }

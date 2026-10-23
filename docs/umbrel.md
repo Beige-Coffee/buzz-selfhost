@@ -104,11 +104,13 @@ so the owner-side checks run:
 - umbrelOS 1.7.4, a fresh install: 33 of 33.
 - The free Tailscale address on the updated install: 31 of 31. The owner signed in with the page's
   link; Funnel was still allowed on the tailnet from the earlier test.
+- Then by hand with Buzz 1.0 on that address: the setup page handed the community to a person (the
+  test owner became an admin), who joined from Buzz 1.0 and posted, made an invite link (a new
+  test identity claimed it, joined and posted), and paired an iPhone from Settings, Pair mobile,
+  which then posted.
 
 ## Not yet tested
 
-- Buzz 1.0 by hand against the package: joining, an invite link, and pairing a phone (Settings,
-  Pair mobile). The scripted checks cover the relay's side of each.
 - Umbrel's Cloudflare Tunnel app with a real domain. It needs a Cloudflare account and a domain.
 - ARM on relay `sha-9e8c9fc`. The image is built for ARM; the package's ARM run was on `sha-16eb0b6`.
 - A real Raspberry Pi: ARM itself passed on a Mac, but not the Pi's slower processor and storage.

@@ -5,6 +5,10 @@ Postgres 18, Redis and a Railway bucket for files. It sets `RELAY_URL`, CORS and
 from the `*.up.railway.app` name Railway assigns. The relay gets no volume of its own, so git
 repositories pushed to it are lost on every redeploy.
 
+Railway listed the template as degraded on 2026-10-23: its own validation run on 2026-10-18 failed
+with a workspace restriction on Railway's side. If the deploy fails, stop, tell the user what it
+said, and offer a VPS instead.
+
 Every `railway` command acts on the project linked to the directory it runs in. Run them all from
 the directory step 2 links (`cd` there in every call if each runs in a fresh shell), and check
 that `railway status` names the project before changing anything.
@@ -60,8 +64,8 @@ account. Tell the user; growing them is a plan change.
    `SUCCESS` (the old deployment's `SUCCESS` shows first, so wait for the change), and
    `railway service list` shows `image: ghcr.io/block/buzz:$TAG` under `block/buzz:main`. The
    first command shows `0.2.0` before; the version afterwards often stays the same between tags.
-6. **Phone pairing.** Phones join by scanning a code from Buzz Desktop, through a pairing service
-   the template doesn't run. Add it as a fifth service, from the same image, with its own Railway
+6. **Phone pairing.** Phones join by scanning a code from the desktop app, through a pairing
+   service the template doesn't run. Add it as a fifth service, from the same image, with its own Railway
    name (it counts against the plan's services):
    ```bash
    railway add --image ghcr.io/block/buzz:$TAG --service buzz-pair --variables "BUZZ_PAIR_RELAY_BIND_ADDR=0.0.0.0:5000"

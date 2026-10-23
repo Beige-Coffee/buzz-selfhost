@@ -53,9 +53,9 @@ name from an IP, it only lives as long as the load balancer keeps it. Check:
 
 **3. Values.** Pin the image (the chart's default, `0.1.0`, dates from June 2026, before file
 reads required membership), replace the dead MinIO images (block/buzz#7880; note `:latest` can
-change under you), let Buzz Desktop in (block/buzz#2872), and turn on the phone pairing service,
-which the chart runs but doesn't route: the last block adds a `/pair` route to it on the same
-name and certificate. The file holds no secrets, and
+change under you), let Buzz 0.X in (block/buzz#2872; Buzz 1.0 doesn't need it), and turn on the
+phone pairing service, which the chart runs but doesn't route: the last block adds a `/pair` route
+to it on the same name and certificate. The file holds no secrets, and
 upgrades reuse it: ask the user where to keep it, such as their infrastructure repository, and run
 steps 3 and 4 from that folder (create it if needed; `cat >` replaces a file already there).
 ```bash

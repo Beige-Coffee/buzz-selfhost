@@ -1,20 +1,21 @@
 # Docker Compose: a VPS, your own hardware, or a local test
 
 The official bundle in `deploy/compose` of block/buzz: the relay, Postgres, Redis and an S3 store
-for uploaded files, with Caddy in front for HTTPS in `server` mode. The store is Silo, a maintained
-fork of MinIO, in bundles from 2026-10-07 on (block/buzz#8023), and MinIO before. Its service,
-container and volume keep MinIO's names either way. Three modes:
+for uploaded files, with Caddy in front for HTTPS in `server` and `local` modes. The store is Silo,
+a maintained fork of MinIO, in bundles from 2026-10-07 on (block/buzz#8023), and MinIO before. Its
+service, container and volume keep MinIO's names either way. Three modes:
 
 - `server`: reachable by anyone with the URL, over HTTPS. Members still need to be added.
 - `private`: reachable only over the user's Tailscale network; no public ports. Steps marked
   **P** replace or add to the server steps; 8P applies to `local` too.
-- `local`: this machine only, at `ws://127.0.0.1:3000`, for trying Buzz out.
+- `local`: this machine only, at `https://localhost`, for trying Buzz out. Buzz 1.0 joins only
+  `https://` and `wss://` addresses, so Caddy serves it with a certificate from Caddy's own local
+  authority, which the user tells this computer to trust (step 12).
 
-Commands run from `buzz/deploy/compose` after step 4. In `server` mode every `run.sh` call that
-starts, stops or inspects services carries `BUZZ_COMPOSE_TLS=true` (it adds Caddy). **In `private`
-and `local` modes, drop `BUZZ_COMPOSE_TLS=true`** everywhere, including operations: there's no
-Caddy, and the flag would start it on the public ports. `add-member` and `list-members` work
-either way.
+Commands run from `buzz/deploy/compose` after step 4. In `server` and `local` modes every `run.sh`
+call that starts, stops or inspects services carries `BUZZ_COMPOSE_TLS=true` (it adds Caddy). **In
+`private` mode, drop `BUZZ_COMPOSE_TLS=true`** everywhere, including operations: there's no Caddy,
+and the flag would start it on the public ports. `add-member` and `list-members` work either way.
 
 A server is Ubuntu 24.04 on x86 with 4 GB of RAM and at least 20 GB of disk, as root or a user
 whose sudo doesn't ask for a password: an agent can't type it. (x86 is what's tested. Silo's images
@@ -32,8 +33,9 @@ harmless.
    - Docker Desktop (`local`): `docker version --format '{{.Server.Version}}'` prints the engine's
      version (it fails when Docker Desktop isn't running), and `docker compose version` → 2.24.4
      or later.
-   - `local`, either way: port 3000 must be free (`lsof -nP -iTCP:3000 -sTCP:LISTEN` prints
-     nothing), and no `buzz-prod` volumes may be left from an earlier try
+   - `local`, either way: ports 80 and 443 on this machine must be free:
+     `python3 -c 'import socket; [print(p, "taken" if socket.socket().connect_ex(("127.0.0.1", p)) == 0 else "free") for p in (80, 443)]'`
+     → `80 free` and `443 free`. No `buzz-prod` volumes may be left from an earlier try
      (`docker volume ls -q | grep buzz-prod` prints nothing): they keep the old database
      password, which won't match the new `.env`. If some are left, ask before removing them with
      `docker volume rm`. Then, with Docker Desktop, skip to step 4.
@@ -129,9 +131,10 @@ harmless.
    write an empty owner), and `grep -cE '^[A-Za-z_][A-Za-z0-9_]*=.*CHANGE_ME' .env` → `0`.
 8. **URL and version.** Confirm `$DOMAIN` with the user first, unless it's the name they chose
    (`private`: the name step 2P's check printed; `local` has none). The CORS line
-   also admits Buzz Desktop, which calls the relay's HTTP API from `tauri://localhost`
-   (`http://tauri.localhost` on Windows). Without them, joining from Desktop fails with
-   `Load failed` (block/buzz#2872).
+   also admits Buzz 0.X, which calls the relay's HTTP API from `tauri://localhost`
+   (`http://tauri.localhost` on Windows); without them, joining from Buzz 0.X fails with
+   `Load failed` (block/buzz#2872). Buzz 1.0 makes those calls from the app itself, so CORS
+   doesn't affect it.
    ```bash
    sed -i.bak \
      -e "s|^BUZZ_IMAGE=.*|BUZZ_IMAGE=ghcr.io/block/buzz:$TAG|" \
@@ -150,13 +153,20 @@ harmless.
    ```
    Check: `grep '^BUZZ_PAIRING_RELAY_URL=' .env` → `BUZZ_PAIRING_RELAY_URL=wss://$HOST/pair` (one
    line).
-8P. **Localhost only (`private` and `local`).** The bundle publishes port 3000 on every address,
-   which on a laptop means the local network. Bind it to localhost, so only Tailscale (`private`)
-   or this machine (`local`) reaches it:
+8P. **Localhost only (`private` and `local`).** The bundle publishes its ports on every address,
+   which on a laptop means the local network. Bind them to localhost, so only Tailscale
+   (`private`) or this machine (`local`) reaches them. In `private` mode, the relay's port 3000:
    ```bash
    sed -i.bak "s/^BUZZ_HTTP_PORT=.*/BUZZ_HTTP_PORT=127.0.0.1:3000/" .env && rm .env.bak
    ```
    Check: `grep '^BUZZ_HTTP_PORT=' .env` → `BUZZ_HTTP_PORT=127.0.0.1:3000` (one line).
+   In `local` mode, Caddy's ports 80 and 443 (Caddy's overlay doesn't publish the relay's port):
+   ```bash
+   sed -i.bak -e "s/^CADDY_HTTP_PORT=.*/CADDY_HTTP_PORT=127.0.0.1:80/" \
+     -e "s/^CADDY_HTTPS_PORT=.*/CADDY_HTTPS_PORT=127.0.0.1:443/" .env && rm .env.bak
+   ```
+   Check: `grep -E '^CADDY_HTTPS?_PORT=' .env` → `CADDY_HTTP_PORT=127.0.0.1:80` and
+   `CADDY_HTTPS_PORT=127.0.0.1:443`.
 9. **Bundle edits.** Up to two edits to tracked files, which upgrades and restores redo
    (operations.md).
    - **MinIO images.** If `grep -n 'image:.*quay.io/minio' compose.yml` finds lines, those images
@@ -171,8 +181,8 @@ harmless.
      ```
      Check: `grep -c 'image:.*buzz-minio' compose.yml` → `2`. `:latest` can change under you,
      unlike the pinned quay.io images it replaces.
-   - **Phone pairing (`server` and `private`).** The phone app joins by scanning a code that Buzz
-     Desktop shows, through a pairing service that's in the relay's image but that the bundle
+   - **Phone pairing (`server` and `private`).** The phone app joins by scanning a code that the
+     desktop app shows, through a pairing service that's in the relay's image but that the bundle
      doesn't start (block/buzz#7721). If `grep -c buzz-pair-relay compose.yml` prints `0`, add it,
      on this machine's port 5000 only:
      ```bash
@@ -192,17 +202,17 @@ harmless.
      ```
      Check: `grep -c buzz-pair-relay compose.yml` → `1`, and in `server` mode
      `grep -c 'pair-relay:5000' Caddyfile` → `1`.
-10. **Start.** `BUZZ_COMPOSE_TLS=true ./run.sh start` in `server` mode, `./run.sh start` otherwise
-    (30 to 55 seconds on a fresh 2-CPU server, downloads included). Check: `./run.sh status`
-    (with the flag in `server` mode) shows `buzz-prod-relay-1`, `-postgres-1`, `-redis-1` and
-    `-minio-1` (the file store, Silo or MinIO) as `Up … (healthy)`, plus `buzz-prod-caddy-1` `Up`
-    in `server` mode and `buzz-prod-pair-relay-1` `Up` in `server` and `private` modes. Caddy
-    starts once the relay is healthy, so its uptime is shorter than the others'. `minio-init` runs once
-    and exits, so `status` leaves it out; `docker compose ps -a minio-init` shows `Exited (0)`.
-    In `private` and `local` modes the relay's port reads
-    `127.0.0.1:3000->3000/tcp` (step 8P). On a server
-    the containers restart on their own after a reboot; with Docker Desktop, only once Docker
-    Desktop is running again.
+10. **Start.** `BUZZ_COMPOSE_TLS=true ./run.sh start` in `server` and `local` modes,
+    `./run.sh start` in `private` mode (30 to 55 seconds on a fresh 2-CPU server, downloads
+    included). Check: `./run.sh status` (with the flag in `server` and `local` modes) shows
+    `buzz-prod-relay-1`, `-postgres-1`, `-redis-1` and `-minio-1` (the file store, Silo or MinIO)
+    as `Up … (healthy)`, plus `buzz-prod-caddy-1` `Up` in `server` and `local` modes and
+    `buzz-prod-pair-relay-1` `Up` in `server` and `private` modes. Caddy starts once the relay is
+    healthy, so its uptime is shorter than the others'. `minio-init` runs once and exits, so
+    `status` leaves it out; `docker compose ps -a minio-init` shows `Exited (0)`. In `private`
+    mode the relay's port reads `127.0.0.1:3000->3000/tcp`, and in `local` mode Caddy's read
+    `127.0.0.1:80->80/tcp, 127.0.0.1:443->443/tcp` (step 8P). On a server the containers restart
+    on their own after a reboot; with Docker Desktop, only once Docker Desktop is running again.
 10P. **Serve on the private network (`private`).** After `./run.sh start`:
     ```bash
     sudo tailscale serve --bg 3000
@@ -214,8 +224,8 @@ harmless.
 11. **Checks.** `./run.sh list-members` shows `$OWNER_HEX` with the role `owner`. Then run
     `check-relay.sh` from the agent's machine, as SKILL.md section 3 says: with the server's public
     IP in `server` mode, and with the IP and `80 443 3000 5000` in `private` mode, from a device on the
-    private network. It waits while Caddy gets its certificate. Then join, as SKILL.md section 4
-    says.
+    private network. It waits while Caddy gets its certificate. In `local` mode, step 12 runs it.
+    Then join, as SKILL.md section 4 says.
 11P. **If other devices time out (`private`)** while `tailscale ping` works, the tailnet's access
     policy blocks them. The default policy allows everything; a customized one needs a grant such
     as `{"src": ["autogroup:member"], "dst": ["autogroup:self"], "ip": ["tcp:443"]}` (the user's
@@ -223,6 +233,35 @@ harmless.
     join the tailnet before they join the community, on their phones too: the phone app reaches the
     relay only while Tailscale is on. Known gap: webhooks to tailnet addresses are refused
     (block/buzz#6500).
+
+12. **The local certificate (`local`).** Caddy made a certificate authority of its own for
+    `localhost`, kept in its data volume on this machine. Save the authority's certificate next to
+    the bundle (it holds no secret), then check the relay against it:
+    ```bash
+    docker cp buzz-prod-caddy-1:/data/caddy/pki/authorities/local/root.crt local-ca.crt
+    CA_FILE=local-ca.crt bash $SKILL/scripts/check-relay.sh https://localhost
+    ```
+    Check: every line says `PASS`, except `SKIP` for phone pairing: phones can't pair with a local
+    test. Buzz 1.0 joins only once this computer trusts the authority. That takes the user's
+    password, so the agent never runs it: on a Mac, the user runs this in their own terminal, from
+    `buzz/deploy/compose`, and gives their password (macOS may also ask in a window):
+    ```bash
+    sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain local-ca.crt
+    ```
+    Check: `security verify-cert https://localhost` → `...certificate verification successful.`
+    Tell the user what it means: this computer then accepts any certificate made with that
+    authority's key, which stays in Caddy's volume on this machine. When they're done with the
+    local test, they remove both (Removing the local test, below). On Linux, the command is
+    `sudo cp local-ca.crt /usr/local/share/ca-certificates/buzz-local-ca.crt && sudo update-ca-certificates`
+    (not tested). Then join with `wss://localhost`, as SKILL.md section 4 says.
+
+**Removing the local test (`local`; ask first: it deletes the community).** From
+`buzz/deploy/compose`: `BUZZ_COMPOSE_TLS=true ./run.sh stop`, then
+`docker volume rm $(docker volume ls -q | grep '^buzz-prod_')`, which deletes the data and Caddy's
+authority. The user removes the trust in their own terminal, on a Mac:
+`sudo security remove-trusted-cert -d local-ca.crt` and
+`sudo security delete-certificate -Z "$(openssl x509 -in local-ca.crt -noout -fingerprint -sha1 | cut -d= -f2 | tr -d :)" /Library/Keychains/System.keychain`.
+A new local test makes a new authority, to trust again.
 
 **For a server that runs for months.** Docker keeps each container's log without limit; ask the
 user about capping it (`log-opts` in `/etc/docker/daemon.json`, which applies to containers created

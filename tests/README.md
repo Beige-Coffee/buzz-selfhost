@@ -108,6 +108,14 @@ No script here yet. The steps and operations were run against projects made with
 `railway deploy -t buzz-relay-block`, by hand on 2026-09-30 and by script on 2026-10-01. The
 deploy, the image update and the checks ran again on 2026-10-23.
 
+## Results, 2026-10-23: Umbrel, for Buzz 1.0
+
+The Umbrel package moved to relay `sha-9e8c9fc` for Buzz 1.0's channel labels. On one droplet: an
+update through Umbrel from the previous package kept the message, the file and the member (14 of
+14); the updated install passed 31 of 31, invite links and New chat with an agent included;
+umbrelOS 1.7.4 passed 33 of 33; and the free Tailscale address 31 of 31
+([log](runs/2026-10-23-1539-umbrel-buzz-1.0-retest.log)).
+
 ## Results, 2026-10-23: Buzz 1.0
 
 Buzz 1.0 (block/buzz-app) is the app the skill now describes. On one DigitalOcean droplet, rebuilt

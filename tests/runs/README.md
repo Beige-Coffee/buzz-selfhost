@@ -10,6 +10,7 @@ on Oct 5, with secrets masked.
 
 | When (PDT) | Run | Relay version | Result |
 |---|---|---|---|
+| Oct 23 14:25 | [Railway: Block's template, deployed from the CLI](2026-10-23-1425-railway-template-check.md) | `sha-788b3c0`, then `sha-9e8c9fc` | The template still deploys, and every railway.md check passed. check-relay.sh failed only channel labels (`nip-cl`) on the template's image, and passed every line after the image update. $0.0002, then the project was deleted. |
 | Oct 23 12:10 | [Script: local test at https://localhost, left running](2026-10-23-1210-local-sha-e8781ca.log) | `sha-e8781ca` | 51 of 51, then left running with a 7-day invite link, to join from Buzz 1.0 once the Mac trusts the local authority. |
 | Oct 23 12:08 | [Script: local test at https://localhost on a Mac](2026-10-23-1208-local-sha-e8781ca.log) | `sha-e8781ca` | 52 of 52: Caddy's local authority, check-relay.sh with `CA_FILE`, the live connection with NIP-42, files, an invite link and a chat's label, then the skill's removal commands. |
 | Oct 23 12:02 | [Script: VPS, a fresh install with Buzz 1.0's checks](2026-10-23-1202-vps-sha-e8781ca.log) | `sha-e8781ca` | 101 of 101, through a backup, a restore and an upgrade. An agent admitted through its owner posted in a chat that named it, without being added; the partition audit said `ok`. |

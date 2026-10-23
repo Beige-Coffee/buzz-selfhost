@@ -92,7 +92,8 @@ python3 tests/lib/export-runs.py ~/.claude/projects/<project>/<session-id>
 ## Railway
 
 No script here yet. The steps and operations were run against projects made with
-`railway deploy -t buzz-relay-block`, by hand on 2026-09-30 and by script on 2026-10-01.
+`railway deploy -t buzz-relay-block`, by hand on 2026-09-30 and by script on 2026-10-01. The
+deploy, the image update and the checks ran again on 2026-10-23.
 
 ## Results, 2026-10-23: Buzz 1.0
 
@@ -119,8 +120,11 @@ between runs, and on an Apple Silicon Mac with Docker Desktop:
 - On the Mac's first try, Docker Desktop's credential helper (`docker-credential-desktop get`)
   hung and stopped every image pull; the public images pulled without it (`DOCKER_CONFIG` set to
   an empty folder), and the skill's troubleshooting now says so.
-- Railway: not run, as the Railway CLI wasn't signed in. Railway listed Block's template as
-  degraded that day.
+- Railway, later that day from the Railway CLI: Block's template still deploys, though Railway
+  listed it as degraded. Every railway.md check passed. On the template's `sha-788b3c0`,
+  check-relay.sh failed only channel labels (`nip-cl`); after the image update to `sha-9e8c9fc`,
+  it passed every line ([record](runs/2026-10-23-1425-railway-template-check.md)). It cost $0.0002,
+  and the project was deleted.
 
 ## Results, 2026-10-12: Silo in place of MinIO
 

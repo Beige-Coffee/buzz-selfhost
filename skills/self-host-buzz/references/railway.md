@@ -5,9 +5,9 @@ Postgres 18, Redis and a Railway bucket for files. It sets `RELAY_URL`, CORS and
 from the `*.up.railway.app` name Railway assigns. The relay gets no volume of its own, so git
 repositories pushed to it are lost on every redeploy.
 
-Railway listed the template as degraded on 2026-10-23: its own validation run on 2026-10-18 failed
-with a workspace restriction on Railway's side. If the deploy fails, stop, tell the user what it
-said, and offer a VPS instead.
+Railway's own validation run of the template failed on 2026-10-18, with a workspace restriction on
+Railway's side, but a fresh deploy on 2026-10-23 worked and passed every check after the image
+update (step 5). If the deploy fails, stop, tell the user what it said, and offer a VPS instead.
 
 Every `railway` command acts on the project linked to the directory it runs in. Run them all from
 the directory step 2 links (`cd` there in every call if each runs in a fresh shell), and check

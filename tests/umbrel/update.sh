@@ -29,6 +29,11 @@ as() { BUZZ_RELAY_URL="https://$DOMAIN" BUZZ_PRIVATE_KEY="$SK" "$BZ" "$@"; }
 image() { umbrel "docker inspect -f '{{.Config.Image}}' buzz_relay_1" | sed 's/@.*//'; }
 
 echo "== Before the update"
+# setup may have just restarted the relay with its settings: wait until it answers
+for _ in $(seq 1 60); do
+  curl -fsS -m 5 "https://$DOMAIN/_liveness" 2>/dev/null | grep -q ok && break
+  sleep 5
+done
 if [ -z "$SK" ]; then
   read -r SK HEX <<<"$(python3 "$T/lib/keygen.py")"
   umbrel "docker exec buzz_relay_1 bash -c 'set -a; . /data/settings/relay.env; . /data/secrets/relay.env; set +a; buzz-admin add-member --pubkey $(python3 "$T/lib/npub.py" "$HEX")' > /dev/null 2>&1"

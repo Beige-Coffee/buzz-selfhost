@@ -1,0 +1,181 @@
+# Buzz on Umbrel, retested for Buzz 1.0 on 2026-10-23: one DigitalOcean droplet, umbrelOS in Docker, the
+# package on relay sha-9e8c9fc. Members reached it through a Cloudflare quick tunnel, then through the
+# free Tailscale address. The owner was a test identity, so the invite and New chat checks could run.
+
+## 1. Update through Umbrel from the previous package (16eb0b6), after a fresh install of it
+# The first try failed 5 checks: the test posted before the relay had restarted after setup.
+# update.sh now waits for the relay; this is the rerun.
+== the previous package (16eb0b6), fresh
+  "state": "ready",
+== Tunnel
+PASS  relay address https://expiration-adapted-accompanied-districts.trycloudflare.com
+== Setup, through the app's page
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+setup only: passed 3, failed 0
+== update through Umbrel to this package
+== Before the update
+INFO  relay image ghcr.io/block/buzz:sha-16eb0b6
+PASS  member posts
+PASS  member uploads a file
+== Update through Umbrel to sha-9e8c9fc
+PASS  Umbrel updated the app and reports it ready
+PASS  the relay now runs sha-9e8c9fc
+== After the update
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://expiration-adapted-accompanied-districts.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the message from before the update is still there
+PASS  the file from before the update comes back intact
+PASS  the member still belongs and posts
+
+passed: 14  failed: 0
+== done
+
+## 2. The full test on that updated install
+== A. the full test on the updated install
+== Tunnel
+PASS  relay address https://ordinance-guarantee-please-six.trycloudflare.com
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://ordinance-guarantee-please-six.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://ordinance-guarantee-please-six.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 31  failed: 0
+community address: https://ordinance-guarantee-please-six.trycloudflare.com
+
+## 3. umbrelOS 1.7.4, a fresh install
+== B. umbrelOS 1.7.4, a fresh install of this package
+  "state": "ready",
+INFO  the owner is a test identity
+== Tunnel
+PASS  relay address https://answers-seed-tin-expansys.trycloudflare.com
+== Setup, through the app's page
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://answers-seed-tin-expansys.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://answers-seed-tin-expansys.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 33  failed: 0
+community address: https://answers-seed-tin-expansys.trycloudflare.com
+== done
+
+## 4. The free Tailscale address, on the updated 2.0 install
+# Switched through the setup page; the owner signed in with the page's link; Funnel was still allowed.
+== Tunnel
+PASS  relay address https://buzz-1.tail1234.ts.net
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://buzz-1.tail1234.ts.net/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://buzz-1.tail1234.ts.net/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 31  failed: 0
+community address: https://buzz-1.tail1234.ts.net

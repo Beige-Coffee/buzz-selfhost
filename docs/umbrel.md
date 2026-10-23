@@ -1,8 +1,8 @@
 # Buzz on Umbrel
 
-Status on 2026-10-12: a working Umbrel App Store package in [`umbrel/buzz/`](../umbrel/buzz/),
-tested end to end on umbrelOS 2.0 and 1.7, on Intel and ARM, with Buzz Desktop, a phone, an update,
-and both address options. Not yet submitted to Umbrel. It lives on this `umbrel` branch, not on
+Status on 2026-10-23: a working Umbrel App Store package in [`umbrel/buzz/`](../umbrel/buzz/), on
+relay `sha-9e8c9fc`, retested for Buzz 1.0 on umbrelOS 2.0 and 1.7, through an update from the
+previous package, with both address options. Not yet submitted to Umbrel. It lives on this `umbrel` branch, not on
 `main`, until Umbrel accepts it.
 
 ## Why our own package
@@ -88,9 +88,29 @@ Then, the same day:
   image: 19 of 19 ([log](../tests/runs/2026-10-12-1450-umbrel-arm64-mac.log)). Docker Desktop needed
   nothing beyond `install.sh`'s bridge network and masked NetworkManager.
 
+2026-10-23, for Buzz 1.0 ([log](../tests/runs/2026-10-23-1539-umbrel-buzz-1.0-retest.log)). Buzz 1.0
+([block/buzz-app](https://github.com/block/buzz-app), beta) needs channel labels (`nip-cl`) for New
+chat, which relay images have from 2026-10-15, so the package moved from `sha-16eb0b6` to
+`sha-9e8c9fc`; the setup page now names Buzz 1.0's menus, with Buzz 0.X's noted. With a test owner,
+so the owner-side checks run:
+
+- Updating through Umbrel from the previous package: the message, the file and the member from
+  before survived, and the relay then had its identity and channel labels, 14 of 14. (The first
+  try failed 5 checks because the test posted before the relay had restarted after setup;
+  `update.sh` now waits.)
+- The full test on that updated install, 31 of 31: the relay checks, members, a file, invite links
+  (the owner makes one, a member can't, a new identity joins with it and posts), Buzz 1.0's New
+  chat with an agent admitted through its owner, and a restart.
+- umbrelOS 1.7.4, a fresh install: 33 of 33.
+- The free Tailscale address on the updated install: 31 of 31. The owner signed in with the page's
+  link; Funnel was still allowed on the tailnet from the earlier test.
+
 ## Not yet tested
 
+- Buzz 1.0 by hand against the package: joining, an invite link, and pairing a phone (Settings,
+  Pair mobile). The scripted checks cover the relay's side of each.
 - Umbrel's Cloudflare Tunnel app with a real domain. It needs a Cloudflare account and a domain.
+- ARM on relay `sha-9e8c9fc`. The image is built for ARM; the package's ARM run was on `sha-16eb0b6`.
 - A real Raspberry Pi: ARM itself passed on a Mac, but not the Pi's slower processor and storage.
   Umbrel asks for the chip type to be tested, not a particular device.
 
@@ -99,7 +119,9 @@ Then, the same day:
 1. Run the untested steps above.
 2. Set `submitter` and `submission` in `umbrel-app.yml`; the linter requires the PR link.
 3. Settle `version`. The relay has no release, so it's the image's commit for now.
-4. Copy the package into a fork of getumbrel/umbrel-apps and open the PR, crediting #5928.
+4. Copy the package into a fork of getumbrel/umbrel-apps and open the PR, crediting #5928 and
+   [#5993](https://github.com/getumbrel/umbrel-apps/pull/5993), a second submission (Aug 15, no
+   review). Neither has been reviewed or updated since August.
 
 ## Testing again
 

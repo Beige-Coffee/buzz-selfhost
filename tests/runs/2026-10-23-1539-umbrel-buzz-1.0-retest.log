@@ -179,3 +179,11 @@ PASS  the file survives the restart
 
 passed: 31  failed: 0
 community address: https://buzz-1.tail1234.ts.net
+
+## 5. By hand with Buzz 1.0, on the Tailscale address
+# The setup page changed the owner to a person: the test owner became an admin, the person the owner.
+# The owner joined from Buzz 1.0 (macOS) with the https:// address and posted; made an invite link
+# (Settings, Community admin, Membership, Invite members, Invite with a link), of the form
+# https://<address>/invite/v2.<token>; and paired an iPhone (App Store app) from Settings, Pair mobile,
+# then posted from it. The pairing service logged both sides. The link's page answered HTTP 200, and a
+# new test identity claimed the link (/api/invites/claim: joined, member) and posted.

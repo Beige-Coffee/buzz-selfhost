@@ -60,7 +60,7 @@
           <li><b>Redis</b>A cache in memory: who's online and who's typing. It rebuilds itself on restart.</li>
         </ul>
 </div>
-      <div class="story-step" data-state="repo"><span class="n">05</span><p>Every part of Buzz is <b>open source</b>, under the Apache 2.0 license, and the whole thing is on <a href="https://github.com/block/buzz">GitHub</a>. That's what lets you clone the code and run it yourself.</p></div>
+      <div class="story-step" data-state="repo"><span class="n">05</span><p>Every part of Buzz is <b>open source</b>, under the Apache 2.0 license, on GitHub: the relay and the phone apps in <a href="https://github.com/block/buzz">block/buzz</a>, and Buzz 1.0, the app you saw, in <a href="https://github.com/block/buzz-app">block/buzz-app</a>. That's what lets you clone the code and run it yourself.</p></div>
       <div class="story-step" data-state="run"><span class="n">06</span><p>So you don't need Block to run it. Clone the repo, add your values, and start it on a machine you control. The guide below walks you through it.</p></div>
     </div>
   </section>
@@ -96,7 +96,7 @@
         <a href="https://github.com/block/buzz/issues/7721">block/buzz#7721</a>
       </article>
     </div>
-    <p class="fine limits-fine">Checked against block/buzz on 2026-10-05.</p>
+    <p class="fine limits-fine">Checked against block/buzz and Buzz 1.0 on 2026-10-23.</p>
   </section>
 
   <section class="block reveal" id="where">
@@ -174,13 +174,14 @@
     <details class="ft-col" open>
       <summary class="ft-h">Tested</summary>
       <ul>
-        <li>VPS: 91 of 91 on Silo, and 108 of 108 upgrading from MinIO</li>
+        <li>VPS: 101 of 101, and 119 of 119 upgrading</li>
         <li>Private network: 52 of 52, with phone pairing</li>
         <li>Kubernetes: 21 of 21, private 17 of 17</li>
-        <li>Local test: Linux and Apple Silicon</li>
-        <li>Railway: deploy, members, backup, restore</li>
+        <li>Local test: 52 of 52 at https://localhost, on Apple Silicon</li>
+        <li>Railway: deploy, members, backup, restore, and a fresh deploy on 2026-10-23</li>
         <li>The skill: every setup, cold, twice</li>
-        <li>Buzz Desktop: joined all seven</li>
+        <li>Buzz 1.0: joined, made an invite link, paired an iPhone</li>
+        <li>Buzz 0.X: joined all seven</li>
         <li>iPhone: paired and posted on a VPS (public and private), Kubernetes and Railway</li>
       </ul>
     </details>
@@ -201,12 +202,12 @@
         <li><a href="https://github.com/block/buzz/issues/6803">#6803</a> Moving communities</li>
         <li><a href="https://github.com/block/buzz/pull/5410">#5410</a> A second address</li>
         <li><a href="https://github.com/block/buzz/issues/5206">#5206</a> Phone notifications</li>
-        <li><a href="https://github.com/block/buzz/issues/2872">#2872</a> Desktop blocked by CORS</li>
+        <li><a href="https://github.com/block/buzz/issues/2872">#2872</a> Buzz 0.X blocked by CORS</li>
         <li><a href="https://github.com/block/buzz/issues/7721">#7721</a> Phone pairing</li>
       </ul>
     </details>
   </div>
-  <p class="ft-base">An <a href="https://agentskills.io">Agent Skill</a> in the open standard, validated with skills-ref. <a href="https://github.com/Beige-Coffee/buzz-selfhost/blob/main/LICENSE">Apache-2.0</a>.<br>Checked against block/buzz main at <code>d1b7da4</code>, 2026-10-01, Compose with phone pairing at <code>8746bfe</code>, 2026-10-05, and Compose with Silo at <code>30873ba</code>, 2026-10-12.</p>
+  <p class="ft-base">An <a href="https://agentskills.io">Agent Skill</a> in the open standard, validated with skills-ref. <a href="https://github.com/Beige-Coffee/buzz-selfhost/blob/main/LICENSE">Apache-2.0</a>.<br>Checked against block/buzz main at <code>d1b7da4</code>, 2026-10-01, Compose with phone pairing at <code>8746bfe</code>, 2026-10-05, Compose with Silo at <code>30873ba</code>, 2026-10-12, and Buzz 1.0 (block/buzz-app) with the relay at <code>e8781ca</code>, 2026-10-23.</p>
 </footer>
 
 </body>

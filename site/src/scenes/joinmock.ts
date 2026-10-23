@@ -1,25 +1,18 @@
 /**
- * Buzz Desktop's "Join a community" onboarding screen, recreated.
- * Wording from desktop/src/features/communities/ui/WelcomeSetup.tsx.
+ * Buzz 1.0's first-run "Join a community" screen, recreated in light mode: one field, Join, and Create a community.
+ * Wording from block/buzz-app src/features/communities/CommunityLanding.tsx.
  */
-export function joinMockHTML(opts: { url?: boolean; npub?: string } = {}): string {
-  const showUrl = opts.url ?? true;
+export function joinMockHTML(): string {
   return `
 <figure class="join-mock">
-  <div class="jm-window">
-    <div class="jm-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="j1-win">
+    <div class="b1-lights" aria-hidden="true"><i></i><i></i><i></i></div>
     <h4>Join a community</h4>
-    <p class="jm-sub">Enter the invite link or community URL you received.</p>
-    <div class="jm-input${showUrl ? "" : " empty"}">
-      <span class="jm-val" ${showUrl ? "data-tpl" : ""}>${showUrl ? "{{RELAY_URL}}" : "Invite link or community URL"}</span>
-      <span class="jm-go" aria-hidden="true">→</span>
-    </div>
-    <div class="jm-private">
-      <b>Joining a private community?</b>
-      <p>Some communities need the owner to add you before you can join. Copy your public ID and send it to the community owner.</p>
-      <div class="jm-npub"><code>${opts.npub ?? "npub1q3x…8kzv"}</code><span class="jm-copy">Copy public ID</span></div>
-    </div>
+    <p class="j1-lab">Invite link or community URL</p>
+    <div class="j1-input"><span data-tpl>{{RELAY_URL}}</span></div>
+    <div class="j1-join">Join</div>
+    <p class="j1-create">Create a community</p>
   </div>
-  <figcaption class="src">Recreated from Buzz Desktop's onboarding screen (WelcomeSetup.tsx). The npub is an example.</figcaption>
+  <figcaption class="src">Recreated from Buzz 1.0's first screen. Paste your community's address, or an invite link.</figcaption>
 </figure>`;
 }

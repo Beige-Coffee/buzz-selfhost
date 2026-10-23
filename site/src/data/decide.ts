@@ -27,9 +27,9 @@ export const QUESTIONS: Question[] = [
   {
     id: "trial",
     text: "Environment",
-    hint: "A local test runs at ws://127.0.0.1:3000 and can't be moved to a server later.",
+    hint: "A local test runs at https://localhost, with a certificate you trust once, and can't be moved to a server later.",
     options: [
-      { id: "trial", label: "Local test", hint: "Docker on your laptop. No domain, no TLS.", when: "Pick this to try Buzz before choosing a server. Nothing carries over." },
+      { id: "trial", label: "Local test", hint: "Docker on your laptop. No domain or server.", when: "Pick this to try Buzz before choosing a server. Nothing carries over." },
       { id: "real", label: "Production", hint: "A server with a permanent URL, TLS and backups.", when: "Pick this if a team will use it. Set the permanent URL and backups from the start." },
     ],
   },

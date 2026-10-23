@@ -9,8 +9,8 @@ description: >
 license: Apache-2.0
 compatibility: Runs from macOS or Linux (Windows isn't tested) with python3, bash and curl. Then Docker, kubectl and helm, or the Railway CLI, depending on the setup.
 metadata:
-  tested: "2026-10-12"
-  tested-image: sha-30873ba
+  tested: "2026-10-23"
+  tested-image: sha-e8781ca
 ---
 
 # Self-host a Buzz relay
@@ -19,6 +19,11 @@ A Buzz community lives on a relay: a Rust server, plus Postgres (messages, chann
 S3 store for uploaded files (Silo or MinIO), a git folder (repositories), Redis (who's online) and
 an `.env` file (the relay key and passwords). This skill installs one, checks every step, and runs
 day-two tasks. Every command was run end to end, except where a step says otherwise.
+
+People use the relay from the Buzz desktop app. These steps describe Buzz 1.0
+(github.com/block/buzz-app). Buzz 0.X, the earlier app from block/buzz, still works with the same
+relay and is the one for Intel Macs, which Buzz 1.0 doesn't support; where its screens differ, the
+steps say so.
 
 ## Rules
 
@@ -79,17 +84,22 @@ from wherever the agent runs. They need `python3`, `bash`, `curl` and internet a
 Linux (Windows isn't tested). On a Mac without Apple's developer tools, the first `python3` opens
 an installer instead: ask the user to run `xcode-select --install` first.
 
-- **Owner.** Ask for the owner's public ID (npub) as Buzz Desktop shows it on its Join screen, on
-  the device they'll use: an npub from anywhere else may be an old identity. If the user gives one
-  without saying where it came from, ask before the step that writes it; the steps before it can
-  run meanwhile. Changing the owner later takes a restart, and the old owner stays on as an admin
+- **Owner.** Ask for the owner's public ID (npub) as the Buzz app shows it, on the computer
+  they'll use: an npub from anywhere else may be an old identity. In Buzz 1.0 it's in Settings,
+  Identity, "Nostr address (npub)", with a copy button; before the app has joined a community,
+  ⌘, (Ctrl+, on Windows and Linux) opens Settings. On first launch, "Continue with your Buzz
+  identity" keeps the identity of Buzz 0.X on the same computer, and "Create a new identity" makes
+  a new one. In Buzz 0.X the npub is on the Join screen. If the user gives one without saying where
+  it came from, ask before the step that writes it; the steps before it can run meanwhile.
+  Changing the owner later takes a restart, and the old owner stays on as an admin
   (operations.md).
   `OWNER_HEX=$(python3 $SKILL/scripts/npub-to-hex.py <npub>)`. It checks the npub's checksum, so
   a mistyped or cut-off one fails instead of making a stranger the owner.
 - **Image tag.** `TAG=$(python3 $SKILL/scripts/pick-tag.py)` prints the newest commit on main that
   has an image, like `sha-83aab8c`. Not every commit gets one. Tell the user which tag, and that
-  this skill was last tested with `sha-30873ba` (`tested-image` in its metadata, which some agents
-  don't show), if they'd rather stay on a tested version.
+  this skill was last tested with `sha-e8781ca` (`tested-image` in its metadata, which some agents
+  don't show), if they'd rather stay on a tested version. Buzz 1.0's New chat needs an image from
+  2026-10-15 or later, which has channel labels; older images, such as `sha-30873ba`, refuse it.
 - **Domain.** `server` and Kubernetes need the community's permanent domain, such as
   `buzz.example.org`. Railway assigns one at deploy, or takes the user's (railway.md). `private` uses the machine's Tailscale name, found in its setup, and
   Kubernetes on a private network the name kubernetes.md builds. `local` needs none.
@@ -100,7 +110,7 @@ Then:
 | --- | --- | --- | --- |
 | `server`, Railway, Kubernetes | `$DOMAIN` | `wss://$DOMAIN` | `https://$DOMAIN` |
 | `private` | the Tailscale name | `wss://<name>` | `https://<name>` |
-| `local` | `127.0.0.1` | `ws://127.0.0.1:3000` | `http://127.0.0.1:3000` |
+| `local` | `localhost` | `wss://localhost` | `https://localhost` |
 
 **SSH to a server.** An agent's shell can't answer SSH's questions: the new server's fingerprint,
 or a key's passphrase. Before the first server step, ask the user to connect once from their own
@@ -128,33 +138,50 @@ goes in an SSH call of its own.
 Once the setup's own steps pass, run from this machine:
 
 ```bash
-bash $SKILL/scripts/check-relay.sh "$ORIGIN"                          # local, Railway
+bash $SKILL/scripts/check-relay.sh "$ORIGIN"                          # Railway
 bash $SKILL/scripts/check-relay.sh "$ORIGIN" <public IP>              # public server: 3000 and 5000 closed
 bash $SKILL/scripts/check-relay.sh "$ORIGIN" <public IP> 80 443 3000 5000  # private server: nothing public
+CA_FILE=local-ca.crt bash $SKILL/scripts/check-relay.sh "$ORIGIN"     # local, from buzz/deploy/compose
 ```
 
 `<public IP>` is the server's public address, the one you SSH to. On Kubernetes, use the address
-and ports kubernetes.md gives. Every line must say `PASS`: the relay answers, reports its version, takes WebSocket connections
-(what Buzz Desktop joins over), lets Buzz Desktop in (CORS), and phones can reach its pairing
-service. A setup without one prints `SKIP` for that line. A new certificate can take a minute or
-two on the first request; the script waits. If this computer still has the domain's old address
-cached, put `RESOLVE_IP=<server IP>` before the command to check the server directly.
+and ports kubernetes.md gives. A local test's certificate comes from compose.md step 12. Every
+line must say `PASS`: the relay answers, reports its version, names its own identity and has
+channel labels (what Buzz 1.0 needs to join and to start chats), takes WebSocket connections
+(what Buzz joins over), lets Buzz 0.X in (CORS), and phones can reach its pairing service. A setup
+without one prints `SKIP` for that line. A new certificate can take a minute or two on the first
+request; the script waits. If this computer still has the domain's old address cached, put
+`RESOLVE_IP=<server IP>` before the command to check the server directly.
 
 ## 4. Join
 
-Tell the user to choose *Join a community* in Buzz Desktop and paste `$RELAY_URL` exactly, with
-the owner's identity. Members send the owner their public ID from the same screen, and the owner
-adds them ([operations.md](references/operations.md)) or in Buzz Desktop under Settings, Invites.
-That screen also makes invite links: a new member pastes one where they'd paste the community's
-URL, and joins without being added. `Not a member yet` means the relay works but doesn't know that
-identity ([troubleshooting](references/troubleshooting.md)).
+Tell the user to open Buzz 1.0 with the owner's identity. On its first screen, Join a community,
+they paste `$RELAY_URL` into "Invite link or community URL" and choose Join. The `https://` form of
+the same address works too; `ws://` and `http://` addresses don't. To join another community later,
+it's the community button at the top right, then Join a community, whose box takes an address but
+not an invite link. In Buzz 0.X, paste the same address into its Join a community screen.
 
-**Phones.** After joining from Desktop, the user opens Settings, Mobile, scans the QR code with
-the Buzz app on their phone, and confirms the matching code. This needs the pairing service, which
-every setup's steps add (`check-relay.sh` says `PASS` for phone pairing) except Kubernetes on a
-private network, which isn't covered yet. On a private network the phone needs the Tailscale app
-on. A self-hosted relay can't send push notifications to the App Store app (block/buzz#5206): the
-app shows new messages while it's open.
+**People.** A member sends the owner their npub (Settings, Identity in Buzz 1.0), and the owner
+adds them ([operations.md](references/operations.md)), or does it in Buzz 1.0: Settings, Community
+admin, Membership, Invite members, then "Add directly" with the npub, or "Invite with a link" and
+Copy link. Anyone with the link can join until it expires: they paste it into the first screen's
+"Invite link or community URL", or open it and choose Accept invite in Buzz. In Buzz 0.X, the same
+things are in Settings, Invites. `Relay request failed (403)` in Buzz 1.0, or `Not a member yet` in
+Buzz 0.X, means the relay works but doesn't know that identity
+([troubleshooting](references/troubleshooting.md)).
+
+**Phones.** After joining from the desktop app, the user opens Settings, Pair mobile (Buzz 0.X:
+Settings, Mobile). In the Buzz app on the phone they choose Add community, scan the QR code, and
+enter the six-digit code the desktop shows (older phones show a code to compare instead). This
+needs the pairing service, which every setup's steps add (`check-relay.sh` says `PASS` for phone
+pairing) except Kubernetes on a private network, which isn't covered yet, and the local test. On a
+private network the phone needs the Tailscale app on. A self-hosted relay can't send push
+notifications to the App Store app (block/buzz#5206): the app shows new messages while it's open.
+
+**Agents.** Buzz 1.0 runs agents on the user's computer, each with its own key that the owner's
+identity vouches for. The relay admits them through the owner's membership, which every setup here
+allows (`BUZZ_ALLOW_NIP_OA_AUTH=true`), so no agent needs adding as a member
+([operations.md](references/operations.md)).
 
 ## When something fails
 

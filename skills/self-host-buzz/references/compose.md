@@ -152,7 +152,15 @@ harmless.
    grep -q '^BUZZ_PAIRING_RELAY_URL=' .env || echo "BUZZ_PAIRING_RELAY_URL=wss://$HOST/pair" >> .env
    ```
    Check: `grep '^BUZZ_PAIRING_RELAY_URL=' .env` → `BUZZ_PAIRING_RELAY_URL=wss://$HOST/pair` (one
-   line).
+   line). Also turn on phone notifications: the relay then wakes the Buzz phone app (0.25 or later)
+   for direct messages and mentions through Block's gateway, `push.buzz.xyz`, which passes Apple
+   only a fixed "reconnect" signal, never a message; the phone fetches messages from this relay:
+   ```bash
+   sed -i.bak "s/^BUZZ_PUSH_ENABLED=.*/BUZZ_PUSH_ENABLED=true/" .env && rm .env.bak
+   ```
+   Check: `grep -E '^BUZZ_PUSH_(ENABLED|GATEWAY_DELIVERY_URL)=' .env` → `BUZZ_PUSH_ENABLED=true` and
+   `BUZZ_PUSH_GATEWAY_DELIVERY_URL=https://push.buzz.xyz/v1/deliveries/apns`. Bundles from before
+   2026-09-15 have neither line: use a newer tag.
 8P. **Localhost only (`private` and `local`).** The bundle publishes its ports on every address,
    which on a laptop means the local network. Bind them to localhost, so only Tailscale
    (`private`) or this machine (`local`) reaches them. In `private` mode, the relay's port 3000:
@@ -241,8 +249,8 @@ harmless.
     docker cp buzz-prod-caddy-1:/data/caddy/pki/authorities/local/root.crt local-ca.crt
     CA_FILE=local-ca.crt bash $SKILL/scripts/check-relay.sh https://localhost
     ```
-    Check: every line says `PASS`, except `SKIP` for phone pairing: phones can't pair with a local
-    test. Buzz 1.0 joins only once this computer trusts the authority. That takes the user's
+    Check: every line says `PASS`, except `SKIP` for phone pairing and phone notifications: phones
+    can't pair with a local test. Buzz 1.0 joins only once this computer trusts the authority. That takes the user's
     password, so the agent never runs it: on a Mac, the user runs this in their own terminal, from
     `buzz/deploy/compose`, and gives their password (macOS may also ask in a window):
     ```bash

@@ -107,7 +107,9 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   bundle added, if any:
   `comm -13 <(grep -oE '^[A-Z][A-Z0-9_]*=' .env | sort) <(grep -oE '^[A-Z][A-Z0-9_]*=' .env.example | sort)`.
   Copy those lines from `.env.example` into `.env`, redo compose.md step 5 for a
-  `CHANGE_ME_RANDOM`, and ask the user about any other value. Then:
+  `CHANGE_ME_RANDOM`, and ask the user about any other value. Relays set up before 2026-10-23
+  have phone notifications off: if `grep '^BUZZ_PUSH_ENABLED=' .env` says `false`, turn them on as
+  compose.md step 8 does (`server` and `private` modes). Then:
   ```bash
   sed -i.bak "s|^BUZZ_IMAGE=.*|BUZZ_IMAGE=ghcr.io/block/buzz:$TAG|" .env && rm .env.bak
   BUZZ_COMPOSE_TLS=true ./run.sh upgrade

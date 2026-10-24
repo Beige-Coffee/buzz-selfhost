@@ -46,10 +46,9 @@ refused (block/buzz#6500). For a team that mostly uses phones, recommend public.
   Mobile), and scans the QR code with the Buzz app. Block's bundles don't start the pairing service (block/buzz#7721), so the
   skill adds it. Tested with an iPhone on a VPS (public and private), Kubernetes and Railway; not
   yet on Kubernetes on a private network.
-- **Push notifications don't**, on any self-hosted relay: the App Store app only takes pushes
-  through Block's gateway (block/buzz#5206). The only path in progress is a self-built app plus
-  your own gateway (block/buzz#7760). Android has no push at all yet (block/buzz#6092). Say so
-  plainly: the app shows new messages while it's open.
+- **Push notifications work** since the App Store app 0.25 (2026-10-21): with
+  `BUZZ_PUSH_ENABLED=true`, the relay wakes the phone through Block's gateway, `push.buzz.xyz`
+  (see "Phone notifications on by default"). Android has no push at all yet (block/buzz#6092).
 - block/buzz#4198 stops only bare private addresses like `ws://10.0.0.1`. Tailscale names pass.
 
 ## Two desktop apps (2026-10-23)
@@ -60,6 +59,17 @@ Settings, Invites, Settings, Mobile); and the CORS entries it needs. Pairing is 
 mobile, then Add community on the phone. The prompts say where the npub comes from (Settings,
 Identity), and Get ready tells people to save their private key, since Buzz 1.0 doesn't back it
 up.
+
+## Phone notifications on by default (2026-10-23)
+
+A newcomer review named "no push notifications" as the likeliest reason a team would stay on Slack.
+The owner tested it the same day: with `BUZZ_PUSH_ENABLED=true` (Block's bundle has carried the
+gateway's address, `push.buzz.xyz`, since 2026-09-15) and the App Store app 0.25, a locked iPhone
+showed a direct message and a mention from another member, with their text. So the skill turns
+notifications on in every setup. They pass through Block's gateway and Apple, which carry only a
+fixed "reconnect" signal, never a message (Buzz's push spec requires this); the agent tells the
+user so, and that `BUZZ_PUSH_ENABLED=false` turns them off. Tested on a public VPS only; Block
+calls push experimental, and block/buzz#5206 is still open.
 
 ## The drawings are Buzz 1.0's (2026-10-23)
 

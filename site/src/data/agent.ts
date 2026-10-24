@@ -116,7 +116,7 @@ const TS_JOIN = JOIN(`Connect Tailscale on your computer first. ${JOIN_IN("<code
 const PHONE = (d: string): Expect => ({ who: "you", icon: "phone", t: "Pair your phone", d, note: "optional" });
 // Buzz 1.0's Pair mobile asks the phone for a six-digit code; an older phone app shows a code to compare instead
 const PAIR =
-  "In Buzz, open <b>Settings</b>, then <b>Pair mobile</b>. In the Buzz app on your phone, choose <b>Add community</b>, scan the QR code, and type the six-digit code Buzz shows. If your phone shows a code instead, check it matches and choose <b>Codes match</b> in Buzz.";
+  "In Buzz, open <b>Settings</b>, then <b>Pair mobile</b>. In the Buzz app on your phone, choose <b>Add community</b>, scan the QR code, and type the six-digit code Buzz shows. If your phone shows a code instead, check it matches and choose <b>Codes match</b> in Buzz. Your phone then gets notifications for direct messages and mentions, through Block's gateway, which passes on only a signal to reconnect, never a message.";
 const QUICKSTART = "the chart's quickstart profile: Postgres, Redis and file storage run inside the cluster, with one relay.";
 
 // compose.md, server mode: confirm the URL and ports (SKILL.md rules 2 and 4), steps 1 to 5, the key (6), then 7 to 11

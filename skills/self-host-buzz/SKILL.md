@@ -148,8 +148,8 @@ CA_FILE=local-ca.crt bash $SKILL/scripts/check-relay.sh "$ORIGIN"     # local, f
 and ports kubernetes.md gives. A local test's certificate comes from compose.md step 12. Every
 line must say `PASS`: the relay answers, reports its version, names its own identity and has
 channel labels (what Buzz 1.0 needs to join and to start chats), takes WebSocket connections
-(what Buzz joins over), lets Buzz 0.X in (CORS), and phones can reach its pairing service. A setup
-without one prints `SKIP` for that line. A new certificate can take a minute or two on the first
+(what Buzz joins over), lets Buzz 0.X in (CORS), phones can reach its pairing service, and it offers
+phone notifications. A setup without pairing or notifications prints `SKIP` for that line. A new certificate can take a minute or two on the first
 request; the script waits. If this computer still has the domain's old address cached, put
 `RESOLVE_IP=<server IP>` before the command to check the server directly.
 
@@ -175,8 +175,11 @@ Settings, Mobile). In the Buzz app on the phone they choose Add community, scan 
 enter the six-digit code the desktop shows (older phones show a code to compare instead). This
 needs the pairing service, which every setup's steps add (`check-relay.sh` says `PASS` for phone
 pairing) except Kubernetes on a private network, which isn't covered yet, and the local test. On a
-private network the phone needs the Tailscale app on. A self-hosted relay can't send push
-notifications to the App Store app (block/buzz#5206): the app shows new messages while it's open.
+private network the phone needs the Tailscale app on. Every setup's steps turn on phone
+notifications (`BUZZ_PUSH_ENABLED=true`): the phone app, 0.25 or later, gets them for direct
+messages and mentions, through Block's gateway, `push.buzz.xyz`. Tell the user that the gateway and
+Apple carry only a fixed "reconnect" signal, never a message, and that `BUZZ_PUSH_ENABLED=false`
+turns notifications off. Tested on a public VPS on 2026-10-23; Block calls push experimental.
 
 **Agents.** Buzz 1.0 runs agents on the user's computer, each with its own key that the owner's
 identity vouches for. The relay admits them through the owner's membership, which every setup here

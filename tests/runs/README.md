@@ -10,6 +10,7 @@ on Oct 5, with secrets masked.
 
 | When (PDT) | Run | Relay version | Result |
 |---|---|---|---|
+| Oct 23 16:41 | [Push on a self-hosted relay, through Block's gateway](2026-10-23-1641-push-check.md) | `sha-e8781ca` | With `BUZZ_PUSH_ENABLED=true`, a locked iPhone with the App Store app (0.25) got notifications: the relay matched the app's lease for a DM and for a mention, and push.buzz.xyz accepted both wakes. A plain channel message, which the lease doesn't cover, got no wake but showed too; the cause is unconfirmed. About $0.02, then the droplet was deleted. |
 | Oct 23 14:25 | [Railway: Block's template, deployed from the CLI](2026-10-23-1425-railway-template-check.md) | `sha-788b3c0`, then `sha-9e8c9fc` | The template still deploys, and every railway.md check passed. check-relay.sh failed only channel labels (`nip-cl`) on the template's image, and passed every line after the image update. $0.0002, then the project was deleted. |
 | Oct 23 12:10 | [Script: local test at https://localhost, left running](2026-10-23-1210-local-sha-e8781ca.log) | `sha-e8781ca` | 51 of 51, then left running with a 7-day invite link, to join from Buzz 1.0 once the Mac trusts the local authority. |
 | Oct 23 12:08 | [Script: local test at https://localhost on a Mac](2026-10-23-1208-local-sha-e8781ca.log) | `sha-e8781ca` | 52 of 52: Caddy's local authority, check-relay.sh with `CA_FILE`, the live connection with NIP-42, files, an invite link and a chat's label, then the skill's removal commands. |

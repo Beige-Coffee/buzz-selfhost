@@ -76,7 +76,7 @@ export function mountOperations(host: HTMLElement): void {
     const stepsMode = ops.map((o) => `${ops.length > 1 ? `<h4 class="opx-h">${o.title}</h4>` : ""}<div class="tl-md op-md">${fillRich(o.html)}</div>`).join("");
     return `<p class="opx-why">${d.why}</p>
       ${agentHTML}
-      ${stepsMode ? `<div class="mode-steps">${stepsMode}</div>` : ""}`;
+      ${stepsMode ? `<details class="ref ref-op"><summary><span class="ref-t">See the commands</span></summary>${stepsMode}</details>` : ""}`;
   };
 
   const renderPane = () => {

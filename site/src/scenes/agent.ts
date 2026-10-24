@@ -1,7 +1,7 @@
-import { AGENT_TRACKS, type Expect, type ExpectIcon } from "../data/agent";
+import { AGENT_TRACKS, type AgentTrack, type Expect, type ExpectIcon } from "../data/agent";
 import { blanksHTML, fillBlanks } from "../lib/blanks";
 import { copyText, enhanceCode } from "../lib/code";
-import { derived, esc, fill, fillRich, getValues, onValues, renderTemplates, setValues, trackOf, type Track } from "../lib/values";
+import { derived, esc, fill, fillRich, getValues, onValues, renderTemplates, trackOf, type Track } from "../lib/values";
 
 const AGENT_KEY = "buzz-selfhost-agent-v1";
 type AgentKind = "claude" | "agents";
@@ -84,6 +84,15 @@ export const ICONS: Record<ExpectIcon, string> = {
   lock: icon(`<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>`),
 };
 
+/** A Get ready item: its folds sit on its line, and the one you open drops its text below. */
+function readyHTML(r: AgentTrack["ready"][number], i: number): string {
+  const folds = [r.warn && { ...r.warn, warn: true }, r.more && { ...r.more, warn: false }].filter((f) => !!f);
+  const id = (j: number) => `ag-fold-${i}-${j}`;
+  return `<li><span data-rich="${attr(r.t)}"></span>${folds
+    .map((f, j) => ` <button type="button" class="ag-fold${f.warn ? " ag-fold-warn" : ""}" aria-expanded="false" aria-controls="${id(j)}">${f.label}</button>`)
+    .join("")}${folds.map((f, j) => `<div class="ag-more-body" id="${id(j)}" hidden data-rich="${attr(f.t)}"></div>`).join("")}</li>`;
+}
+
 /** What to expect: in order, what the agent does and where it stops for you. */
 function expectHTML(rows: Expect[]): string {
   const who = (r: Expect) => (r.who === "agent" ? "Your agent" : r.ask ? "It asks you" : "You") + (r.note ? ` · ${r.note}` : "");
@@ -91,7 +100,7 @@ function expectHTML(rows: Expect[]): string {
     .map(
       (r) => `<li class="ag-tl-row ${r.who}${r.note ? " soft" : ""}">
         <span class="ag-tl-dot">${ICONS[r.icon]}</span>
-        <div><p class="ag-tl-who">${who(r)}</p><p class="ag-tl-t">${r.t}</p><p class="ag-tl-d" data-rich="${attr(r.d)}"></p></div>
+        <div><p class="ag-tl-t">${r.t} <span class="ag-tl-who">${who(r)}</span></p><p class="ag-tl-d" data-rich="${attr(r.d)}"></p></div>
       </li>`,
     )
     .join("")}</ol>`;
@@ -138,21 +147,14 @@ export function mountAgent(host: HTMLElement): void {
           <span class="tl-n" aria-hidden="true"><span>1</span></span>
           <div class="tl-body">
             <h3>Get ready</h3>
-            <ul class="ag-ready">${t.ready
-              .map(
-                (r) =>
-                  `<li><span data-rich="${attr(r.t)}"></span>${r.goto ? ` <button type="button" class="ag-how" data-goto="${r.goto}">How</button>` : ""}${
-                    r.warn ? `<details class="ag-more ag-warn"><summary>${r.warn.label}</summary><div class="ag-more-body" data-rich="${attr(r.warn.t)}"></div></details>` : ""
-                  }${r.more ? `<details class="ag-more"><summary>${r.more.label}</summary><div class="ag-more-body" data-rich="${attr(r.more.t)}"></div></details>` : ""}</li>`,
-              )
-              .join("")}</ul>
+            <ul class="ag-ready">${t.ready.map(readyHTML).join("")}</ul>
           </div>
         </li>
         <li class="tl-step ag-step">
           <span class="tl-n" aria-hidden="true"><span>2</span></span>
           <div class="tl-body">
             <h3>Install the skill</h3>
-            <p class="tl-why">Run this once in a terminal on the computer your agent runs on. It needs Node.js, for <code>npx</code>. It copies the skill into your agent's skills folder; nothing runs until your agent uses it.</p>
+            <p class="tl-why">Run this once on the computer your agent runs on. It needs Node.js. Nothing runs until your agent uses the skill.</p>
             <div class="ag-npx"><pre class="cmd">${esc(NPX_CMD)}</pre></div>
             <details class="ag-alt">
               <summary>No Node.js? Download the skill into your agent's skills folder instead</summary>
@@ -191,7 +193,7 @@ export function mountAgent(host: HTMLElement): void {
           <span class="tl-n" aria-hidden="true"><span>4</span></span>
           <div class="tl-body">
             <h3>What to expect</h3>
-            <p class="tl-why">What happens after you send the prompt, in order. Steps marked Your agent run on their own; the others need you. Your agent's own messages will be worded differently.</p>
+            <p class="tl-why">In order: what your agent does, and where it stops for you.</p>
             ${expectHTML(t.expect)}
           </div>
         </li>
@@ -209,6 +211,13 @@ export function mountAgent(host: HTMLElement): void {
       saveKind(kind);
       host.querySelectorAll<HTMLButtonElement>("[data-kind]").forEach((b) => b.setAttribute("aria-selected", String(b === tab)));
       renderInstall();
+      return;
+    }
+    const fold = t.closest<HTMLButtonElement>(".ag-fold");
+    if (fold) {
+      const body = document.getElementById(fold.getAttribute("aria-controls")!)!;
+      body.hidden = !body.hidden;
+      fold.setAttribute("aria-expanded", String(!body.hidden));
       return;
     }
     const read = t.closest<HTMLButtonElement>(".ag-read");
@@ -237,17 +246,6 @@ export function mountAgent(host: HTMLElement): void {
         window.setTimeout(() => (copy.textContent = "Copy prompt"), 1600);
       });
       return;
-    }
-    const how = t.closest<HTMLButtonElement>("[data-goto]");
-    if (how) {
-      setValues({ mode: "steps" });
-      // Scroll once the swap has settled; if the smooth scroll didn't land (a hidden tab doesn't animate), jump.
-      const step = () => document.getElementById(`step-${how.dataset.goto}`);
-      window.setTimeout(() => step()?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
-      window.setTimeout(() => {
-        const el = step();
-        if (el && Math.abs(el.getBoundingClientRect().top - 84) > 40) el.scrollIntoView({ behavior: "instant", block: "start" });
-      }, 800);
     }
   });
 

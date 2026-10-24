@@ -146,6 +146,9 @@ function landOnHash(): void {
   if (SECTIONS.includes(to)) y = targetY(to);
   else {
     const el = document.getElementById(to);
+    // a step inside the closed commands reference: open it first
+    const fold = el?.closest("details");
+    if (fold && !fold.open) fold.open = true;
     if (el?.getClientRects().length) {
       let top = 0;
       for (let n: HTMLElement | null = el; n; n = n.offsetParent as HTMLElement | null) top += n.offsetTop;

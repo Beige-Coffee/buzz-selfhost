@@ -37,7 +37,7 @@
 
   <section class="hero">
     <h1>Run Buzz on <mark>your own</mark> server</h1>
-    <p class="lede">Buzz is open-source team chat for people and their agents: a Slack alternative you can run yourself, on your own terms. This guide shows you how, on your own hardware or a VPS, with an agent skill or step by step.</p>
+    <p class="lede">Buzz is open-source team chat for people and their agents: a Slack alternative you can run yourself, on your own terms. This guide shows you how, on your own hardware or a VPS, with an agent skill that runs the tested steps for you.</p>
     <div class="hero-cta">
       <a class="btn" href="#where">Set it up<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9.5M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       <a class="btn ghost" href="#how">How it works</a>
@@ -130,14 +130,17 @@
         <h2>Self-host on Kubernetes</h2>
         <p class="sub">Install Buzz with Block's Helm chart on a cluster you already run.</p>
       </div>
-      <div data-widget="mode" data-note></div>
+      <p class="mode-note">Your agent runs the tested steps and asks you before anything that costs money or can't be undone.</p>
     </div>
 
     <div class="guide-grid" data-tracks="vps vps-private own-public own-private practice railway k8s k8s-private">
       <aside class="guide-side"><div data-widget="panel"></div></aside>
       <div class="guide-steps">
-        <div class="mode-agent" data-widget="agent"></div>
-        <div class="mode-steps" data-widget="setup"></div>
+        <div data-widget="agent"></div>
+        <details class="ref" id="commands">
+          <summary><span class="ref-t">See every command your agent runs</span><span class="ref-s">The skill's own steps, with your values filled in</span></summary>
+          <div data-widget="setup"></div>
+        </details>
       </div>
     </div>
   </section>
@@ -145,7 +148,6 @@
   <section class="block reveal" id="operations" data-mode="agent">
     <div class="text">
       <h2>People, backups, upgrades</h2>
-      <div data-widget="mode"></div>
     </div>
     <div class="wide" data-widget="operations"></div>
   </section>

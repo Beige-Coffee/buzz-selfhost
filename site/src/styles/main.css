@@ -821,19 +821,19 @@ ul.plain li a { margin-left: 4px; font: 12.5px var(--mono); color: var(--ink-3);
 /* ── agent or step by step ──────────────────── */
 /* each section with a switch keeps its own mode */
 [data-mode="agent"] .mode-steps, [data-mode="steps"] .mode-agent { display: none !important; }
-.guide-steps > .mode-agent, .guide-steps > .mode-steps { animation: mode-in 0.55s var(--ease) both; }
 @keyframes mode-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.mode { margin-top: 30px; }
-.mode-switch { display: inline-flex; gap: 4px; padding: 5px; background: #f2f2ee; border-radius: 999px; }
-.mode-switch button {
-  display: inline-flex; align-items: center; gap: 9px; border: 0; background: none; cursor: pointer;
-  padding: 10px 20px; border-radius: 999px; font-size: 15px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink-2);
-  transition: background 0.3s var(--ease), color 0.3s, box-shadow 0.3s;
-}
-.mode-switch button:hover { color: var(--ink); }
-.mode-switch button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgb(24 20 14 / 8%), 0 0 0 1px var(--line); }
-.mode-switch button[data-set="agent"]::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .mode-note { margin: 14px 0 0; max-width: 34em; font-size: 15.5px; color: var(--ink-2); }
+/* the commands your agent runs: a closed reference after the agent path, and under each task */
+.ref { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line); }
+.ref > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; cursor: pointer; list-style: none; }
+.ref > summary::-webkit-details-marker { display: none; }
+.ref-t { font-weight: 500; }
+.ref-s { font-size: 13.5px; color: var(--ink-3); }
+.ref > summary:hover .ref-t { text-decoration: underline; text-underline-offset: 3px; }
+.ref[open] > summary { margin-bottom: 20px; }
+.ref .tl-progress { display: none; }
+.ref-op { margin-top: 22px; padding-top: 14px; }
+.ref-op > summary { font-size: 14px; }
 .tl-step { scroll-margin-top: 84px; }
 
 /* the agent path */
@@ -849,18 +849,20 @@ ul.plain li a { margin-left: 4px; font: 12.5px var(--mono); color: var(--ink-3);
 .ag-more > summary:hover { color: var(--ink); }
 .ag-more-body { margin: 6px 0 2px; padding: 10px 12px; border-radius: 10px; background: #f6f6f1; font-size: 14.5px; line-height: 1.55; color: var(--ink-2); }
 .ag-more-body code { font-size: 0.86em; overflow-wrap: anywhere; }
-/* the one thing that can't be undone: its summary underlined, in ink */
+/* a Get ready item's folds, on its line */
+.ag-fold { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; font-size: 13.5px; color: var(--ink-2); }
+.ag-fold::before { content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform 0.3s var(--ease); }
+.ag-fold[aria-expanded="true"]::before { transform: rotate(45deg); }
+.ag-fold:hover { color: var(--ink); }
+.ag-ready .ag-more-body { margin-top: 8px; }
+/* the one thing that can't be undone: underlined, in ink */
+.ag-fold-warn { font-weight: 600; color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 4px; }
 .ag-warn > summary { font-weight: 600; color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 4px; }
 /* the clouds, each with its catch */
 .ag-clouds { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 14px; margin: 0; }
 .ag-clouds dt { font-weight: 600; color: var(--ink); }
 .ag-clouds dd { margin: 0; }
 .ag-get { white-space: nowrap; font-size: 14.5px; color: var(--ink); }
-.ag-how {
-  margin-left: 4px; padding: 1px 9px; border: 1px solid var(--line-2); border-radius: 999px; background: #fff; cursor: pointer;
-  font-size: 12px; font-weight: 500; color: var(--ink-2); vertical-align: 1px; transition: border-color 0.2s, color 0.2s;
-}
-.ag-how:hover { border-color: var(--ink); color: var(--ink); }
 .ag-tabs { display: inline-flex; gap: 2px; padding: 3px; background: #f2f2ee; border-radius: 999px; }
 .ag-tabs button { border: 0; background: none; cursor: pointer; padding: 6px 13px; border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--ink-2); transition: background 0.25s, color 0.25s, box-shadow 0.25s; }
 .ag-tabs button:hover { color: var(--ink); }
@@ -905,15 +907,15 @@ ul.plain li a { margin-left: 4px; font: 12.5px var(--mono); color: var(--ink-3);
 /* what to expect: in order, what your agent does (gray) and where it stops for you (chartreuse) */
 .ag-tl { position: relative; list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; }
 .ag-tl::before { content: ""; position: absolute; left: 15px; top: 18px; bottom: 18px; width: 1.5px; background: var(--line-2); }
-.ag-tl-row { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px; padding: 9px 0; }
+.ag-tl-row { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px; padding: 6px 0; }
 .ag-tl-dot { position: relative; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #f2f2ee; color: var(--ink-3); box-shadow: 0 0 0 4px var(--bg, #fff); }
 .ag-tl-dot svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .ag-tl-row.you .ag-tl-dot { background: var(--accent); color: var(--ink); }
 .ag-tl-row.soft .ag-tl-dot { background: #fff; box-shadow: 0 0 0 4px var(--bg, #fff), inset 0 0 0 1.5px var(--accent); }
 .ag-tl p { margin: 0; }
-.ag-tl-who { font: 600 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.ag-tl-who { margin-left: 6px; font: 600 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; vertical-align: 1px; }
 .ag-tl-row.you .ag-tl-who { color: #5c5c08; }
-.ag-tl-t { margin-top: 2px !important; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
+.ag-tl-t { margin-top: 5px !important; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
 .ag-tl-row.agent .ag-tl-t { font-weight: 500; color: var(--ink-2); }
 .ag-tl-d { margin-top: 2px !important; font-size: 14.5px; line-height: 1.5; color: var(--ink-2); }
 .ag-tl-row.agent .ag-tl-d { color: var(--ink-3); }
@@ -1060,7 +1062,6 @@ h2 .hl svg { width: 19px; }
   .tl-n { width: 28px; height: 28px; }
   ol.tl::before { left: 13.5px; }
   .tl-fail dl { grid-template-columns: 1fr; }
-  .mode-switch button { padding: 9px 15px; font-size: 14px; }
   .ag-prompt { padding: 18px 18px 12px; }
   .ag-prompt-foot { flex-wrap: wrap; }
   .opx-ctx { gap: 4px 8px; padding: 10px 12px; font-size: 14px; }

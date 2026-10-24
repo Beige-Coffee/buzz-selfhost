@@ -84,5 +84,13 @@ account. Tell the user; growing them is a plan change.
    Check: once `railway service status -s "block/buzz:main"` is back to `SUCCESS`, check-relay.sh
    prints `PASS  phone pairing at wss://$PAIR`. An image upgrade moves both services:
    `railway service source connect --image ghcr.io/block/buzz:$TAG --service buzz-pair` too.
+7. **Phone notifications.** The relay wakes the Buzz phone app (0.25 or later) for direct messages
+   and mentions through Block's gateway, `push.buzz.xyz`, which passes Apple only a fixed
+   "reconnect" signal. Each command redeploys the relay (not tested on Railway):
+   ```bash
+   railway variable set -s "block/buzz:main" BUZZ_PUSH_GATEWAY_DELIVERY_URL=https://push.buzz.xyz/v1/deliveries/apns
+   railway variable set -s "block/buzz:main" BUZZ_PUSH_ENABLED=true
+   ```
+   Check: once the relay is back to `SUCCESS`, check-relay.sh prints `PASS  phone notifications`.
 
 Then check it, as SKILL.md section 3 says, with no IP, and join, as section 4 says.

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Check a running relay from this machine: it answers, reports its version, has what Buzz 1.0
 # needs (the relay's identity and channel labels), takes WebSocket connections, lets Buzz 0.X in,
-# and, when it names a pairing service, that phones can reach it. Optionally check that ports on
-# the server's public address are closed from outside.
+# when it names a pairing service, that phones can reach it, and whether it offers phone
+# notifications. Optionally check that ports on the server's public address are closed from outside.
 #
 # Usage: check-relay.sh <origin> [public-ip [port ...]]
 #   origin     https://buzz.example.org, or https://localhost for a local test
@@ -17,7 +17,7 @@
 # RESOLVE_IP=<server IP> checks that server directly, for when this computer still has the domain's
 # old address cached (a wildcard record or an earlier one): RESOLVE_IP=203.0.113.10 check-relay.sh ...
 #
-# Prints PASS or FAIL per check (SKIP for phone pairing on a relay without it) and exits non-zero
+# Prints PASS or FAIL per check (SKIP for phone pairing or notifications on a relay without them) and exits non-zero
 # if any failed. Prints no secrets.
 set -u
 ORIGIN=${1:?usage: check-relay.sh <origin> [public-ip [port ...]]}
@@ -86,6 +86,14 @@ if [ -n "$pair" ]; then
   [ "$ws" = 101 ] && pass "phone pairing at $pair" || fail "phone pairing at $pair: HTTP ${ws:-no answer}"
 else
   echo "SKIP  phone pairing: the relay names no pairing service"
+fi
+
+# Phone notifications: with BUZZ_PUSH_ENABLED=true the relay offers buzz-push-v1, and the Buzz phone
+# app (0.25 or later) asks it for wakes, which go through Block's gateway (push.buzz.xyz).
+if ext buzz-push-v1; then
+  pass "phone notifications (buzz-push-v1)"
+else
+  echo "SKIP  phone notifications: off (BUZZ_PUSH_ENABLED isn't true)"
 fi
 
 allowed=$(curl -s -m 10 ${CURL_OPTS[@]+"${CURL_OPTS[@]}"} -o /dev/null -D - -X OPTIONS "$ORIGIN/info" \

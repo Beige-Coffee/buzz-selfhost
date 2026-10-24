@@ -78,6 +78,9 @@ relay:
     - tauri://localhost
     - http://tauri.localhost
     - https://$DOMAIN
+  extraEnv:
+    - {name: BUZZ_PUSH_GATEWAY_DELIVERY_URL, value: "https://push.buzz.xyz/v1/deliveries/apns"}
+    - {name: BUZZ_PUSH_ENABLED, value: "true"}
 ingress:
   enabled: true
   className: traefik
@@ -213,6 +216,9 @@ relay:
     - tauri://localhost
     - http://tauri.localhost
     - https://$DOMAIN
+  extraEnv:
+    - {name: BUZZ_PUSH_GATEWAY_DELIVERY_URL, value: "https://push.buzz.xyz/v1/deliveries/apns"}
+    - {name: BUZZ_PUSH_ENABLED, value: "true"}
 ingress:
   enabled: true
   className: tailscale

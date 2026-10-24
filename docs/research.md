@@ -22,7 +22,7 @@ every run.
 
 | Setup | Scripted | Agent runs | iPhone pairing |
 | --- | --- | --- | --- |
-| VPS, public | 101 of 101 on `sha-e8781ca`, and 119 of 119 upgrading from `sha-30873ba`; earlier 108 of 108 from MinIO to Silo | Claude, Codex, Goose | Tested, Buzz 0.X and 1.0 |
+| VPS, public | 101 of 101 on `sha-e8781ca`, and 119 of 119 upgrading from `sha-30873ba`; earlier 108 of 108 from MinIO to Silo | Claude, Codex, Goose | Tested, Buzz 0.X and 1.0, and notifications |
 | VPS, private (Tailscale) | 52 of 52 | Claude, Codex, Goose | Tested |
 | Kubernetes, public | 23 of 23 | Claude | Tested |
 | Kubernetes, private (Tailscale) | 17 of 17 | Claude | Not covered |
@@ -53,6 +53,8 @@ Not tested yet:
 - Trusting the local test's authority on Linux or Windows
 - Huddles between two Buzz 1.0 users
 - Kubernetes and the private network on `sha-e8781ca`
+- Phone notifications anywhere but a public VPS (Railway, Kubernetes, the private network), and
+  on Android, which has no push upstream yet (block/buzz#6092)
 
 Buzz ships new images daily; the skill was last tested end to end on `sha-d1b7da4`, the Compose
 path on `sha-30873ba`, and the VPS and the local test on `sha-e8781ca` (2026-10-23).
@@ -87,7 +89,7 @@ to start a required security review.
 
 | Issue | What breaks | Fix in progress |
 | --- | --- | --- |
-| [#5206](https://github.com/block/buzz/issues/5206) iPhone push | Only Block's gateway can push to the App Store app, and it doesn't serve self-hosted relays | [#7760](https://github.com/block/buzz/pull/7760): your own signed app and gateway |
+| [#5206](https://github.com/block/buzz/issues/5206) iPhone push | Still open, but it works now: with the App Store app 0.25 and `BUZZ_PUSH_ENABLED=true`, Block's gateway served a self-hosted relay (tested Oct 23) | `buzz-push-v1` ([#8206](https://github.com/block/buzz/pull/8206)); [#7760](https://github.com/block/buzz/pull/7760) for your own app and gateway |
 | [#6092](https://github.com/block/buzz/issues/6092) Android push | No push notifications on Android at all | None; needs [#3229](https://github.com/block/buzz/issues/3229) |
 | [#7721](https://github.com/block/buzz/issues/7721) Phone pairing | The bundle never starts the pairing service | None upstream; the skill adds it |
 | [#4198](https://github.com/block/buzz/issues/4198) Phones on private IPs | The app rejects bare private addresses like `ws://10.0.0.1` | [#7266](https://github.com/block/buzz/pull/7266) |
@@ -181,6 +183,17 @@ one for Intel Macs.
   the phone and a six-digit code. The in-app Join a community (community button) takes only an
   address, not an invite link. Before any community, Settings opens only with ⌘, (unconfirmed at
   runtime). Buzz 1.0 doesn't back up the private key: Settings, Identity, Copy private key.
+- **Phone notifications work on a self-hosted relay.** Block's bundle has carried
+  `BUZZ_PUSH_ENABLED=false` and `BUZZ_PUSH_GATEWAY_DELIVERY_URL=https://push.buzz.xyz/v1/deliveries/apns`
+  since 2026-09-15 (#7261), and the App Store app 0.25 (2026-10-21) has the new `buzz-push-v1`
+  push (#8206). Neither the gateway nor the app limits which relay can use it. On a public VPS
+  (`sha-e8781ca`) with push on, the relay advertised `buzz-push-v1` and the phone published a
+  kind 30350 lease that wakes it for messages that tag the user. A direct message and a mention
+  from another member each produced one wake that the gateway accepted, and the locked iPhone
+  showed both with their text. A plain channel message matched no lease and sent no wake, yet the
+  owner saw a notification for it too; what showed it is unconfirmed. The wake itself is a
+  constant "reconnect" signal (NIP-PL): no message passes through Block or Apple
+  ([record](../tests/runs/2026-10-23-1641-push-check.md)).
 - **Railway's template** was listed as degraded on 2026-10-23 (success rate 0 over 30 days; its
   2026-10-18 validation failed with "Your workspace has been restricted"), but a fresh deploy
   from the CLI the same day worked. On the template's `sha-788b3c0` every check passed except

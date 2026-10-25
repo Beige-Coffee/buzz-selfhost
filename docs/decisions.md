@@ -72,6 +72,11 @@ you restore; both are commands you run. Upgrading stays a prompt for your agent,
 folded: it has the most steps and the most ways to get one wrong. "Run your relay well" is gone:
 the skill already does most of it, and the two habits only a person can keep (an encrypted copy
 off the server, the relay key where two people can open it) moved into the backup notes.
+Later the same day, after the owner's screenshots of Buzz 1.0: adding people became four flows,
+add someone, invite with a link, change a role and remove someone, each starting from a looping
+click on the profile menu, drawn from those screenshots and the app's source, with Buzz's own
+Tabler icons. Backing up and restoring are numbered steps whose commands are the skill's own
+blocks; the skill's restore puts its stop-and-clear commands in a block of their own for that.
 
 ## Phone notifications on by default (2026-10-23)
 

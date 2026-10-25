@@ -43,7 +43,7 @@ const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
     reach: `Not on Railway: ${PUBLIC}`,
     facts: [
       ["Relay key", "In Railway's variables; copy it somewhere safe"],
-      ["Best for", "Teams that want the least upkeep, with their data on Railway, and can stay there: there's no tested way to move off it"],
+      ["Best for", "Teams that want the least upkeep, with their data on Railway, and plan to stay: this guide has no way to move a community off it"],
     ],
   },
   "own-public": {

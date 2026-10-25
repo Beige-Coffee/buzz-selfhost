@@ -5,7 +5,7 @@
  * - Reach is the other real fork: a private network hides the relay, but every device needs the VPN,
  *   phones included.
  * - Experience isn't asked: an agent with the skill does the setup and the upkeep.
- * Results come from the tested paths; where an answer pair has no tested setup, the closest one says so.
+ * Results are the skill's setups; where an answer pair has none, the closest one says so.
  */
 import type { OwnMode, Path, Reach, Track } from "../lib/values";
 
@@ -39,7 +39,7 @@ export const QUESTIONS: Question[] = [
     hint: "Who runs the machine: you, a hosting provider, or a platform.",
     options: [
       { id: "all", label: "Own hardware", hint: "You run the machine: power, network, disks, backups.", when: "Pick this if the data must stay on hardware you own." },
-      { id: "server", label: "Rented VPS", hint: "The provider runs the hardware. You run the OS, Docker and backups.", when: "Pick this for full control without owning hardware. The most tested setup." },
+      { id: "server", label: "Rented VPS", hint: "The provider runs the hardware. You run the OS, Docker and backups.", when: "Pick this for full control without owning hardware." },
       { id: "little", label: "Managed platform", hint: "Railway runs the containers. You run backups and upgrades.", when: "Pick this if nobody wants to maintain a server. Less control, less upkeep." },
       { id: "cluster", label: "Already run Kubernetes", hint: "Block's Helm chart on your cluster, behind your ingress.", when: "Pick this if your team already runs a cluster with an ingress controller and cert-manager." },
     ],
@@ -124,7 +124,7 @@ export function pick(a: Answers): { track: Track; note?: string } | null {
     case "server":
       return { track: priv ? "vps-private" : "vps" };
     case "little":
-      return priv ? { track: "vps-private", note: "Railway has no private option. This is the closest tested setup." } : { track: "railway" };
+      return priv ? { track: "vps-private", note: "Railway has no private option. This is the closest setup." } : { track: "railway" };
     case "cluster":
       return { track: priv ? "k8s-private" : "k8s" };
     default:

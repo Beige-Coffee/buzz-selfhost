@@ -91,8 +91,35 @@ const md = new Marked({
   },
 });
 
+/**
+ * The site doesn't talk about how the skill was tested: the skill's notes on that are for the agent,
+ * so they come out of the prose here, never out of a command. Each rule names what it removes.
+ */
+const UNTESTED: [RegExp, string][] = [
+  [/x86 is what's tested\.\s*/g, ""],
+  [/That's the tested install\.\s*/g, ""],
+  [/,?\s*which isn't tested here/g, ""],
+  [/In testing, deleting a DigitalOcean cluster didn't always/g, "Deleting a DigitalOcean cluster doesn't always"],
+  [/\s+in testing\b/g, ""],
+  [/\bon the tested account\b/g, "on one account"],
+  [/the `tested-image` tag in SKILL\.md's header/g, "the image the skill recommends"],
+  [/;\s*tested as written:/g, ":"],
+  // a parenthesis about testing, such as "(not tested)" or "(tested from sha-30873ba)"
+  [/\s*\([^()]*\b(?:tested|untested|testing)\b[^()]*\)/g, ""],
+  [/\s*\(seen\)/g, ""],
+  // a sentence that reports a test, such as "Tested: messages ... came back."
+  [/(^|\s)Tested\b[\s\S]*?\.(?=\s+[A-Z`*[]|\s*$)/g, "$1"],
+];
+function untested(markdown: string): string {
+  // code fences alternate with prose; only the prose changes
+  return markdown
+    .split(/(```[\s\S]*?```)/)
+    .map((part, i) => (i % 2 ? part : UNTESTED.reduce((t, [re, to]) => t.replace(re, to), part)))
+    .join("");
+}
+
 function toHTML(markdown: string): string {
-  let text = markdown;
+  let text = untested(markdown);
   for (const [re, key] of VARS) text = text.replace(re, key);
   // issue references outside code become links
   text = text.replace(/(^|[\s(])block\/buzz#(\d+)/g, "$1[block/buzz#$2](https://github.com/block/buzz/issues/$2)");
@@ -208,7 +235,7 @@ function fixes(dir: string): SkillFix[] {
             : /^Local:/.test(symptom)
               ? LOCAL
               : [...TRACKS];
-    return { tracks, symptom: md.parseInline(symptom) as string, fix: md.parseInline(fix) as string };
+    return { tracks, symptom: md.parseInline(untested(symptom)) as string, fix: md.parseInline(untested(fix)) as string };
   });
 }
 

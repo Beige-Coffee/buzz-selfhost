@@ -60,6 +60,19 @@ mobile, then Add community on the phone. The prompts say where the npub comes fr
 Identity), and Get ready tells people to save their private key, since Buzz 1.0 doesn't back it
 up.
 
+## Operations: the right tool for each task (2026-10-25)
+
+Before the site goes to the Buzz team, it gets more minimal, and less agent-first where an agent
+isn't needed. Adding people is a click-through of Buzz 1.0's own screens (Settings, Community
+admin, Membership, "Add or invite people", the new member's Join screen, the row menu): the owner
+and admins do it in the app, with nothing to run on the server. Backing up shows the commands
+first, from operations.md, with the skill's notes folded, and on a VPS a line about the provider's
+automatic backups; restoring shows the whole procedure, since what to run first depends on where
+you restore; both are commands you run. Upgrading stays a prompt for your agent, with its commands
+folded: it has the most steps and the most ways to get one wrong. "Run your relay well" is gone:
+the skill already does most of it, and the two habits only a person can keep (an encrypted copy
+off the server, the relay key where two people can open it) moved into the backup notes.
+
 ## Phone notifications on by default (2026-10-23)
 
 A newcomer review named "no push notifications" as the likeliest reason a team would stay on Slack.

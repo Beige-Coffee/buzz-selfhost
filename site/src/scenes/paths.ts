@@ -29,72 +29,56 @@ const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
     reach: `Off: ${PUBLIC}`,
     facts: [
       ["Relay key", "On your server"],
-      ["You maintain", "OS updates, Docker, backups"],
       ["Best for", "Most teams. Your data stays on a server you control"],
-      ["Moving later", "Restore a backup on a new server, then point your domain at it. Same URL, same community"],
     ],
   },
   "vps-private": {
     reach: "On: only devices on your Tailscale network",
     facts: [
       ["Relay key", "On your server"],
-      ["You maintain", "OS updates, Docker, backups, Tailscale"],
       ["Best for", "Teams with sensitive work that want nothing open to the internet"],
-      ["Moving later", "Restore a backup on a new server, under the same Tailscale name"],
     ],
   },
   railway: {
     reach: `Not on Railway: ${PUBLIC}`,
     facts: [
       ["Relay key", "In Railway's variables; copy it somewhere safe"],
-      ["You maintain", "Backups and upgrades. Git repos are lost on redeploy"],
-      ["Best for", "Teams that want the least upkeep, and are fine with Railway holding their data"],
-      ["Moving later", "Hard: a different setup, so no direct restore. Use your own domain from day one"],
+      ["Best for", "Teams that want the least upkeep, with their data on Railway, and can stay there: there's no tested way to move off it"],
     ],
   },
   "own-public": {
     reach: `Off: ${PUBLIC}`,
     facts: [
       ["Relay key", "On your machine"],
-      ["You maintain", "OS updates, backups, power, port forwarding on your router"],
       ["Best for", "Teams that want full control, with data on hardware they own"],
-      ["Moving later", "Restore a backup on a new server, then point your domain at it. Same URL, same community"],
     ],
   },
   "own-private": {
     reach: "On: only devices on your Tailscale network",
     facts: [
       ["Relay key", "On your machine"],
-      ["You maintain", "OS updates, backups, power"],
       ["Best for", "Teams with the most sensitive data: their own hardware, nothing public"],
-      ["Moving later", "Restore a backup on a new server, under the same Tailscale name"],
     ],
   },
   practice: {
     reach: "Local test: only this laptop can reach it",
     facts: [
       ["Relay key", "On your laptop"],
-      ["You maintain", "Nothing. Delete it when you're done"],
       ["Best for", "Trying Buzz before you pick a server"],
-      ["Moving later", "Nothing moves. A server means a new community"],
     ],
   },
   k8s: {
     reach: `Off: ${PUBLIC}`,
     facts: [
       ["Relay key", "In a Kubernetes Secret"],
-      ["You maintain", "The cluster, ingress, TLS certificates, backups"],
       ["Best for", "Teams that already run Kubernetes"],
-      ["Moving later", "Restore the skill's backup on the new cluster with your own tools"],
     ],
   },
   "k8s-private": {
     reach: "On: only devices on your Tailscale network",
     facts: [
       ["Relay key", "In a Kubernetes Secret"],
-      ["You maintain", "The cluster, backups, the Tailscale operator"],
       ["Best for", "Teams that already run Kubernetes and want nothing public"],
-      ["Moving later", "Restore the skill's backup on the new cluster with your own tools"],
     ],
   },
 };

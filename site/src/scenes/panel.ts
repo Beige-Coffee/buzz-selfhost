@@ -15,7 +15,7 @@ export function mountPanel(host: HTMLElement): void {
         <span>Your npub <i data-npub-state></i></span>
         <input name="npub" placeholder="npub1…" autocomplete="off" spellcheck="false" value="${attr(v.npub)}">
       </label>
-      <label class="vl-field narrow mode-steps" title="Tested with ${DEFAULT_TAG}. Not every commit on main has an image.">
+      <label class="vl-field narrow mode-steps" title="The skill recommends ${DEFAULT_TAG}. Not every commit on main has an image.">
         <span>Image tag</span>
         <input name="tag" placeholder="${DEFAULT_TAG}" autocomplete="off" spellcheck="false" value="${attr(v.tag)}">
       </label>

@@ -163,5 +163,9 @@ must point at block/buzz instead of Beige-Coffee/buzz-selfhost.
 
 - Meta description: "You're a grown-up. Run your own Buzz server."
 - No "promises" box and no "Tested on" line in the setup guides.
+- The site never talks about testing (2026-10-25): the tests are why its advice can be trusted,
+  not part of the advice. The skill and these docs keep their test notes, since agents and
+  maintainers use them; `site/build/skill.ts` (`UNTESTED`) strips them from the skill text the
+  site shows.
 - No mentions of the Block engineering blog post the guide started from.
 - No em dashes; avoid filler such as "just" and "simply".

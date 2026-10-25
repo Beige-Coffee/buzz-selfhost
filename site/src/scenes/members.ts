@@ -1,87 +1,100 @@
 import leo from "../assets/avatars/leo.svg";
 import maya from "../assets/avatars/maya.svg";
+import { TABLER } from "./tabler";
 
 /**
- * Adding people, as a click-through of Buzz 1.0's own screens, in light mode. Wording from
- * block/buzz-app at 68ebbfe: Settings (src/app/settings-sections.ts), Membership and its
- * "Add or invite people" dialog (src/bundled/moderation/CommunityAdmin.tsx), and the first-run
- * Join a community screen (src/features/communities/CommunityLanding.tsx). Names are illustrative.
+ * Managing people, as click-throughs of Buzz 1.0's own screens, in light mode: four flows, each
+ * starting from the profile menu. Drawn from the owner's screenshots of Buzz 1.0 (2026-10-25) and
+ * block/buzz-app at 68ebbfe: the profile menu (src/app/shell/ProfileButton.tsx), Settings
+ * (settings-sections.ts), Membership, its row menu, the confirmations and "Add or invite people"
+ * (src/bundled/moderation/CommunityAdmin.tsx, api.ts allowedActions), and the first-run Join screen.
+ * Icons are Buzz's own, Tabler's outline set. Names are illustrative.
  */
 
-const STEPS = [
-  {
-    k: "Open Membership",
-    t: "In Buzz, open <b>Settings</b> from your picture at the top right, or press ⌘, (Ctrl+, on Windows and Linux). Under <b>Community admin</b>, choose <b>Membership</b>. Only the owner and admins see it.",
-  },
-  {
-    k: "Add someone directly",
-    t: "Choose <b>Invite members</b>. Paste their npub, which they copy from Buzz's <b>Settings</b>, <b>Identity</b>, pick <b>Member</b> or <b>Admin</b>, and choose <b>Add member</b>.",
-  },
-  {
-    k: "Or send an invite link",
-    t: "The same window makes a link anyone can join with until it expires. Copy it and send it. You choose how long it lasts and how many people can use it.",
-  },
-  {
-    k: "They join",
-    t: "They paste the link into <b>Join a community</b> on Buzz's first screen. Or they open the link and choose <b>Accept invite in Buzz</b>.",
-  },
-  {
-    k: "Change or remove someone",
-    t: "In the member list, the <b>…</b> menu on a row makes someone an admin, or a member again, or removes them.",
-  },
-];
-
 const HOST = "buzz.yourteam.org";
-const i = (d: string) => `<svg class="b1-i" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
-const CROWN = i(`<path d="M11.56 3.27a.5.5 0 0 1 .88 0l2.95 5.6a1 1 0 0 0 1.52.29L21.18 5.5a.5.5 0 0 1 .8.52l-2.83 10.25a1 1 0 0 1-.97.73H5.82a1 1 0 0 1-.96-.73L2.02 6.02a.5.5 0 0 1 .8-.52l4.27 3.66a1 1 0 0 0 1.52-.29z"/><path d="M5 21h14"/>`);
-const SHIELD = i(`<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>`);
-const SEARCH = i(`<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>`);
-const MORE = i(`<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>`);
-const DOWN = i(`<path d="m6 9 6 6 6-6"/>`);
+const LINK = `https://${HOST}/invite/v2.nOvr6DwA6uV77rW3`;
+const ti = (name: string) => `<svg class="tb-i" viewBox="0 0 24 24" aria-hidden="true">${TABLER[name]}</svg>`;
+const ring = (on: boolean) => (on ? " hot" : "");
 
-/** Settings' sidebar, with a community selected (settings-sections.ts), Membership open. */
-const SIDE = `<aside class="mb-side">
-  <p class="mb-host"><span>Y</span>${HOST}</p>
-  <p class="mb-g">Community</p><p>Profile</p><p>Local settings</p><p>Custom emoji</p><p>Pair mobile</p><p>Leave or remove</p>
-  <p class="mb-g">Community admin</p><p class="on">Membership</p>
-  <p class="mb-g">Buzz</p><p>Identity</p><p>Appearance</p>
-</aside>`;
+/* ── the profile menu, from the top right ── */
+const CURSOR = `<svg class="mb-cursor" viewBox="0 0 16 20" aria-hidden="true"><path d="M1 1v15l4.2-3.9 2.7 6.2 2.6-1.1-2.7-6.1H14z"/></svg>`;
+const open = `<div class="mb-app">
+  <div class="mb-top">
+    <span class="mb-track">${ti("robot")}Agents<span>${ti("bolt")}Workflows</span><span>${ti("search")}</span></span>
+    <span class="mb-comm">Y</span><span class="mb-me"><img src="${maya}" alt=""><i></i></span>
+  </div>
+  <div class="mb-app-body"><div class="mb-app-main"><p># release</p><span></span><span></span><span class="short"></span></div></div>
+  <div class="mb-pmenu">
+    <div class="mb-pm-head"><span class="mb-pm-av"><img src="${maya}" alt=""><i></i></span><span><b>Maya</b><em>Online</em></span></div>
+    <p class="mb-pm-status">${ti("mood-smile")}Set a status</p>
+    <hr>
+    <p>${ti("device-desktop")}Appearance<span class="mb-pm-more">${ti("chevron-right")}</span></p>
+    <p>${ti("layout-grid")}Plugins</p>
+    <p class="mb-pm-set">${ti("settings")}Settings</p>
+    <hr>
+    <p>${ti("message-circle")}Send feedback</p>
+  </div>
+  ${CURSOR}
+</div>`;
 
-type Hot = "invite" | "menu" | "";
-const row = (img: string, name: string, role: string, badge = "", menu = false) =>
-  `<div class="mb-row"><span class="mb-av">${img}</span><b>${name}</b>${badge}<em>${role}</em><span class="mb-dots${menu ? " hot" : ""}">${MORE}</span></div>`;
+/* ── Settings, over the app, with Membership open ── */
+const NAV: [string, string][][] = [
+  [["user", "Profile"], ["settings", "Local settings"], ["mood-smile", "Custom emoji"], ["device-mobile", "Pair mobile"], ["logout", "Leave or remove"]],
+  [["users", "Membership"]],
+  [["shield", "Identity"], ["palette", "Appearance"], ["bell", "Notifications"], ["keyboard", "Shortcuts"]],
+];
+const GROUPS = ["Community", "Community admin", "Buzz"];
+const nav = `<nav class="mb-nav-col">
+  <p class="mb-nav-host"><span>Y</span>${HOST}</p>
+  ${NAV.map((items, g) => `<p class="mb-nav-g">${GROUPS[g]}</p>${items.map(([icon, label]) => `<p class="mb-nav-i${label === "Membership" ? " on" : ""}">${ti(icon)}${label}</p>`).join("")}`).join("")}
+</nav>`;
+
+type Spot = "invite" | "dots" | "make-admin" | "remove" | "";
 const pic = (src: string) => `<img src="${src}" alt="">`;
-
-/** The Membership page: its buttons, the count and search, and the member list. */
-const membership = (hot: Hot) => `<section class="mb-page">
+const row = (av: string, name: string, npub: string, role: string, badge: string, dots: boolean, spot: Spot) =>
+  `<div class="mb-row"><span class="mb-av">${av}</span><span class="mb-who"><b>${name} · <em>${npub}</em>${badge}</b><small>${role}</small></span>${
+    dots ? `<span class="mb-dots${spot === "dots" ? " hot" : spot === "make-admin" || spot === "remove" ? " open" : ""}">${ti("dots")}</span>` : ""
+  }</div>`;
+const membership = (spot: Spot) => `<section class="mb-page">
   <h5>Membership</h5>
   <p class="mb-sub">Manage members and access to ${HOST}.</p>
-  <div class="mb-btns"><span class="mb-btn">Refresh</span><span class="mb-btn primary${hot === "invite" ? " hot" : ""}">Invite members</span></div>
-  <div class="mb-count"><b>Members</b><em>3</em><span class="mb-search">${SEARCH}Search members</span></div>
-  ${row(pic(maya), "Maya", "Owner · You", CROWN)}
-  ${row(pic(leo), "Leo", "Member", "", hot === "menu")}
-  ${row(`<i>S</i>`, "Sam", "Admin", SHIELD)}
-  ${hot === "menu" ? `<div class="mb-menu"><p>Make admin</p><p>Make member</p><p class="no">Remove</p></div>` : ""}
+  <div class="mb-btns"><span class="mb-btn">Refresh</span><span class="mb-btn dark${ring(spot === "invite")}">Invite members</span></div>
+  <h6>Members <em>3</em></h6>
+  <div class="mb-box">
+    <p class="mb-search">${ti("search")}Search members</p>
+    ${row(pic(maya), "Maya", "npub1…7x2a", "Owner · You", ti("crown"), false, spot)}
+    ${row("<i>S</i>", "Sam", "npub1…hgjq", "Admin", ti("shield"), true, spot)}
+    ${row(pic(leo), "Leo", "npub1…9vlx", "Member", "", true, spot)}
+    ${spot === "make-admin" || spot === "remove" ? `<div class="mb-rmenu"><p class="${ring(spot === "make-admin")}">${ti("shield")}Make admin</p><p class="${ring(spot === "remove")}">${ti("minus")}Remove</p></div>` : ""}
+  </div>
 </section>`;
+const settings = (spot: Spot, over = "") => `<div class="mb-shade"></div>
+<div class="mb-modal">
+  <div class="mb-modal-h"><b>Settings</b><span class="mb-x">${ti("x")}</span></div>
+  <div class="mb-modal-b">${nav}${membership(spot)}</div>
+  ${over}
+</div>`;
 
-const win = (inner: string) => `<div class="mb-win"><div class="b1-lights" aria-hidden="true"><i></i><i></i><i></i></div><div class="mb-body">${SIDE}${inner}</div></div>`;
-
-/** "Add or invite people", over the dimmed Membership page: one of its two sections in focus. */
-const dialog = (focus: "direct" | "link") => `<div class="mb-dim"></div>
+/* ── dialogs over Settings ── */
+const invite = (spot: "add" | "copy") => `<div class="mb-shade on-modal"></div>
 <div class="mb-dlg">
-  <h5>Add or invite people</h5>
+  <div class="mb-dlg-h"><b>Add or invite people</b><span class="mb-x">${ti("x")}</span></div>
   <p class="mb-sub">Add someone by their exact identity, or share a link they can use to join.</p>
-  <div class="mb-sec${focus === "direct" ? " on" : ""}">
-    <b>Add directly</b>
-    <p>Paste the person's npub or 64-character public key.</p>
-    <div class="mb-line"><span class="mb-in mono">npub1qk3f…7x2a</span><span class="mb-sel">Member${DOWN}</span><span class="mb-btn primary${focus === "direct" ? " hot" : ""}">Add member</span></div>
-  </div>
-  <div class="mb-sec${focus === "link" ? " on" : ""}">
-    <b>Invite with a link</b>
-    <p>Anyone with this link can use it to join until it expires.</p>
-    <div class="mb-line"><span class="mb-in mono">https://${HOST}/invite/v2.Jx7oZ…</span><span class="mb-btn${focus === "link" ? " primary hot" : ""}">Copy link</span></div>
-    <div class="mb-line mb-opts"><span>Expires after</span><span class="mb-sel">3 days${DOWN}</span><span>Limit number of uses</span><span class="mb-sel">No limit${DOWN}</span></div>
-  </div>
+  <h6>Add directly</h6>
+  <p class="mb-sub">Paste the person's npub or 64-character public key.</p>
+  <div class="mb-line"><span class="mb-in">${spot === "add" ? `<span class="typed">npub1qk3f8w…7x2a</span>` : `<span class="ph">npub1… or public key</span>`}<span class="mb-choice">Member${ti("chevron-down")}</span></span><span class="mb-btn${spot === "add" ? " dark hot" : " off"}">Add member</span></div>
+  <h6>Invite with a link</h6>
+  <p class="mb-sub">Anyone with this link can use it to join until it expires.</p>
+  <div class="mb-line"><span class="mb-in"><span class="mono">${LINK}</span><span class="mb-copy${ring(spot === "copy")}">Copy link</span></span></div>
+  <p class="mb-opt">Expires after<span class="mb-choice">3 days${ti("chevron-down")}</span></p>
+  <p class="mb-opt">Limit number of uses<span class="mb-choice">No limit${ti("chevron-down")}</span></p>
+</div>`;
+/** The confirmation, as CommunityAdmin.tsx words it. */
+const confirm = (what: "admin" | "remove") => `<div class="mb-shade on-modal"></div>
+<div class="mb-dlg small">
+  <b class="mb-alert-t">${what === "admin" ? "Make admin: Leo?" : "Remove: Leo?"}</b>
+  <p class="mb-sub">${what === "admin" ? "Admins can invite people and remove members." : "They lose access to this community until they are invited again."}</p>
+  <div class="mb-alert-b"><span class="mb-btn">Cancel</span><span class="mb-btn hot ${what === "admin" ? "dark" : "red"}">${what === "admin" ? "Make admin" : "Remove"}</span></div>
 </div>`;
 
 /** The new member's first screen, with the invite link pasted. */
@@ -89,33 +102,104 @@ const join = `<div class="mb-join j1-win">
   <div class="b1-lights" aria-hidden="true"><i></i><i></i><i></i></div>
   <h4>Join a community</h4>
   <p class="j1-lab">Invite link or community URL</p>
-  <div class="j1-input">https://${HOST}/invite/v2.Jx7oZ…</div>
+  <div class="j1-input">${LINK}…</div>
   <div class="j1-join hot">Join</div>
 </div>`;
 
-const FRAMES = [win(membership("invite")), win(membership("") + dialog("direct")), win(membership("") + dialog("link")), join, win(membership("menu"))];
+interface Step {
+  k: string;
+  t: string;
+  frame: string;
+  loop?: boolean;
+}
+const OPEN: Step = {
+  k: "Open Settings",
+  t: "Click your profile icon at the top right, then <b>Settings</b>. Or press ⌘, (Ctrl+, on Windows and Linux).",
+  frame: open,
+  loop: true,
+};
+const MEMBERS = (spot: Spot, t: string): Step => ({ k: "Open Membership", t, frame: settings(spot) });
 
-/** The click-through: the drawing, then the step's words and its controls. `step` is the one shown. */
-export function membersHTML(step: number): string {
-  const n = Math.max(0, Math.min(STEPS.length - 1, step));
-  return `<div class="mb" data-step="${n}">
-    <div class="mb-stage"><div class="mb-canvas">${FRAMES[n]}</div></div>
+const FLOWS = [
+  {
+    id: "add",
+    label: "Add someone",
+    steps: [
+      OPEN,
+      MEMBERS("invite", "Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite members</b>. Only the owner and admins see Membership."),
+      {
+        k: "Add them by their npub",
+        t: "Paste their npub, which they copy from Buzz's <b>Settings</b>, <b>Identity</b>. As the owner you can pick <b>Member</b> or <b>Admin</b>. Then choose <b>Add member</b>.",
+        frame: settings("", invite("add")),
+      },
+    ],
+  },
+  {
+    id: "link",
+    label: "Invite with a link",
+    steps: [
+      OPEN,
+      MEMBERS("invite", "Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite members</b>."),
+      {
+        k: "Copy the link",
+        t: "Copy it and send it. Anyone with it can join until it expires: after 3 days unless you pick 1, 7 or 30, and as many times as you allow: no limit, or 1, 5, 10 or 25 uses.",
+        frame: settings("", invite("copy")),
+      },
+      {
+        k: "They join",
+        t: "They paste the link into <b>Join a community</b> on Buzz's first screen. Or they open it and choose <b>Accept invite in Buzz</b>.",
+        frame: join,
+      },
+    ],
+  },
+  {
+    id: "role",
+    label: "Change a role",
+    steps: [
+      OPEN,
+      MEMBERS("dots", "Under <b>Community admin</b>, choose <b>Membership</b>, then the <b>…</b> on their row. The owner's own row has none."),
+      {
+        k: "Pick the new role",
+        t: "<b>Make admin</b> for a member, or <b>Make member</b> for an admin. Only the owner can change roles.",
+        frame: settings("make-admin"),
+      },
+      { k: "Confirm", t: "Admins can invite people and remove members. Making them a member again takes that away.", frame: settings("", confirm("admin")) },
+    ],
+  },
+  {
+    id: "remove",
+    label: "Remove someone",
+    steps: [
+      OPEN,
+      MEMBERS("dots", "Under <b>Community admin</b>, choose <b>Membership</b>, then the <b>…</b> on their row."),
+      { k: "Choose Remove", t: "The owner can remove anyone but themselves. Admins can remove members.", frame: settings("remove") },
+      { k: "Confirm", t: "They lose access to this community until they're invited again.", frame: settings("", confirm("remove")) },
+    ],
+  },
+];
+
+/** The click-through: the four flows, the drawing, then the step's words and its controls. */
+export function membersHTML(flow: number, step: number): string {
+  const f = FLOWS[Math.max(0, Math.min(FLOWS.length - 1, flow))];
+  const n = Math.max(0, Math.min(f.steps.length - 1, step));
+  const s = f.steps[n];
+  return `<div class="mb">
+    <div class="mb-flows" role="tablist" aria-label="What to do">${FLOWS.map((x, i) => `<button type="button" role="tab" data-mb-flow="${i}" aria-selected="${x === f}">${x.label}</button>`).join("")}</div>
+    <div class="mb-stage"><div class="mb-canvas${s.loop ? " loop" : ""}">${s.frame}</div></div>
     <div class="mb-text">
-      <p class="mb-n"><span>0${n + 1}</span> / 0${STEPS.length}</p>
-      <h4 class="mb-h">${STEPS[n].k}</h4>
-      <p class="mb-p">${STEPS[n].t}</p>
+      <p class="mb-n"><span>0${n + 1}</span> / 0${f.steps.length}</p>
+      <h4 class="mb-h">${s.k}</h4>
+      <p class="mb-p">${s.t}</p>
       <div class="mb-nav">
         <button type="button" class="mb-go" data-mb="${n - 1}" aria-label="Previous step"${n === 0 ? " disabled" : ""}>←</button>
-        <span class="mb-dots-nav">${STEPS.map((s, j) => `<button type="button" data-mb="${j}" aria-label="Step ${j + 1}: ${s.k}" aria-current="${j === n}"></button>`).join("")}</span>
-        <button type="button" class="mb-go next" data-mb="${n + 1}" aria-label="Next step"${n === STEPS.length - 1 ? " disabled" : ""}>→</button>
+        <span class="mb-dots-nav">${f.steps.map((x, j) => `<button type="button" data-mb="${j}" aria-label="Step ${j + 1}: ${x.k}" aria-current="${j === n}"></button>`).join("")}</span>
+        <button type="button" class="mb-go next" data-mb="${n + 1}" aria-label="Next step"${n === f.steps.length - 1 ? " disabled" : ""}>→</button>
       </div>
     </div>
   </div>`;
 }
 
-export const MEMBER_STEPS = STEPS.length;
-
-/** The canvas is drawn at 560 x 330 and scaled to the stage, like an SVG viewBox. */
+/** The canvas is drawn at 560 x 340 and scaled to the stage, like an SVG viewBox. */
 export function fitMembers(root: ParentNode): void {
   root.querySelectorAll<HTMLElement>(".mb-stage").forEach((stage) => {
     const fit = () => stage.style.setProperty("--s", String(Math.min(1, stage.clientWidth / 560)));

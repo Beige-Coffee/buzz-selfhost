@@ -56,11 +56,14 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   hundreds (the dump reads back). The backup holds every
   secret: ask the user how to encrypt it (for example `gpg --symmetric`) and where the off-machine
   copy goes. Those are their decisions.
-- **Restore** into empty volumes (ask first: it replaces the data). On a new machine after
+- **Restore** into empty volumes (ask first: it replaces the data). On a new machine, first run
   compose.md steps 3, 4 and 9, with the backup's tag for step 4
-  (`TAG=$(grep '^BUZZ_IMAGE=' ~/buzz-backup/env | cut -d: -f2)`), or on this one after
-  `BUZZ_COMPOSE_TLS=true ./run.sh stop` and
-  `docker volume rm buzz-prod_buzz-postgres-data buzz-prod_buzz-minio-data buzz-prod_buzz-git-data`.
+  (`TAG=$(grep '^BUZZ_IMAGE=' ~/buzz-backup/env | cut -d: -f2)`). On this one, stop the relay and
+  delete the volumes the backup replaces:
+  ```bash
+  BUZZ_COMPOSE_TLS=true ./run.sh stop
+  docker volume rm buzz-prod_buzz-postgres-data buzz-prod_buzz-minio-data buzz-prod_buzz-git-data
+  ```
   If this one was upgraded since the backup, also move the bundle back to the backup's tag first,
   the way Upgrade moves it (the two `git checkout` lines, then compose.md step 9).
   `docker compose create` makes the volumes the way Compose expects, so it doesn't warn later.

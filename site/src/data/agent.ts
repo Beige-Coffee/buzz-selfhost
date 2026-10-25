@@ -360,21 +360,72 @@ export type OpSetup = "compose" | "railway" | "k8s";
 export const opSetup = (t: Track): OpSetup => (t === "railway" ? "railway" : t === "k8s" || t === "k8s-private" ? "k8s" : "compose");
 
 const PEOPLE_WHY = "The owner and admins add people in Buzz itself, by npub or with an invite link. Nothing to run on the server.";
-/** The two habits only a person can keep, from what was the best practices section. */
-const KEEP = "Keep an encrypted copy off the server, and the relay key where two people can open it.";
 const UPGRADE_WHY = "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup.";
 const agent = (t: string): OpStep => ({ who: "agent", icon: "agent", t });
 const asks = (t: string): OpStep => ({ who: "you", icon: "ask", t });
 const PEOPLE: OpDetail = { why: PEOPLE_WHY };
 
+/**
+ * Backing up and restoring, as numbered steps for a person to run. `code` picks a command block from
+ * the skill's own step (operations.md), so the commands still come from the skill.
+ */
+export interface FlowStep {
+  t: string;
+  d: string;
+  code?: number;
+}
+const CHECK_BACK = "The relay check passes, and your messages, files and members are back.";
+export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", FlowStep[]>>> = {
+  compose: {
+    backup: [
+      { t: "Run it on the server", d: "From <code>buzz/deploy/compose</code>. Members lose the connection for about half a minute.", code: 0 },
+      { t: "Check it", d: "<code>ls -la ~/buzz-backup</code> shows four files, none of them empty, and Buzz reconnects." },
+      {
+        t: "Keep it safe",
+        d: "It holds every secret. Encrypt it, for example with <code>gpg --symmetric</code>, keep a copy off the server, and keep the relay key where two people can open it.",
+      },
+    ],
+    restore: [
+      {
+        t: "Clear the way",
+        d: "On this server, stop Buzz and delete the data the backup replaces. On a new server, set Buzz up with this guide first, on the backup's version, and skip this.",
+        code: 0,
+      },
+      { t: "Put the backup back", d: "From <code>buzz/deploy/compose</code>, with the backup in <code>~/buzz-backup</code>.", code: 1 },
+      { t: "Check it", d: CHECK_BACK },
+    ],
+  },
+  railway: {
+    backup: [
+      { t: "Run it on this computer", d: "In the folder linked to the Railway project. It needs <code>pg_dump</code> 18 and the AWS CLI.", code: 0 },
+      { t: "Check it", d: "<code>buzz.dump</code> and the <code>buzz-bucket</code> folder are here, and neither is empty." },
+      {
+        t: "Keep it safe",
+        d: "Encrypt the copies and keep one off this computer. The relay key is in Railway's variables: keep it where two people can open it. Railway doesn't keep git repositories.",
+      },
+    ],
+    restore: [
+      { t: "Put the backup back", d: "In the folder with <code>buzz.dump</code> and <code>buzz-bucket</code>. It stops the relay, empties the database, restores it and the bucket, then redeploys.", code: 0 },
+      { t: "Check it", d: CHECK_BACK },
+    ],
+  },
+  k8s: {
+    backup: [
+      { t: "Run it", d: "With <code>kubectl</code> connected to the cluster. The relay keeps running.", code: 0 },
+      { t: "Check it", d: "Four files, none of them empty." },
+      { t: "Keep it safe", d: "The Secret file holds the relay key. Encrypt the copies, keep one off this computer, and keep the relay key where two people can open it." },
+    ],
+  },
+};
+
 export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
   compose: {
     people: PEOPLE,
     backup: {
-      why: `Saves the database, uploaded files, git repositories and the <code>.env</code> file (passwords and the relay key) into one folder. Run it on the server, from <code>buzz/deploy/compose</code>; members lose the connection for about half a minute. ${KEEP} Restore it once to prove it works.`,
+      why: "Saves the database, uploaded files, git repositories and the <code>.env</code> file, with the passwords and the relay key, into one folder. Restore it once to prove it works.",
     },
     restore: {
-      why: "Puts a backup back, on this server or a new one, and replaces the relay's current data. Run these on the server, from <code>buzz/deploy/compose</code>.",
+      why: "Puts a backup back, on this server or a new one. It replaces the relay's current data.",
     },
     upgrade: {
       why: UPGRADE_WHY,
@@ -388,7 +439,7 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
   railway: {
     people: PEOPLE,
     backup: {
-      why: `Saves the database and the file bucket to this computer, which needs <code>pg_dump</code> 18 and the AWS CLI installed. Git repositories aren't kept on Railway. ${KEEP}`,
+      why: "Saves the database and the file bucket to this computer.",
     },
     restore: {
       why: "Puts the backup on this computer back into Railway, and replaces the relay's current data.",
@@ -401,7 +452,7 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
   k8s: {
     people: PEOPLE,
     backup: {
-      why: `With the quickstart profile, saves the database, the file bucket, the git volume and the relay's Secret, which holds the relay key; the relay keeps running. In production, use your managed database's and bucket's own backups. ${KEEP}`,
+      why: "With the quickstart profile, saves the database, the file bucket, the git volume and the relay's Secret, which holds the relay key. In production, use your managed database's and bucket's own backups.",
     },
     restore: {
       why: "Restore the four files the backup saves with your own tools: the database dump, the bucket, the git volume and the relay's Secret.",

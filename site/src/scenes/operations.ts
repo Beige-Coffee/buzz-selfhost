@@ -1,4 +1,4 @@
-import { OP_DETAILS, OP_ORDER, OP_TASKS, OP_WHERE, opSetup, type OpStep, type OpTask } from "../data/agent";
+import { OP_DETAILS, OP_FLOWS, OP_ORDER, OP_TASKS, OP_WHERE, opSetup, type FlowStep, type OpStep, type OpTask } from "../data/agent";
 import { OPS } from "../data/steps";
 import { blanksHTML, fillBlanks } from "../lib/blanks";
 import { copyText, enhanceCode } from "../lib/code";
@@ -50,6 +50,7 @@ const HOST_BACKUPS =
 export function mountOperations(host: HTMLElement): void {
   let open: OpTask = "people";
   let track: Track = trackOf();
+  let memberFlow = 0;
   let memberStep = 0;
 
   const ctxHTML = () => {
@@ -74,14 +75,18 @@ export function mountOperations(host: HTMLElement): void {
     const note = open === "backup" && (track === "vps" || track === "vps-private") ? `<p class="opx-note">${HOST_BACKUPS}</p>` : "";
     const why = `<p class="opx-why">${d.why}</p>${note}`;
     const fold = (label: string) => (commands ? `<details class="ref ref-op"><summary><span class="ref-t">${label}</span></summary>${commands}</details>` : "");
-    if (open === "people") return `${why}${membersHTML(memberStep)}${fold("Or add them from the server")}`;
-    // backing up: the commands first, the skill's notes and checks folded under them
-    if (open === "backup" && !d.manual) {
-      const code = ops.map((o) => (o.html.match(/<pre[\s\S]*?<\/pre>/g) ?? []).map((c) => fillRich(c)).join("")).join("");
-      return `${why}${code ? `<div class="opx-cmds">${code}</div>` : ""}${fold("What it saves, and how to check it")}`;
+    if (open === "people") return `${why}${membersHTML(memberFlow, memberStep)}`;
+    // backing up and restoring: numbered steps for a person, each with the skill's own commands
+    const flow = open === "backup" || open === "restore" ? OP_FLOWS[opSetup(track)][open] : undefined;
+    if (flow && !d.manual) {
+      const blocks = ops.flatMap((o) => o.html.match(/<pre[\s\S]*?<\/pre>/g) ?? []);
+      const stepHTML = (f: FlowStep, n: number) =>
+        `<li><span class="opx-flow-n">${n + 1}</span><div><p class="opx-flow-t">${f.t}</p><p class="opx-flow-d">${fillRich(f.d)}</p>${
+          f.code !== undefined && blocks[f.code] ? fillRich(blocks[f.code]) : ""
+        }</div></li>`;
+      return `${why}<ol class="opx-flow">${flow.map(stepHTML).join("")}</ol>`;
     }
-    // restoring: the whole procedure, since what to run first depends on where you restore
-    if (open !== "upgrade" || d.manual) return `${why}${commands ? `<div class="opx-cmds">${commands}</div>` : ""}`;
+    if (open !== "upgrade" || d.manual) return why;
     return `${why}
       <div class="mode-agent">
         <div class="ag-prompt opx-prompt">
@@ -126,11 +131,13 @@ export function mountOperations(host: HTMLElement): void {
     const t = e.target as HTMLElement;
     const tab = t.closest<HTMLButtonElement>("[data-task]");
     if (tab) return select(tab.dataset.task as OpTask);
+    // the people click-through: pick a flow, or a step in it
+    const flow = t.closest<HTMLButtonElement>("[data-mb-flow]");
     const step = t.closest<HTMLButtonElement>("[data-mb]");
-    if (step && !step.disabled) {
-      memberStep = Number(step.dataset.mb);
-      const mb = host.querySelector<HTMLElement>(".mb")!;
-      mb.outerHTML = membersHTML(memberStep);
+    if (flow || (step && !step.disabled)) {
+      if (flow) [memberFlow, memberStep] = [Number(flow.dataset.mbFlow), 0];
+      else memberStep = Number(step!.dataset.mb);
+      host.querySelector<HTMLElement>(".mb")!.outerHTML = membersHTML(memberFlow, memberStep);
       fitMembers(host);
       return;
     }

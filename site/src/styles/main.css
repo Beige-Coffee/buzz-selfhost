@@ -895,19 +895,11 @@ ul.plain li a { margin-left: 4px; font: 12.5px var(--mono); color: var(--ink-3);
 .ag-alt[open] > summary { margin-bottom: 12px; }
 .ag-alt .ag-kind-note { margin: 8px 0 0; font-size: 13px; color: var(--ink-3); }
 .ag-install pre.cmd { white-space: pre; word-break: normal; }
-.ag-under { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin: 10px 0 0; font-size: 13.5px; color: var(--ink-3); }
-.ag-links { display: inline-flex; gap: 16px; }
 .ag-read, .ag-links a {
   border: 0; background: none; padding: 0; cursor: pointer; font-size: 13.5px; font-weight: 500; color: var(--ink);
   text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; transition: text-decoration-color 0.2s;
 }
 .ag-read:hover, .ag-links a:hover { text-decoration-color: var(--ink); }
-.ag-file { margin-top: 12px; border: 1px solid var(--line-2); border-radius: 14px; overflow: hidden; background: #fff; animation: mode-in 0.45s var(--ease) both; }
-.ag-file-bar { display: flex; justify-content: space-between; gap: 12px; padding: 9px 14px; font: 12px var(--mono); color: var(--ink-3); background: #fbfbf9; border-bottom: 1px solid var(--line); }
-.ag-file-body { margin: 0; max-height: 460px; overflow: auto; padding: 14px 16px; font: 12px/1.6 var(--mono); white-space: pre; color: var(--ink-2); }
-.md-h { color: var(--ink); font-weight: 700; }
-.md-dim { color: var(--ink-3); }
-.md-code { color: #555508; }
 .ag-prompt {
   margin-top: 4px; padding: 20px 22px 14px; background: var(--card); border: 1px solid var(--line-2); border-radius: 20px;
   box-shadow: var(--shadow-1); transition: box-shadow 0.4s var(--ease), transform 0.4s var(--ease);

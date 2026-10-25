@@ -1,7 +1,7 @@
 import { AGENT_TRACKS, type AgentTrack, type Expect, type ExpectIcon } from "../data/agent";
 import { blanksHTML, fillBlanks } from "../lib/blanks";
 import { copyText, enhanceCode } from "../lib/code";
-import { derived, esc, fill, fillRich, getValues, onValues, renderTemplates, trackOf, type Track } from "../lib/values";
+import { derived, esc, fill, fillRich, getValues, isPrivate, onValues, renderTemplates, trackOf, type Track } from "../lib/values";
 
 const AGENT_KEY = "buzz-selfhost-agent-v1";
 type AgentKind = "claude" | "agents";
@@ -41,34 +41,9 @@ function missing(track: Track): string[] {
   const v = getValues();
   const out: string[] = [];
   // Railway names the relay unless you bring a domain
-  if (track !== "practice" && track !== "railway" && !v.domain.trim()) out.push("domain");
+  if (track !== "practice" && track !== "railway" && !v.domain.trim()) out.push(isPrivate(track) ? "Tailscale name" : "domain");
   if (!derived().OWNER_HEX.match(/^[0-9a-f]{64}$/)) out.push("npub");
   return out;
-}
-
-/** Light highlighting for the raw SKILL.md: headings, code fences and front matter. */
-function highlight(md: string): string {
-  let inFence = false;
-  let inFront = false;
-  return md
-    .split("\n")
-    .map((line, i) => {
-      const e = esc(line);
-      if (i === 0 && line === "---") inFront = true;
-      else if (inFront && line === "---") {
-        inFront = false;
-        return `<span class="md-dim">${e}</span>`;
-      }
-      if (inFront) return `<span class="md-dim">${e}</span>`;
-      if (/^\s*```/.test(line)) {
-        inFence = !inFence;
-        return `<span class="md-dim">${e}</span>`;
-      }
-      if (inFence) return `<span class="md-code">${e}</span>`;
-      if (/^#{1,3} /.test(line)) return `<span class="md-h">${e}</span>`;
-      return e;
-    })
-    .join("\n");
 }
 
 const icon = (d: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -100,7 +75,7 @@ function expectHTML(rows: Expect[]): string {
     .map(
       (r) => `<li class="ag-tl-row ${r.who}${r.note ? " soft" : ""}">
         <span class="ag-tl-dot">${ICONS[r.icon]}</span>
-        <div><p class="ag-tl-t">${r.t} <span class="ag-tl-who">${who(r)}</span></p><p class="ag-tl-d" data-rich="${attr(r.d)}"></p></div>
+        <div><p class="ag-tl-t">${r.t} <span class="ag-tl-who">${who(r)}</span></p>${r.who === "you" ? `<p class="ag-tl-d" data-rich="${attr(r.d)}"></p>` : ""}</div>
       </li>`,
     )
     .join("")}</ol>`;
@@ -110,7 +85,6 @@ function expectHTML(rows: Expect[]): string {
 export function mountAgent(host: HTMLElement): void {
   let kind = loadKind();
   let track: Track = trackOf();
-  let fileText: string | null = null;
 
   const refill = () => {
     host.querySelectorAll<HTMLElement>("[data-rich]").forEach((el) => (el.innerHTML = fillRich(el.dataset.rich!)));
@@ -124,7 +98,7 @@ export function mountAgent(host: HTMLElement): void {
       hint.textContent = miss.length
         ? `Type your ${miss.join(" and ")} into the Running on box to fill ${miss.length > 1 ? "them" : "it"} in.`
         : p.prompt.includes("{{DOMAIN}}")
-          ? "Your domain and npub come from the Running on box."
+          ? `Your ${isPrivate(track) ? "Tailscale name" : "domain"} and npub come from the Running on box.`
           : "Your npub comes from the Running on box.";
     host.querySelector(".ag-prompt")?.classList.toggle("incomplete", miss.length > 0);
     renderTemplates(host);
@@ -164,16 +138,6 @@ export function mountAgent(host: HTMLElement): void {
               <div class="ag-install"></div>
               <p class="ag-kind-note"></p>
             </details>
-            <p class="ag-under">
-              <span class="ag-links">
-                <button type="button" class="ag-read" aria-expanded="false">Read the skill</button>
-                <a href="skills/self-host-buzz.tar.gz" download="self-host-buzz.tar.gz">Download</a>
-              </span>
-            </p>
-            <div class="ag-file" hidden>
-              <div class="ag-file-bar"><span>self-host-buzz/SKILL.md</span><span class="ag-file-meta"></span></div>
-              <pre class="ag-file-body">Loading…</pre>
-            </div>
           </div>
         </li>
         <li class="tl-step ag-step">
@@ -193,7 +157,7 @@ export function mountAgent(host: HTMLElement): void {
           <span class="tl-n" aria-hidden="true"><span>4</span></span>
           <div class="tl-body">
             <h3>What to expect</h3>
-            <p class="tl-why">In order: what your agent does, and where it stops for you.</p>
+            <p class="tl-why">In order: what your agent does, and where it stops for you. Your agent's part usually takes 5 to 10 minutes.</p>
             ${expectHTML(t.expect)}
           </div>
         </li>
@@ -218,25 +182,6 @@ export function mountAgent(host: HTMLElement): void {
       const body = document.getElementById(fold.getAttribute("aria-controls")!)!;
       body.hidden = !body.hidden;
       fold.setAttribute("aria-expanded", String(!body.hidden));
-      return;
-    }
-    const read = t.closest<HTMLButtonElement>(".ag-read");
-    if (read) {
-      const file = host.querySelector<HTMLElement>(".ag-file")!;
-      const open = file.hidden;
-      file.hidden = !open;
-      read.setAttribute("aria-expanded", String(open));
-      read.textContent = open ? "Hide the skill" : "Read the skill";
-      if (open && fileText === null) {
-        fetch(derived().SKILL_URL)
-          .then((r) => (r.ok ? r.text() : Promise.reject(r.status)))
-          .then((text) => {
-            fileText = text;
-            host.querySelector<HTMLElement>(".ag-file-body")!.innerHTML = highlight(text);
-            host.querySelector<HTMLElement>(".ag-file-meta")!.textContent = `${text.split("\n").length} lines`;
-          })
-          .catch(() => (host.querySelector<HTMLElement>(".ag-file-body")!.textContent = "Couldn't load the file. Use Download instead."));
-      }
       return;
     }
     const copy = t.closest<HTMLButtonElement>(".ag-copy");

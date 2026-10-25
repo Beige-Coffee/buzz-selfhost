@@ -321,10 +321,10 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
 export type OpTask = "people" | "backup" | "restore" | "upgrade";
 export const OP_ORDER: OpTask[] = ["people", "backup", "restore", "upgrade"];
 export const OP_TASKS: Record<OpTask, { name: string; sub: string; ask: string }> = {
-  people: { name: "Add people", sub: "By their npub", ask: "add <their npub> as a member." },
-  backup: { name: "Back up", sub: "Data, files and keys", ask: "back it up." },
-  restore: { name: "Restore", sub: "From a backup", ask: "restore it from its backup." },
-  upgrade: { name: "Upgrade", sub: "To a newer image", ask: "back it up, then upgrade it to the newest image." },
+  people: { name: "Add people", sub: "In Buzz's settings", ask: "add <their npub> as a member." },
+  backup: { name: "Back up", sub: "Commands you run", ask: "back it up." },
+  restore: { name: "Restore", sub: "Commands you run", ask: "restore it from its backup." },
+  upgrade: { name: "Upgrade", sub: "With your agent", ask: "back it up, then upgrade it to the newest image." },
 };
 
 const SSH_VPS = "My Buzz relay is at {{DOMAIN}}. It's a VPS; SSH in as <user>@<server IP>.";
@@ -351,35 +351,30 @@ export interface OpStep {
 }
 export interface OpDetail {
   why: string;
-  steps: OpStep[];
+  /** What happens, for the task your agent does: upgrades */
+  steps?: OpStep[];
   /** the skill has no steps for it on this setup: no prompt, only the why */
   manual?: boolean;
 }
 export type OpSetup = "compose" | "railway" | "k8s";
 export const opSetup = (t: Track): OpSetup => (t === "railway" ? "railway" : t === "k8s" || t === "k8s-private" ? "k8s" : "compose");
 
-const PEOPLE_WHY =
-  "In Buzz, the owner or an admin can add people: <b>Settings</b>, <b>Community admin</b>, <b>Membership</b>, <b>Invite members</b>, then <b>Add directly</b> with their npub, or <b>Invite with a link</b> to copy a link anyone can join with until it expires. Or have your agent add them: each new member installs Buzz and sends you their npub, from <b>Settings</b>, <b>Identity</b>.";
+const PEOPLE_WHY = "The owner and admins add people in Buzz itself, by npub or with an invite link. Nothing to run on the server.";
+/** The two habits only a person can keep, from what was the best practices section. */
+const KEEP = "Keep an encrypted copy off the server, and the relay key where two people can open it.";
 const UPGRADE_WHY = "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup.";
 const agent = (t: string): OpStep => ({ who: "agent", icon: "agent", t });
 const asks = (t: string): OpStep => ({ who: "you", icon: "ask", t });
-const PEOPLE: OpDetail = { why: PEOPLE_WHY, steps: [agent("Checks the npub is valid, then adds it"), agent("Confirms it's on the member list")] };
+const PEOPLE: OpDetail = { why: PEOPLE_WHY };
 
 export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
   compose: {
     people: PEOPLE,
     backup: {
-      why: "Saves the database, uploaded files, git repositories and the <code>.env</code> file (passwords and the relay key) together. Restore it once to prove it works.",
-      steps: [
-        asks("Asks before stopping the relay for about half a minute"),
-        agent("Saves the database, files, git repos and .env"),
-        agent("Checks the relay is back and the backup isn't empty"),
-        asks("Asks how to encrypt it and where to keep a copy off the machine"),
-      ],
+      why: `Saves the database, uploaded files, git repositories and the <code>.env</code> file (passwords and the relay key) into one folder. Run it on the server, from <code>buzz/deploy/compose</code>; members lose the connection for about half a minute. ${KEEP} Restore it once to prove it works.`,
     },
     restore: {
-      why: "Puts a backup back, on this server or a new one. It replaces the relay's current data.",
-      steps: [asks("Asks first: it replaces the relay's data"), agent("Puts back the database, files, git repos and .env"), agent("Starts the relay again")],
+      why: "Puts a backup back, on this server or a new one, and replaces the relay's current data. Run these on the server, from <code>buzz/deploy/compose</code>.",
     },
     upgrade: {
       why: UPGRADE_WHY,
@@ -391,22 +386,12 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
     },
   },
   railway: {
-    people: {
-      why: PEOPLE_WHY,
-      steps: [
-        agent("Checks the npub is valid"),
-        asks("The first time, asks to add an SSH key to your Railway account"),
-        { who: "you", icon: "key", t: "The first time, you confirm Railway's host key in your own terminal" },
-        agent("Adds it and confirms it's on the member list"),
-      ],
-    },
+    people: PEOPLE,
     backup: {
-      why: "Saves the database and the file bucket to this computer, which needs <code>pg_dump</code> 18 and the AWS CLI installed. Git repositories aren't kept on Railway.",
-      steps: [agent("Saves a database dump and a copy of the bucket here"), agent("Uses each service's credentials without printing them")],
+      why: `Saves the database and the file bucket to this computer, which needs <code>pg_dump</code> 18 and the AWS CLI installed. Git repositories aren't kept on Railway. ${KEEP}`,
     },
     restore: {
-      why: "Puts the backup on this computer back into Railway. It replaces the relay's current data.",
-      steps: [asks("Asks first: it replaces the relay's data"), agent("Stops the relay, then restores the database and the bucket"), agent("Redeploys the relay")],
+      why: "Puts the backup on this computer back into Railway, and replaces the relay's current data.",
     },
     upgrade: {
       why: `${UPGRADE_WHY} Git repositories are lost when Railway redeploys the relay.`,
@@ -416,17 +401,10 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
   k8s: {
     people: PEOPLE,
     backup: {
-      why: "With the quickstart profile, saves the database, the file bucket, the git volume and the relay's Secret, which holds the relay key. In production, use your managed database's and bucket's own backups.",
-      steps: [
-        asks("Asks first. The relay keeps running."),
-        agent("Saves all four in a folder only you can read"),
-        agent("Checks the files aren't empty"),
-        { who: "you", icon: "key", t: "Encrypt the copies: the Secret holds the relay key" },
-      ],
+      why: `With the quickstart profile, saves the database, the file bucket, the git volume and the relay's Secret, which holds the relay key; the relay keeps running. In production, use your managed database's and bucket's own backups. ${KEEP}`,
     },
     restore: {
       why: "Restore the four files the backup saves with your own tools: the database dump, the bucket, the git volume and the relay's Secret.",
-      steps: [],
       manual: true,
     },
     upgrade: {

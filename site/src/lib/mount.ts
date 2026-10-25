@@ -2,7 +2,6 @@ import { mountStory } from "../scenes/story";
 import { mountPaths } from "../scenes/paths";
 import { mountPanel } from "../scenes/panel";
 import { mountSetup } from "../scenes/setup";
-import { mountPractices } from "../scenes/practices";
 import { mountAgent } from "../scenes/agent";
 import { mountOperations } from "../scenes/operations";
 import { mountRelayKey } from "../scenes/relaykey";
@@ -12,7 +11,6 @@ const registry: Record<string, (el: HTMLElement) => void> = {
   paths: mountPaths,
   panel: mountPanel,
   setup: mountSetup,
-  practices: mountPractices,
   agent: mountAgent,
   operations: mountOperations,
   relaykey: mountRelayKey,

@@ -1,3 +1,8 @@
+import leo from "../assets/avatars/leo.svg";
+import maya from "../assets/avatars/maya.svg";
+import ops from "../assets/avatars/ops.webp";
+import reviewer from "../assets/avatars/reviewer.webp";
+
 const i = (d: string) => `<svg class="b1-i" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 /** lucide icons, as Buzz 1.0 uses them */
 const IC = {
@@ -15,7 +20,26 @@ const IC = {
   clip: i(`<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>`),
   smile: i(`<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/>`),
   up: i(`<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>`),
+  react: i(`<path d="M22 11v1a10 10 0 1 1-9-10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/><path d="M16 5h6"/><path d="M19 2v6"/>`),
 };
+
+/*
+ * Avatars: Maya and Leo are Notionists by Zoish (CC0 1.0), made with DiceBear (seeds Maya2 and Sam). The
+ * agents are Fuzzies 12 and 13 from Buzz 1.0's agent avatar packs (block/buzz-app,
+ * src/features/agents/avatar-packs, Apache 2.0), resized.
+ */
+const AV = { maya, leo, ops, reviewer };
+
+/** Reactions sit inside the bubble, under the text, with the add-reaction button last. */
+const reactions = (list: [string, number][]) =>
+  `<div class="b1-reacts">${list.map(([e, n]) => `<span class="b1-react">${e}<b>${n}</b></span>`).join("")}<span class="b1-react add">${IC.react}</span></div>`;
+
+/** A change as GitHub shows it: line numbers, the removed line in red and the added one in green, darker where they differ. */
+const DIFF = `<div class="b1-diff" aria-label="A code change">
+  <div class="b1-diff-h">src/session.ts</div>
+  <div class="b1-dl del"><i>12</i><i></i><b>-</b><code><span class="k">const</span> <span class="c">SESSION_TTL</span> = <mark><span class="n">5</span> * <span class="n">60</span></mark>;</code></div>
+  <div class="b1-dl add"><i></i><i>12</i><b>+</b><code><span class="k">const</span> <span class="c">SESSION_TTL</span> = <mark><span class="n">24</span> * <span class="n">60</span> * <span class="n">60</span></mark>;</code></div>
+</div>`;
 
 /**
  * A small Buzz 1.0 window in light mode, the way block/buzz-app draws it (68ebbfe, 2026-10-23): the top bar's
@@ -24,8 +48,8 @@ const IC = {
  * Illustrative content.
  */
 export function buzzAppHTML(): string {
-  const msg = (av: string, cls: string, name: string, time: string, body: string) =>
-    `<div class="b1-msg"><i class="b1-av ${cls}">${av}</i><div class="b1-col"><div class="b1-meta"><b>${name}</b><time>${time}</time></div><div class="b1-bub">${body}</div></div></div>`;
+  const msg = (av: string, agent: boolean, name: string, time: string, body: string) =>
+    `<div class="b1-msg"><img class="b1-av${agent ? " sq" : ""}" src="${av}" alt=""><div class="b1-col"><div class="b1-meta"><b>${name}</b><time>${time}</time></div><div class="b1-bub">${body}</div></div></div>`;
   return `
 <div class="b1-app" aria-label="A Buzz channel, illustrated">
   <div class="b1-top">
@@ -39,7 +63,7 @@ export function buzzAppHTML(): string {
       <span class="b1-tab">${IC.zap}Workflows</span>
       <span class="b1-tab">${IC.search}</span>
     </div>
-    <div class="b1-me"><span class="b1-comm">Y</span><span class="b1-me-av">L<i></i></span></div>
+    <div class="b1-me"><span class="b1-comm">Y</span><span class="b1-me-av"><img src="${AV.leo}" alt=""><i></i></span></div>
   </div>
   <div class="b1-body">
     <aside class="b1-side">
@@ -54,11 +78,9 @@ export function buzzAppHTML(): string {
     <section class="b1-main">
       <div class="b1-head"><b><em>#</em>release</b><span>${IC.users}${IC.more}</span></div>
       <div class="b1-msgs">
-        <div class="b1-day"><span><i class="b1-cal">23</i>Today</span></div>
-        ${msg("M", "p1", "Maya", "10:02 AM", `<span class="b1-chip">${IC.bot}Ops</span> can you fix the 5-minute login timeout?`)}
-        ${msg("O", "sq", "Ops", "10:04 AM", `Pushed fix/login to app.<pre>- const SESSION_TTL = 5 * 60;
-+ const SESSION_TTL = 24 * 60 * 60;</pre>`)}
-        ${msg("R", "sq ci", "Reviewer", "10:06 AM", "Tests passed on fix/login.")}
+        ${msg(AV.maya, false, "Maya", "10:02 AM", `<span class="b1-chip">${IC.bot}Ops</span> can you fix the 5-minute login timeout?`)}
+        ${msg(AV.ops, true, "Ops", "10:04 AM", `Pushed fix/login to app.${DIFF}${reactions([["🚀", 2], ["🙌", 1]])}`)}
+        ${msg(AV.reviewer, true, "Reviewer", "10:06 AM", `Tests passed on fix/login. ✅${reactions([["🎉", 3], ["🐝", 2]])}`)}
       </div>
       <div class="b1-compose"><span class="b1-ph">Message #release</span><span class="b1-tools">${IC.at}${IC.clip}${IC.smile}<b class="b1-send">${IC.up}</b></span></div>
     </section>

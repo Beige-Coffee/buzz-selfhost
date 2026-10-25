@@ -24,7 +24,9 @@ account. Tell the user; growing them is a plan change.
 1. **Name.** Ask first: keep the `*.up.railway.app` name Railway assigns, or use the user's own
    domain (step 4)? Either way, it's the permanent URL once anyone joins.
 2. **Deploy.** Ask the user to open https://railway.com/deploy/buzz-relay-block and deploy it. It
-   asks for `RELAY_OWNER_PUBKEY`: give them `$OWNER_HEX` (hex, not the npub). Or, with the Railway
+   asks for `RELAY_OWNER_PUBKEY`: give them `$OWNER_HEX` (hex, not the npub). Every later step
+   needs the CLI in a directory linked to that project, so then ask them to run `railway link` in a
+   new directory, in their own terminal (it asks which project), and work from there. Or, with the Railway
    CLI logged in (ask first: it creates a project that costs money), from a new directory, which
    the CLI links to the project, with a name not already in `railway list`:
    ```bash

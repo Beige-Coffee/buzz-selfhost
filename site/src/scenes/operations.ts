@@ -38,6 +38,8 @@ const stepsHTML = (rows: OpStep[]) =>
     .map((r) => `<li data-who="${r.who}"><span class="opx-dot">${ICONS[r.icon]}</span><span><span class="sr">${r.who === "agent" ? "Your agent: " : "Stops for you: "}</span>${r.t}</span></li>`)
     .join("")}</ol>`;
 
+/** On a private network, a new member needs the tailnet too. */
+const PRIVATE_PEOPLE = "On a private network, each new member also needs Tailscale on your tailnet, which takes a seat on paid plans.";
 /** A VPS can also be rolled back from the provider's own backups. */
 const HOST_BACKUPS =
   "Also turn on your provider's automatic backups: DigitalOcean, Hetzner, AWS and Google Cloud all have them. They copy the whole server, so you can roll it back.";
@@ -72,7 +74,9 @@ export function mountOperations(host: HTMLElement): void {
     const d = OP_DETAILS[opSetup(track)][open];
     const ops = OPS.filter((o) => o.kind === open && o.tracks.includes(track));
     const commands = ops.map((o) => `${ops.length > 1 ? `<h4 class="opx-h">${o.title}</h4>` : ""}<div class="tl-md op-md">${fillRich(o.html)}</div>`).join("");
-    const note = open === "backup" && (track === "vps" || track === "vps-private") ? `<p class="opx-note">${HOST_BACKUPS}</p>` : "";
+    const noteText =
+      open === "backup" && (track === "vps" || track === "vps-private") ? HOST_BACKUPS : open === "people" && isPrivate(track) ? PRIVATE_PEOPLE : "";
+    const note = noteText ? `<p class="opx-note">${noteText}</p>` : "";
     const why = `<p class="opx-why">${d.why}</p>${note}`;
     const fold = (label: string) => (commands ? `<details class="ref ref-op"><summary><span class="ref-t">${label}</span></summary>${commands}</details>` : "");
     if (open === "people") return `${why}${membersHTML(memberFlow, memberStep)}`;

@@ -111,14 +111,14 @@
       <div data-tracks="vps vps-private">
         <h2>Self-host on a VPS</h2>
         <p class="sub" data-tracks="vps">Rent a Linux server, point your domain at it, and install Buzz on it.</p>
-        <p class="sub" data-tracks="vps-private">Rent a Linux server and keep it on your Tailscale network, with no public address. Then install Buzz on it.</p>
+        <p class="sub" data-tracks="vps-private">Rent a Linux server and install Buzz on it, reachable only on your Tailscale network.</p>
       </div>
       <div data-tracks="own-public own-private practice">
         <h2 data-tracks="own-public own-private">Self-host on your hardware</h2>
         <h2 data-tracks="practice">Test Buzz locally</h2>
         <p class="sub" data-tracks="own-public">Run Buzz on a Linux machine you own, reachable from the internet through your router.</p>
         <p class="sub" data-tracks="own-private">Run Buzz on a Linux machine you own, on your Tailscale network, with no router changes.</p>
-        <p class="sub" data-tracks="practice">Try Buzz on this computer with Docker Desktop. Nothing here carries over to a server.</p>
+        <p class="sub" data-tracks="practice">Try Buzz on this computer with Docker. Nothing here carries over to a server, and phones can't pair with it.</p>
       </div>
       <div data-tracks="railway">
         <h2>Self-host on Railway</h2>
@@ -126,7 +126,8 @@
       </div>
       <div data-tracks="k8s k8s-private">
         <h2>Self-host on Kubernetes</h2>
-        <p class="sub">Install Buzz with Block's Helm chart on a cluster you already run.</p>
+        <p class="sub" data-tracks="k8s">Install Buzz with Block's Helm chart on a cluster you already run.</p>
+        <p class="sub" data-tracks="k8s-private">Install Buzz with Block's Helm chart on a cluster you already run, reachable only on your Tailscale network.</p>
       </div>
       <p class="mode-note">Your agent runs the tested steps and asks you before anything that costs money or can't be undone.</p>
     </div>

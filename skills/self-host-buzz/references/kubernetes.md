@@ -6,7 +6,8 @@ for a team, back it up (operations.md) or use the production profile (managed Po
 S3), which isn't tested here. Tell the user which one they're getting. Tested on DigitalOcean
 Kubernetes 1.36 with Traefik (chart 41.6.1, Traefik 3.7) and cert-manager 1.21. Needs `kubectl`
 and `helm` pointed at the cluster, with `kubectl` within one minor version of it: keep the same
-`KUBECONFIG` or context for every command, including the ones the user runs. `RELAY_URL=wss://$DOMAIN`, `ORIGIN=https://$DOMAIN`. Ask before
+`KUBECONFIG` or context for every command, including the ones the user runs. The quickstart's
+file store image, `ghcr.io/block/buzz-minio`, is built for x86 only, so the cluster needs x86 nodes. `RELAY_URL=wss://$DOMAIN`, `ORIGIN=https://$DOMAIN`. Ask before
 anything that costs money or creates DNS records: Traefik's load balancer, and the quickstart's
 four volumes (34 GiB on DigitalOcean). Run the heredocs below as shown, unindented.
 For a relay reachable only over a private network (Tailscale), read **Private network** below

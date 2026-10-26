@@ -118,8 +118,61 @@ function untested(markdown: string): string {
     .join("");
 }
 
+/**
+ * The site launches with Buzz 1.0 and calls it "Buzz". The skill's notes for Buzz 0.X, older phone
+ * apps and bundles from before Silo (2026-10-07) stay in the skill, for agents on older setups, and
+ * come out of the text here. A phrase's spaces match any line break, as the skill's Markdown wraps.
+ */
+const phrase = (text: string) => new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+"), "g");
+// compose.md step 9's edit for bundles from before Silo: a whole list item, its commands included
+const MINIO_EDIT = /^ *- \*\*MinIO images\.\*\*[\s\S]*?(?=^ *- \*\*)/m;
+const CURRENT: [RegExp, string][] = [
+  // compose.md
+  [phrase("Up to two edits to tracked files"), "Edits to tracked files"],
+  [phrase(" The CORS line also admits Buzz 0.X, which calls the relay's HTTP API from `tauri://localhost` (`http://tauri.localhost` on Windows); without them, joining from Buzz 0.X fails with `Load failed` (block/buzz#2872). Buzz 1.0 makes those calls from the app itself, so CORS doesn't affect it."), ""],
+  [phrase("(the file store, Silo or MinIO)"), "(the file store, Silo)"],
+  // kubernetes.md
+  [phrase(", let Buzz 0.X in (block/buzz#2872; Buzz 1.0 doesn't need it)"), ""],
+  // SKILL.md, Check it and Join
+  [phrase("lets Buzz 0.X in (CORS), "), ""],
+  [phrase(" In Buzz 0.X, paste the same address into its Join a community screen."), ""],
+  [phrase("(Settings, Identity in Buzz 1.0)"), "(Settings, Identity)"],
+  [phrase(" In Buzz 0.X, the same things are in Settings, Invites."), ""],
+  [phrase("`Relay request failed (403)` in Buzz 1.0, or `Not a member yet` in Buzz 0.X, means"), "`Relay request failed (403)` means"],
+  [phrase(" (Buzz 0.X: Settings, Mobile)"), ""],
+  [phrase(" (older phones show a code to compare instead)"), ""],
+  // operations.md
+  [phrase("from the Buzz app: in Buzz 1.0, Settings, Identity,"), "from the Buzz app: Settings, Identity,"],
+  [phrase('"Nostr address (npub)"; in Buzz 0.X, the Join screen.'), '"Nostr address (npub)".'],
+  [phrase(" (Buzz 0.X: Settings, Invites)"), ""],
+  [phrase(" or one of Buzz 0.X's"), ""],
+  [phrase(" The file store's volume keeps MinIO's name with Silo too, so the commands are the same for every tag."), ""],
+  [phrase(" (half a minute when the upgrade swaps MinIO for Silo)"), ""],
+  [/\s+From a tag before 2026-10-07 to a later one,[\s\S]*?describes\.\s+Either way, list/g, " List"],
+  [phrase(" on a bundle from 2026-10-07 on"), ""],
+  // troubleshooting.md
+  [phrase("(Buzz 1.0: Settings, Identity)"), "(Settings, Identity)"],
+  [phrase("; Buzz 0.X needs it byte for byte"), ""],
+  [phrase(", or Buzz 0.X: `Not a member yet`"), ""],
+  [phrase(" A local test at `ws://127.0.0.1:3000`, from before compose.md's local mode moved to `wss://localhost`, only takes Buzz 0.X."), ""],
+  [phrase(", or Buzz 0.X `WebSocket connection failed: HTTP error: 404 Not Found`"), ""],
+  [/Buzz 1\.0/g, "Buzz"],
+];
+// troubleshooting.md rows that are only about Buzz 0.X or a bundle from before Silo
+const OLD_ROWS = /^\| (Pull fails for `quay\.io\/minio|Buzz 0\.X can't join|After an upgrade to a Silo bundle|Docker warns `The requested image's platform)/;
+// what the site must never show; a new note in the skill like these needs a rule above
+const OLD = /Buzz 0\.X|Buzz 1\.0|older phones|before 2026-10-07|2026-10-07 on|MinIO for Silo|Silo or MinIO|quay\.io\/minio/;
+
+function current(markdown: string): string {
+  return markdown
+    .replace(MINIO_EDIT, "")
+    .split(/(```[\s\S]*?```)/)
+    .map((part, i) => (i % 2 ? part : CURRENT.reduce((t, [re, to]) => t.replace(re, to), part)))
+    .join("");
+}
+
 function toHTML(markdown: string): string {
-  let text = untested(markdown);
+  let text = current(untested(markdown));
   for (const [re, key] of VARS) text = text.replace(re, key);
   // issue references outside code become links
   text = text.replace(/(^|[\s(])block\/buzz#(\d+)/g, "$1[block/buzz#$2](https://github.com/block/buzz/issues/$2)");
@@ -219,7 +272,7 @@ function skillSections(dir: string): SkillStep[] {
 function fixes(dir: string): SkillFix[] {
   const rows = readFileSync(join(dir, "references", "troubleshooting.md"), "utf8")
     .split("\n")
-    .filter((l) => l.startsWith("| ") && !/^\| (Symptom|---)/.test(l));
+    .filter((l) => l.startsWith("| ") && !/^\| (Symptom|---)/.test(l) && !OLD_ROWS.test(l));
   return rows.map((row) => {
     const cells = row.slice(2, -2).split(" | ");
     if (cells.length !== 2) fail(`troubleshooting.md: a row without two cells: ${row.slice(0, 60)}`);
@@ -235,7 +288,7 @@ function fixes(dir: string): SkillFix[] {
             : /^Local:/.test(symptom)
               ? LOCAL
               : [...TRACKS];
-    return { tracks, symptom: md.parseInline(untested(symptom)) as string, fix: md.parseInline(untested(fix)) as string };
+    return { tracks, symptom: md.parseInline(current(untested(symptom))) as string, fix: md.parseInline(current(untested(fix))) as string };
   });
 }
 
@@ -276,7 +329,12 @@ export function parseSkill(dir: string): SkillData {
     const n = steps.filter((s) => s.tracks.includes(t)).length;
     if (n < 5) fail(`only ${n} steps for ${t}`);
   }
-  return { steps, fixes: fixes(dir), ops: ops(dir) };
+  const data = { steps, fixes: fixes(dir), ops: ops(dir) };
+  for (const text of [...data.steps.map((x) => x.html), ...data.ops.map((x) => x.html), ...data.fixes.flatMap((x) => [x.symptom, x.fix])]) {
+    const old = text.match(OLD);
+    if (old) fail(`the site would show "${old[0]}": add a rule to CURRENT in build/skill.ts (${text.replace(/<[^>]+>/g, "").slice(0, 80)})`);
+  }
+  return data;
 }
 
 // `node build/skill.ts` prints each setup's steps, to see what the page will show

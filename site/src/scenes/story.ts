@@ -88,9 +88,17 @@ const BLOCKS = `<svg class="rs-svg" viewBox="0 0 300 210" aria-hidden="true">
 
 const folder = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1v7.4a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z" fill="currentColor"/></svg>`;
 
-const tree = (root: string, rows: [string, string][]) => `
-  <div class="tr-head"><span class="tr-dot"></span>${root}</div>
-  <ul>${rows.map(([n, d], i) => `<li style="--i:${i}">${folder}<b>${n}</b><span>${d}</span></li>`).join("")}</ul>`;
+/** Repositories, one after another in a single card; the rows' --i keeps counting so they come in in order. */
+const tree = (repos: [string, [string, string][]][]) => {
+  let i = 0;
+  return repos
+    .map(
+      ([root, rows], r) => `
+  <div class="tr-head${r ? " tr-next" : ""}"><span class="tr-dot"></span>${root}</div>
+  <ul>${rows.map(([n, d]) => `<li style="--i:${i++}">${folder}<b>${n}</b><span>${d}</span></li>`).join("")}</ul>`,
+    )
+    .join("");
+};
 
 const LINES: [string, string][] = [
   ["git clone https://github.com/block/buzz", ""],
@@ -142,12 +150,17 @@ export function mountStory(section: HTMLElement): void {
             <p class="rs-cap"><b>Your relay</b><span>buzz.yourteam.org</span></p>
           </div>
         </div>
-        <div class="sg-tree sg-tree-repo">${tree("github.com/block/buzz", [
-          ["desktop/", "Buzz 0.X, the earlier desktop app"],
-          ["mobile/", "the phone apps"],
-          ["crates/", "the relay and its tools, in Rust"],
-          ["deploy/", "what you run on a server"],
-          ["docs/", "specs and guides"],
+        <div class="sg-tree sg-tree-repo">${tree([
+          ["github.com/block/buzz", [
+            ["crates/", "the relay and its tools, in Rust"],
+            ["deploy/", "what you run on a server"],
+            ["mobile/", "the phone apps"],
+          ]],
+          ["github.com/block/buzz-app", [
+            ["src/", "the Buzz app, in TypeScript"],
+            ["src-tauri/", "its desktop shell, in Rust"],
+            ["crates/", "agents, plugins and pairing"],
+          ]],
         ])}</div>
         <div class="sg-term">
           <div class="tm-bar"><i></i><i></i><i></i><span>your machine</span></div>

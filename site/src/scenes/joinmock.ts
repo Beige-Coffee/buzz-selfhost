@@ -13,6 +13,6 @@ export function joinMockHTML(): string {
     <div class="j1-join">Join</div>
     <p class="j1-create">Create a community</p>
   </div>
-  <figcaption class="src">Recreated from Buzz 1.0's first screen. Paste your community's address, or an invite link.</figcaption>
+  <figcaption class="src">Recreated from Buzz's first screen. Paste your community's address, or an invite link.</figcaption>
 </figure>`;
 }

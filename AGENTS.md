@@ -24,7 +24,8 @@ A guide site, an agent skill and end-to-end tests for self-hosting Buzz
   the steps per setup; the build fails if the skill's shape breaks. Validate the skill against the
   standard with `skills-ref validate skills/self-host-buzz`.
 - Deploy: `cd site && npm run deploy` builds locally and uploads to Vercel (Vercel's own build
-  can't see `../skills`). Only when the repo owner asks.
+  can't see `../skills`), then redeploys that deployment on Vercel: a prebuilt deployment alone
+  doesn't get Web Analytics' `/_vercel/insights` routes. Only when the repo owner asks.
 - Tests need real servers, keys and money: never run them unless asked. `tests/README.md` says how.
 
 ## Rules

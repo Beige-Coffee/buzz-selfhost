@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "deploy": "npx --yes vercel@latest build --prod && npx --yes vercel@latest deploy --prebuilt --prod --yes"
+    "deploy": "npx --yes vercel@latest build --prod && npx --yes vercel@latest deploy --prebuilt --prod --yes && npx --yes vercel@latest redeploy buzz-selfhost.vercel.app --target production"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",

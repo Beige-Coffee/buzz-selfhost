@@ -4,6 +4,7 @@ import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/700.css";
 import "./styles/tokens.css";
 import "./styles/main.css";
+import { inject } from "@vercel/analytics";
 import { SVG_DEFS } from "./defs";
 import { mountFooter, mountHeader, mountReveal, mountWidgets } from "./lib/mount";
 import { applyVisibility, initValues } from "./lib/values";
@@ -25,3 +26,5 @@ mountNav();
 mountReveal();
 mountFooter();
 mountBees();
+// page views for Vercel Web Analytics (no cookies), only on the deployed site
+if (import.meta.env.PROD) inject();

@@ -272,53 +272,60 @@ h3 { font-weight: 500; letter-spacing: -0.02em; }
 
 /* ── the mini Buzz app: Buzz 1.0 in light mode, Citrus (block/buzz-app tokens.css) ── */
 .b1-app, .j1-win, .rk-desk, .mb { --b1-base: #f5f5f6; --b1-text: #0f0f0f; --b1-nav-text: #404040; --b1-meta: #5f5f5f; --b1-line: #e8e8e8; --b1-citrus: #beda36; --b1-bub: #f3f3f4; }
-.b1-i { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+/* Tabler's stroke; page icons are drawn heavier; sizes stand for the app's 16, 18 and 20px icons; off is a disabled control */
+.b1-i { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.b1-i.pg { stroke-width: 2.5; }
+.b1-i.md { width: 14.5px; height: 14.5px; }
+.b1-i.lg { width: 16px; height: 16px; }
+.b1-i.em { width: 1em; height: 1em; }
+.b1-i.off { color: #959595; }
 .b1-lights { display: flex; gap: 6px; }
 .b1-lights i { width: 10px; height: 10px; border-radius: 50%; background: #d9d9db; }
 .b1-app { background: var(--b1-base); border: 1px solid #e3e3e5; border-radius: 16px; overflow: hidden; color: var(--b1-text); font-size: 13px; line-height: 1.45; text-align: left; box-shadow: 0 1px 1px rgb(24 20 14 / 4%), 0 14px 44px rgb(24 20 14 / 11%); }
-.b1-top { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 10px 0 12px; }
-.b1-nav { display: flex; color: var(--b1-nav-text); }
-.b1-tabs { display: flex; align-items: center; gap: 1px; margin: 0 auto; padding: 3px; border-radius: 999px; background: var(--b1-line); }
-.b1-tab { display: inline-flex; align-items: center; gap: 4px; padding: 4px 7px; border-radius: 999px; font-size: 11.5px; color: var(--b1-nav-text); white-space: nowrap; }
-.b1-tab .b1-i { width: 13px; height: 13px; }
+.b1-top { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 10px 0 11px; }
+.b1-nav { display: flex; gap: 7px; color: var(--b1-text); }
+.b1-tabs { display: flex; align-items: center; margin: 0 auto; padding: 3px; border-radius: 999px; background: var(--b1-line); }
+.b1-tab { display: inline-flex; align-items: center; gap: 3px; padding: 4px 5.5px; border-radius: 999px; font-size: 11px; color: var(--b1-nav-text); white-space: nowrap; }
 .b1-tab.on { background: #fff; color: var(--b1-text); box-shadow: 0 1px 2px rgb(0 0 0 / 10%); }
-.b1-me { display: flex; align-items: center; gap: 6px; }
-.b1-comm { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1px #dadada; font: 600 10px var(--sans); }
+.b1-me { display: flex; align-items: center; gap: 5px; }
+.b1-comm { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; background: #fff; box-shadow: 0 0 0 1px #dadada; font: 600 10px var(--sans); }
 .b1-me-av { position: relative; width: 24px; height: 24px; }
 .b1-me-av img { display: block; width: 24px; height: 24px; border-radius: 50%; }
 .b1-me-av i { position: absolute; right: -1px; bottom: -1px; width: 8px; height: 8px; border-radius: 50%; background: #3fb26b; box-shadow: 0 0 0 2px var(--b1-base); }
 .b1-body { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 7px; height: 400px; padding: 0 7px 7px; }
-.b1-side, .b1-main { border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px var(--b1-line); }
+.b1-side, .b1-main { min-height: 0; border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px var(--b1-line); }
 .b1-side { display: flex; flex-direction: column; gap: 1px; padding: 8px; }
 .b1-seg { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 8px; padding: 2px; border-radius: 999px; background: var(--b1-base); }
 .b1-seg b { padding: 3px 0; border-radius: 999px; text-align: center; font-size: 11px; font-weight: 500; color: var(--b1-nav-text); }
 .b1-seg b.on { background: #fff; color: var(--b1-text); box-shadow: 0 1px 2px rgb(0 0 0 / 10%); }
 .b1-row { display: flex; align-items: center; gap: 7px; padding: 4px 8px; border-radius: 999px; color: var(--b1-nav-text); white-space: nowrap; }
-.b1-row em, .b1-head em { font-style: normal; color: var(--b1-meta); }
 .b1-row.on { background: var(--b1-citrus); color: var(--b1-text); }
-.b1-row.on em { color: var(--b1-text); }
 .b1-sub { padding: 10px 8px 3px; color: var(--b1-meta); }
 .b1-main { display: flex; flex-direction: column; min-width: 0; }
-.b1-head { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; border-bottom: 1px solid var(--b1-line); }
-.b1-head b { display: inline-flex; gap: 6px; font-weight: 500; }
-.b1-head span { display: flex; gap: 10px; color: var(--b1-nav-text); }
-.b1-msgs { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 7px; padding: 10px 14px 8px; overflow: hidden; }
+.b1-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid var(--b1-line); }
+.b1-head b { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.b1-head > span { display: flex; align-items: center; gap: 10px; color: var(--b1-text); }
+/* the members button shows the people in the channel, each overlapping the one before */
+.b1-stack { display: flex; padding-right: 3px; }
+.b1-stack img { width: 20px; height: 20px; margin-right: -3px; padding: 1.5px; border-radius: 50%; background: #fff; }
+.b1-msgs { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 7px 14px 6px; overflow: hidden; }
 .b1-msg { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; align-items: end; }
 .b1-col { min-width: 0; }
-.b1-meta { display: flex; gap: 6px; margin: 0 0 3px 2px; font-size: 11.5px; }
+.b1-meta { display: flex; gap: 6px; margin: 0 0 2px 2px; font-size: 11.5px; }
 .b1-meta b { font-weight: 500; }
+.b1-meta .b1-i { margin-right: 4px; vertical-align: -0.125em; }
 .b1-meta time { color: var(--b1-meta); }
 .b1-av { display: block; width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
 /* agents: a Fuzzy on a soft square, as Buzz 1.0 shows them */
 .b1-av.sq { padding: 2px; border-radius: 8px; background: #efecf8; object-fit: contain; }
-.b1-bub { width: fit-content; max-width: 100%; padding: 7px 12px; border-radius: 16px; background: var(--b1-bub); }
-.b1-reacts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.b1-bub { width: fit-content; max-width: 100%; padding: 6px 12px; border-radius: 16px; background: var(--b1-bub); }
+.b1-reacts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
 .b1-react { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 999px; background: #e4e4e6; font-size: 12px; line-height: 1; }
 .b1-react b { font-size: 11px; font-weight: 500; color: var(--b1-text); }
-.b1-react.add { padding: 0 7px; color: var(--b1-meta); }
-.b1-react.add .b1-i { width: 13px; height: 13px; }
+.b1-react.add { padding: 0 7px; color: #525252; }
+.b1-react.add .b1-i { opacity: 0.65; }
 /* a change as GitHub shows it: line numbers, red and green lines, darker where they differ, GitHub's light syntax colors */
-.b1-diff { margin: 6px 0 2px; overflow: hidden; border-radius: 8px; background: #fff; box-shadow: 0 0 0 1px #d1d9e0; font: 10.5px/1.65 var(--mono); }
+.b1-diff { margin: 5px 0 1px; overflow: hidden; border-radius: 8px; background: #fff; box-shadow: 0 0 0 1px #d1d9e0; font: 10.5px/1.65 var(--mono); }
 .b1-diff-h { padding: 2px 8px; border-bottom: 1px solid #d1d9e0; background: #f6f8fa; font-size: 10px; color: #59636e; }
 .b1-dl { display: grid; grid-template-columns: 20px 20px 14px minmax(0, 1fr); white-space: pre; color: #1f2328; }
 .b1-dl i { padding-right: 5px; font-style: normal; text-align: right; color: #59636e; }
@@ -336,11 +343,11 @@ h3 { font-weight: 500; letter-spacing: -0.02em; }
 .b1-dl .k { color: #cf222e; }
 .b1-dl :is(.c, .n) { color: #0550ae; }
 .b1-chip { display: inline-flex; align-items: center; gap: 3px; padding: 0 5px; border-radius: 6px; background: #dadada; font-weight: 500; }
-.b1-chip .b1-i { width: 12px; height: 12px; }
-.b1-compose { display: flex; align-items: center; justify-content: space-between; margin: 0 10px 10px; padding: 7px 7px 7px 12px; border-radius: 14px; box-shadow: 0 0 0 1px #dadada; }
+/* the composer: its text on top, the tools under it, and send, unavailable until there's something to send */
+.b1-compose { display: flex; flex-direction: column; gap: 5px; margin: 0 10px 9px; padding: 7px 9px 6px 12px; border-radius: 14px; box-shadow: 0 0 0 1px #dadada; }
 .b1-ph { color: var(--b1-meta); }
-.b1-tools { display: flex; align-items: center; gap: 8px; color: var(--b1-nav-text); }
-.b1-send { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--b1-citrus); color: #000; }
+.b1-acts { display: flex; align-items: center; justify-content: space-between; }
+.b1-tools { display: flex; align-items: center; gap: 11px; color: var(--b1-text); }
 
 /* ── where to run it ────────────────────────── */
 .pa-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }

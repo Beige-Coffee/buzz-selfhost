@@ -8,25 +8,33 @@ import { buzzAppHTML } from "./buzzapp";
  * The relay, drawn as a stack of its parts: one layer each, top to bottom. Isometric, in SVG units:
  * a layer's top face is a rhombus W wide and H tall at its centre line, T thick. Stacked tight it reads as
  * one machine; in step 04 the layers lift apart and say what they are.
+ * Git repositories get no layer of their own: the relay keeps them in Silo's bucket, beside the uploads, as a
+ * pointer per repository and content-addressed packs (block/buzz, crates/buzz-relay/src/api/git/manifest.rs).
+ * BUZZ_GIT_REPO_PATH on its disk is scratch space and a pack cache.
  */
 const LAYERS: { name: string; is: string; holds: string }[] = [
   { name: "relay", is: "Buzz server, in Rust", holds: "checks members, delivers" },
   { name: "Postgres", is: "database", holds: "messages, channels, members" },
-  { name: "Silo", is: "file storage (S3)", holds: "uploaded images and files" },
-  { name: "git", is: "git repositories", holds: "code pushed to the relay" },
+  { name: "Silo", is: "file storage (S3)", holds: "uploads, git repositories" },
   { name: ".env", is: "settings file", holds: "relay key, passwords" },
   { name: "Redis", is: "in-memory cache", holds: "who's online, typing" },
 ];
+/** Back to front, so nearer layers cover farther ones. */
+const BACK_TO_FRONT = [...LAYERS.keys()].reverse();
 const CX = 100;
 const W = 86.6;
 const H = 50;
 const T = 11;
+const FLOOR = 218; // the floor's centre, under the bottom layer
+/** A layer's top-face centre: stacked tight, with the bottom one on the floor; in step 04, spread over the same height. */
+const yc = (i: number) => 201.5 - 14 * (LAYERS.length - 1 - i);
+const ye = (i: number) => 56 + (260 / (LAYERS.length - 1)) * i;
 const layer = (i: number) => {
   const l = LAYERS[i];
   // the top layer carries the bee, laid flat on its face
   const mark = i === 0 ? `<use class="rs-mark" href="#bee" x="-25" y="-16.5" width="50" height="33" transform="matrix(0.866 0.5 -0.866 0.5 ${CX} 0)"/>` : "";
   const x = CX + W + 22;
-  return `<g class="rs-l rs-l${i}" style="--yc:${131.5 + 14 * i}; --ye:${56 + 52 * i}">
+  return `<g class="rs-l rs-l${i}" style="--yc:${yc(i)}; --ye:${ye(i)}">
     <polygon class="rs-side" points="${CX - W},0 ${CX},${H} ${CX + W},0 ${CX + W},${T} ${CX},${H + T} ${CX - W},${T}"/>
     <path class="rs-edge" d="M${CX} ${H}V${H + T}"/>
     <polygon class="rs-top" points="${CX},${-H} ${CX + W},0 ${CX},${H} ${CX - W},0"/>
@@ -35,8 +43,8 @@ const layer = (i: number) => {
   </g>`;
 };
 const YOURS = `<svg class="rs-svg" viewBox="0 0 290 380" aria-hidden="true">
-  <g class="rs-floor" transform="translate(0 218)"><polygon points="${CX},-63 ${CX + 110},0 ${CX},63 ${CX - 110},0"/></g>
-  ${[5, 4, 3, 2, 1, 0].map(layer).join("")}
+  <g class="rs-floor" transform="translate(0 ${FLOOR})"><polygon points="${CX},-63 ${CX + 110},0 ${CX},63 ${CX - 110},0"/></g>
+  ${BACK_TO_FRONT.map(layer).join("")}
 </svg>`;
 
 /**
@@ -49,9 +57,9 @@ const SY = 25.65;
 const A = 84.3; // the yard's half-size along each axis
 const YW = 1.732 * A; // its half-width on screen
 const WALL = 10;
-const unitOf = (id: string, mark: boolean) => `<g id="${id}" stroke="#231e1e" stroke-opacity="0.34" stroke-width="2.1" stroke-linejoin="round">${[5, 4, 3, 2, 1, 0]
+const unitOf = (id: string, mark: boolean) => `<g id="${id}" stroke="#231e1e" stroke-opacity="0.34" stroke-width="2.1" stroke-linejoin="round">${BACK_TO_FRONT
   .map(
-    (i) => `<g transform="translate(0 ${131.5 + 14 * i})">
+    (i) => `<g transform="translate(0 ${yc(i)})">
       <polygon fill="#e4e4dd" points="${CX - W},0 ${CX},${H} ${CX + W},0 ${CX + W},${T} ${CX},${H + T} ${CX - W},${T}"/>
       <path d="M${CX} ${H}V${H + T}"/>
       <polygon fill="#f3f3ef" points="${CX},${-H} ${CX + W},0 ${CX},${H} ${CX - W},0"/>
@@ -64,7 +72,8 @@ const unit = unitOf("rs-unit", true) + unitOf("rs-unit-plain", false);
 const SLOTS: [number, number][] = [[-1, -1], [-1, 0], [0, -1], [-1, 1], [0, 0], [1, -1], [0, 1], [1, 0], [1, 1]];
 const quad = (pts: [number, number][]) => pts.map(([x, y]) => `${x},${y}`).join(" ");
 // a message lands on the middle stack: its top face, lit for a moment
-const LIT = quad([[0, -32.9 - 19], [32.9, -32.9], [0, -32.9 + 19], [-32.9, -32.9]]);
+const TOP = (yc(0) - FLOOR) * K;
+const LIT = quad([[0, TOP - H * K], [W * K, TOP], [0, TOP + H * K], [-W * K, TOP]]);
 const BLOCKS = `<svg class="rs-svg" viewBox="0 0 300 210" aria-hidden="true">
   <defs>${unit}</defs>
   <g transform="translate(150 108)">
@@ -77,7 +86,7 @@ const BLOCKS = `<svg class="rs-svg" viewBox="0 0 300 210" aria-hidden="true">
     ${SLOTS.map(
       ([i, j]) =>
         // the middle stack comes first, where the one relay lands; the ring follows, nearest first
-        `<g class="rs-slot${i === 0 && j === 0 ? " rs-mid" : ""}" style="--i:${i === 0 && j === 0 ? 0 : 1 + Math.abs(i) + Math.abs(j) + (i + j + 2) / 10}"><use href="#rs-unit" transform="translate(${(i - j) * SX} ${(i + j) * SY}) scale(${K}) translate(-100 -218)"/></g>${i === 0 && j === 0 ? `<polygon class="rs-lit" points="${LIT}"/>` : ""}`,
+        `<g class="rs-slot${i === 0 && j === 0 ? " rs-mid" : ""}" style="--i:${i === 0 && j === 0 ? 0 : 1 + Math.abs(i) + Math.abs(j) + (i + j + 2) / 10}"><use href="#rs-unit" transform="translate(${(i - j) * SX} ${(i + j) * SY}) scale(${K}) translate(-${CX} -${FLOOR})"/></g>${i === 0 && j === 0 ? `<polygon class="rs-lit" points="${LIT}"/>` : ""}`,
     ).join("")}
     <g class="rs-yard">
       <polygon class="rs-y-out" points="${quad([[-YW, 0], [0, A], [0, A - WALL], [-YW, -WALL]])}"/>

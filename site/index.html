@@ -58,8 +58,7 @@
         <ul class="parts">
           <li><b>relay</b>The Buzz server, written in Rust. It checks who's a member and delivers each message.</li>
           <li><b>Postgres</b>The database: every message, channel and member.</li>
-          <li><b>Silo</b>File storage, S3-compatible: the images and files people upload.</li>
-          <li><b>git</b>A folder of the git repositories people push to the relay.</li>
+          <li><b>Silo</b>File storage, S3-compatible: the images and files people upload, and the git repositories they push to the relay.</li>
           <li><b>.env</b>The settings file: the relay's private key and the passwords.</li>
           <li><b>Redis</b>A cache in memory: who's online and who's typing. It rebuilds itself on restart.</li>
         </ul>

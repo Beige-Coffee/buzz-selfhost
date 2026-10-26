@@ -192,6 +192,7 @@ h3 { font-weight: 500; letter-spacing: -0.02em; }
 .sg-tree { background: #fff; border: 1px solid var(--line-2); border-radius: 18px; box-shadow: 0 1px 1px rgb(24 20 14 / 4%), 0 18px 50px rgb(24 20 14 / 12%); padding: 8px 0 10px; }
 .tr-head { display: flex; align-items: center; gap: 10px; padding: 12px 22px 12px; border-bottom: 1px solid var(--line); font: 500 14px var(--mono); }
 .tr-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tr-next { margin-top: 8px; border-top: 1px solid var(--line); }
 .sg-tree ul { list-style: none; margin: 0; padding: 6px 12px 0; }
 .sg-tree li { display: grid; grid-template-columns: 18px 150px 1fr; align-items: center; gap: 10px; padding: 11px 10px; border-radius: 10px; font-size: 15px; }
 .sg-tree li + li { border-top: 1px solid var(--line); }

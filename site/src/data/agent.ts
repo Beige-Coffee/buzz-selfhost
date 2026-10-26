@@ -28,9 +28,8 @@ export interface AgentTrack {
 }
 
 type Ready = AgentTrack["ready"][number];
-// Buzz 1.0 publishes only prereleases, so its /releases/latest is a 404; Buzz 0.X still has an Intel Mac build
+// Buzz 1.0 publishes only prereleases, so its /releases/latest is a 404
 const DESKTOP = "https://github.com/block/buzz-app/releases";
-const DESKTOP_0X = "https://github.com/block/buzz/releases/latest";
 const ALIASES = "https://github.com/block/buzz/pull/5410";
 
 // the skill's scripts run where the agent runs: python3, bash and curl (SKILL.md compatibility)
@@ -47,7 +46,7 @@ const NPUB: Ready = {
   t: "<b>Buzz and your npub</b>, your public ID in Buzz. It starts with <code>npub1</code>.",
   more: {
     label: "How to get them",
-    t: `Download Buzz for a Mac with Apple Silicon, Windows or Linux from <a href="${DESKTOP}">Block's releases page</a>: the newest release is at the top. Open it and choose <b>Create a new identity</b>, or <b>Continue with your Buzz identity</b> to keep the one from an earlier Buzz on this computer. Press ⌘, (Ctrl+, on Windows and Linux) to open <b>Settings</b>, then choose <b>Identity</b> and copy <b>Nostr address (npub)</b>. Before you've joined a community, that shortcut is the only way into Settings. The relay makes this npub the community's owner, so copy it from the Buzz you'll keep using. On the same page, choose <b>Copy private key</b> and save it in your password manager: Buzz doesn't back it up, and you need it to use this identity on another computer. On an Intel Mac, use Buzz 0.X from <a href="${DESKTOP_0X}">its releases page</a>, which shows your npub on its <b>Join a community</b> screen.`,
+    t: `Download Buzz for a Mac with Apple Silicon, Windows or Linux from <a href="${DESKTOP}">Block's releases page</a>: the newest release is at the top. Open it and choose <b>Create a new identity</b>, or keep one you already have. Press ⌘, (Ctrl+, on Windows and Linux) to open <b>Settings</b>, then choose <b>Identity</b> and copy <b>Nostr address (npub)</b>. Before you've joined a community, that shortcut is the only way into Settings. The relay makes this npub the community's owner, so copy it from the Buzz you'll keep using. On the same page, choose <b>Copy private key</b> and save it in your password manager: Buzz doesn't back it up, and you need it to use this identity on another computer.`,
   },
 };
 // a first connection asks to trust the fingerprint, which an agent's shell can't answer (SKILL.md, SSH to a server)
@@ -119,7 +118,7 @@ const TS_JOIN = JOIN(`With Tailscale on, paste <code>{{RELAY_URL}}</code> into <
 const PHONE = (d: string): Expect => ({ who: "you", icon: "phone", t: "Pair your phone", d, note: "optional" });
 // Buzz 1.0's Pair mobile asks the phone for a six-digit code; notifications need the phone app 0.25 or later
 const PAIR =
-  "On your computer: <b>Settings</b>, <b>Pair mobile</b>. On your phone: <b>Add community</b>, scan the code, and type the six digits, or on an older app check both show the same code. An iPhone with Buzz 0.25 or later then gets notifications for direct messages and mentions, through Block's gateway, which never sees a message. Android gets none yet.";
+  "On your computer: <b>Settings</b>, <b>Pair mobile</b>. On your phone: <b>Add community</b>, scan the code, and type the six digits. An iPhone with Buzz 0.25 or later then gets notifications for direct messages and mentions, through Block's gateway, which never sees a message. Android gets none yet.";
 const QUICKSTART = "Its quickstart profile: Postgres, Redis and file storage inside the cluster.";
 /** kubernetes.md: the quickstart is the chart's evaluation profile, and GitOps tools rotate its generated relay key. */
 const QUICKSTART_NOTE = {

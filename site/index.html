@@ -58,14 +58,14 @@
         <ul class="parts">
           <li><b>relay</b>The Buzz server, written in Rust. It checks who's a member and delivers each message.</li>
           <li><b>Postgres</b>The database: every message, channel and member.</li>
-          <li><b>Silo</b>File storage, S3-compatible: the images and files people upload. Bundles before 2026-10-07 used MinIO.</li>
+          <li><b>Silo</b>File storage, S3-compatible: the images and files people upload.</li>
           <li><b>git</b>A folder of the git repositories people push to the relay.</li>
           <li><b>.env</b>The settings file: the relay's private key and the passwords.</li>
           <li><b>Redis</b>A cache in memory: who's online and who's typing. It rebuilds itself on restart.</li>
         </ul>
 </div>
-      <div class="story-step" data-state="repo"><span class="n">05</span><p>Every part of Buzz is <b>open source</b>, under the Apache 2.0 license, on GitHub: the relay and the phone apps in <a href="https://github.com/block/buzz">block/buzz</a>, and Buzz 1.0, the app you saw, in <a href="https://github.com/block/buzz-app">block/buzz-app</a>. That's what lets you clone the code and run it yourself.</p></div>
-      <div class="story-step" data-state="run"><span class="n">06</span><p>So you don't need Block to run it. Clone the repo, add your values, and start it on a machine you control. The guide below walks you through it.</p></div>
+      <div class="story-step" data-state="repo"><span class="n">05</span><p>Every part of Buzz is <b>open source</b>, under the Apache 2.0 license, on GitHub: the relay and the phone apps in <a href="https://github.com/block/buzz">block/buzz</a>, and the Buzz app in <a href="https://github.com/block/buzz-app">block/buzz-app</a>. That's what lets you clone the code and run it yourself.</p></div>
+      <div class="story-step" data-state="run"><span class="n">06</span><p>So you don't need Block to run it. Clone block/buzz, add your values, and start the relay on a machine you control. Your team joins from the Buzz app. The guide below walks you through it.</p></div>
     </div>
   </section>
 

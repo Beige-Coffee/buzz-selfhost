@@ -1,6 +1,7 @@
 /**
  * Bees on the opening screen. Each one hovers near its spot with a buzzing jitter and darts off in short
- * bursts, the way bees fly. Scrolling toward the story sends them off one by one, up and out of view; by
+ * bursts, the way bees fly. They never stop on the opening screen's text or the header: a spot that's
+ * covered, or becomes covered as the page scrolls, sends the bee to a clear one. Scrolling toward the story sends them off one by one, up and out of view; by
  * the time the story's drawing fills the screen they're gone, and scrolling back up brings them home.
  * Bee shape and wing beat from Buzz Desktop's FlappingBee (block/buzz, Apache 2.0). Off for reduced motion.
  */
@@ -49,6 +50,8 @@ interface Bee {
   /** scroll progress, 0 to 1, at which it leaves */
   leaveAt: number;
   tilt: number;
+  /** half its width, px: how far it has to stay from text */
+  r: number;
 }
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
@@ -74,6 +77,47 @@ export function mountBees(): void {
   /** home y: between the header and the floor at rest */
   const homeY = (fy: number) => 72 + fy * (Math.min(H, floorDoc) - 40 - 72);
 
+  /** the text bees mustn't stop on: line and button boxes in page px, and the header in viewport px */
+  const TEXT = ".hero h1, .hero .lede, .hero .hero-cta, .hero .why";
+  let zones: DOMRect[] = [];
+  let header: DOMRect | null = null;
+  const readZones = () => {
+    zones = [];
+    for (const el of document.querySelectorAll(TEXT)) {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      for (const r of range.getClientRects()) if (r.width && r.height) zones.push(new DOMRect(r.left, r.top + scrollY, r.width, r.height));
+    }
+    header = document.querySelector(".hd")?.getBoundingClientRect() ?? null;
+  };
+
+  let pointer: { x: number; y: number } | null = null;
+  addEventListener("pointermove", (e) => (pointer = e.pointerType === "mouse" ? { x: e.clientX, y: e.clientY } : null), { passive: true });
+  document.addEventListener("pointerleave", () => (pointer = null));
+
+  /** a spot a bee may stop at: on screen, above the story, clear of the text and away from the cursor */
+  const clear = (x: number, y: number, pad: number) => {
+    if (x < pad || x > W - pad || y > floorDoc - scrollY - 34) return false;
+    if (header && y - pad < header.bottom) return false;
+    for (const z of zones) {
+      const top = z.top - scrollY;
+      if (x > z.left - pad && x < z.right + pad && y > top - pad && y < top + z.height + pad) return false;
+    }
+    return !pointer || Math.hypot(x - pointer.x, y - pointer.y) > 120;
+  };
+  /** somewhere clear to buzz around: near home if there's room, then farther out; null if there's nowhere */
+  const pick = (b: Bee): [number, number] | null => {
+    const pad = b.r + 12;
+    for (let i = 0; i < 48; i++) {
+      const reach = i < 16 ? rand(24, 120) : i < 32 ? rand(120, 340) : rand(0, Math.max(W, H));
+      const a = rand(0, Math.PI * 2);
+      const x = b.hx + Math.cos(a) * reach;
+      const y = b.hy + Math.sin(a) * reach * 0.7;
+      if (clear(x, y, pad)) return [x, y];
+    }
+    return null;
+  };
+
   const exitFor = (b: Bee) => {
     // up and away from the middle; the ones near an edge leave through it
     if (b.fx < 0.12) return [-60, b.hy - rand(40, 160)];
@@ -84,7 +128,8 @@ export function mountBees(): void {
   const bees: Bee[] = homes.map(([fx, fy, size, c], i) => {
     const el = document.createElement("span");
     el.className = "bee";
-    el.style.width = `${Math.round(size * (narrow ? 1.1 : 1.4))}px`;
+    const width = Math.round(size * (narrow ? 1.1 : 1.4));
+    el.style.width = `${width}px`;
     el.style.color = COLORS[c];
     el.style.setProperty("--flap", `${-rand(0, 0.28).toFixed(2)}s`);
     el.innerHTML = BEE;
@@ -95,7 +140,7 @@ export function mountBees(): void {
       el, fx, fy, hx, hy, ax: hx, ay: hy, ex: 0, ey: 0, x: hx, y: hy, vx: 0, vy: 0, jx: 0, jy: 0,
       mode: "in", wait: rand(0.3, 2), jit: 0, dash: 0, delay: rand(0, 1.1),
       // spread over the first two thirds of the way, so all are gone before the drawing is in full view
-      leaveAt: 0.08 + (i / homes.length) * 0.6 + rand(-0.02, 0.02), tilt: rand(-14, 14),
+      leaveAt: 0.08 + (i / homes.length) * 0.6 + rand(-0.02, 0.02), tilt: rand(-14, 14), r: width / 2,
     };
     [b.ex, b.ey] = exitFor(b);
     // they start out of view and fly in
@@ -112,19 +157,15 @@ export function mountBees(): void {
     const top = story.getBoundingClientRect().top + scrollY;
     threshold = Math.max(200, top - 76);
     floorDoc = top - 14;
+    readZones();
     bees.forEach((b) => {
       b.hx = b.fx * W;
       b.hy = homeY(b.fy);
-      b.ax = b.hx;
-      b.ay = b.hy;
+      [b.ax, b.ay] = clear(b.hx, b.hy, b.r + 12) ? [b.hx, b.hy] : (pick(b) ?? [b.hx, b.hy]);
       [b.ex, b.ey] = exitFor(b);
     });
   };
   measure();
-
-  let pointer: { x: number; y: number } | null = null;
-  addEventListener("pointermove", (e) => (pointer = e.pointerType === "mouse" ? { x: e.clientX, y: e.clientY } : null), { passive: true });
-  document.addEventListener("pointerleave", () => (pointer = null));
 
   const step = (dt: number) => {
     let busy = false;
@@ -157,27 +198,21 @@ export function mountBees(): void {
           b.jy = rand(-3.5, 3.5);
         }
         b.wait -= dt;
-        if (b.mode === "hover" && b.wait <= 0) {
-          const a = rand(0, Math.PI * 2);
-          const d = rand(24, 120);
-          b.ax = b.hx + Math.cos(a) * d;
-          b.ay = b.hy + Math.sin(a) * d * 0.7;
+        // a new spot when it's time to dart, or now if text or the cursor has come over this one
+        if ((b.mode === "hover" && b.wait <= 0) || !clear(b.ax, b.ay, b.r + 12)) {
+          const spot = pick(b);
+          if (!spot) {
+            // nowhere clear on this screen: fly off until there is
+            b.mode = "out";
+            continue;
+          }
+          [b.ax, b.ay] = spot;
           b.dash = rand(0.25, 0.45);
           b.wait = Math.random() < 0.25 ? rand(2.2, 3.6) : rand(0.35, 1.6);
         }
         b.dash -= dt;
         tx = b.ax + b.jx;
         ty = b.ay + b.jy;
-        if (pointer) {
-          // keep clear of the cursor
-          const ox = b.x - pointer.x;
-          const oy = b.y - pointer.y;
-          const dist = Math.hypot(ox, oy);
-          if (dist < 120 && dist > 0.01) {
-            tx += (ox / dist) * (120 - dist) * 1.1;
-            ty += (oy / dist) * (120 - dist) * 1.1;
-          }
-        }
         k = b.mode === "in" ? 34 : b.dash > 0 ? 110 : 30;
         ty = Math.min(ty, floor - 34);
       }
@@ -226,6 +261,8 @@ export function mountBees(): void {
         // a startled jump before the flight out
         b.vy -= rand(120, 260);
       } else if (p <= b.leaveAt - 0.05 && b.hy < floorDoc - scrollY - 60 && (b.mode === "out" || b.mode === "away")) {
+        const spot = pick(b);
+        if (!spot) continue;
         if (b.mode === "away") {
           b.x = b.ex;
           b.y = b.ey;
@@ -233,8 +270,7 @@ export function mountBees(): void {
           b.vy = 0;
         }
         b.mode = "in";
-        b.ax = b.hx;
-        b.ay = b.hy;
+        [b.ax, b.ay] = spot;
         b.delay = rand(0, 0.5);
         b.el.style.visibility = "";
       }
@@ -265,5 +301,5 @@ export function mountBees(): void {
   new ResizeObserver(relayout).observe(document.querySelector(".hero") ?? document.body);
   run();
 
-  if (import.meta.env.DEV) (window as unknown as { __bees: unknown }).__bees = { bees, step, onScroll, floor: () => floorDoc };
+  if (import.meta.env.DEV) (window as unknown as { __bees: unknown }).__bees = { bees, step, onScroll, floor: () => floorDoc, zones: () => zones, clear };
 }

@@ -948,6 +948,12 @@ ul.plain li a { margin-left: 4px; font: 12.5px var(--mono); color: var(--ink-3);
 
 /* ── hero buttons ───────────────────────────── */
 .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+/* why run your own: four short reasons in one row under the buttons */
+.why { list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; margin: 48px 0 0; padding: 18px 0 0; border-top: 1px solid var(--line-2); }
+.why b { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 600; letter-spacing: -0.012em; }
+.why b::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 2px; background: var(--accent); }
+.why span { display: block; margin: 3px 0 0 16px; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
+@media (max-width: 760px) { .why { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
 .btn {
   display: inline-flex; align-items: center; gap: 9px; padding: 13px 22px; border-radius: 999px; border: 1px solid var(--ink);
   background: var(--ink); color: #fff; font-size: 15.5px; font-weight: 500; letter-spacing: -0.01em; text-decoration: none;

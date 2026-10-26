@@ -163,6 +163,10 @@ must point at block/buzz instead of Beige-Coffee/buzz-selfhost.
 
 - Meta description: "You're a grown-up. Run your own Buzz server."
 - No "promises" box and no "Tested on" line in the setup guides.
+- The hero says why to run your own (2026-10-26), in one row of four under the buttons:
+  independent of Block, no lock-in, yours to customize (join terms, limits, code), private if you
+  need it. A call with Spiral's open-source PMs asked for the why up front; a longer two-by-two
+  version took too much room.
 - The site never talks about testing (2026-10-25): the tests are why its advice can be trusted,
   not part of the advice. The skill and these docs keep their test notes, since agents and
   maintainers use them; `site/build/skill.ts` (`UNTESTED`) strips them from the skill text the

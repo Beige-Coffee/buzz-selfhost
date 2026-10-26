@@ -63,7 +63,9 @@ up.
 Since 2026-10-26 the site's own copy launches with Buzz 1.0 and names only "Buzz" and "the Buzz
 app": no Buzz 0.X (the Intel Mac note is gone from Get ready), no older phone apps, and no MinIO
 history in How it works. How it works shows both repositories: the relay in block/buzz, the app in
-block/buzz-app. The skill, and the skill text the site renders, still cover 0.X and older bundles.
+block/buzz-app. The skill still covers 0.X, older phone apps and bundles from before Silo, for
+agents on older setups; `site/build/skill.ts` (`CURRENT`) takes those notes out of the skill text the
+site shows, and the build fails if one gets through.
 
 ## Operations: the right tool for each task (2026-10-25)
 

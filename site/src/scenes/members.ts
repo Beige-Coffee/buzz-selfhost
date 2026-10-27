@@ -82,7 +82,7 @@ export const settingsModal = (navHTML: string, page: string, over = "") => `<div
 export const settings = (spot: Spot, over = "") => settingsModal(nav, membership(spot), over);
 
 /* ── dialogs over Settings ── */
-const invite = (spot: "add" | "copy", expiry = "3 days", uses = "No limit") => `<div class="mb-shade on-modal"></div>
+export const invite = (spot: "add" | "copy", expiry = "3 days", uses = "No limit") => `<div class="mb-shade on-modal"></div>
 <div class="mb-dlg">
   <div class="mb-dlg-h"><b>Add or invite people</b><span class="mb-x">${ti("x")}</span></div>
   <p class="mb-sub">Add someone by their exact identity, or share a link they can use to join.</p>

@@ -1,8 +1,26 @@
 # Access and keys: what the site's section rests on (2026-10-27)
 
-The site's Access and keys section (`site/src/scenes/access.ts`) gives best practices and setup
-steps, with pictures only where they help. Each answer is a recommendation (ours) resting on Buzz
-facts, sourced here. Checked against block/buzz `origin/main` at `a38fedb`, block/buzz-app
+The site's Access and keys section (`site/src/scenes/access.ts`) gives best practices and how to set
+them up. Each answer is a recommendation (ours) resting on Buzz facts, sourced here, and shows the how:
+a click-through of Buzz 1.0's own screens where it happens in Buzz, a drawing where it happens on the
+server.
+
+## The pictures, and what they're drawn from
+
+- **Click-throughs of Buzz's screens**, in light mode, assuming Buzz is installed:
+  - setting up an identity and losing a device: `site/src/scenes/identity.ts`, from block/buzz-app's
+    `src/features/identity/IdentitySetup.tsx` (and its CSS and `public/shell-gradient.png`),
+    `src/app/shell/ProfileButton.tsx`, `src/app/settings-sections.ts`, `src/app/IdentitySettings.tsx`,
+    `src/features/identity/PrivateKey.tsx`, and the Pair mobile page;
+  - adding people, roles and removing someone: the people flows in `site/src/scenes/members.ts`, with
+    the invite link set to 1 day and 5 uses here;
+  - starting an agent: `site/src/scenes/agentflow.ts`, from `src/bundled/agents/AgentsPage.tsx` and
+    `AgentCreateDialog.tsx` (and the repo's `docs/assets/readme/create-agent.png`).
+  - Layouts were checked against block/buzz-app running in a browser with sample data (`just web` with
+    no identity pinned, 2026-10-28), which never touches a real Buzz app or key. The Identity page needs
+    an identity to show its rows, so those come from the source.
+- **Drawings** for single sign-on, a leak, server access, the relay key, who can read messages and the
+  audit log. Keys, names and messages in them are illustrative. Checked against block/buzz `origin/main` at `a38fedb`, block/buzz-app
 `origin/main` at `04327c2` and the released app `v0.7.0-preview.190.1`.
 
 ## Identity and keys

@@ -40,13 +40,13 @@ const AGENT: Ready = {
     t: "The skill runs scripts on your computer with <code>python3</code>, <code>bash</code> and <code>curl</code>. Most Linux systems have all three; install any that's missing. On a Mac, if <code>python3</code> asks you to install developer tools, run <code>xcode-select --install</code> first. Use a capable model: small, fast models tend to stop after every step.",
   },
 };
-// Buzz 1.0 shows the npub in Settings, Identity (before any community, only ⌘, opens Settings); Buzz 0.X on its
+// Buzz 1.0 shows the npub in Settings, Identity (the profile menu opens Settings, with or without a community); Buzz 0.X on its
 // Join a community screen. Buzz 1.0 doesn't back the private key up.
 const NPUB: Ready = {
   t: "<b>Buzz and your npub</b>, your public ID in Buzz. It starts with <code>npub1</code>.",
   more: {
     label: "How to get them",
-    t: `Download Buzz for a Mac with Apple Silicon, Windows or Linux from <a href="${DESKTOP}">Block's releases page</a>: the newest release is at the top. Open it and choose <b>Create a new identity</b>, or keep one you already have. Press ⌘, (Ctrl+, on Windows and Linux) to open <b>Settings</b>, then choose <b>Identity</b> and copy <b>Nostr address (npub)</b>. Before you've joined a community, that shortcut is the only way into Settings. The relay makes this npub the community's owner, so copy it from the Buzz you'll keep using. On the same page, choose <b>Copy private key</b> and save it in your password manager: Buzz doesn't back it up, and you need it to use this identity on another computer.`,
+    t: `Download Buzz for a Mac with Apple Silicon, Windows or Linux from <a href="${DESKTOP}">Block's releases page</a>: the newest release is at the top. Open it and choose <b>Create a new identity</b>, or keep one you already have. Open <b>Settings</b> from your profile icon at the top right, or press ⌘, (Ctrl+, on Windows and Linux). Choose <b>Identity</b> and copy <b>Nostr address (npub)</b>. The relay makes this npub the community's owner, so copy it from the Buzz you'll keep using. On the same page, choose <b>Copy private key</b> and save it in your password manager: Buzz doesn't back it up, and you need it to use this identity on another computer.`,
   },
 };
 // a first connection asks to trust the fingerprint, which an agent's shell can't answer (SKILL.md, SSH to a server)

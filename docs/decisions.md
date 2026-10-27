@@ -19,8 +19,9 @@ Docker template" people mention is Hostinger's own.
   Hetzner) and the catches: x86 is the tested platform, which rules out ARM servers like AWS
   Graviton. Bundles from before 2026-10-07 need it (their MinIO image is amd64-only); Silo also
   runs on ARM, untested. Ports 80 and 443 open; a fixed IP.
-- **Railway** has the least to run, and the most limits: its own stack, no volume for git
-  repositories, a plan cap on services, and phone pairing needs a fifth service.
+- **Railway** has the least to run, and the most limits: its own stack, a plan cap on services,
+  and phone pairing needs a fifth service. The relay has no volume and needs none: it keeps git
+  repositories in the bucket.
 - **Your own hardware** keeps everything at home. Steer it to Tailscale: reaching a home server
   publicly needs router port forwarding, which isn't tested and which CGNAT can block.
 - **Kubernetes** is a different install, so it stays, but as "Already run Kubernetes?", not an

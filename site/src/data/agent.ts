@@ -440,7 +440,7 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
       { t: "Check it", d: "<code>buzz.dump</code> and the <code>buzz-bucket</code> folder are here, and neither is empty." },
       {
         t: "Keep it safe",
-        d: "Encrypt the copies and keep one off this computer. The relay key is in Railway's variables: keep it where two people can open it. Railway doesn't keep git repositories.",
+        d: "Encrypt the copies and keep one off this computer. The relay key is in Railway's variables: keep it where two people can open it.",
       },
     ],
     restore: [
@@ -479,13 +479,13 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
   railway: {
     people: PEOPLE,
     backup: {
-      why: "Saves the database and the file bucket to this computer.",
+      why: "Saves the database and the file bucket to this computer. The bucket holds the uploaded files and the git repositories.",
     },
     restore: {
       why: "Puts the backup on this computer back into Railway, and replaces the relay's current data.",
     },
     upgrade: {
-      why: `${UPGRADE_WHY} Git repositories are lost when Railway redeploys the relay.`,
+      why: UPGRADE_WHY,
       steps: [agent("Backs up the database and the bucket first"), agent("Points the relay, and phone pairing if you set it up, at the new image")],
     },
   },

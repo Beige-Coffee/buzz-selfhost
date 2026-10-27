@@ -1,4 +1,4 @@
-import { communityNav, CURSOR, settings, settingsModal, settingsNav, ti, type Flow } from "./members";
+import { communityNav, CURSOR, invite, settings, settingsModal, settingsNav, ti, type Flow } from "./members";
 
 /**
  * A person's identity in Buzz 1.0, as click-throughs of its own screens, in light mode. Drawn from
@@ -152,16 +152,26 @@ export const identityFlows: Flow[] = [
   },
 ];
 
-/** A lost device, from the admin's side and then the person's. */
+/** A lost device: retire an exposed key for a new identity, or bring a safe one back. */
+const pairAgain = { k: "Pair the phone again", t: "<b>Settings</b>, <b>Pair mobile</b>. On the phone, <b>Add community</b>, scan the code, and type the six digits.", frame: settingsModal(communityNav("Pair mobile"), pairPage) };
 export const lostFlows: Flow[] = [
   {
-    id: "lost",
-    label: "A lost device",
+    id: "exposed",
+    label: "The key is exposed",
     steps: [
-      { k: "If in doubt, remove the old key", t: "An admin opens <b>Membership</b>, the <b>…</b> on the person's row, then <b>Remove</b>. They're added again once they sign back in.", frame: settings("remove") },
-      { k: "On the new computer: Use an existing key", t: "On Buzz's first screen, the person chooses <b>Use an existing key</b>. With a Block account, <b>Restore from backup</b> appears here too.", frame: firstScreen("existing") },
-      { k: "Paste the saved key", t: "They paste the private key from their password manager, then choose <b>Import this identity</b>.", frame: importScreen },
-      { k: "Pair the phone again", t: "<b>Settings</b>, <b>Pair mobile</b>. On the phone, <b>Add community</b>, scan the code, and type the six digits.", frame: settingsModal(communityNav("Pair mobile"), pairPage) },
+      { k: "Remove the old key now", t: "An admin opens <b>Membership</b>, the <b>…</b> on the person's row, then <b>Remove</b>. Whoever has the device can't get in with it anymore.", frame: settings("remove") },
+      { k: "Create a new identity", t: "On the new device, <b>Create a new identity</b>. Not the saved copy: whoever has the old device has that key too.", frame: firstScreen("create") },
+      { k: "Send the new npub", t: "<b>Settings</b>, <b>Identity</b>, copy <b>Nostr address (npub)</b>, and send it to an admin.", frame: settingsModal(nav, identityPage("npub")) },
+      { k: "An admin adds it", t: "<b>Membership</b>, <b>Invite members</b>, paste the npub, <b>Add member</b>. Then pair the phone again, and start their agents again from the new identity.", frame: settings("", invite("add")) },
+    ],
+  },
+  {
+    id: "safe",
+    label: "The key is safe",
+    steps: [
+      { k: "Use an existing key", t: "On the new device's first screen, <b>Use an existing key</b>. With a Block account, <b>Restore from backup</b> appears here too.", frame: firstScreen("existing") },
+      { k: "Paste the saved key", t: "Paste the private key from the password manager, then <b>Import this identity</b>. Same identity, nothing for an admin to do.", frame: importScreen },
+      pairAgain,
     ],
   },
 ];

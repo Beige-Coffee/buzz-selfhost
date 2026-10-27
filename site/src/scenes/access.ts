@@ -2,6 +2,8 @@ import { agentFlows } from "./agentflow";
 import { identityFlows, lostFlows } from "./identity";
 import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members";
 import { TABLER } from "./tabler";
+import { jumpTo } from "../lib/nav";
+import { getValues, setValues, trackHash, trackOf } from "../lib/values";
 
 /**
  * Access and keys: what we recommend for keys, people and the server, and how to set it up. Questions
@@ -23,6 +25,10 @@ const icon = (n: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${OWN[n
 
 const rec = (t: string) => `<div class="fq-rec"><span class="fq-rec-i">${icon("check")}</span><div><b>Recommended</b><p>${t}</p></div></div>`;
 const note = (t: string) => `<p class="opx-note">${t}</p>`;
+const steps = (rows: [string, string][]) =>
+  `<ol class="opx-flow">${rows
+    .map(([t, d], i) => `<li><span class="opx-flow-n">${i + 1}</span><div><p class="opx-flow-t">${t}</p><p class="opx-flow-d">${d}</p></div></li>`)
+    .join("")}</ol>`;
 /** Where a click-through of Buzz's screens goes; CLICK_THROUGHS has its flows. */
 const ct = (name: string) => `<div class="fq-ct" data-ct="${name}"></div>`;
 
@@ -49,19 +55,17 @@ const ROLES = `<div class="fq-vis"><table class="fq-roles">
     <tr><td>Change the owner</td><td colspan="3" class="fq-srv">${icon("server")}On the server, by whoever runs it</td></tr>
   </tbody></table></div>`;
 
-const LOST = `<div class="fq-vis fq-tree">
-  <div class="fq-node start">${icon("device-mobile")}A laptop or phone is lost</div>
-  <div class="fq-q">Was it locked, with its disk encrypted?</div>
-  <div class="fq-branches">
-    <div class="fq-br"><span class="fq-tag no">No, or not sure</span><div class="fq-node act">${icon("x")}<span>Remove their key now<small>Settings, Community admin, Membership</small></span></div></div>
-    <div class="fq-br"><span class="fq-tag yes">Yes</span><div class="fq-node">${icon("check")}<span>Keep it on the list for now</span></div></div>
+/** A lost device: one question decides everything, whether the key is exposed. */
+const CASES = `<div class="fq-vis fq-cases">
+  <p class="fq-cases-q">${icon("device-mobile")}<span><b>Could someone get into the lost device?</b>It was unlocked, had no disk encryption, or someone knows its password.</span></p>
+  <div class="fq-case bad">
+    <p class="fq-case-h"><span class="fq-tag no">Yes, or not sure</span><b>The key is exposed: retire it</b></p>
+    <ol><li>Remove the old key in Membership, now.</li><li>Create a new identity on the new device. Not the saved copy: whoever has the device has that key too.</li><li>An admin adds the new npub.</li><li>Pair the phone, start their agents again, and tell any other community they joined.</li></ol>
   </div>
-  <div class="fq-q">Did they save a copy of the key?</div>
-  <div class="fq-branches">
-    <div class="fq-br"><span class="fq-tag yes">Yes</span><div class="fq-node">${icon("key")}<span>Sign in with it on the new device<small>Use an existing key, or Restore from backup with a Block account</small></span></div></div>
-    <div class="fq-br"><span class="fq-tag no">No</span><div class="fq-node act">${icon("plus")}<span>New identity, added again by an admin<small>and the old key removed</small></span></div></div>
+  <div class="fq-case good">
+    <p class="fq-case-h"><span class="fq-tag yes">No</span><b>The key is safe: bring it back</b></p>
+    <ol><li>Sign in on the new device with the saved copy, or Restore from backup with a Block account.</li><li>No copy? Then it's a new identity, added again.</li><li>Pair the phone again.</li></ol>
   </div>
-  <div class="fq-node end">${icon("device-mobile")}Pair the phone again</div>
 </div>`;
 
 /** Single sign-on today: two locks in a row, your company's login and Buzz's member list. */
@@ -155,15 +159,24 @@ const GROUPS: [string, Question[]][] = [
         icon: "lock",
         q: "Can we use single sign-on?",
         a:
-          rec("Not inside Buzz yet. On a private network, your company login guards the door, and the member list is the second lock.") +
+          rec("Not today: Buzz has no single sign-on, and everyone signs in with their own key. The next best thing is a private network, where your company login decides who can reach the relay at all.") +
+          `<div class="fq-status"><span class="fq-status-k">${icon("bolt")}In progress in Buzz</span><p>Buzz is building company sign-in on a draft standard, <a href="https://github.com/block/buzz/blob/main/docs/nips/NIP-FI.md">NIP-FI</a>: your identity provider vouches for each person's key. The relay already understands it, behind a setting that's off by default, and the desktop app's side is open work (<a href="https://github.com/block/buzz-app/pull/1424">block/buzz-app#1424</a>). There's no date yet, and a self-hosted community can't turn it on.</p></div>` +
           LOCKS +
-          note("When someone leaves, remove them in both places. Buzz has a draft standard for single sign-on, NIP-FI: off by default, with the app side planned for enterprise builds."),
+          steps([
+            ["Run the relay on a private network", `On a VPS, your own hardware or Kubernetes, with <b>Private network</b> on. <a href="#guide" data-go-private>Set it up</a>.`],
+            ["Sign up for Tailscale with your identity provider", "Google, Microsoft, Okta or GitHub, among others, so only company accounts can join your network."],
+            ["Keep the member list as the second lock", "The network gets someone to the relay; only Membership lets them in. When someone leaves, remove them in both places."],
+          ]),
       },
       {
         id: "lost",
         icon: "device-mobile",
         q: "What do we do when a laptop or phone is lost?",
-        a: rec("Treat the key as stolen until you know the device was locked and encrypted.") + LOST + ct("lost"),
+        a:
+          rec("First decide whether the key is exposed. If anyone could get into the device, retire the key for a new identity, even if a copy was saved.") +
+          CASES +
+          ct("lost") +
+          note("Buzz can't cut off one device: the key is the identity, so retiring it means a new one. What the old key wrote stays under its name."),
       },
       {
         id: "leak",
@@ -330,6 +343,15 @@ export function mountAccess(host: HTMLElement): void {
       const [f] = state[slot.dataset.ct!] ?? [0, 0];
       state[slot.dataset.ct!] = flow ? [Number(flow.dataset.mbFlow), 0] : [f, Number(step!.dataset.mb)];
       draw(slot);
+      return;
+    }
+    // single sign-on's next best thing: a private setup, then its steps
+    if (t.closest("[data-go-private]")) {
+      e.preventDefault();
+      const path = getValues().path;
+      setValues({ path: path === "own" || path === "k8s" ? path : "vps", ownMode: "public", reach: "private" });
+      history.replaceState(null, "", `#${trackHash(trackOf())}`);
+      jumpTo("guide");
       return;
     }
     // the leaving checklist ticks off, for working through it

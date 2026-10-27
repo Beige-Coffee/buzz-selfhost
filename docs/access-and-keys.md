@@ -38,21 +38,30 @@ Note: nobody can reset a Buzz key.
 `crates/pairing/src/NIP-AB.md` (pairing copies the key to the phone).
 
 **Can we use single sign-on?**
-Recommended: not inside Buzz yet. On a private network, sign in to Tailscale with your identity
-provider, so only company accounts reach the relay; keep the member list as the second lock; remove
-people in both places.
-*Facts:* block/buzz `docs/nips/NIP-FI.md` (draft), `crates/buzz-relay/src/config.rs`
-(`BUZZ_NIP_FI_MODE`, off by default), `docs/federated-identity-adapter.md` (planned for enterprise
-builds). Tailscale signs users in through Apple, Google, GitHub, Microsoft, Okta and OneLogin, or a
-custom OIDC provider (tailscale.com/kb/1013/sso-providers, checked 2026-10-27).
+Not today: everyone signs in with their own key. In progress (checked 2026-10-28): Buzz's draft
+standard NIP-FI lets an identity provider vouch for each person's key; the relay understands it
+behind `BUZZ_NIP_FI_MODE`, off by default, and the desktop app's side is open work. The next best
+thing: a private network, with Tailscale signed up through the company's identity provider, and
+the member list as the second lock. The answer links to the guide's private setup.
+*Facts:* block/buzz `docs/nips/NIP-FI.md` (`draft`), `crates/buzz-relay/src/config.rs`;
+block/buzz-app#1424 (open, "add native federated sessions and agent tokens"), #524 (merged, trusted
+enterprise relay discovery), several earlier enterprise-login PRs closed unmerged; Tailscale signs
+users in through Apple, Google, GitHub, Microsoft, Okta and OneLogin, or custom OIDC
+(tailscale.com/kb/1013/sso-providers).
 
-**What do we do when a laptop or phone is lost?** (picture: a two-question decision tree)
-Recommended: treat the key as stolen until you know the device was locked and encrypted. Not locked
-or not sure: remove the key now. Saved a copy: sign in with it (Use an existing key, or Restore from
-backup with a Block account). No copy: new identity, added again, old key removed. Pair the phone
-again.
+**What do we do when a laptop or phone is lost?** (picture: one question, two cases)
+Recommended: first decide whether the key is exposed. If anyone could get into the device
+(unlocked, no disk encryption, or its password known), retire the key: remove it in Membership,
+create a new identity (not the saved copy, which the device's holder has too), have an admin add the
+new npub, pair the phone, start agents again and tell other communities. If the key is safe, bring
+it back: Use an existing key with the saved copy (or Restore from backup with a Block account), and
+pair the phone. Buzz can't cut off one device: the key is the identity.
 *Facts:* buzz-app `README.md` (Use an existing key); `src/features/identity/IdentitySetup.tsx`
-(Restore from backup); `src/features/identity/backup.ts` (backups come from Block sign-ins).
+("Use your existing identity", "Import this identity", "Restore from backup");
+`crates/pairing/src/NIP-AB.md` (pairing copies the key to the phone; no revocation of a pairing).
+Buzz has a draft for marking a retired key, NIP-IA (`replaced-by`, reason `rotated`): the relay
+supports it and the app hides archived identities from pickers, but it carries nothing over to the
+new key.
 
 **What if a key leaks?**
 Recommended: remove a leaked person's key right away, then add their new identity; replace a leaked

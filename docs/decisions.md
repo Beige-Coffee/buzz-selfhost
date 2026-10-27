@@ -96,6 +96,11 @@ the relay key lives). Two explainer versions, a scrolling story and a click-thro
 dropped: people setting this up want what to do. Sources for every fact:
 [access-and-keys.md](access-and-keys.md).
 
+Since 2026-10-28 every answer shows its how: a click-through of Buzz's own screens where it happens
+in Buzz (identity, a lost device, roles, adding and removing people, agents), reusing the people
+click-through from Operations, and a drawing where it happens on the server. The click-throughs
+assume Buzz is installed; how to get it changes too often to draw.
+
 ## Phone notifications on by default (2026-10-23)
 
 A newcomer review named "no push notifications" as the likeliest reason a team would stay on Slack.

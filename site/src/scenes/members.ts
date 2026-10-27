@@ -13,11 +13,11 @@ import { TABLER } from "./tabler";
 
 const HOST = "buzz.yourteam.org";
 const LINK = `https://${HOST}/invite/v2.nOvr6DwA6uV77rW3`;
-const ti = (name: string) => `<svg class="tb-i" viewBox="0 0 24 24" aria-hidden="true">${TABLER[name]}</svg>`;
+export const ti = (name: string) => `<svg class="tb-i" viewBox="0 0 24 24" aria-hidden="true">${TABLER[name]}</svg>`;
 const ring = (on: boolean) => (on ? " hot" : "");
 
 /* ── the profile menu, from the top right ── */
-const CURSOR = `<svg class="mb-cursor" viewBox="0 0 16 20" aria-hidden="true"><path d="M1 1v15l4.2-3.9 2.7 6.2 2.6-1.1-2.7-6.1H14z"/></svg>`;
+export const CURSOR = `<svg class="mb-cursor" viewBox="0 0 16 20" aria-hidden="true"><path d="M1 1v15l4.2-3.9 2.7 6.2 2.6-1.1-2.7-6.1H14z"/></svg>`;
 const open = `<div class="mb-app">
   <div class="mb-top">
     <span class="mb-track">${ti("robot")}Agents<span>${ti("bolt")}Workflows</span><span>${ti("search")}</span></span>
@@ -44,10 +44,14 @@ const NAV: [string, string][][] = [
   [["shield", "Identity"], ["palette", "Appearance"], ["bell", "Notifications"], ["keyboard", "Shortcuts"]],
 ];
 const GROUPS = ["Community", "Community admin", "Buzz"];
-const nav = `<nav class="mb-nav-col">
-  <p class="mb-nav-host"><span>Y</span>${HOST}</p>
-  ${NAV.map((items, g) => `<p class="mb-nav-g">${GROUPS[g]}</p>${items.map(([icon, label]) => `<p class="mb-nav-i${label === "Membership" ? " on" : ""}">${ti(icon)}${label}</p>`).join("")}`).join("")}
+/** Settings' left column: groups of icon and label, with one item open; a community's Settings start with its host. */
+export const settingsNav = (groups: [string, [string, string][]][], open: string, host = "") => `<nav class="mb-nav-col">
+  ${host ? `<p class="mb-nav-host"><span>Y</span>${host}</p>` : ""}
+  ${groups.map(([group, items]) => `<p class="mb-nav-g">${group}</p>${items.map(([icon, label]) => `<p class="mb-nav-i${label === open ? " on" : ""}">${ti(icon)}${label}</p>`).join("")}`).join("")}
 </nav>`;
+/** A community's Settings column, opened at one item. */
+export const communityNav = (open: string) => settingsNav(NAV.map((items, g) => [GROUPS[g], items]), open, HOST);
+const nav = communityNav("Membership");
 
 type Spot = "invite" | "dots" | "make-admin" | "remove" | "";
 const pic = (src: string) => `<img src="${src}" alt="">`;
@@ -68,15 +72,17 @@ const membership = (spot: Spot) => `<section class="mb-page">
     ${spot === "make-admin" || spot === "remove" ? `<div class="mb-rmenu"><p class="${ring(spot === "make-admin")}">${ti("shield")}Make admin</p><p class="${ring(spot === "remove")}">${ti("minus")}Remove</p></div>` : ""}
   </div>
 </section>`;
-const settings = (spot: Spot, over = "") => `<div class="mb-shade"></div>
+/** Settings, a modal over the app: its column, a page, and anything open over it. */
+export const settingsModal = (navHTML: string, page: string, over = "") => `<div class="mb-shade"></div>
 <div class="mb-modal">
   <div class="mb-modal-h"><b>Settings</b><span class="mb-x">${ti("x")}</span></div>
-  <div class="mb-modal-b">${nav}${membership(spot)}</div>
+  <div class="mb-modal-b">${navHTML}${page}</div>
   ${over}
 </div>`;
+export const settings = (spot: Spot, over = "") => settingsModal(nav, membership(spot), over);
 
 /* ── dialogs over Settings ── */
-const invite = (spot: "add" | "copy") => `<div class="mb-shade on-modal"></div>
+const invite = (spot: "add" | "copy", expiry = "3 days", uses = "No limit") => `<div class="mb-shade on-modal"></div>
 <div class="mb-dlg">
   <div class="mb-dlg-h"><b>Add or invite people</b><span class="mb-x">${ti("x")}</span></div>
   <p class="mb-sub">Add someone by their exact identity, or share a link they can use to join.</p>
@@ -86,11 +92,11 @@ const invite = (spot: "add" | "copy") => `<div class="mb-shade on-modal"></div>
   <h6>Invite with a link</h6>
   <p class="mb-sub">Anyone with this link can use it to join until it expires.</p>
   <div class="mb-line"><span class="mb-in"><span class="mono">${LINK}</span><span class="mb-copy${ring(spot === "copy")}">Copy link</span></span></div>
-  <p class="mb-opt">Expires after<span class="mb-choice">3 days${ti("chevron-down")}</span></p>
-  <p class="mb-opt">Limit number of uses<span class="mb-choice">No limit${ti("chevron-down")}</span></p>
+  <p class="mb-opt">Expires after<span class="mb-choice${expiry === "3 days" ? "" : " set"}">${expiry}${ti("chevron-down")}</span></p>
+  <p class="mb-opt">Limit number of uses<span class="mb-choice${uses === "No limit" ? "" : " set"}">${uses}${ti("chevron-down")}</span></p>
 </div>`;
 /** The confirmation, as CommunityAdmin.tsx words it. */
-const confirm = (what: "admin" | "remove") => `<div class="mb-shade on-modal"></div>
+export const confirm = (what: "admin" | "remove") => `<div class="mb-shade on-modal"></div>
 <div class="mb-dlg small">
   <b class="mb-alert-t">${what === "admin" ? "Make admin: Leo?" : "Remove: Leo?"}</b>
   <p class="mb-sub">${what === "admin" ? "Admins can invite people and remove members." : "They lose access to this community until they are invited again."}</p>
@@ -106,11 +112,16 @@ const join = `<div class="mb-join j1-win">
   <div class="j1-join hot">Join</div>
 </div>`;
 
-interface Step {
+export interface Step {
   k: string;
   t: string;
   frame: string;
   loop?: boolean;
+}
+export interface Flow {
+  id: string;
+  label: string;
+  steps: Step[];
 }
 const OPEN: Step = {
   k: "Open Settings",
@@ -120,7 +131,11 @@ const OPEN: Step = {
 };
 const MEMBERS = (spot: Spot, t: string): Step => ({ k: "Open Membership", t, frame: settings(spot) });
 
-const FLOWS = [
+/**
+ * The four flows. The Access and keys section shows them too, with the invite link set the way it
+ * recommends (a short expiry and a use limit) when it passes them.
+ */
+export const peopleFlows = (expiry = "3 days", uses = "No limit"): Flow[] => [
   {
     id: "add",
     label: "Add someone",
@@ -141,9 +156,12 @@ const FLOWS = [
       OPEN,
       MEMBERS("invite", "Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite members</b>."),
       {
-        k: "Copy the link",
-        t: "Copy it and send it. Anyone with it can join until it expires: after 3 days unless you pick 1, 7 or 30, and as many times as you allow: no limit, or 1, 5, 10 or 25 uses.",
-        frame: settings("", invite("copy")),
+        k: expiry === "3 days" ? "Copy the link" : "Set it, then copy it",
+        t:
+          expiry === "3 days"
+            ? "Copy it and send it. Anyone with it can join until it expires: after 3 days unless you pick 1, 7 or 30, and as many times as you allow: no limit, or 1, 5, 10 or 25 uses."
+            : `Set <b>Expires after</b> to <b>${expiry}</b> and the use limit to the number of people you expect, then <b>Copy link</b> and send it.`,
+        frame: settings("", invite("copy", expiry, uses)),
       },
       {
         k: "They join",
@@ -178,13 +196,13 @@ const FLOWS = [
   },
 ];
 
-/** The click-through: the four flows, the drawing, then the step's words and its controls. */
-export function membersHTML(flow: number, step: number): string {
-  const f = FLOWS[Math.max(0, Math.min(FLOWS.length - 1, flow))];
+/** A click-through: its flows when there's more than one, the drawing, then the step's words and its controls. */
+export function clickThroughHTML(flows: Flow[], flow: number, step: number): string {
+  const f = flows[Math.max(0, Math.min(flows.length - 1, flow))];
   const n = Math.max(0, Math.min(f.steps.length - 1, step));
   const s = f.steps[n];
   return `<div class="mb">
-    <div class="mb-flows" role="tablist" aria-label="What to do">${FLOWS.map((x, i) => `<button type="button" role="tab" data-mb-flow="${i}" aria-selected="${x === f}">${x.label}</button>`).join("")}</div>
+    ${flows.length > 1 ? `<div class="mb-flows" role="tablist" aria-label="What to do">${flows.map((x, i) => `<button type="button" role="tab" data-mb-flow="${i}" aria-selected="${x === f}">${x.label}</button>`).join("")}</div>` : ""}
     <div class="mb-stage"><div class="mb-canvas${s.loop ? " loop" : ""}">${s.frame}</div></div>
     <div class="mb-text">
       <p class="mb-n"><span>0${n + 1}</span> / 0${f.steps.length}</p>
@@ -198,6 +216,10 @@ export function membersHTML(flow: number, step: number): string {
     </div>
   </div>`;
 }
+
+/** Managing people: the four flows. */
+const FLOWS = peopleFlows();
+export const membersHTML = (flow: number, step: number) => clickThroughHTML(FLOWS, flow, step);
 
 /** The canvas is drawn at 560 x 340 and scaled to the stage, like an SVG viewBox. */
 export function fitMembers(root: ParentNode): void {

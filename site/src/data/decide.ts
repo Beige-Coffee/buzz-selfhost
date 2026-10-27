@@ -91,7 +91,7 @@ export const RESULTS: Record<Track, Result> = {
     name: "Railway",
     set: { path: "railway" },
     why: "The least upkeep: Railway runs and restarts the containers.",
-    trade: ["Your data and the relay key live on Railway.", "The relay has no volume, so git repositories are lost on redeploy."],
+    trade: ["Your data and the relay key live on Railway.", "Needs a plan with room for four services and a storage bucket."],
   },
   k8s: {
     name: "Kubernetes",

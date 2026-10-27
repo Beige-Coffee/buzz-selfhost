@@ -86,6 +86,16 @@ click on the profile menu, drawn from those screenshots and the app's source, wi
 Tabler icons. Backing up and restoring are numbered steps whose commands are the skill's own
 blocks; the skill's restore puts its stop-and-clear commands in a block of their own for that.
 
+## Access and keys (2026-10-27)
+
+A section after Operations for the questions a team asks before trusting Buzz with people and keys:
+identity and keys, people and roles, agents, and the server. It's a how-to FAQ, not an explainer: each
+answer leads with what we recommend, then the steps in Buzz's own words, with a picture only where
+one helps (who can do what, a lost device, the invite link's settings, the leaving checklist, where
+the relay key lives). Two explainer versions, a scrolling story and a click-through, were tried and
+dropped: people setting this up want what to do. Sources for every fact:
+[access-and-keys.md](access-and-keys.md).
+
 ## Phone notifications on by default (2026-10-23)
 
 A newcomer review named "no push notifications" as the likeliest reason a team would stay on Slack.

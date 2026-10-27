@@ -5,6 +5,7 @@ import { mountSetup } from "../scenes/setup";
 import { mountAgent } from "../scenes/agent";
 import { mountOperations } from "../scenes/operations";
 import { mountRelayKey } from "../scenes/relaykey";
+import { mountAccess } from "../scenes/access";
 
 const registry: Record<string, (el: HTMLElement) => void> = {
   story: mountStory,
@@ -14,6 +15,7 @@ const registry: Record<string, (el: HTMLElement) => void> = {
   agent: mountAgent,
   operations: mountOperations,
   relaykey: mountRelayKey,
+  access: mountAccess,
 };
 
 /** The footer's lists start folded on a phone, open everywhere else. */

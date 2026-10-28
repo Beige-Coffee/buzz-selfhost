@@ -240,7 +240,9 @@ python3 tests/umbrel/server.py down     # deletes the droplet and its firewall
 ```
 
 `UMBREL_LOCAL=1` runs the same scripts on this machine's Docker instead of the droplet, which is how
-the ARM test ran on an Apple Silicon Mac. Another umbrelOS version runs beside the first: `UMBREL_CONTAINER=umbrelos-17 bash
+the ARM test ran on an Apple Silicon Mac. Umbrel then opens at http://localhost:8080 and its apps on
+their own ports, on this computer only; `UMBREL_PUBLISH` changes the list, and empty publishes none,
+for a second Umbrel beside the first. Another umbrelOS version runs beside the first: `UMBREL_CONTAINER=umbrelos-17 bash
 tests/umbrel/install.sh 1.7.4`, then `e2e.sh` with the same `UMBREL_CONTAINER` and its own
 `DOMAIN_FILE`.
 
@@ -274,6 +276,11 @@ The local run's password is `local-test-only`. `check.py` expects a fresh run: `
   server's network card and the server drops off the network. `install.sh` uses Docker's bridge
   network and masks NetworkManager.
 - `docker cp` can't see `/home/umbrel` inside the umbrelOS container; tar through `docker exec` can.
+- umbrelOS 2.0 sends app ports to its sign-in gateway with an nftables `fib` rule, which Docker
+  Desktop's kernel can't run: no app page opens, and `umbreld` logs "Failed waiting for app gateway".
+  `install.sh` swaps in a rule that matches the container's network interfaces instead. Opening an
+  app also needs port 2000, Umbrel's sign-in page for apps.
+- `docker inspect <name>` also finds a volume of that name, so `install.sh` asks for the container.
 - An install stuck on a failing service can't be uninstalled until its compose run is stopped.
 - `buzz-admin add-member` takes the key with `--pubkey`.
 - With `Referrer-Policy: no-referrer`, browsers send a page's own form posts with `Origin: null`.

@@ -1,4 +1,4 @@
-"""Buzz on Umbrel: the setup and status page.
+"""Buzz Relay on Umbrel: the setup and status page.
 
 A guided setup: the owner's public ID, how members' apps reach this Umbrel, and the community's
 address. Then it connects that address, checks it, and shows how to join, invite and pair phones.
@@ -639,14 +639,14 @@ def esc(text):
     return html.escape(str(text), quote=True)
 
 
-def layout(body, signed_in=True, title="Buzz on Umbrel"):
+def layout(body, signed_in=True, title="Buzz Relay"):
     logout = ('<form method="post" action="logout"><button class="link" type="submit">Sign out</button></form>'
               if signed_in else "")
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1"><title>' + esc(title) + "</title>"
         "<style>" + STYLE + "</style><script>" + SCRIPT + "</script></head><body>"
-        '<header class="hd"><span class="brand">' + BEE + "<span>Buzz on Umbrel</span></span>" + logout + "</header>"
+        '<header class="hd"><span class="brand">' + BEE + "<span>Buzz Relay</span></span>" + logout + "</header>"
         "<main>" + body + '<p class="foot">Buzz is open source, from Block: '
         '<a href="https://github.com/block/buzz" target="_blank" rel="noopener">github.com/block/buzz</a>.</p>'
         "</main></body></html>"
@@ -665,9 +665,9 @@ def login_page(error=""):
         '<input type="password" id="password" name="password" autocomplete="current-password" autofocus>'
         '<button class="btn" type="submit">Sign in</button></form>' + error_box(error) +
         '<div class="panel" style="margin-top:28px"><p><b>Where to find it.</b> Umbrel shows this app\'s password '
-        "when you open Buzz from the home screen, under Default credentials. Later, right-click Buzz on the home "
-        "screen and choose Settings, then Default credentials (on umbrelOS 1.7: right-click Buzz, then Show default "
-        "credentials).</p><p class=\"muted\">Why a second password? Umbrel's sign-in protects "
+        "when you open Buzz Relay from the home screen, under Default credentials. Later, right-click Buzz Relay on "
+        "the home screen and choose Settings, then Default credentials (on umbrelOS 1.7: right-click Buzz Relay, "
+        "then Show default credentials).</p><p class=\"muted\">Why a second password? Umbrel's sign-in protects "
         "this page in your browser, but every app on an Umbrel shares one network, so other apps could reach it "
         "directly. This password keeps them out. It stays signed in on this browser for 30 days.</p></div>",
         signed_in=False)

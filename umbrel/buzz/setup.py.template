@@ -30,6 +30,12 @@ TAILSCALE_ON = os.path.join(SETTINGS_DIR, "tailscale-enabled")
 TAILSCALE_STATUS = os.path.join(SETTINGS_DIR, "tailscale-status.json")
 TAILSCALE_SERVE = os.path.join(SETTINGS_DIR, "tailscale-serve.txt")
 TAILSCALE_LOGS = ("tailscale-publish.log", "tailscale-funnel.log")
+# The app's own Cloudflare tunnel: the name it serves, where it stands, and its sign-in link
+CLOUDFLARE_ON = os.path.join(SETTINGS_DIR, "cloudflare-enabled")
+CLOUDFLARE_STATE = os.path.join(SETTINGS_DIR, "cloudflare-state")
+CLOUDFLARE_LOGIN = os.path.join(SETTINGS_DIR, "cloudflare-login.log")
+CLOUDFLARE_SETUP = os.path.join(SETTINGS_DIR, "cloudflare-setup.log")
+CLOUDFLARE_RESET = os.path.join(SETTINGS_DIR, "cloudflare-reset")
 GATEWAY_URL = "buzz-gateway:80"
 RELAY_HOST = "buzz_relay_1"
 BUZZ_APP = "https://github.com/block/buzz-app"
@@ -185,8 +191,11 @@ def save(owner_text, key, mode, domain, push=None):
     if mode == "domain":
         if os.path.exists(TAILSCALE_ON):
             os.remove(TAILSCALE_ON)
+        write_atomic(CLOUDFLARE_ON, domain + "\n")
         write_relay_env(key, domain, push)
         return
+    if os.path.exists(CLOUDFLARE_ON):
+        os.remove(CLOUDFLARE_ON)
     # The Tailscale machine starts (or switches between Funnel and tailnet only); the watcher
     # writes the relay's settings once the machine has its name.
     write_atomic(TAILSCALE_ON, mode + "\n")
@@ -197,13 +206,17 @@ def save(owner_text, key, mode, domain, push=None):
 
 
 def migrate():
-    """Settings from earlier versions of this package: "tailscale" is now "funnel"."""
+    """Settings from earlier versions of this package: "tailscale" is now "funnel", and a domain gets the
+    app's own Cloudflare tunnel."""
     setup = read_json(SETUP_JSON)
     if isinstance(setup, dict) and setup.get("mode") == "tailscale":
         setup["mode"] = "funnel"
         write_atomic(SETUP_JSON, json.dumps(setup))
     if read_text(TAILSCALE_ON).strip() == "on":
         write_atomic(TAILSCALE_ON, "funnel\n")
+    # A domain saved before this app ran its own Cloudflare tunnel: the tunnel starts for it too
+    if isinstance(setup, dict) and setup.get("mode") == "domain" and setup.get("domain") and not os.path.exists(CLOUDFLARE_ON):
+        write_atomic(CLOUDFLARE_ON, setup["domain"] + "\n")
 
 
 # ---------------------------------------------------------------- Tailscale
@@ -246,6 +259,27 @@ def tailscale_watcher():
         except (OSError, KeyError, ValueError):
             pass
         time.sleep(3)
+
+
+def cloudflare_state():
+    """Where this app's Cloudflare tunnel stands, and Cloudflare's sign-in link while it waits for one."""
+    state = read_text(CLOUDFLARE_STATE).strip()
+    found = re.search(r"https://dash\.cloudflare\.com/argotunnel\?\S+", read_text(CLOUDFLARE_LOGIN)) if state == "signin" else None
+    return {"state": state, "link": found.group(0) if found else ""}
+
+
+def cloudflare_problem():
+    """The last thing Cloudflare's tool said, for an error the page can't put in its own words."""
+    lines = [line.strip() for line in read_text(CLOUDFLARE_SETUP).splitlines() if line.strip()]
+    return lines[-1][-240:] if lines else ""
+
+
+def cloudflare_step():
+    """Like tailscale_step: the page reloads when this changes, a new sign-in link included."""
+    cf = cloudflare_state()
+    if cf["state"] == "signin":
+        return "signin-" + (hashlib.sha256(cf["link"].encode()).hexdigest()[:8] if cf["link"] else "wait")
+    return cf["state"] or "starting"
 
 
 # ---------------------------------------------------------------- checks
@@ -350,9 +384,9 @@ def check(setup):
         return live, items
     addresses = got["dns"]
     if not addresses:
-        items.append(item("dns", "bad" if mode == "domain" else "wait",
+        items.append(item("dns", "wait",
                           "The name <code>" + html.escape(domain) + "</code> isn't published yet",
-                          "Add the public hostname in Cloudflare (step 3 below), then give it a minute." if mode == "domain" else
+                          "Cloudflare publishes it a few seconds after the tunnel is set up." if mode == "domain" else
                           "Tailscale publishes the name once Funnel is on."))
     status, body = got["live"]
     reach_ok = status == 200 and body.strip() == b"ok"
@@ -370,6 +404,15 @@ def check(setup):
     pair_ok = got["pair"][0] == 101
     items.append(item("pair", "ok" if pair_ok else "wait",
                       "Phones can pair" if pair_ok else "Phone pairing isn't reachable yet"))
+    if mode == "domain" and not reach_ok:
+        cf = cloudflare_state()["state"]
+        trouble = cf in ("taken", "wrong-domain", "error")
+        items.insert(1, item("cloudflare", "ok" if cf == "running" else "bad" if trouble else "wait",
+                             "This app's Cloudflare tunnel is set up" if cf == "running" else
+                             "Cloudflare needs your attention" if trouble else
+                             "Signed in to Cloudflare, setting up the tunnel" if cf in ("creating", "routing") else
+                             "Waiting for you to sign in to Cloudflare",
+                             "See below." if trouble else ""))
     return relay_ok and reach_ok and pair_ok, items
 
 
@@ -378,8 +421,8 @@ def reach_hint(mode, status, body):
     if mode == "funnel":
         return "Tailscale is still turning Funnel on. This can take a minute after you allow it."
     if status in (530, 1033) or "1033" in text:
-        return ("Cloudflare has no connected tunnel for this name. Is the Cloudflare Tunnel app running, "
-                "with its token pasted in?")
+        return ("Cloudflare has no connected tunnel for this name yet. This app's tunnel connects a few seconds "
+                "after it's set up; with Umbrel's Cloudflare Tunnel app instead, is it running?")
     if status in (502, 503, 504):
         return ("The tunnel runs but can't reach Buzz. In Cloudflare, set the hostname's service to HTTP and "
                 "the URL to " + GATEWAY_URL + ".")
@@ -390,7 +433,7 @@ def reach_hint(mode, status, body):
         return "It answered HTTP " + str(status) + ". Check the hostname and service in Cloudflare."
     if text.startswith("tls"):
         return "The name answers without a valid HTTPS certificate yet. In Cloudflare, the name must be proxied."
-    return "Nothing answers yet. Finish the Cloudflare steps below; the name can take a few minutes to work."
+    return "Nothing answers yet. A new name can take a few minutes to work."
 
 
 CACHE = {"at": 0.0, "key": None, "value": None}
@@ -872,12 +915,12 @@ def address_fields(values, setup):
         + choice("domain", "For hosting a community", "Recommended", "Your own domain",
                  "A name you own, like <code>buzz.yourteam.com</code>. Anyone you invite can reach it from anywhere, "
                  "and the address stays yours, even on another server.",
-                 "a domain (around 10 US dollars a year) on a free Cloudflare account, and Umbrel's Cloudflare "
-                 "Tunnel app.", mode == "domain",
+                 "a domain (around 10 US dollars a year) on a free Cloudflare account.", mode == "domain",
                  more='<label class="field" for="domain">Your domain</label>'
                  '<input type="text" id="domain" name="domain" placeholder="buzz.yourteam.com" autocomplete="off" '
                  'spellcheck="false" value="' + esc(domain) + '">'
-                 '<p class="small">Next, this page shows how to connect it in Cloudflare and checks that it works. '
+                 '<p class="small">Next, you sign in to Cloudflare and choose your domain. This page sets up the rest and '
+                 "checks that it works. "
                  "Cloudflare handles HTTPS, so it can see the traffic it carries, and it caps uploads at 100 MB.</p>")
         + choice("funnel", "For trying Buzz out", "", "A free Tailscale address",
                  "The quickest start. Tailscale gives this Umbrel an address like <code>buzz.tail1234.ts.net</code> "
@@ -1216,7 +1259,9 @@ def tailscale_step(mode):
 
 
 def phase_of(setup, live):
-    step = tailscale_step(setup["mode"]) if setup["mode"] in ("funnel", "private") and not live else "-"
+    step = "-"
+    if not live:
+        step = cloudflare_step() if setup["mode"] == "domain" else tailscale_step(setup["mode"])
     return setup["mode"] + ":" + ("live" if live else "connecting") + ":" + (relay_domain() or "-") + ":" + step
 
 
@@ -1227,22 +1272,46 @@ def copy_button(text):
 def connect_steps(setup, domain):
     mode = setup["mode"]
     if mode == "domain":
-        return (
-            '<section class="part"><h2>Connect the name in Cloudflare</h2>'
-            "<p class=\"muted\">You only do this once.</p>"
-            '<ol class="do"><li><b>Add your domain to Cloudflare.</b> Buy a domain anywhere, or from Cloudflare, and '
-            "add it to a free Cloudflare account.</li>"
-            "<li><b>Install Cloudflare Tunnel</b> from the Umbrel App Store. Create a tunnel in Cloudflare's dashboard "
-            "and paste its token into the app. "
-            '<a href="' + TUNNEL_GUIDE + '" target="_blank" rel="noopener">The app\'s guide</a> shows each screen.</li>'
-            "<li><b>Add a public hostname</b> to the tunnel, with these values:"
+        cf = cloudflare_state()
+        state = cf["state"]
+        if state == "signin" and cf["link"]:
+            action = ("<p>Sign in to Cloudflare, or create a free account. When it asks which domain to authorize, "
+                      "choose the one <code>" + esc(domain) + "</code> is under. This app then creates its tunnel and the "
+                      "name in your Cloudflare account.</p>"
+                      '<a class="btn" href="' + esc(cf["link"]) + '" target="_blank" rel="noopener">Sign in to Cloudflare</a>'
+                      '<p class="muted small">The domain has to be on Cloudflare: buy one there, or add one you own to a '
+                      "free Cloudflare account. The link works for about ten minutes, and a new one appears here after "
+                      "that.</p>")
+        elif state in ("", "signin"):
+            action = "<p class=\"muted\">Starting Cloudflare's sign-in. This takes a few seconds.</p>"
+        elif state in ("creating", "routing"):
+            action = ("<p class=\"muted\">Signed in. Creating the tunnel and the name <code>" + esc(domain)
+                      + "</code> in Cloudflare.</p>")
+        elif state == "taken":
+            action = ("<p><code>" + esc(domain) + "</code> already has a DNS record in Cloudflare. Delete it in "
+                      "Cloudflare's DNS settings, or change the address to another name. This page tries again every "
+                      "few seconds.</p>")
+        elif state == "wrong-domain":
+            action = ("<p>The domain you chose when signing in isn't the one <code>" + esc(domain) + "</code> is under. "
+                      "Sign in again and choose that one.</p>" + cloudflare_reset_button())
+        elif state == "error":
+            problem = cloudflare_problem()
+            action = ("<p>Cloudflare refused a step. This page tries again every few seconds.</p>"
+                      + ('<p class="muted small"><code>' + esc(problem) + "</code></p>" if problem else "")
+                      + cloudflare_reset_button())
+        else:
+            action = ""
+        manual = (
+            "<details><summary>Using Umbrel's Cloudflare Tunnel app instead</summary><div class=\"inner\">"
+            '<p class="muted small">Add a public hostname to your tunnel with these values, and skip the sign-in above. '
+            '<a href="' + TUNNEL_GUIDE + '" target="_blank" rel="noopener">The app\'s guide</a> shows each screen.</p>'
             '<dl class="values"><dt>Hostname</dt><dd><code>' + esc(domain) + "</code>" + copy_button(domain) + "</dd>"
             "<dt>Service type</dt><dd><code>HTTP</code></dd>"
-            "<dt>URL</dt><dd><code>" + GATEWAY_URL + "</code>" + copy_button(GATEWAY_URL) + "</dd></dl>"
-            '<p class="muted small">Send only this name to Buzz. That keeps this page, Umbrel and your other apps '
-            "off the internet.</p></li></ol>"
-            '<p class="muted small">This page checks every few seconds. A new name can take a few minutes to work.</p></section>'
+            "<dt>URL</dt><dd><code>" + GATEWAY_URL + "</code>" + copy_button(GATEWAY_URL) + "</dd></dl></div></details>"
         )
+        return ('<section class="part"><h2>Connect the name in Cloudflare</h2>' + action + manual
+                + '<p class="muted small">This page checks every few seconds. A new name can take a few minutes to work.</p>'
+                "</section>")
     step = tailscale_step(mode)
     if step == "starting":
         action = "<p class=\"muted\">Starting Tailscale. This takes a few seconds.</p>"
@@ -1263,6 +1332,11 @@ def connect_steps(setup, domain):
                    '<p class="muted small">Waiting for Tailscale to ask.</p>'))
     title = "Connect through Tailscale" if mode == "funnel" else "Connect your private network"
     return '<section class="part"><h2>' + title + "</h2>" + action + "</section>" if action else ""
+
+
+def cloudflare_reset_button():
+    return ('<form method="post" action="cloudflare-reset"><button class="btn small ghost" type="submit">'
+            "Sign in to Cloudflare again</button></form>")
 
 
 def private_members_note():
@@ -1501,6 +1575,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send(400, main_page(setup, str(error), values))
             setup["owner"], setup["owner_hex"] = values["owner"].strip(), key
             save(setup["owner"], key, setup["mode"], relay_domain() or setup.get("domain", ""))
+            return self.redirect("./")
+        if path == "/cloudflare-reset":
+            write_atomic(CLOUDFLARE_RESET, "1\n")
             return self.redirect("./")
         if path == "/notifications":
             save(setup["owner"], setup["owner_hex"], setup["mode"], relay_domain() or setup.get("domain", ""),

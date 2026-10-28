@@ -2,7 +2,7 @@
 another container on the shared network, setup, persistence across restarts, owner and address
 changes, switching back, and the Tailscale modes up to the sign-in link. Prints PASS/FAIL lines.
 The app password is read from run/.env and never printed."""
-import http.cookiejar, json, os, re, subprocess, sys, time, urllib.error, urllib.parse, urllib.request
+import html, http.cookiejar, json, os, re, subprocess, sys, time, urllib.error, urllib.parse, urllib.request
 
 L = os.path.dirname(os.path.abspath(__file__))
 ENV = dict(line.strip().split("=", 1) for line in open(os.path.join(L, "run/.env")) if "=" in line)
@@ -132,6 +132,16 @@ s, body, _ = call("/")
 ok("Connect" in body and "Cloudflare" in body and "isn't published yet" in body,
    "the page shows the Cloudflare steps, and that the name doesn't resolve")
 ok("buzz-gateway:80" in body, "the page gives the tunnel's service URL")
+cf_link = ""
+for _ in range(40):
+    found = re.search(r"https://dash\.cloudflare\.com/argotunnel\?\S+", settings("cloudflare-login.log"))
+    if found and settings("cloudflare-state").strip() == "signin":
+        cf_link = found.group(0)
+        break
+    time.sleep(3)
+ok(bool(cf_link), "the app's own Cloudflare tunnel waits for a sign-in, with Cloudflare's link")
+s, body, _ = call("/")
+ok("Sign in to Cloudflare" in body and html.escape(cf_link) in body, "the page shows that sign-in link")
 
 print("== Persistence across a restart of every container")
 sh("docker", "compose", "-p", "buzzlocal", "--env-file", os.path.join(L, "run/.env"), "-f", os.path.join(L, "run/compose.yml"), "restart")
@@ -181,6 +191,9 @@ ok(any(hexkey(OWNER) in line and "admin" in line for line in members().splitline
 print("== The Tailscale modes, up to the sign-in")
 s, body, _ = call("/address", {"mode": "funnel", "ack": "yes", "confirm": D1})
 ok(s == 303 and settings("tailscale-enabled").strip() == "funnel", "choosing the free Tailscale address starts Tailscale in Funnel mode")
+time.sleep(8)
+ok(settings("cloudflare-enabled") == "" and settings("cloudflare-state") == "",
+   "and turns the Cloudflare tunnel off: it waits, with no sign-in running")
 link = ""
 for _ in range(30):
     status = settings("tailscale-status.json")

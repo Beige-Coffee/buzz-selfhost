@@ -2,7 +2,7 @@
 
   python3 preview.py <port> <scenario>    then open http://127.0.0.1:<port>
 
-Scenarios: login, setup, domain-dns, domain-530, funnel-login, funnel-consent, private-live, domain-live.
+Scenarios: login, setup, domain-dns (the Cloudflare sign-in), domain-530 (the tunnel set up, not connected), funnel-login, funnel-consent, private-live, domain-live.
 Everything except "login" skips the sign-in. Mocked: relay and public checks, Tailscale status files.
 """
 import http.server, importlib.machinery, importlib.util, json, os, sys, tempfile
@@ -18,6 +18,8 @@ d = tempfile.mkdtemp(prefix="buzz-preview-")
 m.SETTINGS_DIR = d
 m.RELAY_ENV, m.SETUP_JSON = d + "/relay.env", d + "/setup.json"
 m.TAILSCALE_ON, m.TAILSCALE_STATUS, m.TAILSCALE_SERVE = d + "/tailscale-enabled", d + "/tailscale-status.json", d + "/tailscale-serve.txt"
+m.CLOUDFLARE_ON, m.CLOUDFLARE_STATE, m.CLOUDFLARE_LOGIN, m.CLOUDFLARE_SETUP, m.CLOUDFLARE_RESET = (
+    d + "/" + n for n in ("cloudflare-enabled", "cloudflare-state", "cloudflare-login.log", "cloudflare-setup.log", "cloudflare-reset"))
 m.PASSWORD = "preview-only-password"
 OWNER = "npub1464m3lr8zsjm79l073tcrptr8ekddatt30p8q4f25zcc7dq0zc7sc9a4yn"
 
@@ -46,10 +48,14 @@ if scenario != "login":
     m.Handler.signed_in = lambda self: True
 if scenario == "domain-dns":
     setup("domain", "buzz.yourteam.com")
+    open(m.CLOUDFLARE_STATE, "w").write("signin\n")
+    open(m.CLOUDFLARE_LOGIN, "w").write("Please open the following URL and log in with your Cloudflare account:\n\n"
+                                        "https://dash.cloudflare.com/argotunnel?aud=&callback=https%3A%2F%2Flogin.cloudflareaccess.org%2Fpreview\n")
     m.resolves = lambda name: []
     m.request = fake_request(lambda path, h: (None, b"Name or service not known"))
 elif scenario == "domain-530":
     setup("domain", "buzz.yourteam.com")
+    open(m.CLOUDFLARE_STATE, "w").write("running\n")
     m.resolves = lambda name: ["104.21.32.1"]
     m.request = fake_request(lambda path, h: (530, b"error code: 1033"))
 elif scenario in ("funnel-login", "funnel-consent"):

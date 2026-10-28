@@ -17,10 +17,10 @@ description: >-
   the community. In every option, only members can read or post.
 
 
-  - Your own domain (recommended), for a lasting community. The Cloudflare Tunnel app connects it
-  to this Umbrel with no router changes, and the address stays yours if you move to another
-  server. Cloudflare handles HTTPS, so it can see the traffic it carries, and uploads are limited
-  to 100 MB.
+  - Your own domain (recommended), for a lasting community. You sign in to Cloudflare from the
+  app's page and choose the domain; the app sets up its own Cloudflare tunnel and the name, with no
+  router changes, and the address stays yours if you move to another server. Cloudflare handles
+  HTTPS, so it can see the traffic it carries, and uploads are limited to 100 MB.
 
   - A free Tailscale address, for trying Buzz out. Members don't need Tailscale. The address is
   tied to your Tailscale account, so moving to your own domain later means starting over.

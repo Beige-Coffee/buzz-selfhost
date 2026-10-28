@@ -1,0 +1,128 @@
+wrote ~/code/buzz-selfhost-main/tests/umbrel/local/run/compose.yml with services: web, gateway, relay, tailscale, cloudflared, pair, postgres, redis, silo, silo-init
+ Container buzz_silo_1  Healthy
+ Container buzz_relay_1  Starting
+ Container buzz_relay_1  Started
+cloudflared Up 7 seconds
+gateway Up 7 seconds
+pair Up 7 seconds
+postgres Up 7 seconds (healthy)
+redis Up 7 seconds (healthy)
+relay Up Less than a second (health: starting)
+silo Up 6 seconds (healthy)
+tailscale Up 7 seconds
+web Up 7 seconds
+== Sign-in
+PASS  the page sends a visitor without a session to sign in
+PASS  status.json refuses a visitor without a session (HTTP 401)
+== Another app on the same Docker network, going around Umbrel's proxy
+PASS  a direct request from another container can't save settings or read status (HTTP 401 401)
+PASS  nothing was saved by that request
+PASS  a wrong password is refused
+PASS  the app password signs in and sets a session cookie
+PASS  the session cookie is HttpOnly
+PASS  a form posted from another app's page on the same Umbrel is refused (HTTP 403)
+PASS  the page's own forms pass whatever Host the proxy forwards (reached validation)
+== Setup
+PASS  signed in, the page shows the setup steps
+PASS  creating without the acknowledgement is refused
+PASS  a bad public ID is refused
+PASS  a home-network-only name is refused
+PASS  the owner and the domain are saved (HTTP 303)
+PASS  the relay starts with the saved address (NIP-11 answers for buzz-one.local-test.invalid)
+PASS  the relay's owner is the page's owner
+PASS  phone notifications are on by default (NIP-11 offers buzz-push-v1)
+PASS  the page shows the Cloudflare steps, and that the name doesn't resolve
+PASS  the page gives the tunnel's service URL
+PASS  the app's own Cloudflare tunnel waits for a sign-in, with Cloudflare's link
+PASS  the page shows that sign-in link
+== Persistence across a restart of every container
+PASS  the relay comes back with the same identity
+PASS  the owner survives the restart
+PASS  the session survives the restart and the page remembers the setup
+== Phone notifications
+PASS  turning phone notifications off is saved
+PASS  the relay restarts without them
+PASS  the page shows them off
+== Changing the owner
+PASS  the new owner is saved
+PASS  the relay's owner is the new one
+PASS  the previous owner is now an admin
+PASS  phone notifications stay off through the owner change
+PASS  turning them back on offers them again
+== Changing the address, guarded
+PASS  a change without typing the current address is refused
+PASS  typing the current address confirms the change
+PASS  the new address is a separate community: the owner, and none of the old members
+PASS  switching back to the first address brings its community back, admin included
+== The Tailscale modes, up to the sign-in
+PASS  choosing the free Tailscale address starts Tailscale in Funnel mode
+PASS  and turns the Cloudflare tunnel off: it waits, with no sign-in running
+PASS  Tailscale is waiting for a sign-in, with a link
+PASS  the page shows that sign-in link
+PASS  the relay waits: no address until Tailscale names the machine
+PASS  with no address to type, a change needs the box ticked
+PASS  with no address yet, switching to the private network needs only the acknowledgement
+PASS  going back to the domain turns Tailscale off
+PASS  and the first address's community is back
+PASS  Tailscale stopped and cleared its state for the page
+PASS  switching to Tailscale again starts it again, with a sign-in link (private network)
+PASS  the page shows the private network's sign-in step
+
+passed: 48  failed: 0
+check exit 0
+ Container buzz_tailscale_1  Stopping
+ Container buzz_cloudflared_1  Stopping
+ Container buzz_web_1  Stopping
+ Container buzz_relay_1  Stopping
+ Container buzz_pair_1  Stopping
+ Container buzz_gateway_1  Stopping
+ Container buzz_cloudflared_1  Stopped
+ Container buzz_cloudflared_1  Removing
+ Container buzz_gateway_1  Stopped
+ Container buzz_gateway_1  Removing
+ Container buzz_cloudflared_1  Removed
+ Container buzz_gateway_1  Removed
+ Container buzz_tailscale_1  Stopped
+ Container buzz_tailscale_1  Removing
+ Container buzz_tailscale_1  Removed
+ Container buzz_relay_1  Stopped
+ Container buzz_relay_1  Removing
+ Container buzz_relay_1  Removed
+ Container buzz_silo-init_1  Stopping
+ Container buzz_postgres_1  Stopping
+ Container buzz_redis_1  Stopping
+ Container buzz_silo-init_1  Stopped
+ Container buzz_silo-init_1  Removing
+ Container buzz_silo-init_1  Removed
+ Container buzz_silo_1  Stopping
+ Container buzz_redis_1  Stopped
+ Container buzz_redis_1  Removing
+ Container buzz_silo_1  Stopped
+ Container buzz_silo_1  Removing
+ Container buzz_redis_1  Removed
+ Container buzz_postgres_1  Stopped
+ Container buzz_postgres_1  Removing
+ Container buzz_silo_1  Removed
+ Container buzz_postgres_1  Removed
+ Container buzz_pair_1  Stopped
+ Container buzz_pair_1  Removing
+ Container buzz_web_1  Stopped
+ Container buzz_web_1  Removing
+ Container buzz_pair_1  Removed
+ Container buzz_web_1  Removed
+ Volume buzzlocal_buzz-redis  Removing
+ Volume buzzlocal_buzz-silo  Removing
+ Volume buzzlocal_buzz-git  Removing
+ Volume buzzlocal_buzz-tailscale  Removing
+ Volume buzzlocal_buzz-secrets  Removing
+ Volume buzzlocal_buzz-postgres  Removing
+ Volume buzzlocal_buzz-settings  Removing
+ Network umbrel_main_network_local  Removing
+ Volume buzzlocal_buzz-redis  Removed
+ Volume buzzlocal_buzz-postgres  Removed
+ Volume buzzlocal_buzz-settings  Removed
+ Volume buzzlocal_buzz-git  Removed
+ Volume buzzlocal_buzz-tailscale  Removed
+ Volume buzzlocal_buzz-secrets  Removed
+ Network umbrel_main_network_local  Removed
+ Volume buzzlocal_buzz-silo  Removed

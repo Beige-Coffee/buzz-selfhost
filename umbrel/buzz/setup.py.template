@@ -999,8 +999,24 @@ def status_html(items):
     return "".join(out)
 
 
+def tailscale_step(mode):
+    """What the owner does next in Tailscale. The Connect section is drawn once per page load, so the
+    page reloads when this changes, and a restarted machine's new sign-in link counts as a change."""
+    state = tailscale_state()
+    if state["backend"] in ("", "NoState", "Starting") or (state["backend"] == "NeedsLogin" and not state["auth_url"]):
+        return "starting"
+    if state["backend"] == "NeedsLogin":
+        return "login-" + hashlib.sha256(state["auth_url"].encode()).hexdigest()[:8]
+    if state["backend"] == "NeedsMachineAuth":
+        return "approve"
+    if published() == mode:
+        return "published"
+    return "consent" if consent_link() else "consent-wait"
+
+
 def phase_of(setup, live):
-    return setup["mode"] + ":" + ("live" if live else "connecting") + ":" + (relay_domain() or "-")
+    step = tailscale_step(setup["mode"]) if setup["mode"] in ("funnel", "private") and not live else "-"
+    return setup["mode"] + ":" + ("live" if live else "connecting") + ":" + (relay_domain() or "-") + ":" + step
 
 
 def copy_button(text):
@@ -1026,23 +1042,24 @@ def connect_steps(setup, domain):
             "off the internet.</p></li></ol>"
             '<p class="muted small">This page checks every few seconds. A new name can take a few minutes to work.</p></section>'
         )
-    state = tailscale_state()
-    if state["backend"] in ("", "NoState", "Starting") or (state["backend"] == "NeedsLogin" and not state["auth_url"]):
+    step = tailscale_step(mode)
+    if step == "starting":
         action = "<p class=\"muted\">Starting Tailscale. This takes a few seconds.</p>"
-    elif state["backend"] == "NeedsLogin":
+    elif step.startswith("login"):
         action = ("<p>Sign in to Tailscale, or create a free account. The link works until you use it.</p>"
-                  '<a class="btn" href="' + esc(state["auth_url"]) + '" target="_blank" rel="noopener">Sign in to Tailscale</a>')
-    elif state["backend"] == "NeedsMachineAuth":
+                  '<a class="btn" href="' + esc(tailscale_state()["auth_url"]) + '" target="_blank" rel="noopener">'
+                  "Sign in to Tailscale</a>")
+    elif step == "approve":
         action = ('<p>Your Tailscale network needs you to approve new machines. Approve <b>buzz</b> in '
                   '<a href="' + TAILSCALE_ADMIN + '" target="_blank" rel="noopener">Tailscale\'s admin console</a>.</p>')
+    elif step == "published":
+        action = ""
     else:
         link = consent_link()
-        wanted = published() == mode
-        action = ("" if wanted else
-                  ("<p>Tailscale asks you once to allow " + ("Funnel and " if mode == "funnel" else "") +
-                   "HTTPS certificates for this machine.</p>" +
-                   ('<a class="btn" href="' + esc(link) + '" target="_blank" rel="noopener">Allow it in Tailscale</a>' if link else
-                    '<p class="muted small">Waiting for Tailscale to ask.</p>')))
+        action = ("<p>Tailscale asks you once to allow " + ("Funnel and " if mode == "funnel" else "") +
+                  "HTTPS certificates for this machine.</p>" +
+                  ('<a class="btn" href="' + esc(link) + '" target="_blank" rel="noopener">Allow it in Tailscale</a>' if link else
+                   '<p class="muted small">Waiting for Tailscale to ask.</p>'))
     title = "Connect through Tailscale" if mode == "funnel" else "Connect your private network"
     return '<section class="part"><h2>' + title + "</h2>" + action + "</section>" if action else ""
 

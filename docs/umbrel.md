@@ -1,7 +1,7 @@
 # Buzz on Umbrel
 
 Status on 2026-10-28: a working Umbrel App Store package in [`umbrel/buzz/`](../umbrel/buzz/), on
-relay `sha-9e8c9fc`. On 2026-10-23 it passed for Buzz 1.0 on umbrelOS 2.0 and 1.7, through an
+relay `sha-a38fedb`, the version the readiness review picked for launch. On 2026-10-23 it passed for Buzz 1.0 on umbrelOS 2.0 and 1.7, through an
 update from the previous package, with both address options of the time. Since then the setup page
 was rebuilt as a guided onboarding: its own sign-in, three ways for members to reach the community
 (a private Tailscale network is new), a guarded address change, and phone notifications on by
@@ -246,6 +246,9 @@ survives an owner change, and that turning them on offers them again. No phone w
   paired an iPhone with Tailscale on; with the phone locked, a direct message and a mention each
   showed up as a notification, the message fetched over Tailscale. With Tailscale off, the phone
   couldn't connect.
+- Moved to relay `sha-a38fedb`, the launch version the readiness review picked: `check.py` 48 of 48
+  ([log](../tests/runs/2026-10-28-1610-umbrel-a38fedb-local.log)), and an update on umbrelOS kept the private
+  community, its members and notifications (Block's push service accepted a mention's wake-up).
 
 ## Not yet tested
 

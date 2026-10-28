@@ -1462,9 +1462,10 @@ def settings_part(setup, error, values):
         + (error_box(error) if values.get("form") == "owner" else "") + "</div></details>"
         "<details><summary>Phone notifications<span class=\"val word\">" + ("On" if push_on(setup) else "Off") + "</span></summary><div class=\"inner\">"
         '<form method="post" action="notifications"><p class="muted small">When they\'re on, this Umbrel wakes '
-        "members' iPhones for direct messages and mentions, through Block's push service. Block and Apple only "
-        "get a wake-up signal, never a message. Block's service also sees when a phone is woken, and this "
-        "Umbrel's internet address. Saving restarts Buzz for a few seconds.</p>"
+        "members' iPhones for direct messages and mentions, through Block's push service. No message text, "
+        "sender or channel leaves this Umbrel. Block's service does see this Umbrel's internet address and "
+        "which phones it wakes, and when, and Apple sees when a phone is woken. Saving restarts Buzz for a "
+        "few seconds.</p>"
         '<label class="check"><input type="checkbox" name="push" value="on"' + (" checked" if push_on(setup) else "")
         + "><span>Send phone notifications</span></label>"
         '<button class="btn small ghost" type="submit">Save</button></form></div></details>'

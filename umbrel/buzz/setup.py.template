@@ -33,6 +33,7 @@ TAILSCALE_LOGS = ("tailscale-publish.log", "tailscale-funnel.log")
 GATEWAY_URL = "buzz-gateway:80"
 RELAY_HOST = "buzz_relay_1"
 ISSUE = "https://github.com/block/buzz/issues/4952"
+BUZZ_APP = "https://github.com/block/buzz-app"
 TUNNEL_GUIDE = "https://github.com/Radiokot/umbrel-cloudflared/wiki/How-to-set-up-Cloudflare-Tunnel-on-your-Umbrel"
 TAILSCALE_ADMIN = "https://login.tailscale.com/admin/machines"
 TAILSCALE_ACCESS = "https://login.tailscale.com/admin/acls"
@@ -578,6 +579,100 @@ dl.values dd { margin: 0; display: flex; align-items: center; gap: 8px; flex-wra
 .copy-mini:hover { border-color: var(--ink); color: var(--ink); }
 """
 
+HOW_STYLE = """
+details.how { margin-top: 12px; }
+details.how > summary { font-size: 14px; color: var(--ink-2); }
+details.how > summary:hover { color: var(--ink); }
+.how-b { margin-top: 12px; }
+.how-b > p { margin: 0; font-size: 14px; color: var(--ink-2); }
+.how-tabs { display: none; flex-wrap: wrap; gap: 6px; margin: 14px 0 10px; }
+.how.js .how-tabs { display: flex; }
+.how-tabs button { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px 5px 5px; border: 1px solid var(--line-2); border-radius: 999px; background: #fff; cursor: pointer; font: 500 13px var(--sans); color: var(--ink-2); }
+.how-tabs button span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--chip); font-size: 11.5px; }
+.how-tabs button[aria-selected="true"] { border-color: var(--ink); color: var(--ink); }
+.how-tabs button[aria-selected="true"] span { background: var(--accent); }
+.how-step { margin-top: 14px; }
+.how.js .how-step { margin-top: 0; }
+.how-step > p { margin: 10px 0 0; font-size: 14px; color: var(--ink-2); }
+.how-step > p b { color: var(--ink); font-weight: 500; }
+.mb { --b1-base: #f5f5f6; --b1-line: #e8e8e8; --b1-citrus: #beda36; }
+.tb-i {width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mb-stage {--s: 1; position: relative; height: calc(340px * var(--s)); overflow: hidden; border-radius: 16px; background: #ecece8; }
+.mb-canvas {position: absolute; top: 0; left: calc(50% - 280px * var(--s)); width: 560px; height: 340px; overflow: hidden; transform: scale(var(--s)); transform-origin: 0 0; color: #0f0f0f; font-size: 11px; line-height: 1.35; text-align: left; }
+.mb-canvas p {margin: 0; }
+.mb-app {position: absolute; inset: 14px 14px -20px 60px; overflow: hidden; border-radius: 14px 14px 0 0; background: var(--b1-base); box-shadow: 0 0 0 1px #e3e3e5, 0 10px 30px rgb(24 20 14 / 10%); }
+.mb-top {display: flex; align-items: center; gap: 8px; height: 40px; padding-right: 12px; }
+.mb-track, .mb-track span {display: inline-flex; align-items: center; gap: 5px; }
+.mb-track {gap: 5px; margin-right: auto; padding: 5px 12px 5px 14px; border-radius: 0 999px 999px 0; background: var(--b1-line); font-size: 11.5px; color: #404040; }
+.mb-track span {margin-left: 12px; }
+.mb-track .tb-i {font-size: 13px; }
+.mb-me {position: relative; width: 26px; height: 26px; border-radius: 50%; }
+.mb-app-body {position: absolute; inset: 40px 7px 0; }
+.mb-app-main {height: 100%; padding: 12px 16px; border-radius: 12px 12px 0 0; background: #fff; box-shadow: 0 0 0 1px var(--b1-line); }
+.mb-app-main > p {margin-bottom: 14px; font-weight: 500; }
+.mb-app-main > span {display: block; width: 60%; height: 9px; margin-bottom: 12px; border-radius: 5px; background: #f1f1f2; }
+.mb-app-main > span.short {width: 38%; }
+.mb-pmenu {position: absolute; top: 44px; right: 8px; width: 214px; padding: 8px; border-radius: 16px; background: #fff; box-shadow: 0 0 0 1px #e8e8e8, 0 12px 32px rgb(0 0 0 / 14%); font-size: 12px; }
+.mb-pm-head {display: flex; align-items: center; gap: 10px; padding: 6px 6px 10px; }
+.mb-pm-av {position: relative; width: 34px; height: 34px; }
+.mb-pm-head b {display: block; font-size: 13px; font-weight: 500; }
+.mb-pmenu p {display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 10px; }
+.mb-pmenu .tb-i {font-size: 14px; color: #404040; }
+.mb-pm-more {display: flex; margin-left: auto; }
+.mb-pmenu hr {margin: 6px 4px; border: 0; border-top: 1px solid #ececec; }
+.mb-cursor {position: absolute; left: 300px; top: 206px; z-index: 3; width: 14px; height: 18px; fill: #0f0f0f; stroke: #fff; stroke-width: 1.2; }
+.mb-shade {position: absolute; inset: 0; background: rgb(15 15 15 / 28%); }
+.mb-modal {position: absolute; inset: 14px 16px; display: flex; flex-direction: column; overflow: hidden; border-radius: 18px; background: #fff; box-shadow: 0 16px 48px rgb(0 0 0 / 22%); }
+.mb-modal-h {display: flex; align-items: center; justify-content: space-between; padding: 9px 12px 9px 16px; border-bottom: 1px solid #ececec; font-size: 13px; }
+.mb-modal-h b {font-weight: 500; }
+.mb-x {display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #f3f3f4; font-size: 12px; color: #404040; }
+.mb-modal-b {position: relative; flex: 1; display: grid; grid-template-columns: 148px minmax(0, 1fr); min-height: 0; }
+.mb-nav-col {padding: 10px 8px; overflow: hidden; border-right: 1px solid #ececec; }
+.mb-nav-col p {display: flex; align-items: center; gap: 7px; padding: 3px 9px; border-radius: 999px; font-size: 11px; color: #2b2b2b; white-space: nowrap; }
+.mb-nav-col .tb-i {font-size: 12.5px; }
+.mb-nav-col .mb-nav-g {margin-top: 8px; color: #5f5f5f; }
+.mb-nav-col .mb-nav-i.on {background: var(--b1-citrus); }
+.mb-page {position: relative; padding: 14px 22px; overflow: hidden; }
+.mb h5 {margin: 0; font-size: 13px; font-weight: 500; }
+.mb-canvas .mb-sub {margin-top: 2px; font-size: 10.5px; color: #5f5f5f; }
+.mb-btn {display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; background: #f0f0f1; font-size: 11px; font-weight: 500; color: #0f0f0f; white-space: nowrap; }
+.mb h6 {margin: 8px 0 4px; font-size: 12.5px; font-weight: 500; }
+.mb .hot {box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--b1-citrus); }
+.id-comms {display: inline-flex; align-items: center; gap: 3px; padding: 4px 9px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 1px #e3e3e5; font-size: 10.5px; font-weight: 500; }
+.mb .id-me {display: grid; place-items: center; border-radius: 50%; background: #f0f0f1; color: #5f5f5f; }
+.mb .id-me .tb-i {font-size: 13px; }
+.mb-pmenu .id-pm-note {display: block; padding: 0 8px 6px; font-size: 10.5px; color: #8b8b8b; }
+.mb .id-empty {display: grid; place-content: center; justify-items: center; text-align: center; }
+.mb .id-empty p {margin: 0 0 12px; font-size: 14px; }
+.mb .id-empty span {width: 220px; }
+.mb .id-empty span.short {width: 150px; }
+.mb .mb-modal:has(.id-page) {inset: 7px 16px; }
+.mb .id-page {padding: 9px 18px; }
+.id-page .mb-sub {margin-bottom: 2px; }
+.id-group {margin-top: 6px; border: 1px solid #e6e6e6; border-radius: 12px; background: #fff; }
+.id-row {display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 10px; }
+.id-row + .id-row {border-top: 1px solid #efefef; }
+.id-row b, .id-form > b {display: block; font-size: 11px; font-weight: 500; }
+.mb .id-row code {display: block; margin-top: 2px; padding: 0; background: none; font: 10px var(--mono); color: #5f5f5f; }
+.id-ic {display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; font-size: 13px; color: #404040; }
+.id-form {padding: 7px 10px 8px; }
+.id-form .mb-btn {padding: 5px 11px; }
+.id-input {display: block; margin-top: 4px; padding: 5px 10px; border-radius: 9px; background: #f3f3f4; font: 10.5px var(--mono); letter-spacing: 0.1em; }
+.id-btns {display: flex; gap: 6px; margin-top: 5px; }
+.id-toast {position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #e8e8e8, 0 10px 28px rgb(0 0 0 / 14%); font-size: 11px; font-weight: 500; }
+.id-toast .tb-i {color: #2f9e57; }
+.hw-page { position: absolute; inset: 18px 44px 0; padding: 16px 22px; border-radius: 14px 14px 0 0; background: #fff; box-shadow: 0 0 0 1px #e3e3e5, 0 10px 30px rgb(24 20 14 / 10%); }
+.mb .hw-brand { font-size: 10.5px; font-weight: 600; letter-spacing: -0.01em; }
+.mb .hw-page h6 { margin: 18px 0 0; font-size: 24px; font-weight: 400; letter-spacing: -0.03em; }
+.hw-step { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 0 12px; margin-top: 22px; }
+.hw-num { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #d7d72e; font-size: 11px; font-weight: 500; }
+.hw-h { display: block; margin-top: 2px; font-size: 14px; font-weight: 500; }
+.mb .hw-label { margin-top: 14px; font-size: 11px; font-weight: 500; }
+.hw-input { display: flex; align-items: center; margin-top: 6px; padding: 9px 12px; border: 1px solid #231e1e; border-radius: 10px; box-shadow: 0 0 0 3px rgb(215 215 46 / 45%); font: 12px var(--mono); }
+.hw-input i { width: 1px; height: 14px; margin-left: 1px; background: #231e1e; }
+.hw-input em { margin-left: auto; padding: 2px 8px; border-radius: 999px; background: #eef5d0; font: normal 500 10px var(--sans); color: #55550a; }
+"""
+
 SCRIPT = """
 function copyText(button, text) {
   var done = function () { button.textContent = "Copied"; setTimeout(function () { button.textContent = "Copy"; }, 1500); };
@@ -623,7 +718,24 @@ function poll() {
     list.querySelectorAll("[data-host]").forEach(reachFromHere);
   }).catch(function () {}).finally(function () { setTimeout(poll, 5000); });
 }
+function howScale(how) {
+  how.querySelectorAll(".mb-stage").forEach(function (stage) {
+    if (stage.clientWidth) { stage.style.setProperty("--s", Math.min(1, stage.clientWidth / 560)); }
+  });
+}
+function howShow(how, n) {
+  how.querySelectorAll(".how-tabs button").forEach(function (b, i) { b.setAttribute("aria-selected", String(i === n)); });
+  how.querySelectorAll(".how-step").forEach(function (s, i) { s.hidden = i !== n; });
+  howScale(how);
+}
 document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll("details.how").forEach(function (how) {
+    how.classList.add("js");
+    how.querySelectorAll(".how-tabs button").forEach(function (b, i) { b.addEventListener("click", function () { howShow(how, i); }); });
+    how.addEventListener("toggle", function () { howScale(how); });
+    howShow(how, 0);
+  });
+  window.addEventListener("resize", function () { document.querySelectorAll("details.how[open]").forEach(howScale); });
   document.querySelectorAll("form[data-guided]").forEach(function (form) {
     form.addEventListener("input", function () { updateForm(form); });
     form.addEventListener("change", function () { updateForm(form); });
@@ -645,7 +757,7 @@ def layout(body, signed_in=True, title="Buzz Relay"):
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1"><title>' + esc(title) + "</title>"
-        "<style>" + STYLE + "</style><script>" + SCRIPT + "</script></head><body>"
+        "<style>" + STYLE + HOW_STYLE + "</style><script>" + SCRIPT + "</script></head><body>"
         '<header class="hd"><span class="brand">' + BEE + "<span>Buzz Relay</span></span>" + logout + "</header>"
         "<main>" + body + '<p class="foot">Buzz is open source, from Block: '
         '<a href="https://github.com/block/buzz" target="_blank" rel="noopener">github.com/block/buzz</a>.</p>'
@@ -731,20 +843,133 @@ def continuity_note():
     )
 
 
+# Where the owner finds their public ID: Buzz's own screens, drawn as on the guide site
+# (site/src/scenes/identity.ts, checked against block/buzz-app). Tabler's outline icons (MIT) are the set
+# Buzz draws its interface with.
+TABLER = {
+    'messages': '<path d="M21 14l-3 -3h-7a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1h9a1 1 0 0 1 1 1v10"/><path d="M14 15v2a1 1 0 0 1 -1 1h-7l-3 3v-10a1 1 0 0 1 1 -1h2"/>',
+    'robot': '<path d="M6 6a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2l0 -4"/><path d="M12 2v2"/><path d="M9 12v9"/><path d="M15 12v9"/><path d="M5 16l4 -2"/><path d="M15 14l4 2"/><path d="M9 18h6"/><path d="M10 8v.01"/><path d="M14 8v.01"/>',
+    'bolt': '<path d="M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11"/>',
+    'chevron-down': '<path d="M6 9l6 6l6 -6"/>',
+    'user': '<path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>',
+    'device-desktop': '<path d="M3 5a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-10"/><path d="M7 20h10"/><path d="M9 16v4"/><path d="M15 16v4"/>',
+    'chevron-right': '<path d="M9 6l6 6l-6 6"/>',
+    'layout-grid': '<path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"/><path d="M14 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"/><path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"/><path d="M14 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"/>',
+    'settings': '<path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>',
+    'message-circle': '<path d="M3 20l1.3 -3.9c-2.324 -3.437 -1.426 -7.872 2.1 -10.374c3.526 -2.501 8.59 -2.296 11.845 .48c3.255 2.777 3.695 7.266 1.029 10.501c-2.666 3.235 -7.615 4.215 -11.574 2.293l-4.7 1"/>',
+    'device-mobile': '<path d="M6 5a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-14"/><path d="M11 4h2"/><path d="M12 17v.01"/>',
+    'shield': '<path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/>',
+    'palette': '<path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/><path d="M7.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11.5 7.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M15.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>',
+    'bell': '<path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/>',
+    'keyboard': '<path d="M2 8a2 2 0 0 1 2 -2h16a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2l0 -8"/><path d="M6 10l0 .01"/><path d="M10 10l0 .01"/><path d="M14 10l0 .01"/><path d="M18 10l0 .01"/><path d="M6 14l0 .01"/><path d="M18 14l0 .01"/><path d="M10 14l4 .01"/>',
+    'x': '<path d="M18 6l-12 12"/><path d="M6 6l12 12"/>',
+    'copy': '<path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667l0 -8.666"/><path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"/>',
+    'check': '<path d="M5 12l5 5l10 -10"/>',
+}
+
+
+def ti(name):
+    return '<svg class="tb-i" viewBox="0 0 24 24" aria-hidden="true">' + TABLER[name] + "</svg>"
+
+
+CURSOR = ('<svg class="mb-cursor" viewBox="0 0 16 20" aria-hidden="true">'
+          '<path d="M1 1v15l4.2-3.9 2.7 6.2 2.6-1.1-2.7-6.1H14z"/></svg>')
+SAMPLE_NPUB = "npub1qm\u20268k3a"
+
+
+def drawn_profile_menu():
+    """Buzz with no community yet, the profile menu open, the pointer on Settings."""
+    return (
+        '<div class="mb-app"><div class="mb-top"><span class="mb-track">' + ti("messages") + "Messages<span>"
+        + ti("robot") + "Agents</span><span>" + ti("bolt") + 'Workflows</span></span><span class="id-comms">Communities'
+        + ti("chevron-down") + '</span><span class="mb-me id-me">' + ti("user") + "</span></div>"
+        '<div class="mb-app-body"><div class="mb-app-main id-empty"><p>Your channels, one conversation.</p><span></span>'
+        '<span class="short"></span></div></div>'
+        '<div class="mb-pmenu"><div class="mb-pm-head"><span class="mb-pm-av id-me">' + ti("user")
+        + "</span><span><b>Your profile</b></span></div>"
+        '<p class="id-pm-note">Status updates are unavailable in this community.</p><hr>'
+        "<p>" + ti("device-desktop") + 'Appearance<span class="mb-pm-more">' + ti("chevron-right") + "</span></p>"
+        "<p>" + ti("layout-grid") + "Plugins</p>"
+        '<p class="mb-pm-set">' + ti("settings") + "Settings</p><hr>"
+        "<p>" + ti("message-circle") + "Send feedback</p></div>" + CURSOR + "</div>"
+    )
+
+
+def drawn_identity_settings():
+    """Settings, Identity, just after copying the Nostr address."""
+    groups = [("Personal space", [("user", "Profile"), ("device-mobile", "Pair mobile")]),
+              ("Buzz", [("shield", "Identity"), ("palette", "Appearance"), ("bell", "Notifications"),
+                        ("keyboard", "Shortcuts"), ("robot", "Agent setup")]),
+              ("Plugins", [("layout-grid", "Manage plugins")])]
+    nav = '<nav class="mb-nav-col">' + "".join(
+        '<p class="mb-nav-g">' + group + "</p>" + "".join(
+            '<p class="mb-nav-i' + (" on" if label == "Identity" else "") + '">' + ti(icon) + label + "</p>"
+            for icon, label in items)
+        for group, items in groups) + "</nav>"
+    page = (
+        '<section class="mb-page id-page"><h5>Identity</h5>'
+        '<p class="mb-sub">Your identity is shared across communities. Public keys are safe to share.</p>'
+        '<div class="id-group"><div class="id-row"><span><b>Public key (hex)</b><code>3f9c0a52\u202607e81b</code></span>'
+        '<span class="id-ic">' + ti("copy") + "</span></div>"
+        '<div class="id-row"><span><b>Nostr address (npub)</b><code>' + SAMPLE_NPUB + "</code></span>"
+        '<span class="id-ic hot">' + ti("copy") + "</span></div></div>"
+        '<div class="id-group id-form"><b>Private key (nsec)</b>'
+        '<p class="mb-sub">Anyone with this key can act as you. Never share it.</p>'
+        '<span class="id-input">\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022</span>'
+        '<div class="id-btns"><span class="mb-btn">Reveal private key</span><span class="mb-btn">Copy private key</span>'
+        "</div></div>"
+        '<div class="id-toast">' + ti("check") + "Nostr address copied.</div></section>"
+    )
+    return ('<div class="mb-shade"></div><div class="mb-modal"><div class="mb-modal-h"><b>Settings</b><span class="mb-x">'
+            + ti("x") + '</span></div><div class="mb-modal-b">' + nav + page + "</div></div>")
+
+
+def drawn_paste():
+    """This page's first step, with the public ID pasted in."""
+    return (
+        '<div class="hw-page"><p class="hw-brand">Buzz Relay</p><h6>Host your Buzz community</h6>'
+        '<div class="hw-step"><span class="hw-num">1</span><div><b class="hw-h">Owner</b>'
+        '<p class="hw-label">Public ID (npub)</p><span class="hw-input">' + SAMPLE_NPUB + "<i></i><em>Pasted</em></span>"
+        "</div></div></div>"
+    )
+
+
+def how_to_find_npub():
+    steps = [
+        ("Open Settings", drawn_profile_menu(),
+         "In Buzz, click your profile icon at the top right, then <b>Settings</b>. You can also press \u2318, on a "
+         "Mac, or Ctrl+, on Windows and Linux."),
+        ("Copy your public ID", drawn_identity_settings(),
+         "Under <b>Buzz</b>, choose <b>Identity</b>. Click the copy button next to <b>Nostr address (npub)</b>. "
+         "That's your public ID."),
+        ("Paste it here", drawn_paste(), "Paste it into the box above. It starts with npub1."),
+    ]
+    return (
+        '<details class="how"><summary>Where to find your public ID</summary><div class="how-b">'
+        '<p>You need Buzz on your computer. If you don\'t have it yet, <a href="' + BUZZ_APP + '" target="_blank" '
+        'rel="noopener">install it</a> and choose <b>Create a new identity</b>.</p>'
+        '<div class="how-tabs" role="tablist">' + "".join(
+            '<button type="button" role="tab"><span>' + str(n) + "</span>" + title + "</button>"
+            for n, (title, _, _) in enumerate(steps, 1)) + "</div>"
+        + "".join('<div class="how-step"><div class="mb" aria-hidden="true"><div class="mb-stage"><div class="mb-canvas">'
+                  + frame + "</div></div></div><p>" + text + "</p></div>" for _, frame, text in steps)
+        + "</div></details>"
+    )
+
+
 def setup_page(error="", values=None):
     values = values or {}
     owner = values.get("owner", "")
     body = (
         '<p class="eyebrow">Set up</p><h1>Host your <mark>Buzz</mark> community</h1>'
-        '<p class="lede">Three choices, a few minutes. Then this page connects the address and checks it.</p>'
         + error_box(error) +
         '<form method="post" action="save" data-guided>'
-        '<div class="step on"><span class="num">1</span><div class="step-body"><h2>Who owns it</h2>'
-        "<p class=\"muted\">The owner adds members, makes admins and runs the community.</p>"
-        '<label class="field" for="owner">Your public ID (npub)</label>'
+        '<div class="step on"><span class="num">1</span><div class="step-body"><h2>Owner</h2>'
+        "<p class=\"muted\">Enter your public ID from Buzz. You'll be the community's owner, so you can add "
+        "members and make others admins.</p>"
+        '<label class="field" for="owner">Public ID (npub)</label>'
         '<input type="text" id="owner" name="owner" placeholder="npub1..." autocomplete="off" spellcheck="false" '
-        'value="' + esc(owner) + '"><p class="muted small">In Buzz, open Settings, Identity, and copy the Nostr '
-        "address. In Buzz 0.X, it's on the Join a community screen.</p></div></div>"
+        'value="' + esc(owner) + '">' + how_to_find_npub() + "</div></div>"
         '<div class="step on"><span class="num">2</span><div class="step-body"><h2>How members reach it</h2>'
         "<p class=\"muted\">Your community is private either way: only people you add can read or post. This choice "
         "is about how members' apps find this Umbrel.</p>" + address_fields(values, None) + "</div></div>"
@@ -834,8 +1059,8 @@ def notifications_note(setup):
     if not push_on(setup):
         return ('<p class="muted small">Phone notifications are off: the phone shows new messages while the Buzz app is '
                 "open. Settings, below, turns them on.</p>")
-    return ('<p class="muted small">Phone notifications are on, for direct messages and mentions, on iPhones with the '
-            "Buzz app 0.25 or later. This Umbrel wakes the phone through Block's push service, which passes Apple a "
+    return ('<p class="muted small">Phone notifications are on, for direct messages and mentions, on iPhone. '
+            "This Umbrel wakes the phone through Block's push service, which passes Apple a "
             'fixed "reconnect" signal, never a message; the phone then fetches the message from here'
             + (", over Tailscale" if setup["mode"] == "private" else "") +
             ". Android has no notifications yet. Settings, below, says what Block's service sees, and turns them "
@@ -857,7 +1082,7 @@ def settings_part(setup, error, values):
         + (error_box(error) if values.get("form") == "owner" else "") + "</div></details>"
         "<details><summary>Phone notifications</summary><div class=\"inner\">"
         '<form method="post" action="notifications"><p class="muted small">When they\'re on, this Umbrel wakes '
-        "members' iPhones (the Buzz app 0.25 or later) for direct messages and mentions, through Block's push "
+        "members' iPhones for direct messages and mentions, through Block's push "
         'service. It passes Apple a fixed "reconnect" signal, never a message, and sees when a phone is woken and '
         "this Umbrel's internet address. Saving restarts Buzz for a few seconds.</p>"
         '<label class="check"><input type="checkbox" name="push" value="on"' + (" checked" if push_on(setup) else "")
@@ -907,16 +1132,13 @@ def main_page(setup, error="", values=None):
         '<div class="address"><code><span>https://' + esc(domain) + "</span></code>"
         '<button class="btn" type="button" onclick="copyText(this, \'https://' + esc(domain) + '\')">Copy</button></div>'
         + status +
-        '<section class="part"><h2>Join it</h2><ol class="do">'
-        "<li>In Buzz, choose <b>Join a community</b> and paste the address above. Use the identity whose public ID "
-        "you entered: that makes you the owner.</li>"
-        "<li>Buzz 0.X takes the address as <code>wss://" + esc(domain) + "</code>.</li></ol></section>"
+        '<section class="part"><h2>Join it</h2>'
+        "<p>In Buzz, choose <b>Join a community</b> and paste the address above. Use the identity whose public ID "
+        "you entered: that makes you the owner.</p></section>"
         '<section class="part"><h2>Add members</h2><p>In Buzz, open <b>Settings, Community admin, Membership, Invite '
-        "members</b>. Send an invite link, or add someone directly by their public ID. In Buzz 0.X, it's "
-        "<b>Settings, Invites</b>.</p>" + (private_members_note() if mode == "private" else "") + "</section>"
+        "members</b>. Send an invite link, or add someone directly by their public ID.</p>" + (private_members_note() if mode == "private" else "") + "</section>"
         '<section class="part"><h2>Phones</h2><p>In Buzz on your computer, open <b>Settings, Pair mobile</b> and scan '
-        "the code with the Buzz app on the phone" + (", with Tailscale on" if mode == "private" else "") + ". "
-        "In Buzz 0.X, it's <b>Settings, Mobile</b>.</p>" + notifications_note(setup) + "</section>"
+        "the code with the Buzz app on the phone" + (", with Tailscale on" if mode == "private" else "") + ".</p>" + notifications_note(setup) + "</section>"
     )
     return layout(body + settings_part(setup, error, values))
 

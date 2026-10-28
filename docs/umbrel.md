@@ -240,15 +240,18 @@ survives an owner change, and that turning them on offers them again. No phone w
   internet, and pairing was reachable. Then the owner joined from Buzz Desktop and paired an
   iPhone; with the phone locked, a direct message and a mention from a second identity each
   showed up as a notification, and Block's push service accepted both wake-ups.
+- By hand, the private option: switched from the domain, it went live on the tailnet, and
+  `tailscale serve status` showed `(tailnet only)` live for the first time. Through Tailscale's
+  public entry point the name is refused. The owner joined from Buzz Desktop on the tailnet and
+  paired an iPhone with Tailscale on; with the phone locked, a direct message and a mention each
+  showed up as a notification, the message fetched over Tailscale.
 
 ## Not yet tested
 
 - An update from the previous package on umbrelOS: the setup should carry over, with one sign-in.
-- The private option end to end: a device on the tailnet joins, one off it can't, a phone pairs
-  with Tailscale on. The service tells it apart by `tailnet only` in `tailscale serve status`,
-  which matches v1.104.2's source but hasn't been seen live (`Funnel on` has, 2026-10-28).
-- Phone notifications on the private option, where the phone fetches the message over Tailscale.
-  On your own domain they reached a locked iPhone (2026-10-28).
+- On the private option, a phone with Tailscale off failing to connect. On a Mac that's on the
+  tailnet, umbrelOS in Docker Desktop reaches tailnet names through the Mac, so it can't stand in
+  for a device off it.
 - A real Raspberry Pi: ARM itself passed on a Mac, but not the Pi's slower processor and storage.
   Umbrel asks for the chip type to be tested, not a particular device.
 

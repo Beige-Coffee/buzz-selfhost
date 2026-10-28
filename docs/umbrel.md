@@ -32,7 +32,7 @@ Credit #5928 when we submit.
   screens, drawn as on the guide site (`site/src/scenes/identity.ts`); redraw both when Buzz's
   Settings change.
 - **Reaching the community is separate from joining it.** Every option keeps the community
-  private: the relay requires membership, so only people the owner adds can read or post. The
+  members-only: the relay requires membership, so only people the owner adds can read or post. The
   options differ in how members' apps reach the Umbrel.
   - **Your own domain (recommended):** Umbrel's Cloudflare Tunnel app connects the name to
     `http://buzz-gateway:80`, with no router ports opened. The page lists the public hostname's

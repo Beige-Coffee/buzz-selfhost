@@ -14,27 +14,28 @@ description: >-
 
   After install, open the app and sign in with the password Umbrel shows for it. The setup page
   asks for your public ID from Buzz, which makes you the community's owner, and how members reach
-  the community. Either way the community is private: only people you add can read or post.
+  the community. In every option, only members can read or post.
 
 
-  - Your own domain (recommended), connected to this Umbrel by the Cloudflare Tunnel app, with no
-  router changes. You can move the community to another server later and keep it. Cloudflare
-  serves HTTPS for you, so it can read the traffic it carries, and uploads are limited to 100 MB.
+  - Your own domain (recommended), for a lasting community. The Cloudflare Tunnel app connects it
+  to this Umbrel with no router changes, and the address stays yours if you move to another
+  server. Cloudflare handles HTTPS, so it can see the traffic it carries, and uploads are limited
+  to 100 MB.
 
-  - A free Tailscale address, the quickest start. Members don't need Tailscale. The address
-  belongs to your Tailscale account, so a later move to your own domain starts a new community.
+  - A free Tailscale address, for trying Buzz out. Members don't need Tailscale. The address is
+  tied to your Tailscale account, so moving to your own domain later means starting over.
 
-  - Only devices on your Tailscale network. Nothing is reachable from the internet; every member
-  needs the Tailscale app and access to your Tailscale network.
-
-
-  Choose the address for keeps: Buzz knows a community by its address, so a different address
-  later starts a separate, empty community. The old one stays stored on your Umbrel.
+  - A private Tailscale network, off the internet. Every member needs the Tailscale app and
+  access to your Tailscale network.
 
 
-  Phones pair through the desktop app. iPhones get notifications for direct messages and mentions
-  through Block's push service, which passes Apple a fixed wake-up signal, never a message; a setting
-  on the app's page turns them off. Android has no notifications yet.
+  Pick the address carefully: Buzz ties a community to its address, so a different address later
+  starts a new, empty community. The old one stays stored on your Umbrel.
+
+
+  Phones pair through the Buzz app on a computer. iPhones get notifications for direct messages
+  and mentions through Block's push service, which passes Apple a wake-up signal, never a message.
+  A setting on the app's page turns them off. Android doesn't get notifications yet.
 releaseNotes: ""
 developer: Block
 website: https://buzz.xyz

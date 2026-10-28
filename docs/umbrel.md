@@ -24,6 +24,9 @@ Credit #5928 when we submit.
 
 ## How it works
 
+- **It's the server, so it's listed as Buzz Relay,** as in #5928 and #5993; its app ID stays `buzz`.
+  Members, the owner included, chat in Buzz Desktop and the iPhone app. Block ships no browser
+  version to run on Umbrel: the relay's own web pages are invite pages and a code browser.
 - **Reaching the community is separate from joining it.** Every option keeps the community
   private: the relay requires membership, so only people the owner adds can read or post. The
   options differ in how members' apps reach the Umbrel.

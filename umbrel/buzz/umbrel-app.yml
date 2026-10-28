@@ -3,7 +3,7 @@ id: buzz
 storage:
   dataRoot: data
 category: social
-name: Buzz
+name: Buzz Relay
 version: "9e8c9fc"
 tagline: Host your team's Buzz community on your Umbrel
 description: >-

@@ -176,8 +176,8 @@ ok(s == 303 and "buzz-push-v1" in (wait_relay(D1).get("supported_extensions") or
 print("== Changing the address, guarded")
 s, body, _ = call("/address", {"mode": "domain", "domain": D2, "ack": "yes", "confirm": "wrong"})
 ok(s == 400 and "exactly" in body, "a change without typing the current address is refused")
-s, body, _ = call("/address", {"mode": "domain", "domain": D2, "confirm": D1})
-ok(s == 303, "typing the current address confirms the change")
+s, body, _ = call("/address", {"mode": "domain", "subdomain": D2.split(".", 1)[0], "base": D2.split(".", 1)[1], "confirm": D1})
+ok(s == 303, "typing the current address confirms the change, with the new address in the two boxes")
 time.sleep(8)
 wait_relay(D2)
 ok(owner_of(members()) == hexkey(OWNER2) and hexkey(OWNER) not in members(),

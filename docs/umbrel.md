@@ -36,7 +36,8 @@ Credit #5928 when we submit.
 - **Reaching the community is separate from joining it.** Every option keeps the community
   members-only: the relay requires membership, so only people the owner adds can read or post. The
   options differ in how members' apps reach the Umbrel.
-  - **Your own domain (recommended):** the app's own Cloudflare tunnel connects the name to
+  - **Your own domain (recommended):** the owner types a name (`buzz` unless changed or cleared)
+    and the domain in two boxes. The app's own Cloudflare tunnel connects the name to
     `http://buzz-gateway:80`, with no router ports opened. The owner signs in to Cloudflare from
     the page with `cloudflared tunnel login` and chooses the domain; the `cloudflared` service then
     creates a tunnel, adds the name to the domain's DNS (refusing a name that already has a
@@ -236,7 +237,9 @@ survives an owner change, and that turning them on offers them again. No phone w
 - By hand, your own domain with the app's own Cloudflare tunnel, after an update that added it: the
   owner signed in to Cloudflare from the page's link and chose a new domain; the service created
   the tunnel and the name, and the page went live: the relay answered at the domain from the
-  internet, and pairing was reachable. Nobody joined through it yet.
+  internet, and pairing was reachable. Then the owner joined from Buzz Desktop and paired an
+  iPhone; with the phone locked, a direct message and a mention from a second identity each
+  showed up as a notification, and Block's push service accepted both wake-ups.
 
 ## Not yet tested
 
@@ -244,9 +247,8 @@ survives an owner change, and that turning them on offers them again. No phone w
 - The private option end to end: a device on the tailnet joins, one off it can't, a phone pairs
   with Tailscale on. The service tells it apart by `tailnet only` in `tailscale serve status`,
   which matches v1.104.2's source but hasn't been seen live (`Funnel on` has, 2026-10-28).
-- Phone notifications from an Umbrel install to a real iPhone (the local checks only see the relay
-  offer them), and on the private option, where the phone fetches the message over Tailscale.
-- A join and a phone through your own domain (the setup itself passed on 2026-10-28).
+- Phone notifications on the private option, where the phone fetches the message over Tailscale.
+  On your own domain they reached a locked iPhone (2026-10-28).
 - A real Raspberry Pi: ARM itself passed on a Mac, but not the Pi's slower processor and storage.
   Umbrel asks for the chip type to be tested, not a particular device.
 
@@ -309,6 +311,11 @@ The local run's password is `local-test-only`. `check.py` expects a fresh run: `
 - With a new domain, the page's own checks, made before the name existed, left this Umbrel's
   resolver holding "no such name" for up to half an hour after Cloudflare published it. The checks
   now look names up through Cloudflare's public DNS, and reach the address it gives.
+- Buzz's command-line tool tags nobody unless asked: a direct message it sends wakes no phone
+  without `--mention`, since a phone registers for messages that tag it.
+- macOS keeps the "no such name" from a lookup made before a new domain existed, and Buzz Desktop
+  can't join until it's cleared: `sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder`,
+  or a wait. The page says to try again in a few minutes.
 - An update copies an app's compose file and templates, not new data folders, so a service added
   in an update keeps its files in a folder that already exists (the Cloudflare service uses
   `settings/cloudflare`).

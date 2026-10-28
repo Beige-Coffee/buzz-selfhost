@@ -111,6 +111,16 @@ No script here yet. The steps and operations were run against projects made with
 `railway deploy -t buzz-relay-block`, by hand on 2026-09-30 and by script on 2026-10-01. The
 deploy, the image update and the checks ran again on 2026-10-23.
 
+## Results, 2026-10-28: Umbrel on umbrelOS, on a Mac
+
+umbrelOS 2.0.0 in Docker Desktop on an Apple Silicon Mac, relay `sha-9e8c9fc` on its ARM image. The
+package installed through Umbrel, and Umbrel showed the app's password on opening it. By hand, the
+owner set up the community with a free Tailscale address, signed in to Tailscale, and the page
+went live once Funnel was on. Opening app pages needed two fixes to `install.sh` for Docker
+Desktop, and the page didn't refresh when Tailscale's sign-in link appeared, fixed. After the
+page's redesign: 45 of 45 real checks on Docker Desktop without umbrelOS, and 243 page states
+rendered with mocks ([log](runs/2026-10-28-1437-umbrel-dropdowns-local.log)).
+
 ## Results, 2026-10-26: Umbrel, phone notifications on
 
 The Umbrel package now turns phone notifications on, with a setting on its page to turn them off.

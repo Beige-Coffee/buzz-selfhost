@@ -525,7 +525,20 @@ input[type=text]:focus, input[type=password]:focus { border-color: var(--ink); b
 .panel li { margin: 4px 0; }
 .warn { margin-top: 18px; padding: 2px 0 2px 16px; border-left: 3px solid var(--accent); font-size: 15px; }
 .warn p:first-child { margin-top: 0; }
-.choice .heads-up { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgb(215 215 46 / 32%); font-size: 13.5px; color: var(--ink); }
+.now { margin: 4px 0 0; font-size: 14.5px; color: var(--ink-2); }
+.now code { color: var(--ink); }
+.opts { margin-top: 14px; border: 1px solid var(--line-2); border-radius: 12px; overflow: hidden; background: #fff; }
+.opt { display: flex; align-items: center; gap: 12px; padding: 11px 14px; cursor: pointer; }
+.opt + .opt { border-top: 1px solid var(--line); }
+.opt input { width: 16px; height: 16px; margin: 0; accent-color: var(--ink); flex: none; }
+.opt span { flex: 1; min-width: 0; }
+.opt b { display: block; font-size: 15px; font-weight: 500; }
+.opt small { display: block; font-size: 13px; color: var(--ink-2); }
+.opt em { font: 500 10.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; font-style: normal; color: var(--ink-3); }
+.opt:has(input:checked) { background: rgb(215 215 46 / 16%); }
+.opt:has(input:disabled) { cursor: default; }
+.opt:has(input:disabled) :is(b, small) { color: var(--ink-3); }
+.heads-up { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgb(215 215 46 / 32%); font-size: 13.5px; color: var(--ink); }
 .check { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-size: 15px; cursor: pointer; }
 .check input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--ink); flex: none; }
 .btn { display: inline-flex; align-items: center; gap: 9px; margin-top: 22px; padding: 12px 22px; border-radius: 999px;
@@ -593,10 +606,47 @@ details.how > summary:hover { color: var(--ink); }
 .how-tabs button[aria-selected="true"] { border-color: var(--ink); color: var(--ink); }
 .how-tabs button[aria-selected="true"] span { background: var(--accent); }
 .how-step { margin-top: 14px; }
-.how.js .how-step { margin-top: 0; }
+.how.js .how-tabs ~ .how-step { margin-top: 0; }
 .how-step > p { margin: 10px 0 0; font-size: 14px; color: var(--ink-2); }
 .how-step > p b { color: var(--ink); font-weight: 500; }
 .mb { --b1-base: #f5f5f6; --b1-line: #e8e8e8; --b1-citrus: #beda36; }
+.mb-modal-h b, .mb-dlg-h b {font-weight: 500; }
+.mb-nav-col .mb-nav-host {margin-bottom: 4px; }
+.mb-nav-host span {display: grid; place-items: center; width: 16px; height: 16px; border-radius: 5px; background: #f0f0f0; font-size: 8.5px; font-weight: 600; }
+.mb-btns {display: flex; justify-content: flex-end; gap: 6px; margin: 6px 0 2px; }
+.mb-btn.dark {background: #0f0f0f; color: #fff; }
+.mb h6 em {font-style: normal; color: #5f5f5f; }
+.mb-box {position: relative; padding: 8px 10px 4px; border: 1px solid #1f1f1f; border-radius: 14px; }
+.mb-canvas .mb-search {display: flex; align-items: center; gap: 6px; margin-bottom: 4px; padding: 5px 10px; border-radius: 999px; background: #f3f3f4; font-size: 10.5px; color: #6b6b6b; }
+.mb-row {display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.mb-who {flex: 1; min-width: 0; }
+.mb-who b {display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 400; white-space: nowrap; }
+.mb-who b em {font-style: normal; }
+.mb-who small {display: block; font-size: 10px; color: #5f5f5f; }
+.mb-who .tb-i {font-size: 11px; }
+.mb-shade.on-modal {z-index: 3; }
+.mb-dlg {position: absolute; top: 50%; left: 50%; z-index: 4; width: 330px; padding: 14px 16px 12px; transform: translate(-50%, -50%); border-radius: 18px; background: #fff; box-shadow: 0 18px 50px rgb(0 0 0 / 25%); }
+.mb-dlg-h {display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+.mb-line {display: flex; align-items: center; gap: 6px; margin: 5px 0 2px; }
+.mb-in {flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 11px; border-radius: 999px; background: #f3f3f4; font-size: 10.5px; }
+.mb-in > span:first-child {flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mb-in .mono {font: 10px var(--mono); }
+.mb-choice {display: inline-flex; align-items: center; gap: 3px; padding: 0 4px; font-size: 10.5px; white-space: nowrap; }
+.mb-copy {padding: 1px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 500; white-space: nowrap; }
+.mb-canvas .mb-opt {display: flex; align-items: center; justify-content: space-between; margin: 4px 2px 0; font-size: 10.5px; }
+.mb .mb-modal:has(.id-pair) {inset: 7px 16px; }
+.mb .id-pair {padding: 9px 18px; }
+.id-pair-b {display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 14px; align-items: center; margin-top: 10px; }
+.id-pair-code {padding: 8px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #e6e6e6; }
+.id-qr {display: block; width: 100%; fill: #0f0f0f; }
+.id-pair ol {display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.id-pair li {display: flex; gap: 8px; }
+.id-pair li > span {flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #f0f0f1; font-size: 10px; font-weight: 600; }
+.id-pair li b {display: block; font-size: 11px; font-weight: 500; }
+.mb-canvas .id-pair li p {font-size: 9.5px; color: #5f5f5f; }
+.mb-av i {display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #f0f0f1; font: 500 9.5px var(--sans); font-style: normal; color: #2b2b2b; }
+.mb-pmenu.sw-menu {right: 40px; width: 176px; }
+.jn-go {display: flex; justify-content: flex-end; margin-top: 10px; }
 .tb-i {width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .mb-stage {--s: 1; position: relative; height: calc(340px * var(--s)); overflow: hidden; border-radius: 16px; background: #ecece8; }
 .mb-canvas {position: absolute; top: 0; left: calc(50% - 280px * var(--s)); width: 560px; height: 340px; overflow: hidden; transform: scale(var(--s)); transform-origin: 0 0; color: #0f0f0f; font-size: 11px; line-height: 1.35; text-align: left; }
@@ -846,8 +896,7 @@ def continuity_note():
         "address, and can't move it to a new one yet "
         '(<a href="' + ISSUE + '" target="_blank" rel="noopener">block/buzz#4952</a>). A new address starts an '
         "empty community, without the messages, files and members. Switching back to the old address brings the "
-        "old community back.</p><p class=\"muted small\">Moving to another server is different. Keep the same "
-        "address, restore Buzz's data there, and everything comes with it.</p></div>"
+        "old community back.</p></div>"
     )
 
 
@@ -873,6 +922,14 @@ TABLER = {
     'x': '<path d="M18 6l-12 12"/><path d="M6 6l12 12"/>',
     'copy': '<path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667l0 -8.666"/><path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"/>',
     'check': '<path d="M5 12l5 5l10 -10"/>',
+    'users': '<path d="M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>',
+    'mood-smile': '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M9 10l.01 0"/><path d="M15 10l.01 0"/><path d="M9.5 15a3.5 3.5 0 0 0 5 0"/>',
+    'logout': '<path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"/><path d="M9 12h12l-3 -3"/><path d="M18 15l3 -3"/>',
+    'search': '<path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/>',
+    'crown': '<path d="M12 6l4 6l5 -4l-2 10h-14l-2 -10l5 4l4 -6"/>',
+    'dots': '<path d="M4 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M18 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>',
+    'world': '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M3.6 9h16.8"/><path d="M3.6 15h16.8"/><path d="M11.5 3a17 17 0 0 0 0 18"/><path d="M12.5 3a17 17 0 0 1 0 18"/>',
+    'users-plus': '<path d="M5 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4c.96 0 1.84 .338 2.53 .901"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M16 19h6"/><path d="M19 16v6"/>',
 }
 
 
@@ -883,20 +940,180 @@ def ti(name):
 SAMPLE_NPUB = "npub1qm\u20268k3a"
 
 
-def drawn_profile_menu():
-    """Buzz with the profile menu open, Settings highlighted."""
+COMMUNITY_GROUPS = [
+    ("Community", [("user", "Profile"), ("settings", "Local settings"), ("mood-smile", "Custom emoji"),
+                   ("device-mobile", "Pair mobile"), ("logout", "Leave or remove")]),
+    ("Community admin", [("users", "Membership")]),
+    ("Buzz", [("shield", "Identity"), ("palette", "Appearance"), ("bell", "Notifications"), ("keyboard", "Shortcuts")]),
+]
+
+
+def settings_nav(groups, current, host=""):
+    """Settings' left column, open at one item; a community's Settings start with its address."""
+    top = '<p class="mb-nav-host"><span>' + esc(host[:1].upper()) + "</span>" + esc(host) + "</p>" if host else ""
+    return '<nav class="mb-nav-col">' + top + "".join(
+        '<p class="mb-nav-g">' + group + "</p>" + "".join(
+            '<p class="mb-nav-i' + (" on" if label == current else "") + '">' + ti(icon) + label + "</p>"
+            for icon, label in items)
+        for group, items in groups) + "</nav>"
+
+
+def settings_modal(nav, page, over=""):
+    return ('<div class="mb-shade"></div><div class="mb-modal"><div class="mb-modal-h"><b>Settings</b><span class="mb-x">'
+            + ti("x") + '</span></div><div class="mb-modal-b">' + nav + page + "</div>" + over + "</div>")
+
+
+def drawn_app(menu=""):
+    """Buzz's window before any community is open, with a menu open at the top right."""
     return (
         '<div class="mb-app"><div class="mb-top"><span class="mb-track">' + ti("messages") + "Messages<span>"
         + ti("robot") + "Agents</span><span>" + ti("bolt") + 'Workflows</span></span><span class="id-comms">Communities'
         + ti("chevron-down") + '</span><span class="mb-me id-me">' + ti("user") + "</span></div>"
         '<div class="mb-app-body"><div class="mb-app-main id-empty"><p>Your channels, one conversation.</p><span></span>'
-        '<span class="short"></span></div></div>'
+        '<span class="short"></span></div></div>' + menu + "</div>"
+    )
+
+
+def drawn_switcher():
+    """The community menu, open, Join a community highlighted."""
+    return drawn_app('<div class="mb-pmenu sw-menu"><p>' + ti("world") + "Personal space</p>"
+                     '<p class="on">' + ti("users-plus") + "Join a community</p></div>")
+
+
+def drawn_join(url):
+    """Join a community, with the address pasted in."""
+    return drawn_app() + (
+        '<div class="mb-shade on-modal"></div><div class="mb-dlg"><div class="mb-dlg-h"><b>Join a community</b>'
+        '<span class="mb-x">' + ti("x") + "</span></div>"
+        '<p class="mb-sub">Use your identity across communities. Your profile and conversations stay separate in each '
+        "one.</p><h6>Community URL</h6>"
+        '<div class="mb-line"><span class="mb-in"><span class="typed">' + esc(url) + "</span></span></div>"
+        '<p class="mb-sub">Paste your community link. Continue shares your Buzz identity with the community so you can '
+        'preview it before joining.</p><div class="jn-go"><span class="mb-btn dark hot">Continue</span></div></div>'
+    )
+
+
+def drawn_membership(host, inviting=False):
+    """Settings, Membership, in a new community: the owner alone. Inviting opens Add or invite people over it."""
+    page = (
+        '<section class="mb-page"><h5>Membership</h5><p class="mb-sub">Manage members and access to ' + esc(host) + ".</p>"
+        '<div class="mb-btns"><span class="mb-btn">Refresh</span><span class="mb-btn dark' + ("" if inviting else " hot")
+        + '">Invite members</span></div><h6>Members <em>1</em></h6>'
+        '<div class="mb-box"><p class="mb-search">' + ti("search") + "Search members</p>"
+        '<div class="mb-row"><span class="mb-av"><i>Y</i></span><span class="mb-who"><b>You · <em>' + SAMPLE_NPUB
+        + "</em>" + ti("crown") + "</b><small>Owner</small></span></div></div></section>"
+    )
+    over = ""
+    if inviting:
+        over = (
+            '<div class="mb-shade on-modal"></div><div class="mb-dlg"><div class="mb-dlg-h"><b>Add or invite people</b>'
+            '<span class="mb-x">' + ti("x") + "</span></div>"
+            '<p class="mb-sub">Add someone by their exact identity, or share a link they can use to join.</p>'
+            "<h6>Add directly</h6><p class=\"mb-sub\">Paste the person's npub or 64-character public key.</p>"
+            '<div class="mb-line"><span class="mb-in"><span class="typed">npub1qk3f8w…7x2a</span>'
+            '<span class="mb-choice">Member' + ti("chevron-down") + '</span></span><span class="mb-btn dark hot">Add member'
+            "</span></div><h6>Invite with a link</h6>"
+            '<p class="mb-sub">Anyone with this link can use it to join until it expires.</p>'
+            '<div class="mb-line"><span class="mb-in"><span class="mono">https://' + esc(host) + "/invite/v2.nOvr6DwA6u"
+            '</span><span class="mb-copy hot">Copy link</span></span></div>'
+            '<p class="mb-opt">Expires after<span class="mb-choice">3 days' + ti("chevron-down") + "</span></p>"
+            '<p class="mb-opt">Limit number of uses<span class="mb-choice">No limit' + ti("chevron-down") + "</span></p></div>"
+        )
+    return settings_modal(settings_nav(COMMUNITY_GROUPS, "Membership", host), page, over)
+
+
+def qr_cells():
+    """A made-up code: a finder square in three corners, a quiet gap around each, a fixed scatter between."""
+    def finder(x, y, ox, oy):
+        dx, dy = x - ox, y - oy
+        if dx < -1 or dy < -1 or dx > 7 or dy > 7:
+            return None
+        if dx < 0 or dy < 0 or dx > 6 or dy > 6:
+            return False
+        return dx in (0, 6) or dy in (0, 6) or (2 <= dx <= 4 and 2 <= dy <= 4)
+    cells = []
+    for y in range(21):
+        for x in range(21):
+            found = [f for f in (finder(x, y, 0, 0), finder(x, y, 14, 0), finder(x, y, 0, 14)) if f is not None]
+            if (found[0] if found else (x * 31 + y * 17 + x * y * 7) % 11 < 5):
+                cells.append('<rect x="' + str(x) + '" y="' + str(y) + '" width="1" height="1"/>')
+    return "".join(cells)
+
+
+QR = ('<svg class="id-qr" viewBox="-1 -1 23 23" shape-rendering="crispEdges" aria-hidden="true">' + qr_cells()
+      + "</svg>")
+
+
+def drawn_pair(host):
+    """Settings, Pair mobile: the code to scan, beside the three steps Buzz lists."""
+    page = (
+        '<section class="mb-page id-pair"><h5>Pair mobile</h5><p class="mb-sub">Connect the Buzz mobile app to this '
+        "community. Pairing is secured with end-to-end encryption and a verification code.</p>"
+        '<div class="id-pair-b"><div class="id-pair-code">' + QR + "</div><ol>"
+        "<li><span>1</span><div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the "
+        "code shown here.</p></div></li>"
+        "<li><span>2</span><div><b>Enter code on your phone</b><p>After scanning, enter the six-digit code shown on "
+        "this desktop into your phone.</p></div></li>"
+        "<li><span>3</span><div><b>Pair your mobile app</b><p>Your mobile app will connect after you verify the "
+        "code.</p></div></li></ol></div></section>"
+    )
+    return settings_modal(settings_nav(COMMUNITY_GROUPS, "Pair mobile", host), page)
+
+
+def how_to(summary, steps, intro=""):
+    """A dropdown of Buzz's screens, drawn: one step, or tabs to move between several."""
+    tabs = ""
+    if len(steps) > 1:
+        tabs = '<div class="how-tabs" role="tablist">' + "".join(
+            '<button type="button" role="tab"><span>' + str(n) + "</span>" + title + "</button>"
+            for n, (title, _, _) in enumerate(steps, 1)) + "</div>"
+    return (
+        '<details class="how"><summary>' + summary + '</summary><div class="how-b">'
+        + ("<p>" + intro + "</p>" if intro else "") + tabs
+        + "".join('<div class="how-step"><div class="mb" aria-hidden="true"><div class="mb-stage"><div class="mb-canvas">'
+                  + frame + "</div></div></div><p>" + text + "</p></div>" for _, frame, text in steps)
+        + "</div></details>"
+    )
+
+
+def join_steps(domain):
+    return [
+        ("Open Join a community", drawn_switcher(),
+         "In Buzz, open the community menu at the top right, then <b>Join a community</b>."),
+        ("Paste the address", drawn_join("https://" + domain),
+         "Paste the address into <b>Community URL</b> and choose <b>Continue</b>. Leave the invite code blank, since "
+         "you're already the owner. Then set how you appear, and open the community."),
+    ]
+
+
+def member_steps(domain):
+    return [
+        ("Open Membership", drawn_membership(domain),
+         "In Buzz, open <b>Settings</b>. Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite "
+         "members</b>."),
+        ("Add someone, or send a link", drawn_membership(domain, inviting=True),
+         "Paste their public ID and choose <b>Add member</b>. Or copy the invite link and send it: anyone with it can "
+         "join until it expires. They open it and choose <b>Accept invite in Buzz</b>."),
+    ]
+
+
+def phone_steps(domain):
+    return [
+        ("Pair a phone", drawn_pair(domain),
+         "In Buzz on your computer, open <b>Settings</b>, then <b>Pair mobile</b>. On the phone, open Buzz, choose "
+         "<b>Add community</b>, scan the code, and type the six digits shown on your computer."),
+    ]
+
+
+def drawn_profile_menu():
+    """Buzz with the profile menu open, Settings highlighted."""
+    return drawn_app(
         '<div class="mb-pmenu"><div class="mb-pm-head"><span class="mb-pm-av id-me">' + ti("user")
         + "</span><span><b>Your profile</b></span></div><hr>"
         "<p>" + ti("device-desktop") + 'Appearance<span class="mb-pm-more">' + ti("chevron-right") + "</span></p>"
         "<p>" + ti("layout-grid") + "Plugins</p>"
         '<p class="mb-pm-set on">' + ti("settings") + "Settings</p><hr>"
-        "<p>" + ti("message-circle") + "Send feedback</p></div></div>"
+        "<p>" + ti("message-circle") + "Send feedback</p></div>"
     )
 
 
@@ -906,11 +1123,6 @@ def drawn_identity_settings():
               ("Buzz", [("shield", "Identity"), ("palette", "Appearance"), ("bell", "Notifications"),
                         ("keyboard", "Shortcuts"), ("robot", "Agent setup")]),
               ("Plugins", [("layout-grid", "Manage plugins")])]
-    nav = '<nav class="mb-nav-col">' + "".join(
-        '<p class="mb-nav-g">' + group + "</p>" + "".join(
-            '<p class="mb-nav-i' + (" on" if label == "Identity" else "") + '">' + ti(icon) + label + "</p>"
-            for icon, label in items)
-        for group, items in groups) + "</nav>"
     page = (
         '<section class="mb-page id-page"><h5>Identity</h5>'
         '<p class="mb-sub">Your identity is shared across communities. Public keys are safe to share.</p>'
@@ -925,8 +1137,7 @@ def drawn_identity_settings():
         "</div></div>"
         '<div class="id-toast">' + ti("check") + "Nostr address copied.</div></section>"
     )
-    return ('<div class="mb-shade"></div><div class="mb-modal"><div class="mb-modal-h"><b>Settings</b><span class="mb-x">'
-            + ti("x") + '</span></div><div class="mb-modal-b">' + nav + page + "</div></div>")
+    return settings_modal(settings_nav(groups, "Identity"), page)
 
 
 def drawn_paste():
@@ -940,7 +1151,7 @@ def drawn_paste():
 
 
 def how_to_find_npub():
-    steps = [
+    return how_to("Where to find your public ID", [
         ("Open Settings", drawn_profile_menu(),
          "In Buzz, click your profile icon at the top right, then <b>Settings</b>. You can also press \u2318, on a "
          "Mac, or Ctrl+, on Windows and Linux."),
@@ -948,18 +1159,8 @@ def how_to_find_npub():
          "Under <b>Buzz</b>, choose <b>Identity</b>. Click the copy button next to <b>Nostr address (npub)</b>. "
          "That's your public ID."),
         ("Paste it here", drawn_paste(), "Paste it into the box above. It starts with npub1."),
-    ]
-    return (
-        '<details class="how"><summary>Where to find your public ID</summary><div class="how-b">'
-        '<p>You need Buzz on your computer. If you don\'t have it yet, <a href="' + BUZZ_APP + '" target="_blank" '
-        'rel="noopener">install it</a> and choose <b>Create a new identity</b>.</p>'
-        '<div class="how-tabs" role="tablist">' + "".join(
-            '<button type="button" role="tab"><span>' + str(n) + "</span>" + title + "</button>"
-            for n, (title, _, _) in enumerate(steps, 1)) + "</div>"
-        + "".join('<div class="how-step"><div class="mb" aria-hidden="true"><div class="mb-stage"><div class="mb-canvas">'
-                  + frame + "</div></div></div><p>" + text + "</p></div>" for _, frame, text in steps)
-        + "</div></details>"
-    )
+    ], 'You need Buzz on your computer. If you don\'t have it yet, <a href="' + BUZZ_APP + '" target="_blank" '
+       'rel="noopener">install it</a> and choose <b>Create a new identity</b>.')
 
 
 def setup_page(error="", values=None):
@@ -1089,6 +1290,40 @@ def notifications_note(setup):
             ". Android doesn't get notifications yet. You can turn them off in Settings, below.</p>")
 
 
+def address_change(setup, values, current):
+    """The address now, what changing it does, the three ways in a short list, and the address typed to confirm."""
+    now = setup["mode"]
+    chosen = values.get("mode", "")
+    rows = [("domain", "Your own domain", "For a lasting community"),
+            ("funnel", "A free Tailscale address", "For trying it out"),
+            ("private", "A private Tailscale network", "Off the internet")]
+    options = "".join(
+        '<label class="opt"><input type="radio" name="mode" value="' + mode + '"' + (" checked" if mode == chosen else "")
+        # the same Tailscale option again changes nothing; another domain is a change
+        + (" disabled" if mode == now and mode != "domain" else "") + "><span><b>" + title + "</b><small>" + tag
+        + "</small></span>" + ("<em>Current</em>" if mode == now else "") + "</label>"
+        for mode, title, tag in rows)
+    note = ("A different address starts a new, empty community. This one stays on your Umbrel, and comes back if you "
+            "switch back to its address.")
+    if now != "domain":
+        note += " Moving between the two Tailscale options keeps the address."
+    confirm = (
+        '<label class="field" for="confirm">To confirm, type <code>' + esc(current) + "</code></label>"
+        '<input type="text" id="confirm" name="confirm" autocomplete="off" spellcheck="false" data-expect="' + esc(current) + '">'
+        if current else
+        '<label class="check"><input type="checkbox" name="ack" value="yes"><span>I understand this starts a new, empty '
+        "community.</span></label>")
+    return (
+        '<form method="post" action="address" data-guided><input type="hidden" name="owner" value="' + esc(setup["owner"]) + '">'
+        '<p class="now">Current address: ' + ("<code>" + esc(current) + "</code>" if current else "none yet") + " &middot; "
+        + MODE_NAMES[now] + '</p><p class="heads-up">' + note + '</p><div class="opts">' + options + "</div>"
+        '<div data-for="domain"><label class="field" for="domain">New domain</label>'
+        '<input type="text" id="domain" name="domain" placeholder="buzz.yourteam.com" autocomplete="off" spellcheck="false" '
+        'value="' + esc(values.get("domain", "")) + '"></div>' + confirm
+        + '<button class="btn small ghost" type="submit">Change the address</button></form>'
+    )
+
+
 def settings_part(setup, error, values):
     current = relay_domain() or setup.get("domain") or ""
     owner = values.get("owner", "") if values.get("form") == "owner" else ""
@@ -1102,7 +1337,7 @@ def settings_part(setup, error, values):
         '<input type="text" id="new-owner" name="owner" autocomplete="off" spellcheck="false" placeholder="npub1..." value="' + esc(owner) + '">'
         '<button class="btn small ghost" type="submit">Change the owner</button></form>'
         + (error_box(error) if values.get("form") == "owner" else "") + "</div></details>"
-        "<details><summary>Phone notifications</summary><div class=\"inner\">"
+        "<details><summary>Phone notifications: " + ("on" if push_on(setup) else "off") + "</summary><div class=\"inner\">"
         '<form method="post" action="notifications"><p class="muted small">When they\'re on, this Umbrel wakes '
         "members' iPhones for direct messages and mentions, through Block's push service. Block and Apple only "
         "get a wake-up signal, never a message. Block's service also sees when a phone is woken, and this "
@@ -1111,20 +1346,8 @@ def settings_part(setup, error, values):
         + "><span>Send phone notifications</span></label>"
         '<button class="btn small ghost" type="submit">Save</button></form></div></details>'
         "<details" + (" open" if values.get("form") == "address" else "") + "><summary>Change the address</summary><div class=\"inner\">"
-        + continuity_note() +
-        '<form method="post" action="address" data-guided><input type="hidden" name="owner" value="' + esc(setup["owner"]) + '">'
-        + address_fields(address_values, setup)
-        + ('<label class="field" for="confirm">To confirm, type the current address: <code>' + esc(current) + "</code></label>"
-           '<input type="text" id="confirm" name="confirm" autocomplete="off" spellcheck="false" data-expect="' + esc(current) + '">'
-           if current else '<p class="muted small">There\'s no address yet, so there\'s nothing to type to confirm.</p>') +
-        '<label class="check"><input type="checkbox" name="ack" value="yes"><span>I understand this starts a new, '
-        "empty community, unless I'm switching back to an address I used before.</span></label>"
-        '<button class="btn small ghost" type="submit">Change the address</button></form>'
-        + (error_box(error) if values.get("form") == "address" else "") + "</div></details>"
-        "<details><summary>Moving to another server</summary><div class=\"inner\"><p class=\"muted\">Keep the same "
-        "address and restore Buzz's data on the new server, for example from an Umbrel backup. The community "
-        "moves with everything in it, and members reconnect as before. A new address means a new "
-        "community.</p></div></details></section>"
+        + address_change(setup, address_values, current)
+        + (error_box(error) if values.get("form") == "address" else "") + "</div></details></section>"
     )
 
 
@@ -1156,12 +1379,13 @@ def main_page(setup, error="", values=None):
         '<button class="btn" type="button" onclick="copyText(this, \'https://' + esc(domain) + '\')">Copy</button></div>'
         + status +
         '<section class="part"><h2>Join it</h2>'
-        "<p>In Buzz, choose <b>Join a community</b> and paste the address above. Use the same identity you entered "
-        "as the owner.</p></section>"
-        '<section class="part"><h2>Add members</h2><p>In Buzz, open <b>Settings, Community admin, Membership, Invite '
-        "members</b>. Send an invite link, or add someone directly by their public ID.</p>" + (private_members_note() if mode == "private" else "") + "</section>"
-        '<section class="part"><h2>Phones</h2><p>In Buzz on your computer, open <b>Settings, Pair mobile</b> and scan '
-        "the code with the Buzz app on the phone" + (", with Tailscale on" if mode == "private" else "") + ".</p>" + notifications_note(setup) + "</section>"
+        "<p>Join from Buzz with the same identity you entered as the owner.</p>" + how_to("Show me how", join_steps(domain))
+        + "</section>"
+        '<section class="part"><h2>Add members</h2><p>Add people by their public ID, or send them an invite link.</p>'
+        + how_to("Show me how", member_steps(domain)) + (private_members_note() if mode == "private" else "") + "</section>"
+        '<section class="part"><h2>Phones</h2><p>Pair the Buzz app on a phone from Buzz on your computer'
+        + (", with Tailscale on the phone" if mode == "private" else "") + ".</p>" + how_to("Show me how", phone_steps(domain))
+        + notifications_note(setup) + "</section>"
     )
     return layout(body + settings_part(setup, error, values))
 
@@ -1289,7 +1513,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             try:
                 if current and values.get("confirm", "").strip().lower() != current:
                     raise ValueError("Type the current address exactly, to confirm.")
-                if values.get("ack") != "yes":
+                if not current and values.get("ack") != "yes":
                     raise ValueError("Tick the box to confirm you understand that a new address starts a new community.")
                 values["owner"] = setup["owner"]
                 key, mode, domain = self.address(values)

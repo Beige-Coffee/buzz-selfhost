@@ -1,9 +1,9 @@
-# Access and keys: what the site's section rests on (2026-10-27)
+# Access and keys: what the site's answers rest on (2026-10-27)
 
-The site's Access and keys section (`site/src/scenes/access.ts`) gives best practices and how to set
-them up. Each answer is a recommendation (ours) resting on Buzz facts, sourced here, and shows the how:
-a click-through of Buzz 1.0's own screens where it happens in Buzz, a drawing where it happens on the
-server.
+The site's Running your relay section (`site/src/scenes/faq.ts`) gives best practices and how to
+set them up; this file covers its answers on people, identity and keys, and the server. Each answer
+is a recommendation (ours) resting on Buzz facts, sourced here, and shows the how: a click-through
+of Buzz 1.0's own screens where it happens in Buzz, a drawing where it happens on the server.
 
 ## The pictures, and what they're drawn from
 
@@ -17,7 +17,7 @@ server.
   - starting an agent: `site/src/scenes/agentflow.ts`, from `src/bundled/agents/AgentsPage.tsx` and
     `AgentCreateDialog.tsx` (and the repo's `docs/assets/readme/create-agent.png`).
   - Layouts were checked against block/buzz-app running in a browser with sample data (`just web` with
-    no identity pinned, 2026-10-28), which never touches a real Buzz app or key. The Identity page needs
+    no identity pinned, 2026-10-27), which never touches a real Buzz app or key. The Identity page needs
     an identity to show its rows, so those come from the source.
 - **Drawings** for single sign-on, a leak, server access, the relay key, who can read messages and the
   audit log. Keys, names and messages in them are illustrative. Checked against block/buzz `origin/main` at `a38fedb`, block/buzz-app
@@ -38,7 +38,7 @@ Note: nobody can reset a Buzz key.
 `crates/pairing/src/NIP-AB.md` (pairing copies the key to the phone).
 
 **Can we use single sign-on?**
-Not today: everyone signs in with their own key. In progress (checked 2026-10-28): Buzz's draft
+Not today: everyone signs in with their own key. In progress (checked 2026-10-27): Buzz's draft
 standard NIP-FI lets an identity provider vouch for each person's key; the relay understands it
 behind `BUZZ_NIP_FI_MODE`, off by default, and the desktop app's side is open work. The next best
 thing: a private network, with Tailscale signed up through the company's identity provider, and

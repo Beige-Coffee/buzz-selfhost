@@ -4,7 +4,7 @@ import { ti, type Flow } from "./members";
 
 /**
  * Starting an agent in Buzz 1.0, as a click-through of its own screens, in light mode. Drawn from
- * block/buzz-app (2026-10-28): the Agents page and its New agent menu (src/bundled/agents/AgentsPage.tsx),
+ * block/buzz-app (2026-10-27): the Agents page and its New agent menu (src/bundled/agents/AgentsPage.tsx),
  * Create agent (src/bundled/agents/AgentCreateDialog.tsx and docs/assets/readme/create-agent.png; its
  * menu's Import an agent shows only when there's one to import, so it's left out),
  * checked against the app running in a browser with sample data. The agent's picture is one of Buzz's

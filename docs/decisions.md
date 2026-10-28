@@ -96,10 +96,21 @@ the relay key lives). Two explainer versions, a scrolling story and a click-thro
 dropped: people setting this up want what to do. Sources for every fact:
 [access-and-keys.md](access-and-keys.md).
 
-Since 2026-10-28 every answer shows its how: a click-through of Buzz's own screens where it happens
+Since 2026-10-27 every answer shows its how: a click-through of Buzz's own screens where it happens
 in Buzz (identity, a lost device, roles, adding and removing people, agents), reusing the people
 click-through from Operations, and a drawing where it happens on the server. The click-throughs
 assume Buzz is installed; how to get it changes too often to draw.
+
+## Running your relay: one FAQ (2026-10-27)
+
+Operations and Access and keys merged into one section, "Running your relay" (still `#operations`,
+"Operations" in the menu): two sections answered overlapping questions, and the tabs of one sat
+next to the questions of the other. The Running on box stays on top; fifteen questions in four
+groups, People, Identity and keys, Data and Server, each group a card of its own so they read
+apart. Each answer leads with what we recommend. Backing up, restoring and upgrading keep their
+setup-specific steps and commands (`site/src/scenes/operations.ts`); the rest are the access
+answers (`site/src/scenes/faq.ts`). Our cadences: back up at least weekly and before every
+upgrade, upgrade about once a month, since new app features can need a recent relay.
 
 ## Phone notifications on by default (2026-10-23)
 

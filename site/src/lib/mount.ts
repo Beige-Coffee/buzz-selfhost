@@ -3,9 +3,8 @@ import { mountPaths } from "../scenes/paths";
 import { mountPanel } from "../scenes/panel";
 import { mountSetup } from "../scenes/setup";
 import { mountAgent } from "../scenes/agent";
-import { mountOperations } from "../scenes/operations";
 import { mountRelayKey } from "../scenes/relaykey";
-import { mountAccess } from "../scenes/access";
+import { mountFaq } from "../scenes/faq";
 
 const registry: Record<string, (el: HTMLElement) => void> = {
   story: mountStory,
@@ -13,9 +12,8 @@ const registry: Record<string, (el: HTMLElement) => void> = {
   panel: mountPanel,
   setup: mountSetup,
   agent: mountAgent,
-  operations: mountOperations,
   relaykey: mountRelayKey,
-  access: mountAccess,
+  faq: mountFaq,
 };
 
 /** The footer's lists start folded on a phone, open everywhere else. */

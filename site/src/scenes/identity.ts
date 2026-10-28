@@ -2,7 +2,7 @@ import { communityNav, CURSOR, invite, settings, settingsModal, settingsNav, ti,
 
 /**
  * A person's identity in Buzz 1.0, as click-throughs of its own screens, in light mode. Drawn from
- * block/buzz-app (2026-10-28): the first screen and "Use your existing identity"
+ * block/buzz-app (2026-10-27): the first screen and "Use your existing identity"
  * (src/features/identity/IdentitySetup.tsx and its .module.css, public/shell-gradient.png), the profile
  * menu with no community yet (src/app/shell/ProfileButton.tsx), Settings with no community
  * (src/app/settings-sections.ts), Identity (src/app/IdentitySettings.tsx,

@@ -125,7 +125,9 @@ real checks, reaching Cloudflare's sign-in link ([log](runs/2026-10-28-1533-umbr
 update on umbrelOS that added the service and carried the setup over. By hand, a new domain
 through that tunnel and the private network each had a direct message and a mention wake a locked
 iPhone; the free Tailscale address went live too, with no phone tried on it. Last, the
-relay moved to `sha-a38fedb`: 48 of 48 ([log](runs/2026-10-28-1610-umbrel-a38fedb-local.log)).
+relay moved to `sha-a38fedb`: 48 of 48 ([log](runs/2026-10-28-1610-umbrel-a38fedb-local.log)). On
+Intel, unattended on a DigitalOcean droplet: installed through Umbrel, `e2e.sh` 36 of 36, and the
+sign-in links 6 of 6 ([log](runs/2026-10-28-1656-umbrel-intel-droplet.log)).
 
 ## Results, 2026-10-26: Umbrel, phone notifications on
 

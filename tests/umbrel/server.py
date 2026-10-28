@@ -39,13 +39,20 @@ def down():
 
 def up():
     pub = open(KEY + ".pub").read().strip()
-    key = next(k for k in api("GET", "/account/keys?per_page=200")["ssh_keys"] if k["public_key"].strip() == pub)
+    spec = {"name": NAME, "size": "s-4vcpu-8gb", "image": "ubuntu-24-04-x64", "tags": [TAG], "ipv6": False}
+    key = next((k for k in api("GET", "/account/keys?per_page=200")["ssh_keys"] if k["public_key"].strip() == pub), None)
+    if key:
+        spec["ssh_keys"] = [key["id"]]
+    else:
+        # The key isn't on this account: the droplet gets it at first boot, and the account stays as it is
+        # (and its root password doesn't expire, which would stop a login by key without a terminal)
+        spec["user_data"] = ("#cloud-config\nchpasswd:\n  expire: false\nruncmd:\n  - mkdir -p /root/.ssh && chmod 700 /root/.ssh\n"
+                             "  - echo '" + pub + "' >> /root/.ssh/authorized_keys && chmod 600 /root/.ssh/authorized_keys\n"
+                             "  - chage -d $(date +%F) root\n")
     droplet = None
     for region in ["sfo3", "sfo2", "nyc3", "nyc1", "tor1"]:  # sizes run out region by region
         try:
-            droplet = api("POST", "/droplets", {"name": NAME, "region": region, "size": "s-4vcpu-8gb",
-                                                "image": "ubuntu-24-04-x64", "ssh_keys": [key["id"]],
-                                                "tags": [TAG], "ipv6": False})["droplet"]["id"]
+            droplet = api("POST", "/droplets", dict(spec, region=region))["droplet"]["id"]
             print(f"created {NAME} in {region}")
             break
         except urllib.error.HTTPError as error:
@@ -63,14 +70,18 @@ def up():
         if d["status"] == "active":
             ip = next((n["ip_address"] for n in d["networks"]["v4"] if n["type"] == "public"), "")
         time.sleep(5)
-    for _ in range(60):
-        if subprocess.run(["ssh", "-i", KEY, "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
-                           "-o", "StrictHostKeyChecking=accept-new", "-o", f"UserKnownHostsFile={os.path.dirname(KEY)}/known_hosts",
-                           f"root@{ip}", "true"], capture_output=True).returncode == 0:
+    # DigitalOcean reuses addresses: an earlier server's host key for this one would refuse the new server
+    known = f"{os.path.dirname(KEY)}/known_hosts"
+    subprocess.run(["ssh-keygen", "-R", ip, "-f", known], capture_output=True)
+    for _ in range(120):
+        result = subprocess.run(["ssh", "-i", KEY, "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
+                                 "-o", "StrictHostKeyChecking=accept-new", "-o", f"UserKnownHostsFile={known}",
+                                 f"root@{ip}", "true"], capture_output=True, text=True)
+        if result.returncode == 0:
             break
         time.sleep(5)
     else:
-        sys.exit(f"no SSH to {ip}")
+        sys.exit(f"no SSH to {ip}: " + (result.stderr.strip().splitlines() or ["no error"])[-1])
     open(f"{B}/umbrel-ip", "w").write(ip + "\n")
     print(f"{NAME} at {ip}")
 

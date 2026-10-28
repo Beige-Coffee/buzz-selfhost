@@ -1,0 +1,76 @@
+== Droplet
+created buzz-umbrel-test in sfo2
+buzz-umbrel-test at <ip>
+x86_64
+== umbrelOS and Buzz Relay, installed through Umbrel
+{
+  "state": "ready",
+  "progress": 0
+}
+buzz_relay_1 amd64
+buzz_cloudflared_1 amd64
+buzz_tailscale_1 amd64
+buzz_web_1 amd64
+== End to end
+INFO  the owner is a test identity
+== Tunnel
+PASS  relay address https://borough-miniature-collapse-premiere.trycloudflare.com
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://borough-miniature-collapse-premiere.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://borough-miniature-collapse-premiere.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 36  failed: 0
+community address: https://borough-miniature-collapse-premiere.trycloudflare.com
+== Cloudflare and Tailscale, up to their sign-in links
+PASS  your own domain: the app's Cloudflare tunnel waits for a sign-in, with Cloudflare's link
+PASS  switching to the free Tailscale address is accepted
+PASS  Tailscale waits for a sign-in, with a link (funnel)
+PASS  the Cloudflare tunnel turns off and waits
+PASS  switching to the private network is accepted
+PASS  the page shows the private network's sign-in
+
+== Deleting the droplet
+deleted droplet buzz-umbrel-test
+deleted firewall buzz-umbrel-test-ssh-only
+runner exit 0

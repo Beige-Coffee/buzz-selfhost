@@ -106,7 +106,7 @@ def clean_domain(text):
     domain = re.sub(r"^[a-z]+://", "", text.strip().lower()).split("/")[0].rstrip(".")
     label = r"[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
     if not domain:
-        raise ValueError("Enter the domain members will use, like buzz.example.com.")
+        raise ValueError("Enter your domain, like yourteam.com.")
     if len(domain) > 253 or not re.fullmatch(r"(" + label + r"\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]", domain):
         raise ValueError("Enter a domain name, like buzz.example.com, with no port or path.")
     if domain.endswith((".local", ".localhost", ".internal", ".lan", ".home.arpa")):
@@ -603,6 +603,10 @@ input[type=text]:focus, input[type=password]:focus { border-color: var(--ink); b
 .opt:has(input:checked) { background: rgb(215 215 46 / 16%); }
 .opt:has(input:disabled) { cursor: default; }
 .opt:has(input:disabled) :is(b, small) { color: var(--ink-3); }
+.split { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.split input { flex: 1 1 auto; width: auto; min-width: 0; margin: 0; }
+.split input[name=subdomain] { flex: 0 0 28%; }
+.split span { font-size: 20px; color: var(--ink-3); }
 .heads-up { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgb(215 215 46 / 32%); font-size: 13.5px; color: var(--ink); }
 .check { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-size: 15px; cursor: pointer; }
 .check input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--ink); flex: none; }
@@ -823,6 +827,15 @@ function updateForm(form) {
   var ready = Boolean(chosen) && (!ack || ack.checked);
   if (confirm) { ready = ready && confirm.value.trim().toLowerCase() === confirm.getAttribute("data-expect"); }
   if (save) { save.disabled = !ready; }
+  var sub = form.querySelector("input[name=subdomain]"), base = form.querySelector("input[name=base]");
+  var preview = form.querySelector("[data-preview]");
+  if (sub && base && preview) {
+    var b = base.value.trim().toLowerCase().replace(/^[a-z]+:[/][/]/, "").split("/")[0];
+    var s = sub.value.trim().toLowerCase();
+    while (s.slice(-1) === ".") { s = s.slice(0, -1); }
+    preview.textContent = b ? "Members will use https://" + (s ? s + "." : "") + b
+      : "Clear the first box to use the domain on its own.";
+  }
 }
 function reachFromHere(item) {
   var host = item.getAttribute("data-host");
@@ -928,19 +941,38 @@ def choice(mode, kicker, badge, title, text, needs, checked, warning="", more=""
     )
 
 
+def domain_field(values, label):
+    """A name and a domain, as two boxes: the name is buzz unless the owner changes or clears it."""
+    sub = values.get("subdomain", "buzz")
+    return (
+        '<label class="field" for="domain-base">' + label + "</label>"
+        '<div class="split"><input type="text" name="subdomain" value="' + esc(sub) + '" aria-label="Name" '
+        'autocomplete="off" spellcheck="false"><span>.</span>'
+        '<input type="text" id="domain-base" name="base" placeholder="yourteam.com" aria-label="Domain" '
+        'autocomplete="off" spellcheck="false" value="' + esc(values.get("base", "")) + '"></div>'
+        '<p class="muted small" data-preview>Clear the first box to use the domain on its own.</p>'
+    )
+
+
+def posted_domain(values):
+    """The domain from a form: one field (earlier forms, and the tests), or a name and a domain."""
+    if values.get("domain", "").strip():
+        return values["domain"]
+    base = re.sub(r"^[a-z]+://", "", values.get("base", "").strip().lower()).split("/")[0]
+    sub = values.get("subdomain", "").strip().lower().strip(".")
+    return sub + "." + base if sub and base else base
+
+
 def address_fields(values, setup):
     mode = values.get("mode") or (setup or {}).get("mode") or ""
-    domain = values.get("domain", (setup or {}).get("domain", "") if (setup or {}).get("mode") == "domain" else "")
     return (
         '<div class="choices">'
         + choice("domain", "For hosting a community", "Recommended", "Your own domain",
                  "A name you own, like <code>buzz.yourteam.com</code>. Anyone you invite can reach it from anywhere, "
                  "and the address stays yours, even on another server.",
                  "a domain (around 10 US dollars a year) on a free Cloudflare account.", mode == "domain",
-                 more='<label class="field" for="domain">Your domain</label>'
-                 '<input type="text" id="domain" name="domain" placeholder="buzz.yourteam.com" autocomplete="off" '
-                 'spellcheck="false" value="' + esc(domain) + '">'
-                 '<p class="small">Next, you sign in to Cloudflare and choose your domain. This page sets up the rest and '
+                 more=domain_field(values, "Your address")
+                 + '<p class="small">Next, you sign in to Cloudflare and choose your domain. This page sets up the rest and '
                  "checks that it works. "
                  "Cloudflare handles HTTPS, so it can see the traffic it carries, and it caps uploads at 100 MB.</p>")
         + choice("funnel", "For trying Buzz out", "", "A free Tailscale address",
@@ -1409,9 +1441,7 @@ def address_change(setup, values, current):
     return (
         '<form method="post" action="address" data-guided><input type="hidden" name="owner" value="' + esc(setup["owner"]) + '">'
         '<p class="heads-up">' + note + '</p><div class="opts">' + options + "</div>"
-        '<div data-for="domain"><label class="field" for="domain">New domain</label>'
-        '<input type="text" id="domain" name="domain" placeholder="buzz.yourteam.com" autocomplete="off" spellcheck="false" '
-        'value="' + esc(values.get("domain", "")) + '"></div>' + confirm
+        '<div data-for="domain">' + domain_field(values, "New address") + "</div>" + confirm
         + '<button class="btn small ghost" type="submit">Change the address</button></form>'
     )
 
@@ -1474,7 +1504,9 @@ def main_page(setup, error="", values=None):
         '<section class="part next"><p class="eyebrow">Next steps</p>'
         '<div class="step on"><span class="num">1</span><div class="step-body"><h2>Join your community</h2>'
         "<p class=\"muted\">Join from Buzz with the same identity you entered as the owner.</p>"
-        + how_to("Show me how", join_steps(domain)) + "</div></div>"
+        + how_to("Show me how", join_steps(domain))
+        + ('<p class="muted small">Just bought the domain? Your computer can take a while to find it. If Buzz '
+           "can't connect, try again in a few minutes.</p>" if mode == "domain" else "") + "</div></div>"
         '<div class="step on"><span class="num">2</span><div class="step-body"><h2>Add members</h2>'
         '<p class="muted">Add people by their public ID, or send them an invite link.</p>'
         + how_to("Show me how", member_steps(domain)) + (private_members_note() if mode == "private" else "")
@@ -1630,7 +1662,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         mode = values.get("mode", "")
         if mode not in MODES:
             raise ValueError("Choose how members reach the community.")
-        domain = clean_domain(values.get("domain", "")) if mode == "domain" else ""
+        domain = clean_domain(posted_domain(values)) if mode == "domain" else ""
         return key, mode, domain
 
     def log_message(self, format, *args):

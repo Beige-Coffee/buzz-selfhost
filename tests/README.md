@@ -122,9 +122,9 @@ page's redesign: 45 of 45 real checks on Docker Desktop without umbrelOS, and 24
 rendered with mocks ([log](runs/2026-10-28-1437-umbrel-dropdowns-local.log)). Later the same day,
 the package got its own Cloudflare tunnel, set up from a Cloudflare sign-in on its page: 48 of 48
 real checks, reaching Cloudflare's sign-in link ([log](runs/2026-10-28-1533-umbrel-cloudflare-local.log)), and an
-update on umbrelOS that added the service and carried the setup over. By hand, all three ways in
-then went live with a real phone: a new domain through that tunnel, the free Tailscale address and
-the private network, each with a direct message and a mention waking a locked iPhone. Last, the
+update on umbrelOS that added the service and carried the setup over. By hand, a new domain
+through that tunnel and the private network each had a direct message and a mention wake a locked
+iPhone; the free Tailscale address went live too, with no phone tried on it. Last, the
 relay moved to `sha-a38fedb`: 48 of 48 ([log](runs/2026-10-28-1610-umbrel-a38fedb-local.log)).
 
 ## Results, 2026-10-26: Umbrel, phone notifications on

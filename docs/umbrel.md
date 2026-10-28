@@ -233,6 +233,10 @@ survives an owner change, and that turning them on offers them again. No phone w
 - After the page's redesign (drawn how-tos for joining, members and phones, a shorter address
   change, plainer words): `check.py` 45 of 45 on Docker Desktop without umbrelOS
   ([log](../tests/runs/2026-10-28-1437-umbrel-dropdowns-local.log)), and 243 page states rendered.
+- By hand, your own domain with the app's own Cloudflare tunnel, after an update that added it: the
+  owner signed in to Cloudflare from the page's link and chose a new domain; the service created
+  the tunnel and the name, and the page went live: the relay answered at the domain from the
+  internet, and pairing was reachable. Nobody joined through it yet.
 
 ## Not yet tested
 
@@ -242,9 +246,7 @@ survives an owner change, and that turning them on offers them again. No phone w
   which matches v1.104.2's source but hasn't been seen live (`Funnel on` has, 2026-10-28).
 - Phone notifications from an Umbrel install to a real iPhone (the local checks only see the relay
   offer them), and on the private option, where the phone fetches the message over Tailscale.
-- Your own domain end to end: the app's Cloudflare sign-in with a real domain, the tunnel and the
-  name it creates, and a join and a phone through it. The local checks only reach Cloudflare's
-  sign-in link.
+- A join and a phone through your own domain (the setup itself passed on 2026-10-28).
 - A real Raspberry Pi: ARM itself passed on a Mac, but not the Pi's slower processor and storage.
   Umbrel asks for the chip type to be tested, not a particular device.
 
@@ -304,6 +306,9 @@ The local run's password is `local-test-only`. `check.py` expects a fresh run: `
   server's network card and the server drops off the network. `install.sh` uses Docker's bridge
   network and masks NetworkManager.
 - `docker cp` can't see `/home/umbrel` inside the umbrelOS container; tar through `docker exec` can.
+- With a new domain, the page's own checks, made before the name existed, left this Umbrel's
+  resolver holding "no such name" for up to half an hour after Cloudflare published it. The checks
+  now look names up through Cloudflare's public DNS, and reach the address it gives.
 - An update copies an app's compose file and templates, not new data folders, so a service added
   in an update keeps its files in a folder that already exists (the Cloudflare service uses
   `settings/cloudflare`).

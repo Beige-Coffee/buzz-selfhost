@@ -35,7 +35,7 @@ def tailscale(state, name="", auth="", serve=""):
 
 
 def fake_request(public):
-    def request(host, port_, path, tls=False, headers=None, timeout=6):
+    def request(host, port_, path, tls=False, headers=None, timeout=6, addr=None):
         if host == m.RELAY_HOST:
             if port_ == 8080:
                 return 200, b"ok"

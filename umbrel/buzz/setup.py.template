@@ -22,6 +22,7 @@ import ssl
 import threading
 import time
 import urllib.parse
+import urllib.request
 
 SETTINGS_DIR = "/settings"
 RELAY_ENV = os.path.join(SETTINGS_DIR, "relay.env")
@@ -285,13 +286,18 @@ def cloudflare_step():
 # ---------------------------------------------------------------- checks
 
 
-def request(host, port, path, tls=False, headers=None, timeout=6):
-    """(status, body) or (None, reason). A WebSocket upgrade comes back 101 with no body."""
+def request(host, port, path, tls=False, headers=None, timeout=6, addr=None):
+    """(status, body) or (None, reason). A WebSocket upgrade comes back 101 with no body. With addr, it
+    connects to that address while still asking for host, by its certificate and Host header."""
     try:
+        context = ssl.create_default_context()
         if tls:
-            conn = http.client.HTTPSConnection(host, port, timeout=timeout, context=ssl.create_default_context())
+            conn = http.client.HTTPSConnection(host, port, timeout=timeout, context=context)
         else:
             conn = http.client.HTTPConnection(host, port, timeout=timeout)
+        if addr:
+            sock = socket.create_connection((addr, port), timeout=timeout)
+            conn.sock = context.wrap_socket(sock, server_hostname=host) if tls else sock
         conn.request("GET", path, headers=headers or {})
         response = conn.getresponse()
         body = b"" if response.status == 101 else response.read(65536)
@@ -318,6 +324,17 @@ def relay_self(status, body):
 
 
 def resolves(name):
+    """The name's addresses as the internet sees them, from Cloudflare's public DNS: this Umbrel's own
+    resolver may still hold the "no such name" it got while the page checked a name not yet published."""
+    try:
+        query = urllib.request.Request("https://cloudflare-dns.com/dns-query?" + urllib.parse.urlencode({"name": name, "type": "A"}),
+                                       headers={"Accept": "application/dns-json"})
+        with urllib.request.urlopen(query, timeout=5) as response:
+            found = sorted({a["data"] for a in json.load(response).get("Answer") or [] if a.get("type") == 1})
+        if found:
+            return found
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
     try:
         return sorted({info[4][0] for info in socket.getaddrinfo(name, 443)})
     except OSError:
@@ -338,11 +355,14 @@ def check(setup):
     jobs = {"relay": lambda: request(RELAY_HOST, 3000, "/_readiness", headers={"Host": domain} if domain else None)}
     if domain:
         jobs["local_info"] = lambda: request(RELAY_HOST, 3000, "/", headers=dict(NIP11, Host=domain))
+    addresses = []
     if domain and mode != "private":
-        jobs["dns"] = lambda: resolves(domain)
-        jobs["live"] = lambda: request(domain, 443, "/_liveness", tls=True)
-        jobs["info"] = lambda: request(domain, 443, "/", tls=True, headers=NIP11)
-        jobs["pair"] = lambda: request(domain, 443, "/pair", tls=True, headers=UPGRADE)
+        # the public name, reached at the address the internet sees for it
+        addresses = resolves(domain)
+        addr = addresses[0] if addresses else None
+        jobs["live"] = lambda: request(domain, 443, "/_liveness", tls=True, addr=addr)
+        jobs["info"] = lambda: request(domain, 443, "/", tls=True, headers=NIP11, addr=addr)
+        jobs["pair"] = lambda: request(domain, 443, "/pair", tls=True, headers=UPGRADE, addr=addr)
     with concurrent.futures.ThreadPoolExecutor(len(jobs)) as pool:
         futures = {name: pool.submit(job) for name, job in jobs.items()}
         got = {name: future.result() for name, future in futures.items()}
@@ -382,7 +402,6 @@ def check(setup):
         live = relay_ok and tailscale_state()["backend"] == "Running" and published() == "private"
         items.append(item("device", "wait", "Checking from this device...", ""))
         return live, items
-    addresses = got["dns"]
     if not addresses:
         items.append(item("dns", "wait",
                           "The name <code>" + html.escape(domain) + "</code> isn't published yet",
@@ -641,6 +660,8 @@ dl.values dd { margin: 0; display: flex; align-items: center; gap: 8px; flex-wra
 
 HOW_STYLE = """
 details.how { margin-top: 12px; }
+details.alt { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); }
+details.alt > summary { font-size: 14px; color: var(--ink-2); }
 details.how > summary { padding: 6px 13px 6px 11px; border: 1px solid var(--line-2); border-radius: 999px; background: #fff; font-size: 13.5px; color: var(--ink); }
 details.how > summary:hover { border-color: var(--ink); }
 details.how[open] > summary { background: var(--chip); }
@@ -1287,6 +1308,10 @@ def connect_steps(setup, domain):
         elif state in ("creating", "routing"):
             action = ("<p class=\"muted\">Signed in. Creating the tunnel and the name <code>" + esc(domain)
                       + "</code> in Cloudflare.</p>")
+        elif state == "running":
+            action = ("<p class=\"muted\">Signed in, and the tunnel is set up. Cloudflare is publishing <code>" + esc(domain)
+                      + "</code>: a few minutes, or longer for a brand-new domain. This page checks every few "
+                      "seconds.</p>")
         elif state == "taken":
             action = ("<p><code>" + esc(domain) + "</code> already has a DNS record in Cloudflare. Delete it in "
                       "Cloudflare's DNS settings, or change the address to another name. This page tries again every "
@@ -1301,17 +1326,16 @@ def connect_steps(setup, domain):
                       + cloudflare_reset_button())
         else:
             action = ""
-        manual = (
-            "<details><summary>Using Umbrel's Cloudflare Tunnel app instead</summary><div class=\"inner\">"
-            '<p class="muted small">Add a public hostname to your tunnel with these values, and skip the sign-in above. '
+        # Only before the sign-in: for owners who already run Umbrel's Cloudflare Tunnel app
+        manual = "" if state != "signin" else (
+            "<details class=\"alt\"><summary>Already use Umbrel's Cloudflare Tunnel app?</summary><div class=\"inner\">"
+            '<p class="muted small">Then add a public hostname to your tunnel with these values instead of signing in. '
             '<a href="' + TUNNEL_GUIDE + '" target="_blank" rel="noopener">The app\'s guide</a> shows each screen.</p>'
             '<dl class="values"><dt>Hostname</dt><dd><code>' + esc(domain) + "</code>" + copy_button(domain) + "</dd>"
             "<dt>Service type</dt><dd><code>HTTP</code></dd>"
             "<dt>URL</dt><dd><code>" + GATEWAY_URL + "</code>" + copy_button(GATEWAY_URL) + "</dd></dl></div></details>"
         )
-        return ('<section class="part"><h2>Connect the name in Cloudflare</h2>' + action + manual
-                + '<p class="muted small">This page checks every few seconds. A new name can take a few minutes to work.</p>'
-                "</section>")
+        return '<section class="part"><h2>Connect the name in Cloudflare</h2>' + action + manual + "</section>"
     step = tailscale_step(mode)
     if step == "starting":
         action = "<p class=\"muted\">Starting Tailscale. This takes a few seconds.</p>"

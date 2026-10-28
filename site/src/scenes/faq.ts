@@ -1,16 +1,19 @@
 import { agentFlows } from "./agentflow";
 import { identityFlows, lostFlows } from "./identity";
 import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members";
+import { promptText, runningOnHTML, taskHTML } from "./operations";
 import { TABLER } from "./tabler";
+import { copyText, enhanceCode } from "../lib/code";
 import { jumpTo } from "../lib/nav";
-import { getValues, setValues, trackHash, trackOf } from "../lib/values";
+import { getValues, isPrivate, onValues, setValues, trackHash, trackOf, type Track } from "../lib/values";
 
 /**
- * Access and keys: what we recommend for keys, people and the server, and how to set it up. Questions
- * on the left and the answer on the right, as in Operations; on a phone the answer opens under its
- * question. Each answer leads with the recommendation, then shows how: a click-through of Buzz's own
- * screens where it happens in Buzz, a drawing where it happens on the server. The facts each one rests
- * on, with sources: docs/access-and-keys.md.
+ * Running your relay: what we recommend for people, keys, data and the server, and how to set it up.
+ * Questions on the left and the answer on the right; on a phone the answer opens under its question.
+ * Each answer leads with the recommendation, then shows how: a click-through of Buzz's own screens
+ * where it happens in Buzz, a drawing where it happens on the server, and for backing up, restoring
+ * and upgrading, the steps for the setup in the Running on box above (operations.ts). The facts the
+ * access answers rest on, with sources: docs/access-and-keys.md.
  */
 
 const OWN: Record<string, string> = {
@@ -20,6 +23,8 @@ const OWN: Record<string, string> = {
   archive: `<rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"/>`,
   list: `<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>`,
   link: `<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/>`,
+  restore: `<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>`,
+  upgrade: `<path d="M12 19V5M5 12l7-7 7 7"/>`,
 };
 const icon = (n: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${OWN[n] ?? TABLER[n]}</svg>`;
 
@@ -31,6 +36,10 @@ const steps = (rows: [string, string][]) =>
     .join("")}</ol>`;
 /** Where a click-through of Buzz's screens goes; CLICK_THROUGHS has its flows. */
 const ct = (name: string) => `<div class="fq-ct" data-ct="${name}"></div>`;
+
+/** On a private network, a new member needs the tailnet too. */
+const PRIVATE_PEOPLE =
+  "Your relay is on a private network, so each person also joins your Tailscale network, with every device they use Buzz on. On Tailscale's paid plans, each person takes a seat.";
 
 const CLICK_THROUGHS: Record<string, Flow[]> = {
   identity: identityFlows,
@@ -138,10 +147,60 @@ interface Question {
   id: string;
   icon: string;
   q: string;
-  a: string;
+  /** the answer, or for an answer that depends on the setup, how to draw it for one */
+  a: string | ((t: Track) => string);
 }
 
 const GROUPS: [string, Question[]][] = [
+  [
+    "People",
+    [
+      {
+        id: "add",
+        icon: "users",
+        q: "How should we add people?",
+        a: (t) =>
+          rec("Add people you know by their npub. For a group, use an invite link that expires after a day, limited to the people you expect.") +
+          ct("add") +
+          (isPrivate(t) ? note(PRIVATE_PEOPLE) : ""),
+      },
+      {
+        id: "roles",
+        icon: "crown",
+        q: "How should we set up roles?",
+        a:
+          rec("Make the person who runs Buzz the owner, and name at least two admins, so someone can always add or remove people.") +
+          ROLES +
+          ct("role") +
+          note("The owner is set on the server, so whoever runs it changes it. The old owner stays on as an admin."),
+      },
+      {
+        id: "leave",
+        icon: "logout",
+        q: "What do we do when someone leaves?",
+        a:
+          rec("Run the same checklist on their last day.") +
+          checklist([
+            ["Remove them in Membership", "As below. Their agents lose access too."],
+            ["Remove them from Tailscale", "And their devices.", "private network"],
+            ["Remove their server and hosting access", "Their SSH key and their account with your hosting provider.", "if they had it"],
+            ["Replace the relay key", "A new key in <code>.env</code>, then restart the relay.", "if they could read .env"],
+            ["Hand over ownership first", "Make someone else the owner on the server before removing them.", "if they were the owner"],
+          ]) +
+          ct("remove") +
+          note("Messages already on their devices stay there: Buzz can't wipe a device."),
+      },
+      {
+        id: "agents",
+        icon: "robot",
+        q: "How should we run agents?",
+        a:
+          rec("Run each agent from the Buzz app of the person responsible for it. It gets in through that person's membership, and loses access when they leave.") +
+          ct("agents") +
+          note("A shared bot with only a key of its own, such as one on the buzz command-line tool, is added like a member; keep its key in the shared vault. The relay's settings limit how fast agents post, apart from people."),
+      },
+    ],
+  ],
   [
     "Identity and keys",
     [
@@ -153,20 +212,6 @@ const GROUPS: [string, Question[]][] = [
           rec("One work identity per person, made in the Buzz app, with a copy of its private key in your company's password manager.") +
           ct("identity") +
           note("Nobody can reset a Buzz key. Without the saved copy, a lost key means a new identity."),
-      },
-      {
-        id: "sso",
-        icon: "lock",
-        q: "Can we use single sign-on?",
-        a:
-          rec("Not today: Buzz has no single sign-on, and everyone signs in with their own key. The next best thing is a private network, where your company login decides who can reach the relay at all.") +
-          `<div class="fq-status"><span class="fq-status-k">${icon("bolt")}In progress in Buzz</span><p>Buzz is building company sign-in on a draft standard, <a href="https://github.com/block/buzz/blob/main/docs/nips/NIP-FI.md">NIP-FI</a>: your identity provider vouches for each person's key. The relay already understands it, behind a setting that's off by default, and the desktop app's side is open work (<a href="https://github.com/block/buzz-app/pull/1424">block/buzz-app#1424</a>). There's no date yet, and a self-hosted community can't turn it on.</p></div>` +
-          LOCKS +
-          steps([
-            ["Run the relay on a private network", `On a VPS, your own hardware or Kubernetes, with <b>Private network</b> on. <a href="#guide" data-go-private>Set it up</a>.`],
-            ["Sign up for Tailscale with your identity provider", "Google, Microsoft, Okta or GitHub, among others, so only company accounts can join your network."],
-            ["Keep the member list as the second lock", "The network gets someone to the relay; only Membership lets them in. When someone leaves, remove them in both places."],
-          ]),
       },
       {
         id: "lost",
@@ -187,82 +232,38 @@ const GROUPS: [string, Question[]][] = [
           LANES +
           note("The old key still works in any other community that person joined, since a Buzz identity isn't tied to one community."),
       },
-    ],
-  ],
-  [
-    "People and roles",
-    [
       {
-        id: "roles",
-        icon: "crown",
-        q: "How should we set up roles?",
+        id: "sso",
+        icon: "lock",
+        q: "Can we use single sign-on?",
         a:
-          rec("Make the person who runs Buzz the owner, and name at least two admins, so someone can always add or remove people.") +
-          ROLES +
-          ct("role") +
-          note(`The owner is set on the server. <a href="#operations">Operations</a> shows how to change it.`),
-      },
-      {
-        id: "add",
-        icon: "users",
-        q: "How should we add people?",
-        a:
-          rec("Add people you know by their npub. For a group, use an invite link that expires after a day, limited to the people you expect.") +
-          ct("add") +
-          note("On a private network, each person, and each of their devices, also joins your Tailscale network."),
-      },
-      {
-        id: "leave",
-        icon: "logout",
-        q: "What do we do when someone leaves?",
-        a:
-          rec("Run the same checklist on their last day.") +
-          checklist([
-            ["Remove them in Membership", "As below. Their agents lose access too."],
-            ["Remove them from Tailscale", "And their devices.", "private network"],
-            ["Remove their server and hosting access", "Their SSH key and their account with your hosting provider.", "if they had it"],
-            ["Replace the relay key", "A new key in <code>.env</code>, then restart the relay.", "if they could read .env"],
-            ["Hand over ownership first", "Make someone else the owner on the server before removing them.", "if they were the owner"],
-          ]) +
-          ct("remove") +
-          note("Messages already on their devices stay there: Buzz can't wipe a device."),
+          rec("Not today: Buzz has no single sign-on, and everyone signs in with their own key. The next best thing is a private network, where your company login decides who can reach the relay at all.") +
+          `<div class="fq-status"><span class="fq-status-k">${icon("bolt")}In progress in Buzz</span><p>Buzz is building company sign-in on a draft standard, <a href="https://github.com/block/buzz/blob/main/docs/nips/NIP-FI.md">NIP-FI</a>: your identity provider vouches for each person's key. The relay already understands it, behind a setting that's off by default, and the desktop app's side is open work (<a href="https://github.com/block/buzz-app/pull/1424">block/buzz-app#1424</a>). There's no date yet, and a self-hosted community can't turn it on.</p></div>` +
+          LOCKS +
+          steps([
+            ["Run the relay on a private network", `On a VPS, your own hardware or Kubernetes, with <b>Private network</b> on. <a href="#guide" data-go-private>Set it up</a>.`],
+            ["Sign up for Tailscale with your identity provider", "Google, Microsoft, Okta or GitHub, among others, so only company accounts can join your network."],
+            ["Keep the member list as the second lock", "The network gets someone to the relay; only Membership lets them in. When someone leaves, remove them in both places."],
+          ]),
       },
     ],
   ],
   [
-    "Agents",
+    "Data",
     [
       {
-        id: "agents",
-        icon: "robot",
-        q: "How should we run agents?",
-        a:
-          rec("Run each agent from the Buzz app of the person responsible for it. It gets in through that person's membership, and loses access when they leave.") +
-          ct("agents") +
-          note("A shared bot with only a key of its own, such as one on the buzz command-line tool, is added like a member; keep its key in the shared vault. The relay's settings limit how fast agents post, apart from people."),
-      },
-    ],
-  ],
-  [
-    "The server",
-    [
-      {
-        id: "server",
-        icon: "terminal-2",
-        q: "Who should have access to the server?",
-        a:
-          rec("Two or three people: whoever runs Buzz and a backup, each with a personal SSH key and two-factor sign-in on the hosting account.") +
-          ACCESS +
-          note("No shared passwords or shared keys. Whoever can log in can read every message, direct messages included, so remove a person's key the day they leave."),
+        id: "backup",
+        icon: "archive",
+        q: "How should we back up?",
+        a: (t) => rec("Back up at least once a week and before every upgrade, and keep an encrypted copy away from the server.") + taskHTML("backup", t),
       },
       {
-        id: "relay-key",
-        icon: "key",
-        q: "Where should we keep the relay key?",
-        a:
-          rec("On the server, plus one copy in a shared vault that only the server's people can open.") +
-          KEY_HOME +
-          note(`A backup from <a href="#operations">Operations</a> includes <code>.env</code>. On Railway the key is in Railway's variables; on Kubernetes, in a Secret.`),
+        id: "restore",
+        icon: "restore",
+        q: "How do we restore a backup?",
+        a: (t) =>
+          rec("Restore the newest backup and keep the relay's address: members' apps then reconnect by themselves. Anything from after the backup is lost.") +
+          taskHTML("restore", t),
       },
       {
         id: "read",
@@ -284,19 +285,48 @@ const GROUPS: [string, Question[]][] = [
       },
     ],
   ],
+  [
+    "Server",
+    [
+      {
+        id: "upgrade",
+        icon: "upgrade",
+        q: "How should we upgrade the relay?",
+        a: (t) => rec("About once a month, at a quiet time: new features in the Buzz app can need a recent relay.") + taskHTML("upgrade", t),
+      },
+      {
+        id: "server",
+        icon: "terminal-2",
+        q: "Who should have access to the server?",
+        a:
+          rec("Two or three people: whoever runs Buzz and a backup, each with a personal SSH key and two-factor sign-in on the hosting account.") +
+          ACCESS +
+          note("No shared passwords or shared keys. Whoever can log in can read every message, direct messages included, so remove a person's key the day they leave."),
+      },
+      {
+        id: "relay-key",
+        icon: "key",
+        q: "Where should we keep the relay key?",
+        a:
+          rec("On the server, plus one copy in a shared vault that only the server's people can open.") +
+          KEY_HOME +
+          note(`A <a href="#operations" data-q-link="backup">backup</a> includes <code>.env</code>. On Railway the key is in Railway's variables; on Kubernetes, in a Secret.`),
+      },
+    ],
+  ],
 ];
 
-export function mountAccess(host: HTMLElement): void {
+export function mountFaq(host: HTMLElement): void {
   const all = GROUPS.flatMap(([, qs]) => qs);
-  host.innerHTML = `<div class="opx fq">
+  host.innerHTML = `${runningOnHTML(trackOf())}<div class="opx fq">
     <div class="opx-list fq-list" role="tablist" aria-label="Questions" aria-orientation="vertical">${GROUPS.map(
       ([group, qs]) =>
-        `<p class="fq-g">${group}</p>${qs
+        `<div class="fq-grp" role="none"><p class="fq-g">${group}</p>${qs
           .map(
             (x) =>
               `<button type="button" role="tab" class="opx-item" id="fq-tab-${x.id}" data-q="${x.id}" aria-controls="fq-pane" aria-selected="false" tabindex="-1"><span class="opx-item-i">${icon(x.icon)}</span><span class="opx-item-t"><b>${x.q}</b></span></button>`,
           )
-          .join("")}`,
+          .join("")}</div>`,
     ).join("")}</div>
     <div class="fq-pane" id="fq-pane" role="tabpanel"></div>
   </div>`;
@@ -325,9 +355,10 @@ export function mountAccess(host: HTMLElement): void {
       if (on && focus) b.focus();
     });
     pane.setAttribute("aria-labelledby", `fq-tab-${x.id}`);
-    pane.innerHTML = `<h3 class="fq-h">${x.q}</h3>${x.a}`;
+    pane.innerHTML = `<h3 class="fq-h">${x.q}</h3>${typeof x.a === "string" ? x.a : x.a(trackOf())}`;
     if (narrow.matches) list.querySelector(`[data-q="${x.id}"]`)!.after(pane);
     else box.appendChild(pane);
+    enhanceCode(pane);
     pane.querySelectorAll<HTMLElement>("[data-ct]").forEach(draw);
   };
 
@@ -335,6 +366,21 @@ export function mountAccess(host: HTMLElement): void {
     const t = e.target as HTMLElement;
     const tab = t.closest<HTMLButtonElement>("[data-q]");
     if (tab) return show(tab.dataset.q!);
+    // a link from one answer to another
+    const jump = t.closest<HTMLElement>("[data-q-link]");
+    if (jump) {
+      e.preventDefault();
+      return show(jump.dataset.qLink!, true);
+    }
+    // the upgrade prompt, for your agent
+    const copy = t.closest<HTMLButtonElement>(".ag-copy");
+    if (copy) {
+      copyText(promptText(trackOf(), "upgrade"), () => {
+        copy.textContent = "Copied";
+        window.setTimeout(() => (copy.textContent = "Copy prompt"), 1600);
+      });
+      return;
+    }
     // a click-through's flows, arrows and dots
     const slot = t.closest<HTMLElement>("[data-ct]");
     const flow = t.closest<HTMLButtonElement>("[data-mb-flow]");
@@ -369,4 +415,9 @@ export function mountAccess(host: HTMLElement): void {
   });
   narrow.addEventListener("change", () => show(open));
   show(open);
+  // the Running on box changed: redraw it, and the answer if it depends on the setup
+  onValues(() => {
+    host.querySelector(".opx-ctx")!.outerHTML = runningOnHTML(trackOf());
+    if (typeof all.find((x) => x.id === open)!.a !== "string") show(open);
+  });
 }

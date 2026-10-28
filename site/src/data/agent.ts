@@ -357,13 +357,11 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
  * conversation, then names the skill and the task. "What happens" follows operations.md, per setup.
  * <name> is a blank the reader fills in (lib/blanks.ts); {{DOMAIN}} comes from the Running on box.
  */
-export type OpTask = "people" | "backup" | "restore" | "upgrade";
-export const OP_ORDER: OpTask[] = ["people", "backup", "restore", "upgrade"];
-export const OP_TASKS: Record<OpTask, { name: string; sub: string; ask: string }> = {
-  people: { name: "Add people", sub: "In Buzz's settings", ask: "add <their npub> as a member." },
-  backup: { name: "Back up", sub: "Commands you run", ask: "back it up." },
-  restore: { name: "Restore", sub: "Commands you run", ask: "restore it from its backup." },
-  upgrade: { name: "Upgrade", sub: "With your agent", ask: "back it up, then upgrade it to the newest image." },
+export type OpTask = "backup" | "restore" | "upgrade";
+export const OP_TASKS: Record<OpTask, { ask: string }> = {
+  backup: { ask: "back it up." },
+  restore: { ask: "restore it from its backup." },
+  upgrade: { ask: "back it up, then upgrade it to the newest image." },
 };
 
 const SSH_VPS = "My Buzz relay is at {{DOMAIN}}. It's a VPS; SSH in as <user>@<server IP>.";
@@ -398,11 +396,9 @@ export interface OpDetail {
 export type OpSetup = "compose" | "railway" | "k8s";
 export const opSetup = (t: Track): OpSetup => (t === "railway" ? "railway" : t === "k8s" || t === "k8s-private" ? "k8s" : "compose");
 
-const PEOPLE_WHY = "The owner and admins add people in Buzz itself, by npub or with an invite link.";
 const UPGRADE_WHY = "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup.";
 const agent = (t: string): OpStep => ({ who: "agent", icon: "agent", t });
 const asks = (t: string): OpStep => ({ who: "you", icon: "ask", t });
-const PEOPLE: OpDetail = { why: PEOPLE_WHY };
 
 /**
  * Backing up and restoring, as numbered steps for a person to run. `code` picks a command block from
@@ -459,7 +455,6 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
 
 export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
   compose: {
-    people: PEOPLE,
     backup: {
       why: "Saves the database, uploaded files, git repositories and the <code>.env</code> file, with the passwords and the relay key, into one folder.",
     },
@@ -477,7 +472,6 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
     },
   },
   railway: {
-    people: PEOPLE,
     backup: {
       why: "Saves the database and the file bucket to this computer. The bucket holds the uploaded files and the git repositories.",
     },
@@ -490,7 +484,6 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
     },
   },
   k8s: {
-    people: PEOPLE,
     backup: {
       why: "With the quickstart profile, saves the database, the file bucket, the git volume and the relay's Secret, which holds the relay key. In production, use your managed database's and bucket's own backups.",
     },

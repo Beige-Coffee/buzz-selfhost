@@ -132,8 +132,8 @@ const OPEN: Step = {
 const MEMBERS = (spot: Spot, t: string): Step => ({ k: "Open Membership", t, frame: settings(spot) });
 
 /**
- * The four flows. The Access and keys section shows them too, with the invite link set the way it
- * recommends (a short expiry and a use limit) when it passes them.
+ * Managing people, in four flows: add by npub, an invite link, a role, removing someone. The FAQ
+ * sets the invite link the way it recommends (a short expiry and a use limit).
  */
 export const peopleFlows = (expiry = "3 days", uses = "No limit"): Flow[] => [
   {
@@ -216,10 +216,6 @@ export function clickThroughHTML(flows: Flow[], flow: number, step: number): str
     </div>
   </div>`;
 }
-
-/** Managing people: the four flows. */
-const FLOWS = peopleFlows();
-export const membersHTML = (flow: number, step: number) => clickThroughHTML(FLOWS, flow, step);
 
 /** The canvas is drawn at 560 x 340 and scaled to the stage, like an SVG viewBox. */
 export function fitMembers(root: ParentNode): void {

@@ -32,7 +32,6 @@ TAILSCALE_SERVE = os.path.join(SETTINGS_DIR, "tailscale-serve.txt")
 TAILSCALE_LOGS = ("tailscale-publish.log", "tailscale-funnel.log")
 GATEWAY_URL = "buzz-gateway:80"
 RELAY_HOST = "buzz_relay_1"
-ISSUE = "https://github.com/block/buzz/issues/4952"
 BUZZ_APP = "https://github.com/block/buzz-app"
 TUNNEL_GUIDE = "https://github.com/Radiokot/umbrel-cloudflared/wiki/How-to-set-up-Cloudflare-Tunnel-on-your-Umbrel"
 TAILSCALE_ADMIN = "https://login.tailscale.com/admin/machines"
@@ -507,8 +506,15 @@ input[type=text]:focus, input[type=password]:focus { border-color: var(--ink); b
 .choices { display: grid; gap: 12px; margin-top: 16px; }
 .choice { position: relative; display: block; padding: 18px 20px; background: #fff; border: 1px solid var(--line-2);
   border-radius: 18px; box-shadow: var(--shadow-1); cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s, transform 0.3s var(--ease); }
-.choice:hover { transform: translateY(-1px); border-color: rgb(35 30 30 / 28%); }
-.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice:hover { border-color: rgb(35 30 30 / 28%); }
+.choice-head { display: block; cursor: pointer; }
+.choice-more { margin-top: 16px; padding-top: 4px; border-top: 1px solid var(--line); }
+.choice-more .small { margin-top: 10px; color: var(--ink-2); }
+.confirm-box { display: flex; gap: 12px; align-items: flex-start; margin-top: 16px; padding: 14px 16px; border-radius: 12px; background: rgb(215 215 46 / 32%); font-size: 14.5px; cursor: pointer; }
+.confirm-box input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--ink); flex: none; }
+.confirm-box b { font-weight: 500; }
+.confirm-box + .btn { margin-top: 18px; }
+.choice-head input { position: absolute; opacity: 0; pointer-events: none; }
 .choice:has(input:checked) { border-color: #bdbd1f; box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-1); }
 .choice:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 3px; }
 .choice .kicker { display: flex; justify-content: space-between; gap: 10px; font: 500 10.5px var(--mono); letter-spacing: 0.1em;
@@ -523,8 +529,6 @@ input[type=text]:focus, input[type=password]:focus { border-color: var(--ink); b
 .panel p:first-child { margin-top: 0; }
 .panel ul { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); }
 .panel li { margin: 4px 0; }
-.warn { margin-top: 18px; padding: 2px 0 2px 16px; border-left: 3px solid var(--accent); font-size: 15px; }
-.warn p:first-child { margin-top: 0; }
 .opts { margin-top: 14px; border: 1px solid var(--line-2); border-radius: 12px; overflow: hidden; background: #fff; }
 .opt { display: flex; align-items: center; gap: 12px; padding: 11px 14px; cursor: pointer; }
 .opt + .opt { border-top: 1px solid var(--line); }
@@ -847,12 +851,15 @@ def login_page(error=""):
         signed_in=False)
 
 
-def choice(mode, kicker, badge, title, text, needs, checked, warning=""):
+def choice(mode, kicker, badge, title, text, needs, checked, warning="", more=""):
+    """An option's card: what it is and needs, and once chosen, its own field or next step inside it."""
     return (
-        '<label class="choice"><input type="radio" name="mode" value="' + mode + '"' + (" checked" if checked else "") + ">"
+        '<div class="choice"><label class="choice-head"><input type="radio" name="mode" value="' + mode + '"'
+        + (" checked" if checked else "") + ">"
         '<span class="kicker"><span>' + kicker + (" &middot; " + badge if badge else "") + '</span><span class="pick"></span></span>'
         "<h3>" + title + "</h3><p>" + text + "</p>" + ('<p class="heads-up">' + warning + "</p>" if warning else "")
         + '<p class="needs"><b>Needs</b>' + needs + "</p></label>"
+        + ('<div class="choice-more" data-for="' + mode + '">' + more + "</div>" if more else "") + "</div>"
     )
 
 
@@ -862,53 +869,32 @@ def address_fields(values, setup):
     return (
         '<div class="choices">'
         + choice("domain", "For a lasting community", "recommended", "Your own domain",
-                 "A name you own, like <code>buzz.yourteam.com</code>, connected to this Umbrel by Cloudflare Tunnel. "
-                 "Anyone you invite can reach it from anywhere, and the address stays yours, even if you move to "
-                 "another server.",
+                 "A name you own, like <code>buzz.yourteam.com</code>. Anyone you invite can reach it from anywhere, "
+                 "and the address stays yours, even on another server.",
                  "a domain (around 10 US dollars a year) on a free Cloudflare account, and Umbrel's Cloudflare "
-                 "Tunnel app.", mode == "domain")
+                 "Tunnel app.", mode == "domain",
+                 more='<label class="field" for="domain">Your domain</label>'
+                 '<input type="text" id="domain" name="domain" placeholder="buzz.yourteam.com" autocomplete="off" '
+                 'spellcheck="false" value="' + esc(domain) + '">'
+                 '<p class="small">Next, this page shows how to connect it in Cloudflare and checks that it works. '
+                 "Cloudflare handles HTTPS, so it can see the traffic it carries, and it caps uploads at 100 MB.</p>")
         + choice("funnel", "For trying it out", "", "A free Tailscale address",
-                 "The quickest start. Tailscale gives this Umbrel an address like <code>buzz.tail1234.ts.net</code>, "
-                 "and anyone you invite can reach it without Tailscale. The address is tied to your Tailscale account, "
-                 "not a name you own.",
+                 "The quickest start. Tailscale gives this Umbrel an address like <code>buzz.tail1234.ts.net</code> "
+                 "that anyone you invite can reach. It's tied to your Tailscale account, not a name you own.",
                  "a free Tailscale account for you, the owner.", mode == "funnel",
                  "For now, if you change your community's address, its messages and members don't carry over to the "
-                 "new one. If you're building a community to keep, choose your own domain now.")
+                 "new one. If you're building a community to keep, choose your own domain now.",
+                 more='<p class="small">Next, you sign in to Tailscale, and it gives you the address. It stays the same '
+                 "as long as you keep this Tailscale account.</p>")
         + choice("private", "Off the internet", "", "A private Tailscale network",
                  "Nothing is reachable from the internet. Only devices you allow on your Tailscale network can "
-                 "connect, which suits a small group that wants its server hidden.",
+                 "connect. Best for a small group that wants its server hidden.",
                  "Tailscale on every member's device, phones included, and access to your Tailscale network.",
-                 mode == "private")
+                 mode == "private",
+                 more='<p class="small">Next, you sign in to Tailscale, and it gives you the address. To let someone in, '
+                 "invite them to your Tailscale network or share the <b>buzz</b> machine with them, then add them "
+                 "in Buzz.</p>")
         + "</div>"
-        '<div data-for="domain"><label class="field" for="domain">Your domain</label>'
-        '<input type="text" id="domain" name="domain" placeholder="buzz.yourteam.com" autocomplete="off" '
-        'spellcheck="false" value="' + esc(domain) + '">'
-        '<div class="panel"><p>The next screen shows how to connect this name in Cloudflare, then checks that it '
-        "works.</p><ul>"
-        "<li>Cloudflare handles HTTPS for this name, so it can see the traffic it carries. Files over 100 MB can't "
-        "be uploaded.</li>"
-        "<li>The tunnel needs no router changes and hides your home's internet address. Buzz is still reachable "
-        "from the internet, so keep Umbrel up to date.</li></ul></div></div>"
-        '<div data-for="funnel"><div class="panel"><p>On the next screen, you sign in to Tailscale and it gives you '
-        "the address.</p><ul>"
-        "<li>The address stays the same as long as you keep this Tailscale account and don't rename the "
-        "<b>buzz</b> machine.</li>"
-        "<li>Traffic passes through Tailscale encrypted. HTTPS ends on this Umbrel.</li></ul></div></div>"
-        '<div data-for="private"><div class="panel"><p>On the next screen, you sign in to Tailscale and it gives you '
-        "an address with an HTTPS certificate that Buzz and phones trust. Each member needs:</p><ul>"
-        "<li>the Tailscale app on every device they use, phones included;</li>"
-        "<li>access to your Tailscale network: invite them to it, or share the <b>buzz</b> machine with them;</li>"
-        "<li>membership in the community, which you give in Buzz.</li></ul></div></div>"
-    )
-
-
-def continuity_note():
-    return (
-        '<div class="warn"><p><b>Changing the address later means starting over.</b> Buzz ties a community to its '
-        "address, and can't move it to a new one yet "
-        '(<a href="' + ISSUE + '" target="_blank" rel="noopener">block/buzz#4952</a>). A new address starts an '
-        "empty community, without the messages, files and members. Switching back to the old address brings the "
-        "old community back.</p></div>"
     )
 
 
@@ -1192,10 +1178,10 @@ def setup_page(error="", values=None):
         '<div class="step on"><span class="num">2</span><div class="step-body"><h2>How members reach it</h2>'
         "<p class=\"muted\">This sets your community's address and who can reach it. In every option, only "
         "members can read or post.</p>" + address_fields(values, None) + "</div></div>"
-        '<div class="step on"><span class="num">3</span><div class="step-body"><h2>Before you create it</h2>'
-        + continuity_note() +
-        '<label class="check"><input type="checkbox" name="ack" value="yes"' + (" checked" if values.get("ack") == "yes" else "") + ">"
-        "<span>I understand that changing the address later starts a new, empty community.</span></label>"
+        '<div class="step on"><span class="num">3</span><div class="step-body"><h2>Create it</h2>'
+        '<label class="confirm-box"><input type="checkbox" name="ack" value="yes"' + (" checked" if values.get("ack") == "yes" else "") + ">"
+        "<span><b>I understand that changing the address later starts a new, empty community.</b> Buzz can't move "
+        "a community to a new address yet. Switching back to an old address brings its community back.</span></label>"
         '<button class="btn" type="submit">Create the community</button></div></div></form>'
     )
     return layout(body)

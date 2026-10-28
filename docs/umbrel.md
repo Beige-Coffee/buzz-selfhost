@@ -249,6 +249,13 @@ survives an owner change, and that turning them on offers them again. No phone w
 - Moved to relay `sha-a38fedb`, the launch version the readiness review picked: `check.py` 48 of 48
   ([log](../tests/runs/2026-10-28-1610-umbrel-a38fedb-local.log)), and an update on umbrelOS kept the private
   community, its members and notifications (Block's push service accepted a mention's wake-up).
+- Intel, unattended with `droplet-run.sh`: umbrelOS 2.0.0 in Docker on a DigitalOcean droplet
+  (x86_64), relay `sha-a38fedb` and the other images on their Intel builds. Installed through Umbrel;
+  `e2e.sh` 36 of 36 (setup through the page and its sign-in, members, a stranger refused, files,
+  invites, Buzz 1.0's New chat with an agent, and a restart through Umbrel); the app's Cloudflare
+  tunnel and both Tailscale options up to their sign-in links, 6 of 6
+  ([log](../tests/runs/2026-10-28-1656-umbrel-intel-droplet.log)). A run before it failed in Umbrel's own
+  app environment step, on the first install; the script now saves Umbrel's log and retries once.
 
 ## Not yet tested
 
@@ -274,6 +281,10 @@ BUZZ_CLI=path/to/buzz OWNER_HEX=<the owner's hex key> bash tests/umbrel/e2e.sh
 BUZZ_CLI=path/to/buzz MEMBER_KEYS=<a member's key file> bash tests/umbrel/update.sh <tag> <digest>
 python3 tests/umbrel/server.py down     # deletes the droplet and its firewall
 ```
+
+Or all of it, unattended, deleting the droplet at the end: `BUZZ_CLI=path/to/buzz bash
+tests/umbrel/droplet-run.sh`. The droplet gets the test SSH key at first boot when the key isn't on
+the DigitalOcean account.
 
 `UMBREL_LOCAL=1` runs the same scripts on this machine's Docker instead of the droplet, which is how
 the ARM test ran on an Apple Silicon Mac. Umbrel then opens at http://localhost:8080 and its apps on

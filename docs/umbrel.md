@@ -244,14 +244,12 @@ survives an owner change, and that turning them on offers them again. No phone w
   `tailscale serve status` showed `(tailnet only)` live for the first time. Through Tailscale's
   public entry point the name is refused. The owner joined from Buzz Desktop on the tailnet and
   paired an iPhone with Tailscale on; with the phone locked, a direct message and a mention each
-  showed up as a notification, the message fetched over Tailscale.
+  showed up as a notification, the message fetched over Tailscale. With Tailscale off, the phone
+  couldn't connect.
 
 ## Not yet tested
 
 - An update from the previous package on umbrelOS: the setup should carry over, with one sign-in.
-- On the private option, a phone with Tailscale off failing to connect. On a Mac that's on the
-  tailnet, umbrelOS in Docker Desktop reaches tailnet names through the Mac, so it can't stand in
-  for a device off it.
 - A real Raspberry Pi: ARM itself passed on a Mac, but not the Pi's slower processor and storage.
   Umbrel asks for the chip type to be tested, not a particular device.
 
@@ -311,6 +309,8 @@ The local run's password is `local-test-only`. `check.py` expects a fresh run: `
   server's network card and the server drops off the network. `install.sh` uses Docker's bridge
   network and masks NetworkManager.
 - `docker cp` can't see `/home/umbrel` inside the umbrelOS container; tar through `docker exec` can.
+- On a Mac that's on the tailnet, umbrelOS in Docker Desktop reaches tailnet names through the Mac,
+  so it can't stand in for a device off the tailnet. A phone with Tailscale off can.
 - With a new domain, the page's own checks, made before the name existed, left this Umbrel's
   resolver holding "no such name" for up to half an hour after Cloudflare published it. The checks
   now look names up through Cloudflare's public DNS, and reach the address it gives.

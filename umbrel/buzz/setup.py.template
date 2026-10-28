@@ -621,7 +621,7 @@ details.how > summary:hover { color: var(--ink); }
 .mb-pmenu .tb-i {font-size: 14px; color: #404040; }
 .mb-pm-more {display: flex; margin-left: auto; }
 .mb-pmenu hr {margin: 6px 4px; border: 0; border-top: 1px solid #ececec; }
-.mb-cursor {position: absolute; left: 300px; top: 206px; z-index: 3; width: 14px; height: 18px; fill: #0f0f0f; stroke: #fff; stroke-width: 1.2; }
+.mb-pmenu p.on {border-radius: 999px; background: var(--b1-citrus); }
 .mb-shade {position: absolute; inset: 0; background: rgb(15 15 15 / 28%); }
 .mb-modal {position: absolute; inset: 14px 16px; display: flex; flex-direction: column; overflow: hidden; border-radius: 18px; background: #fff; box-shadow: 0 16px 48px rgb(0 0 0 / 22%); }
 .mb-modal-h {display: flex; align-items: center; justify-content: space-between; padding: 9px 12px 9px 16px; border-bottom: 1px solid #ececec; font-size: 13px; }
@@ -642,7 +642,6 @@ details.how > summary:hover { color: var(--ink); }
 .id-comms {display: inline-flex; align-items: center; gap: 3px; padding: 4px 9px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 1px #e3e3e5; font-size: 10.5px; font-weight: 500; }
 .mb .id-me {display: grid; place-items: center; border-radius: 50%; background: #f0f0f1; color: #5f5f5f; }
 .mb .id-me .tb-i {font-size: 13px; }
-.mb-pmenu .id-pm-note {display: block; padding: 0 8px 6px; font-size: 10.5px; color: #8b8b8b; }
 .mb .id-empty {display: grid; place-content: center; justify-items: center; text-align: center; }
 .mb .id-empty p {margin: 0 0 12px; font-size: 14px; }
 .mb .id-empty span {width: 220px; }
@@ -852,8 +851,8 @@ def continuity_note():
     )
 
 
-# Where the owner finds their public ID: Buzz's own screens, drawn as on the guide site
-# (site/src/scenes/identity.ts, checked against block/buzz-app). Tabler's outline icons (MIT) are the set
+# Where the owner finds their public ID: Buzz's own screens, adapted from the guide site's drawings
+# (site/src/scenes/identity.ts) to Buzz with a community joined. Tabler's outline icons (MIT) are the set
 # Buzz draws its interface with.
 TABLER = {
     'messages': '<path d="M21 14l-3 -3h-7a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1h9a1 1 0 0 1 1 1v10"/><path d="M14 15v2a1 1 0 0 1 -1 1h-7l-3 3v-10a1 1 0 0 1 1 -1h2"/>',
@@ -881,13 +880,11 @@ def ti(name):
     return '<svg class="tb-i" viewBox="0 0 24 24" aria-hidden="true">' + TABLER[name] + "</svg>"
 
 
-CURSOR = ('<svg class="mb-cursor" viewBox="0 0 16 20" aria-hidden="true">'
-          '<path d="M1 1v15l4.2-3.9 2.7 6.2 2.6-1.1-2.7-6.1H14z"/></svg>')
 SAMPLE_NPUB = "npub1qm\u20268k3a"
 
 
 def drawn_profile_menu():
-    """Buzz with no community yet, the profile menu open, the pointer on Settings."""
+    """Buzz with the profile menu open, Settings highlighted."""
     return (
         '<div class="mb-app"><div class="mb-top"><span class="mb-track">' + ti("messages") + "Messages<span>"
         + ti("robot") + "Agents</span><span>" + ti("bolt") + 'Workflows</span></span><span class="id-comms">Communities'
@@ -895,18 +892,17 @@ def drawn_profile_menu():
         '<div class="mb-app-body"><div class="mb-app-main id-empty"><p>Your channels, one conversation.</p><span></span>'
         '<span class="short"></span></div></div>'
         '<div class="mb-pmenu"><div class="mb-pm-head"><span class="mb-pm-av id-me">' + ti("user")
-        + "</span><span><b>Your profile</b></span></div>"
-        '<p class="id-pm-note">Status updates are unavailable in this community.</p><hr>'
+        + "</span><span><b>Your profile</b></span></div><hr>"
         "<p>" + ti("device-desktop") + 'Appearance<span class="mb-pm-more">' + ti("chevron-right") + "</span></p>"
         "<p>" + ti("layout-grid") + "Plugins</p>"
-        '<p class="mb-pm-set">' + ti("settings") + "Settings</p><hr>"
-        "<p>" + ti("message-circle") + "Send feedback</p></div>" + CURSOR + "</div>"
+        '<p class="mb-pm-set on">' + ti("settings") + "Settings</p><hr>"
+        "<p>" + ti("message-circle") + "Send feedback</p></div></div>"
     )
 
 
 def drawn_identity_settings():
     """Settings, Identity, just after copying the Nostr address."""
-    groups = [("Personal space", [("user", "Profile"), ("device-mobile", "Pair mobile")]),
+    groups = [("Community", [("user", "Profile"), ("device-mobile", "Pair mobile")]),
               ("Buzz", [("shield", "Identity"), ("palette", "Appearance"), ("bell", "Notifications"),
                         ("keyboard", "Shortcuts"), ("robot", "Agent setup")]),
               ("Plugins", [("layout-grid", "Manage plugins")])]

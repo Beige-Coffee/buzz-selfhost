@@ -517,14 +517,15 @@ input[type=text]:focus, input[type=password]:focus { border-color: var(--ink); b
 .choice-head input { position: absolute; opacity: 0; pointer-events: none; }
 .choice:has(input:checked) { border-color: #bdbd1f; box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-1); }
 .choice:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 3px; }
-.choice .kicker { display: flex; justify-content: space-between; gap: 10px; font: 500 10.5px var(--mono); letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--ink-3); }
+.choice .kicker { display: flex; justify-content: space-between; align-items: center; gap: 10px; font: 600 13px var(--sans);
+  color: var(--ink); }
+.choice .kicker .badge { margin-left: 8px; padding: 2px 9px; border-radius: 999px; background: var(--accent); font-size: 11.5px; }
 .choice .pick { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--line-2); flex: none; }
 .choice:has(input:checked) .pick { border: 5px solid var(--ink); }
 .choice h3 { margin-top: 6px; font-size: 19px; }
 .choice p { margin-top: 4px; font-size: 14.5px; color: var(--ink-2); }
 .choice .needs { margin-top: 10px; font-size: 13px; color: var(--ink-2); }
-.choice .needs b { font: 500 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); margin-right: 6px; }
+.choice .needs b { font: 600 13px var(--sans); color: var(--ink); margin-right: 6px; }
 .panel { margin-top: 14px; padding: 16px 18px; background: var(--soft); border: 1px solid var(--line); border-radius: 14px; font-size: 14.5px; }
 .panel p:first-child { margin-top: 0; }
 .panel ul { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); }
@@ -856,9 +857,9 @@ def choice(mode, kicker, badge, title, text, needs, checked, warning="", more=""
     return (
         '<div class="choice"><label class="choice-head"><input type="radio" name="mode" value="' + mode + '"'
         + (" checked" if checked else "") + ">"
-        '<span class="kicker"><span>' + kicker + (" &middot; " + badge if badge else "") + '</span><span class="pick"></span></span>'
+        '<span class="kicker"><span>' + kicker + ('<span class="badge">' + badge + "</span>" if badge else "") + '</span><span class="pick"></span></span>'
         "<h3>" + title + "</h3><p>" + text + "</p>" + ('<p class="heads-up">' + warning + "</p>" if warning else "")
-        + '<p class="needs"><b>Needs</b>' + needs + "</p></label>"
+        + '<p class="needs"><b>Needs:</b>' + needs + "</p></label>"
         + ('<div class="choice-more" data-for="' + mode + '">' + more + "</div>" if more else "") + "</div>"
     )
 
@@ -868,7 +869,7 @@ def address_fields(values, setup):
     domain = values.get("domain", (setup or {}).get("domain", "") if (setup or {}).get("mode") == "domain" else "")
     return (
         '<div class="choices">'
-        + choice("domain", "For a lasting community", "recommended", "Your own domain",
+        + choice("domain", "For hosting a community", "Recommended", "Your own domain",
                  "A name you own, like <code>buzz.yourteam.com</code>. Anyone you invite can reach it from anywhere, "
                  "and the address stays yours, even on another server.",
                  "a domain (around 10 US dollars a year) on a free Cloudflare account, and Umbrel's Cloudflare "
@@ -878,7 +879,7 @@ def address_fields(values, setup):
                  'spellcheck="false" value="' + esc(domain) + '">'
                  '<p class="small">Next, this page shows how to connect it in Cloudflare and checks that it works. '
                  "Cloudflare handles HTTPS, so it can see the traffic it carries, and it caps uploads at 100 MB.</p>")
-        + choice("funnel", "For trying it out", "", "A free Tailscale address",
+        + choice("funnel", "For trying Buzz out", "", "A free Tailscale address",
                  "The quickest start. Tailscale gives this Umbrel an address like <code>buzz.tail1234.ts.net</code> "
                  "that anyone you invite can reach. It's tied to your Tailscale account, not a name you own.",
                  "a free Tailscale account for you, the owner.", mode == "funnel",
@@ -886,7 +887,7 @@ def address_fields(values, setup):
                  "new one. If you're building a community to keep, choose your own domain now.",
                  more='<p class="small">Next, you sign in to Tailscale, and it gives you the address. It stays the same '
                  "as long as you keep this Tailscale account.</p>")
-        + choice("private", "Off the internet", "", "A private Tailscale network",
+        + choice("private", "For a private group on a VPN", "", "A private Tailscale network",
                  "Nothing is reachable from the internet. Only devices you allow on your Tailscale network can "
                  "connect. Best for a small group that wants its server hidden.",
                  "Tailscale on every member's device, phones included, and access to your Tailscale network.",
@@ -1176,8 +1177,9 @@ def setup_page(error="", values=None):
         '<input type="text" id="owner" name="owner" placeholder="npub1..." autocomplete="off" spellcheck="false" '
         'value="' + esc(owner) + '">' + how_to_find_npub() + "</div></div>"
         '<div class="step on"><span class="num">2</span><div class="step-body"><h2>How members reach it</h2>'
-        "<p class=\"muted\">This sets your community's address and who can reach it. In every option, only "
-        "members can read or post.</p>" + address_fields(values, None) + "</div></div>"
+        "<p class=\"muted\">How you set this up depends on what it's for: trying Buzz out, hosting an existing "
+        "community, or a private group behind a VPN that only certain people can reach. Pick the option that fits, "
+        "and this page walks you through the rest.</p>" + address_fields(values, None) + "</div></div>"
         '<div class="step on"><span class="num">3</span><div class="step-body"><h2>Create it</h2>'
         '<label class="confirm-box"><input type="checkbox" name="ack" value="yes"' + (" checked" if values.get("ack") == "yes" else "") + ">"
         "<span><b>I understand that changing the address later starts a new, empty community.</b> Buzz can't move "
@@ -1287,9 +1289,9 @@ def address_change(setup, values, current):
     """What changing the address does, the three ways in a short list, and the address typed to confirm."""
     now = setup["mode"]
     chosen = values.get("mode", "")
-    rows = [("domain", "Your own domain", "For a lasting community"),
-            ("funnel", "A free Tailscale address", "For trying it out"),
-            ("private", "A private Tailscale network", "Off the internet")]
+    rows = [("domain", "Your own domain", "For hosting a community"),
+            ("funnel", "A free Tailscale address", "For trying Buzz out"),
+            ("private", "A private Tailscale network", "For a private group on a VPN")]
     options = "".join(
         '<label class="opt"><input type="radio" name="mode" value="' + mode + '"' + (" checked" if mode == chosen else "")
         # the same Tailscale option again changes nothing; another domain is a change

@@ -88,6 +88,9 @@ BUZZ_CLI=path/to/buzz OWNER_HEX=<hex> bash tests/umbrel/e2e.sh
 python3 tests/umbrel/server.py down
 ```
 
+`umbrel/local/` runs the package's containers on this machine's Docker, without umbrelOS, to test
+the setup page at no cost; the commands are in [`../docs/umbrel.md`](../docs/umbrel.md#testing-again).
+
 ## Logs
 
 Each script saves what it prints to `runs/<date>-<time>-<setup>-<version>.log`, after `lib/redact.py`
@@ -107,6 +110,21 @@ python3 tests/lib/export-runs.py ~/.claude/projects/<project>/<session-id>
 No script here yet. The steps and operations were run against projects made with
 `railway deploy -t buzz-relay-block`, by hand on 2026-09-30 and by script on 2026-10-01. The
 deploy, the image update and the checks ran again on 2026-10-23.
+
+## Results, 2026-10-26: Umbrel, phone notifications on
+
+The Umbrel package now turns phone notifications on, with a setting on its page to turn them off.
+On Docker Desktop without umbrelOS: 45 of 45 real checks, 243 page states rendered with mocks
+([log](runs/2026-10-26-1355-umbrel-push-local.log)). No phone was involved.
+
+## Results, 2026-10-25: Umbrel's rebuilt setup page
+
+On a Mac with Docker Desktop, without umbrelOS: the package's containers passed 39 of 39 real
+checks of the rebuilt setup page (its sign-in, a request from another container refused, setup,
+restarts, owner and address changes, both Tailscale options up to the sign-in), and `e2e.sh`'s
+updated setup section passed 6 of 6. A browser walkthrough caught a bug that refused every sign-in,
+fixed. 123 page states rendered with mocks ([log](runs/2026-10-25-1332-umbrel-setup-page-local.log)).
+Not yet run on umbrelOS.
 
 ## Results, 2026-10-23: Umbrel, for Buzz 1.0
 

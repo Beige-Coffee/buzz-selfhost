@@ -1,0 +1,72 @@
+# The Umbrel package with phone notifications on by default, tested on a Mac without umbrelOS (no cost)
+# 2026-10-26. Relay sha-9e8c9fc. Docker Desktop on an Apple Silicon Mac, from tests/umbrel/local/.
+# Real: the package's own containers (not umbrelOS). No phone was involved: the checks see the relay
+# offer notifications (buzz-push-v1 in NIP-11), not a phone receiving one.
+
+== Mocked: python3 tests/umbrel/local/render.py (every state, with notifications on and off)
+rendered 243 page states without errors
+
+== Real: python3 tests/umbrel/local/check.py, on a fresh run
+== Sign-in
+PASS  the page sends a visitor without a session to sign in
+PASS  status.json refuses a visitor without a session (HTTP 401)
+== Another app on the same Docker network, going around Umbrel's proxy
+PASS  a direct request from another container can't save settings or read status (HTTP 401 401)
+PASS  nothing was saved by that request
+PASS  a wrong password is refused
+PASS  the app password signs in and sets a session cookie
+PASS  the session cookie is HttpOnly
+PASS  a form posted from another app's page on the same Umbrel is refused (HTTP 403)
+PASS  the page's own forms pass whatever Host the proxy forwards (reached validation)
+== Setup
+PASS  signed in, the page shows the setup steps
+PASS  creating without the acknowledgement is refused
+PASS  a bad public ID is refused
+PASS  a home-network-only name is refused
+PASS  the owner and the domain are saved (HTTP 303)
+PASS  the relay starts with the saved address (NIP-11 answers for buzz-one.local-test.invalid)
+PASS  the relay's owner is the page's owner
+PASS  phone notifications are on by default (NIP-11 offers buzz-push-v1)
+PASS  the page shows the Cloudflare steps, and that the name doesn't resolve
+PASS  the page gives the tunnel's service URL
+== Persistence across a restart of every container
+PASS  the relay comes back with the same identity
+PASS  the owner survives the restart
+PASS  the session survives the restart and the page remembers the setup
+== Phone notifications
+PASS  turning phone notifications off is saved
+PASS  the relay restarts without them
+PASS  the page shows them off
+== Changing the owner
+PASS  the new owner is saved
+PASS  the relay's owner is the new one
+PASS  the previous owner is now an admin
+PASS  phone notifications stay off through the owner change
+PASS  turning them back on offers them again
+== Changing the address, guarded
+PASS  a change without typing the current address is refused
+PASS  a change without the acknowledgement is refused
+PASS  with both, the address changes
+PASS  the new address is a separate community: the owner, and none of the old members
+PASS  switching back to the first address brings its community back, admin included
+== The Tailscale modes, up to the sign-in
+PASS  choosing the free Tailscale address starts Tailscale in Funnel mode
+PASS  Tailscale is waiting for a sign-in, with a link
+PASS  the page shows that sign-in link
+PASS  the relay waits: no address until Tailscale names the machine
+PASS  with no address yet, switching to the private network needs only the acknowledgement
+PASS  going back to the domain turns Tailscale off
+PASS  and the first address's community is back
+PASS  Tailscale stopped and cleared its state for the page
+PASS  switching to Tailscale again starts it again, with a sign-in link (private network)
+PASS  the page shows the private network's sign-in step
+
+passed: 45  failed: 0
+
+== Umbrel's linter: npm run lint:apps -- buzz --check-images
+ERROR manifest.submission buzz/umbrel-app.yml:51
+  `submission` must not be empty.
+ERROR manifest.submission buzz/umbrel-app.yml:51
+  `submission` must be a valid pull request URL.
+2 error(s), 0 warning(s).
+(Expected: the PR link exists only at submission.)

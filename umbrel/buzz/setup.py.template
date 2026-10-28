@@ -525,8 +525,6 @@ input[type=text]:focus, input[type=password]:focus { border-color: var(--ink); b
 .panel li { margin: 4px 0; }
 .warn { margin-top: 18px; padding: 2px 0 2px 16px; border-left: 3px solid var(--accent); font-size: 15px; }
 .warn p:first-child { margin-top: 0; }
-.now { margin: 4px 0 0; font-size: 14.5px; color: var(--ink-2); }
-.now code { color: var(--ink); }
 .opts { margin-top: 14px; border: 1px solid var(--line-2); border-radius: 12px; overflow: hidden; background: #fff; }
 .opt { display: flex; align-items: center; gap: 12px; padding: 11px 14px; cursor: pointer; }
 .opt + .opt { border-top: 1px solid var(--line); }
@@ -595,8 +593,22 @@ dl.values dd { margin: 0; display: flex; align-items: center; gap: 8px; flex-wra
 
 HOW_STYLE = """
 details.how { margin-top: 12px; }
-details.how > summary { font-size: 14px; color: var(--ink-2); }
-details.how > summary:hover { color: var(--ink); }
+details.how > summary { padding: 6px 13px 6px 11px; border: 1px solid var(--line-2); border-radius: 999px; background: #fff; font-size: 13.5px; color: var(--ink); }
+details.how > summary:hover { border-color: var(--ink); }
+details.how[open] > summary { background: var(--chip); }
+.next .step { margin-top: 26px; }
+.next .eyebrow + .step { margin-top: 14px; }
+.note { margin-top: 12px; font-size: 14px; color: var(--ink-2); }
+.set-card { margin-top: 14px; border: 1px solid var(--line-2); border-radius: 14px; background: #fff; overflow: hidden; }
+.set-card details { margin: 0; }
+.set-card details + details { border-top: 1px solid var(--line); }
+.set-card details > summary { display: flex; box-sizing: border-box; width: 100%; gap: 12px; padding: 14px 16px; }
+.set-card details > summary::before { display: none; }
+.set-card details > summary::after { content: ""; flex: none; width: 6px; height: 6px; margin: 0 2px 0 4px; border-right: 1.5px solid var(--ink-3); border-bottom: 1.5px solid var(--ink-3); transform: rotate(-45deg); }
+.set-card details[open] > summary::after { transform: rotate(45deg); }
+.set-card summary .val { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 13px var(--mono); color: var(--ink-2); }
+.set-card summary .val.word { font: 400 14px var(--sans); }
+.set-card .inner { margin: 0; padding: 0 16px 18px; }
 .how-b { margin-top: 12px; }
 .how-b > p { margin: 0; font-size: 14px; color: var(--ink-2); }
 .how-tabs { display: none; flex-wrap: wrap; gap: 6px; margin: 14px 0 10px; }
@@ -1281,17 +1293,12 @@ def private_members_note():
 
 def notifications_note(setup):
     if not push_on(setup):
-        return ('<p class="muted small">Phone notifications are off, so phones show new messages only while Buzz is '
-                "open. You can turn them on in Settings, below.</p>")
-    return ('<p class="muted small">Phone notifications are on, for direct messages and mentions on iPhone. To wake a phone, '
-            "this Umbrel sends a signal through Block's push service and Apple. The signal never includes a "
-            "message: the phone then gets the message from here"
-            + (", over Tailscale" if setup["mode"] == "private" else "") +
-            ". Android doesn't get notifications yet. You can turn them off in Settings, below.</p>")
+        return '<p class="note">Phone notifications are off. You can turn them on in Settings.</p>'
+    return '<p class="note">Phone notifications are on for iPhone. Android doesn\'t get them yet.</p>'
 
 
 def address_change(setup, values, current):
-    """The address now, what changing it does, the three ways in a short list, and the address typed to confirm."""
+    """What changing the address does, the three ways in a short list, and the address typed to confirm."""
     now = setup["mode"]
     chosen = values.get("mode", "")
     rows = [("domain", "Your own domain", "For a lasting community"),
@@ -1315,8 +1322,7 @@ def address_change(setup, values, current):
         "community.</span></label>")
     return (
         '<form method="post" action="address" data-guided><input type="hidden" name="owner" value="' + esc(setup["owner"]) + '">'
-        '<p class="now">Current address: ' + ("<code>" + esc(current) + "</code>" if current else "none yet") + " &middot; "
-        + MODE_NAMES[now] + '</p><p class="heads-up">' + note + '</p><div class="opts">' + options + "</div>"
+        '<p class="heads-up">' + note + '</p><div class="opts">' + options + "</div>"
         '<div data-for="domain"><label class="field" for="domain">New domain</label>'
         '<input type="text" id="domain" name="domain" placeholder="buzz.yourteam.com" autocomplete="off" spellcheck="false" '
         'value="' + esc(values.get("domain", "")) + '"></div>' + confirm
@@ -1327,17 +1333,18 @@ def address_change(setup, values, current):
 def settings_part(setup, error, values):
     current = relay_domain() or setup.get("domain") or ""
     owner = values.get("owner", "") if values.get("form") == "owner" else ""
+    owner_now = setup["owner"]
     address_values = values if values.get("form") == "address" else {}
     return (
-        '<section class="part"><h2>Settings</h2>'
-        "<details" + (" open" if values.get("form") == "owner" else "") + "><summary>Change the owner</summary><div class=\"inner\">"
+        '<section class="part"><h2>Settings</h2><div class="set-card">'
+        "<details" + (" open" if values.get("form") == "owner" else "") + "><summary>Owner<span class=\"val\">" + esc(owner_now[:10] + "\u2026" + owner_now[-4:]) + "</span></summary><div class=\"inner\">"
         '<form method="post" action="owner"><p class="muted small">The current owner becomes an admin, and you can '
         "change that in Buzz. The community and its address stay the same.</p>"
         '<label class="field" for="new-owner">New owner\'s public ID (npub)</label>'
         '<input type="text" id="new-owner" name="owner" autocomplete="off" spellcheck="false" placeholder="npub1..." value="' + esc(owner) + '">'
         '<button class="btn small ghost" type="submit">Change the owner</button></form>'
         + (error_box(error) if values.get("form") == "owner" else "") + "</div></details>"
-        "<details><summary>Phone notifications: " + ("on" if push_on(setup) else "off") + "</summary><div class=\"inner\">"
+        "<details><summary>Phone notifications<span class=\"val word\">" + ("On" if push_on(setup) else "Off") + "</span></summary><div class=\"inner\">"
         '<form method="post" action="notifications"><p class="muted small">When they\'re on, this Umbrel wakes '
         "members' iPhones for direct messages and mentions, through Block's push service. Block and Apple only "
         "get a wake-up signal, never a message. Block's service also sees when a phone is woken, and this "
@@ -1345,9 +1352,9 @@ def settings_part(setup, error, values):
         '<label class="check"><input type="checkbox" name="push" value="on"' + (" checked" if push_on(setup) else "")
         + "><span>Send phone notifications</span></label>"
         '<button class="btn small ghost" type="submit">Save</button></form></div></details>'
-        "<details" + (" open" if values.get("form") == "address" else "") + "><summary>Change the address</summary><div class=\"inner\">"
+        "<details" + (" open" if values.get("form") == "address" else "") + "><summary>Address<span class=\"val\">" + esc(current or "none yet") + "</span></summary><div class=\"inner\">"
         + address_change(setup, address_values, current)
-        + (error_box(error) if values.get("form") == "address" else "") + "</div></details></section>"
+        + (error_box(error) if values.get("form") == "address" else "") + "</div></details></div></section>"
     )
 
 
@@ -1378,14 +1385,18 @@ def main_page(setup, error="", values=None):
         '<div class="address"><code><span>https://' + esc(domain) + "</span></code>"
         '<button class="btn" type="button" onclick="copyText(this, \'https://' + esc(domain) + '\')">Copy</button></div>'
         + status +
-        '<section class="part"><h2>Join it</h2>'
-        "<p>Join from Buzz with the same identity you entered as the owner.</p>" + how_to("Show me how", join_steps(domain))
-        + "</section>"
-        '<section class="part"><h2>Add members</h2><p>Add people by their public ID, or send them an invite link.</p>'
-        + how_to("Show me how", member_steps(domain)) + (private_members_note() if mode == "private" else "") + "</section>"
-        '<section class="part"><h2>Phones</h2><p>Pair the Buzz app on a phone from Buzz on your computer'
-        + (", with Tailscale on the phone" if mode == "private" else "") + ".</p>" + how_to("Show me how", phone_steps(domain))
-        + notifications_note(setup) + "</section>"
+        '<section class="part next"><p class="eyebrow">Next steps</p>'
+        '<div class="step on"><span class="num">1</span><div class="step-body"><h2>Join your community</h2>'
+        "<p class=\"muted\">Join from Buzz with the same identity you entered as the owner.</p>"
+        + how_to("Show me how", join_steps(domain)) + "</div></div>"
+        '<div class="step on"><span class="num">2</span><div class="step-body"><h2>Add members</h2>'
+        '<p class="muted">Add people by their public ID, or send them an invite link.</p>'
+        + how_to("Show me how", member_steps(domain)) + (private_members_note() if mode == "private" else "")
+        + "</div></div>"
+        '<div class="step on"><span class="num">3</span><div class="step-body"><h2>Pair your phone</h2>'
+        '<p class="muted">Pair the Buzz app on a phone from Buzz on your computer'
+        + (", with Tailscale on the phone" if mode == "private" else "") + ".</p>"
+        + how_to("Show me how", phone_steps(domain)) + notifications_note(setup) + "</div></div></section>"
     )
     return layout(body + settings_part(setup, error, values))
 

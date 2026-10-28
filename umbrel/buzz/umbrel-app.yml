@@ -8,8 +8,8 @@ version: "9e8c9fc"
 tagline: Host your team's Buzz community on your Umbrel
 description: >-
   Buzz is a team chat where your community lives on a relay you run. This app runs the relay on
-  your Umbrel: messages, files and the member list stay on it. Members use the Buzz desktop app
-  (Buzz 1.0, or Buzz 0.X) and the Buzz mobile app.
+  your Umbrel: messages, files and the member list stay on it. Members use the Buzz app on their
+  computers and phones.
 
 
   After install, open the app and sign in with the password Umbrel shows for it. The setup page

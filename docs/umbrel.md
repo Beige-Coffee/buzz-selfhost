@@ -29,8 +29,8 @@ Credit #5928 when we submit.
   version to run on Umbrel: the relay's own web pages are invite pages and a code browser.
 - **For Buzz 1.0 only.** The package ships once Buzz 1.0 is out, so the page names its menus and
   no others. Under the owner's field, a dropdown shows where to find the public ID in Buzz's own
-  screens, drawn as on the guide site (`site/src/scenes/identity.ts`); redraw both when Buzz's
-  Settings change.
+  screens, adapted from the guide site's drawings (`site/src/scenes/identity.ts`); redraw them when
+  Buzz's Settings change.
 - **Reaching the community is separate from joining it.** Every option keeps the community
   members-only: the relay requires membership, so only people the owner adds can read or post. The
   options differ in how members' apps reach the Umbrel.

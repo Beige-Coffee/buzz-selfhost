@@ -4,7 +4,7 @@ storage:
   dataRoot: data
 category: social
 name: Buzz Relay
-version: "9e8c9fc"
+version: "a38fedb"
 tagline: Host your team's Buzz community on your Umbrel
 description: >-
   Buzz is a team chat where your community lives on a relay you run. This app runs the relay on
@@ -34,8 +34,9 @@ description: >-
 
 
   Phones pair through the Buzz app on a computer. iPhones get notifications for direct messages
-  and mentions through Block's push service, which passes Apple a wake-up signal, never a message.
-  A setting on the app's page turns them off. Android doesn't get notifications yet.
+  and mentions through Block's push service. No message text, sender or channel leaves your
+  Umbrel, but Block sees its address and which phones it wakes and when, and Apple sees when a
+  phone is woken. A setting on the app's page turns them off. Android doesn't get notifications yet.
 releaseNotes: ""
 developer: Block
 website: https://buzz.xyz

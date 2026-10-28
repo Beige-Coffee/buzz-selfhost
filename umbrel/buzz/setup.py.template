@@ -1,17 +1,23 @@
 """Buzz on Umbrel: the setup and status page.
 
-Takes the owner's public ID and the community's address, writes the relay's settings, and checks
-that the relay runs here and answers at its public address. The address is either the owner's own
-domain, routed here by Cloudflare Tunnel, or a free Tailscale address from this app's own Tailscale
-machine. Umbrel renders this file from a template, so it must not contain a dollar sign.
+A guided setup: the owner's public ID, how members' apps reach this Umbrel, and the community's
+address. Then it connects that address, checks it, and shows how to join, invite and pair phones.
+
+It has its own sign-in, with the password Umbrel shows for this app. Umbrel's login guards
+browsers, but every app on an Umbrel shares one Docker network, so other apps could reach this
+page directly; the password keeps them out. Umbrel renders this file from a template, so it must
+not contain a dollar sign.
 """
 import concurrent.futures
+import hashlib
+import hmac
 import html
 import http.client
 import http.server
 import json
 import os
 import re
+import socket
 import ssl
 import threading
 import time
@@ -22,10 +28,27 @@ RELAY_ENV = os.path.join(SETTINGS_DIR, "relay.env")
 SETUP_JSON = os.path.join(SETTINGS_DIR, "setup.json")
 TAILSCALE_ON = os.path.join(SETTINGS_DIR, "tailscale-enabled")
 TAILSCALE_STATUS = os.path.join(SETTINGS_DIR, "tailscale-status.json")
+TAILSCALE_SERVE = os.path.join(SETTINGS_DIR, "tailscale-serve.txt")
+TAILSCALE_LOGS = ("tailscale-publish.log", "tailscale-funnel.log")
 GATEWAY_URL = "buzz-gateway:80"
+RELAY_HOST = "buzz_relay_1"
 ISSUE = "https://github.com/block/buzz/issues/4952"
+TUNNEL_GUIDE = "https://github.com/Radiokot/umbrel-cloudflared/wiki/How-to-set-up-Cloudflare-Tunnel-on-your-Umbrel"
+TAILSCALE_ADMIN = "https://login.tailscale.com/admin/machines"
+TAILSCALE_ACCESS = "https://login.tailscale.com/admin/acls"
+
+PASSWORD = os.environ.get("APP_PASSWORD", "")
+SECRET = (os.environ.get("SETUP_SESSION_SECRET") or hashlib.sha256(("buzz-setup|" + PASSWORD).encode()).hexdigest()).encode()
+COOKIE = "buzz_setup"
+SESSION_SECONDS = 30 * 24 * 3600
+
+MODES = ("domain", "funnel", "private")
+MODE_NAMES = {"domain": "Your own domain", "funnel": "A free Tailscale address", "private": "Private network"}
 
 BECH32 = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+
+
+# ---------------------------------------------------------------- what the owner types
 
 
 def bech32_polymod(values):
@@ -75,12 +98,20 @@ def owner_hex(text):
 def clean_domain(text):
     domain = re.sub(r"^[a-z]+://", "", text.strip().lower()).split("/")[0].rstrip(".")
     label = r"[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
+    if not domain:
+        raise ValueError("Enter the domain members will use, like buzz.example.com.")
     if len(domain) > 253 or not re.fullmatch(r"(" + label + r"\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]", domain):
-        raise ValueError("Enter a domain name, like buzz.example.com.")
-    if domain.endswith((".local", ".localhost", ".internal", ".lan", ".home.arpa", ".ts.net")):
-        raise ValueError("Use a public domain you control, routed here by Cloudflare Tunnel. "
-                         "For a Tailscale address, choose the free Tailscale address instead.")
+        raise ValueError("Enter a domain name, like buzz.example.com, with no port or path.")
+    if domain.endswith((".local", ".localhost", ".internal", ".lan", ".home.arpa")):
+        raise ValueError("That name only works on your home network. Buzz needs a public name with HTTPS, "
+                         "or choose a Tailscale address.")
+    if domain.endswith(".ts.net"):
+        raise ValueError("For a Tailscale address, choose one of the Tailscale options instead: this app "
+                         "sets that name up itself.")
     return domain
+
+
+# ---------------------------------------------------------------- settings on disk
 
 
 def read_json(path):
@@ -91,6 +122,14 @@ def read_json(path):
         return None
 
 
+def read_text(path):
+    try:
+        with open(path) as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
 def write_atomic(path, text):
     temporary = path + ".tmp"
     with open(temporary, "w") as f:
@@ -98,19 +137,33 @@ def write_atomic(path, text):
     os.replace(temporary, path)
 
 
+def norm_mode(mode):
+    # The first package called the public Tailscale address "tailscale".
+    return "funnel" if mode == "tailscale" else (mode if mode in MODES else "domain")
+
+
+def load_setup():
+    setup = read_json(SETUP_JSON)
+    if not isinstance(setup, dict) or not setup.get("owner_hex"):
+        return None
+    setup["mode"] = norm_mode(setup.get("mode"))
+    return setup
+
+
 def relay_domain():
     """The address the relay runs at, once its settings are written."""
-    try:
-        with open(RELAY_ENV) as f:
-            for line in f:
-                if line.startswith("BUZZ_DOMAIN="):
-                    return line.strip().split("=", 1)[1]
-    except OSError:
-        pass
-    return None
+    for line in read_text(RELAY_ENV).splitlines():
+        if line.startswith("BUZZ_DOMAIN="):
+            return line.split("=", 1)[1].strip()
+    return ""
 
 
-def write_relay_env(key, domain):
+def push_on(setup):
+    """Phone notifications: on unless the owner turned them off."""
+    return (setup or {}).get("push") is not False
+
+
+def write_relay_env(key, domain, push):
     # The relay watches this file and restarts when it changes.
     write_atomic(RELAY_ENV, "\n".join([
         "RELAY_OWNER_PUBKEY=" + key,
@@ -120,49 +173,85 @@ def write_relay_env(key, domain):
         "BUZZ_MEDIA_SERVER_DOMAIN=" + domain,
         "BUZZ_CORS_ORIGINS=https://" + domain + ",tauri://localhost,http://tauri.localhost",
         "BUZZ_PAIRING_RELAY_URL=wss://" + domain + "/pair",
+        "BUZZ_PUSH_ENABLED=" + ("true" if push else "false"),
     ]) + "\n")
 
 
-def save(owner_text, key, mode, domain):
-    write_atomic(SETUP_JSON, json.dumps({"owner": owner_text, "owner_hex": key, "mode": mode, "domain": domain}))
-    if mode == "tailscale":
-        # This app's Tailscale machine starts; the watcher writes the relay's settings once the
-        # machine has its address.
-        write_atomic(TAILSCALE_ON, "on\n")
-        if domain:
-            write_relay_env(key, domain)
-        elif os.path.exists(RELAY_ENV):
-            os.remove(RELAY_ENV)
-    else:
+def save(owner_text, key, mode, domain, push=None):
+    if push is None:
+        push = push_on(load_setup())
+    write_atomic(SETUP_JSON, json.dumps({"owner": owner_text, "owner_hex": key, "mode": mode, "domain": domain,
+                                         "push": push}))
+    if mode == "domain":
         if os.path.exists(TAILSCALE_ON):
             os.remove(TAILSCALE_ON)
-        write_relay_env(key, domain)
+        write_relay_env(key, domain, push)
+        return
+    # The Tailscale machine starts (or switches between Funnel and tailnet only); the watcher
+    # writes the relay's settings once the machine has its name.
+    write_atomic(TAILSCALE_ON, mode + "\n")
+    if domain:
+        write_relay_env(key, domain, push)
+    elif os.path.exists(RELAY_ENV):
+        os.remove(RELAY_ENV)
+
+
+def migrate():
+    """Settings from earlier versions of this package: "tailscale" is now "funnel"."""
+    setup = read_json(SETUP_JSON)
+    if isinstance(setup, dict) and setup.get("mode") == "tailscale":
+        setup["mode"] = "funnel"
+        write_atomic(SETUP_JSON, json.dumps(setup))
+    if read_text(TAILSCALE_ON).strip() == "on":
+        write_atomic(TAILSCALE_ON, "funnel\n")
+
+
+# ---------------------------------------------------------------- Tailscale
 
 
 def tailscale_state():
-    """(backend state, machine address, login link, machine ID) from this app's Tailscale machine."""
     status = read_json(TAILSCALE_STATUS) or {}
     me = status.get("Self") or {}
-    return (status.get("BackendState") or "", (me.get("DNSName") or "").rstrip("."),
-            status.get("AuthURL") or "", me.get("ID") or "")
+    return {"backend": status.get("BackendState") or "", "name": (me.get("DNSName") or "").rstrip("."),
+            "auth_url": status.get("AuthURL") or "", "node": me.get("ID") or ""}
+
+
+def published():
+    """How the Tailscale machine publishes Buzz now: "funnel", "private" or ""."""
+    text = read_text(TAILSCALE_SERVE)
+    if "Funnel on" in text:
+        return "funnel"
+    return "private" if "tailnet only" in text else ""
+
+
+def consent_link():
+    """Tailscale's one-click link to turn on Funnel or HTTPS for this machine, if it printed one."""
+    for name in TAILSCALE_LOGS:
+        found = re.search(r"https://login\.tailscale\.com/f/\S+", read_text(os.path.join(SETTINGS_DIR, name)))
+        if found:
+            return found.group(0)
+    return ""
 
 
 def tailscale_watcher():
-    """Once the Tailscale machine is signed in, its address becomes the community's. Only once:
-    a later change of the machine's name would start a new community, so it never moves on its own."""
+    """Once the Tailscale machine is signed in, its name becomes the community's address. Only once:
+    a later rename of the machine would start a new community, so the address never moves by itself."""
     while True:
         try:
-            setup = read_json(SETUP_JSON)
-            if setup and setup.get("mode") == "tailscale" and not setup.get("domain"):
-                state, name, _, _ = tailscale_state()
-                if state == "Running" and name.endswith(".ts.net"):
-                    save(setup["owner"], setup["owner_hex"], "tailscale", name)
+            setup = load_setup()
+            if setup and setup["mode"] in ("funnel", "private") and not setup.get("domain"):
+                state = tailscale_state()
+                if state["backend"] == "Running" and state["name"].endswith(".ts.net"):
+                    save(setup["owner"], setup["owner_hex"], setup["mode"], state["name"])
         except (OSError, KeyError, ValueError):
             pass
         time.sleep(3)
 
 
-def request(host, port, path, tls=False, headers=None, timeout=5):
+# ---------------------------------------------------------------- checks
+
+
+def request(host, port, path, tls=False, headers=None, timeout=6):
     """(status, body) or (None, reason). A WebSocket upgrade comes back 101 with no body."""
     try:
         if tls:
@@ -171,291 +260,817 @@ def request(host, port, path, tls=False, headers=None, timeout=5):
             conn = http.client.HTTPConnection(host, port, timeout=timeout)
         conn.request("GET", path, headers=headers or {})
         response = conn.getresponse()
-        body = b"" if response.status == 101 else response.read(4096)
+        body = b"" if response.status == 101 else response.read(65536)
         conn.close()
         return response.status, body
+    except ssl.SSLError as error:
+        return None, ("tls " + str(error)).encode()
     except (OSError, http.client.HTTPException) as error:
         return None, str(error).encode()
 
 
 UPGRADE = {"Connection": "Upgrade", "Upgrade": "websocket", "Sec-WebSocket-Version": "13",
            "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ=="}
+NIP11 = {"Accept": "application/nostr+json"}
 
 
-def checks(domain):
-    jobs = {
-        "relay": lambda: request("buzz_relay_1", 8080, "/_readiness"),
-        "public": lambda: request(domain, 443, "/_liveness", tls=True),
-        "pair": lambda: request(domain, 443, "/pair", tls=True, headers=UPGRADE),
-    }
+def relay_self(status, body):
+    if status != 200:
+        return ""
+    try:
+        return json.loads(body.decode()).get("self") or ""
+    except (ValueError, UnicodeDecodeError, AttributeError):
+        return ""
+
+
+def resolves(name):
+    try:
+        return sorted({info[4][0] for info in socket.getaddrinfo(name, 443)})
+    except OSError:
+        return []
+
+
+def item(key, state, text, hint=""):
+    return {"key": key, "state": state, "text": text, "hint": hint}
+
+
+def check(setup):
+    """The checks for the saved address, as (live, items). States: ok, wait, bad."""
+    mode = setup["mode"]
+    domain = relay_domain() or setup.get("domain") or ""
+    # The relay's main port, not its health port: the health and metrics ports listen on every
+    # address with no setting to change it yet (block/buzz#8004), and once they can be bound to the
+    # relay's own container, this page still works.
+    jobs = {"relay": lambda: request(RELAY_HOST, 3000, "/_readiness", headers={"Host": domain} if domain else None)}
+    if domain:
+        jobs["local_info"] = lambda: request(RELAY_HOST, 3000, "/", headers=dict(NIP11, Host=domain))
+    if domain and mode != "private":
+        jobs["dns"] = lambda: resolves(domain)
+        jobs["live"] = lambda: request(domain, 443, "/_liveness", tls=True)
+        jobs["info"] = lambda: request(domain, 443, "/", tls=True, headers=NIP11)
+        jobs["pair"] = lambda: request(domain, 443, "/pair", tls=True, headers=UPGRADE)
     with concurrent.futures.ThreadPoolExecutor(len(jobs)) as pool:
         futures = {name: pool.submit(job) for name, job in jobs.items()}
-        results = {name: future.result() for name, future in futures.items()}
-    return {
-        "relay": results["relay"][0] == 200,
-        "public": results["public"][0] == 200 and results["public"][1].strip() == b"ok",
-        "public_status": results["public"][0],
-        "pair": results["pair"][0] == 101,
-    }
+        got = {name: future.result() for name, future in futures.items()}
+    items = []
+    # Ready, and serving this address: right after an address change, the relay still running the
+    # old one answers readiness but knows no community at the new address until it restarts.
+    local_self = relay_self(*got["local_info"]) if domain else ""
+    relay_ok = got["relay"][0] == 200 and (bool(local_self) or not domain)
+    items.append(item("relay", "ok" if relay_ok else "wait",
+                      "Buzz is running on this Umbrel" if relay_ok else
+                      "Starting Buzz. The first start takes about a minute." if domain else
+                      "Buzz starts once the address is ready"))
+    if mode in ("funnel", "private"):
+        ts = tailscale_state()
+        signed_in = ts["backend"] == "Running"
+        items.append(item("tailscale", "ok" if signed_in else "wait",
+                          "Signed in to Tailscale as " + html.escape(ts["name"] or "buzz") if signed_in else
+                          "Waiting for you to sign in to Tailscale"))
+        on = published()
+        if mode == "funnel":
+            items.append(item("publish", "ok" if on == "funnel" else "wait",
+                              "Tailscale Funnel is on: the address is reachable from the internet" if on == "funnel" else
+                              "Waiting for Tailscale Funnel to be on",
+                              "" if on == "funnel" or not signed_in else
+                              "Tailscale asks you once to allow Funnel, and HTTPS certificates, for this machine. "
+                              "Use the button below."))
+        else:
+            items.append(item("publish", "ok" if on == "private" else "wait",
+                              "Shared on your tailnet only, with a trusted HTTPS certificate" if on == "private" else
+                              "Waiting for the tailnet address and its HTTPS certificate",
+                              "" if on == "private" or not signed_in else
+                              "Tailscale may ask you once to allow HTTPS certificates for your tailnet. "
+                              "Use the button below."))
+    if not domain:
+        return False, items
+    if mode == "private":
+        live = relay_ok and tailscale_state()["backend"] == "Running" and published() == "private"
+        items.append(item("device", "wait", "Checking from this device...", ""))
+        return live, items
+    addresses = got["dns"]
+    if not addresses:
+        items.append(item("dns", "bad" if mode == "domain" else "wait",
+                          "The name <code>" + html.escape(domain) + "</code> isn't published yet",
+                          "Add the public hostname in Cloudflare (step 3 below), then give it a minute." if mode == "domain" else
+                          "Tailscale publishes the name once Funnel is on."))
+    status, body = got["live"]
+    reach_ok = status == 200 and body.strip() == b"ok"
+    public_self = relay_self(*got["info"])
+    if reach_ok and local_self and public_self and local_self != public_self:
+        items.append(item("reach", "bad", "<code>" + html.escape(domain) + "</code> reaches a different Buzz relay",
+                          "The name points somewhere else, not this Umbrel. Check which tunnel or server it routes to."))
+        reach_ok = False
+    elif reach_ok:
+        items.append(item("reach", "ok", "This Umbrel's Buzz answers at <code>https://" + html.escape(domain) + "</code>"))
+    elif addresses:
+        items.append(item("reach", "bad" if status else "wait",
+                          "Not reachable at <code>https://" + html.escape(domain) + "</code> yet",
+                          reach_hint(mode, status, body)))
+    pair_ok = got["pair"][0] == 101
+    items.append(item("pair", "ok" if pair_ok else "wait",
+                      "Phones can pair" if pair_ok else "Phone pairing isn't reachable yet"))
+    return relay_ok and reach_ok and pair_ok, items
 
+
+def reach_hint(mode, status, body):
+    text = body.decode(errors="replace").lower()
+    if mode == "funnel":
+        return "Tailscale is still turning Funnel on. This can take a minute after you allow it."
+    if status in (530, 1033) or "1033" in text:
+        return ("Cloudflare has no connected tunnel for this name. Is the Cloudflare Tunnel app running, "
+                "with its token pasted in?")
+    if status in (502, 503, 504):
+        return ("The tunnel runs but can't reach Buzz. In Cloudflare, set the hostname's service to HTTP and "
+                "the URL to " + GATEWAY_URL + ".")
+    if status == 404 and "no community" in text:
+        return ("The name reaches Buzz, but not with the address saved here. Check the hostname in Cloudflare "
+                "matches it exactly.")
+    if status:
+        return "It answered HTTP " + str(status) + ". Check the hostname and service in Cloudflare."
+    if text.startswith("tls"):
+        return "The name answers without a valid HTTPS certificate yet. In Cloudflare, the name must be proxied."
+    return "Nothing answers yet. Finish the Cloudflare steps below; the name can take a few minutes to work."
+
+
+CACHE = {"at": 0.0, "key": None, "value": None}
+CACHE_LOCK = threading.Lock()
+
+
+def cached_check(setup):
+    key = json.dumps(setup, sort_keys=True) + relay_domain() + read_text(TAILSCALE_SERVE)
+    with CACHE_LOCK:
+        if CACHE["key"] == key and time.time() - CACHE["at"] < 3:
+            return CACHE["value"]
+    value = check(setup)
+    with CACHE_LOCK:
+        CACHE.update(at=time.time(), key=key, value=value)
+    return value
+
+
+# ---------------------------------------------------------------- sign-in
+
+
+def sign(value):
+    return hmac.new(SECRET, value.encode(), hashlib.sha256).hexdigest()
+
+
+def new_session():
+    expires = str(int(time.time()) + SESSION_SECONDS)
+    return expires + "." + sign("session|" + expires)
+
+
+def session_ok(token):
+    try:
+        expires, signature = token.split(".", 1)
+        return int(expires) > time.time() and hmac.compare_digest(signature, sign("session|" + expires))
+    except (ValueError, AttributeError):
+        return False
+
+
+FAILURES = {}
+FAILURE_LOCK = threading.Lock()
+
+
+def too_many_failures(ip):
+    with FAILURE_LOCK:
+        recent = [t for t in FAILURES.get(ip, []) if time.time() - t < 600]
+        FAILURES[ip] = recent
+        return len(recent) >= 10
+
+
+def note_failure(ip):
+    with FAILURE_LOCK:
+        FAILURES.setdefault(ip, []).append(time.time())
+
+
+# ---------------------------------------------------------------- the page
+
+BEE = (
+    '<svg class="bee" viewBox="0 0 466 309" aria-hidden="true"><defs>'
+    '<mask id="bee-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="466" height="309">'
+    '<circle cx="91.7" cy="154.5" r="91.7" fill="white"/><circle cx="374.3" cy="154.5" r="91.7" fill="white"/>'
+    '<rect x="128" y="0" width="210" height="309" rx="34" fill="white"/>'
+    '<circle cx="193.3" cy="84.4" r="27" fill="black"/><circle cx="276" cy="84.4" r="27" fill="black"/>'
+    '<rect x="166.3" y="157.2" width="136.9" height="38.3" rx="5" fill="black"/>'
+    '<rect x="166.9" y="235.1" width="136.2" height="37.6" rx="5" fill="black"/></mask></defs>'
+    '<rect width="466" height="309" mask="url(#bee-mask)" fill="currentColor"/></svg>'
+)
 
 STYLE = """
-:root { color-scheme: light dark; --fg: #1b1b1b; --muted: #5f5f5f; --line: #e3e3e3; --bg: #fff;
-  --card: #f7f7f5; --accent: #1b1b1b; --accent-fg: #fff; --ok: #1a7f37; --warn: #9a6700; --bad: #b42318; }
-@media (prefers-color-scheme: dark) { :root { --fg: #ececec; --muted: #a3a3a3; --line: #333; --bg: #141414;
-  --card: #1d1d1d; --accent: #ececec; --accent-fg: #141414; --ok: #4ac26b; --warn: #d4a72c; --bad: #f47067; } }
+:root { --ink: #231e1e; --ink-2: rgb(35 30 30 / 66%); --ink-3: rgb(35 30 30 / 46%); --line: rgb(35 30 30 / 8%);
+  --line-2: rgb(35 30 30 / 14%); --accent: #d7d72e; --accent-soft: rgb(215 215 46 / 28%); --chip: #f2f2ee;
+  --soft: #f7f7f4; --code: #171513; --bad: #b4233a; --olive: #55550a;
+  --sans: "Inter Variable", Inter, "Avenir Next", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --shadow-1: 0 1px 2px rgb(24 20 14 / 4%), 0 6px 22px rgb(24 20 14 / 5%); --ease: cubic-bezier(0.22, 1, 0.36, 1); }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, sans-serif; }
-main { max-width: 640px; margin: 0 auto; padding: 40px 16px 64px; }
-h1 { font-size: 28px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 32px 0 8px; }
-p { margin: 8px 0; } .muted { color: var(--muted); } .small { font-size: 14px; }
-a { color: inherit; }
-label { display: block; font-weight: 600; margin-top: 20px; }
-input[type=text] { width: 100%; font: inherit; padding: 10px 12px; margin-top: 6px; border: 1px solid var(--line);
-  border-radius: 8px; background: var(--bg); color: var(--fg); }
-button, .button { display: inline-block; font: inherit; font-weight: 600; padding: 10px 18px; border: 0; border-radius: 8px;
-  background: var(--accent); color: var(--accent-fg); cursor: pointer; margin-top: 20px; text-decoration: none; }
-button:disabled { opacity: 0.4; cursor: not-allowed; }
-fieldset { border: 0; padding: 0; margin: 24px 0 0; } legend { font-weight: 600; padding: 0; }
-.choice { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-top: 12px; }
-.choice > label:first-child { margin-top: 0; }
-.choice input[type=radio], .check input { margin-right: 8px; }
-.check { font-weight: 400; margin-top: 12px; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px 20px 16px; margin-top: 24px; }
-.error { border-color: var(--bad); color: var(--bad); padding: 12px 20px; }
-ol, ul { padding-left: 22px; } li { margin: 6px 0; }
-code { font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--card); padding: 1px 5px; border-radius: 4px; }
-.status { list-style: none; padding: 0; } .status li { display: flex; gap: 10px; align-items: baseline; }
-.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; transform: translateY(1px); }
-.ok .dot { background: var(--ok); } .wait .dot { background: var(--warn); } .bad .dot { background: var(--bad); }
-.copy { display: flex; gap: 8px; } .copy input { margin-top: 0; } .copy button { margin-top: 0; white-space: nowrap; }
-details { margin-top: 32px; } summary { cursor: pointer; font-weight: 600; }
+body { margin: 0; background: #fff; color: var(--ink); font: 400 16px/1.6 var(--sans); letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink); }
+code { font: 0.86em var(--mono); letter-spacing: 0; background: var(--chip); border-radius: 6px; padding: 0.12em 0.38em; overflow-wrap: anywhere; }
+b { font-weight: 600; }
+[hidden] { display: none !important; }
+:is(a, button, input, summary):focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 8px; }
+.hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px clamp(16px, 4vw, 32px);
+  border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; letter-spacing: -0.02em; }
+.bee { width: 26px; color: var(--ink); }
+.hd form { margin: 0; }
+.link { background: none; border: 0; padding: 0; color: var(--ink-2); font: 500 13.5px var(--sans); cursor: pointer;
+  text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
+.link:hover { color: var(--ink); text-decoration-color: var(--ink); }
+main { max-width: 700px; margin: 0 auto; padding: 48px clamp(16px, 4vw, 32px) 96px; }
+.eyebrow { font: 500 11px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+h1 { margin: 10px 0 0; font-weight: 400; font-size: clamp(34px, 6vw, 52px); line-height: 1.02; letter-spacing: -0.05em; }
+h1 mark, .hl { background: none; color: inherit; background-image: linear-gradient(var(--accent), var(--accent));
+  background-repeat: no-repeat; background-size: 100% 0.32em; background-position: 0 88%; }
+h2 { margin: 0; font-weight: 500; font-size: 21px; letter-spacing: -0.025em; }
+h3 { margin: 0; font-weight: 500; font-size: 17px; letter-spacing: -0.02em; }
+.lede { margin: 18px 0 0; font-size: 18.5px; line-height: 1.5; color: var(--ink-2); max-width: 34em; }
+p { margin: 10px 0 0; }
+.muted { color: var(--ink-2); }
+.small { font-size: 14px; }
+.step { position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 0 16px; margin-top: 44px; }
+.num { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 500 13px var(--mono);
+  border: 1px solid var(--line-2); color: var(--ink-2); background: #fff; }
+.step.on .num { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+.step-body > p:first-of-type { margin-top: 6px; }
+label.field { display: block; margin-top: 16px; font-size: 14px; font-weight: 500; }
+.tag { font: 500 10.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-left: 6px; }
+input[type=text], input[type=password] { width: 100%; margin-top: 7px; padding: 12px 14px; font: 15px var(--mono);
+  letter-spacing: 0; color: var(--ink); background: #fff; border: 1px solid var(--line-2); border-radius: 12px; outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s; }
+input[type=text]:focus, input[type=password]:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgb(215 215 46 / 45%); }
+.choices { display: grid; gap: 12px; margin-top: 16px; }
+.choice { position: relative; display: block; padding: 18px 20px; background: #fff; border: 1px solid var(--line-2);
+  border-radius: 18px; box-shadow: var(--shadow-1); cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s, transform 0.3s var(--ease); }
+.choice:hover { transform: translateY(-1px); border-color: rgb(35 30 30 / 28%); }
+.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice:has(input:checked) { border-color: #bdbd1f; box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-1); }
+.choice:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 3px; }
+.choice .kicker { display: flex; justify-content: space-between; gap: 10px; font: 500 10.5px var(--mono); letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-3); }
+.choice .pick { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--line-2); flex: none; }
+.choice:has(input:checked) .pick { border: 5px solid var(--ink); }
+.choice h3 { margin-top: 6px; font-size: 19px; }
+.choice p { margin-top: 4px; font-size: 14.5px; color: var(--ink-2); }
+.choice .needs { margin-top: 10px; font-size: 13px; color: var(--ink-2); }
+.choice .needs b { font: 500 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); margin-right: 6px; }
+.panel { margin-top: 14px; padding: 16px 18px; background: var(--soft); border: 1px solid var(--line); border-radius: 14px; font-size: 14.5px; }
+.panel p:first-child { margin-top: 0; }
+.panel ul { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); }
+.panel li { margin: 4px 0; }
+.warn { margin-top: 18px; padding: 2px 0 2px 16px; border-left: 3px solid var(--accent); font-size: 15px; }
+.warn p:first-child { margin-top: 0; }
+.check { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-size: 15px; cursor: pointer; }
+.check input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--ink); flex: none; }
+.btn { display: inline-flex; align-items: center; gap: 9px; margin-top: 22px; padding: 12px 22px; border-radius: 999px;
+  border: 1px solid var(--ink); background: var(--ink); color: #fff; font: 500 15px var(--sans); letter-spacing: -0.01em;
+  text-decoration: none; cursor: pointer; transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease); }
+.btn:hover { transform: translateY(-1px); box-shadow: 0 0 0 4px var(--accent-soft); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn.ghost { background: #fff; color: var(--ink); border-color: var(--line-2); }
+.btn.small { margin-top: 12px; padding: 8px 16px; font-size: 14px; }
+.error { margin-top: 18px; padding: 12px 16px; border: 1px solid rgb(180 35 58 / 30%); background: rgb(180 35 58 / 5%);
+  border-radius: 12px; color: var(--bad); font-size: 15px; }
+.status { list-style: none; margin: 18px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.status li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.status .icon { width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; }
+.status .ok .icon { background: var(--accent); }
+.status .ok .icon::after { content: ""; width: 8px; height: 4px; border-left: 1.8px solid var(--ink); border-bottom: 1.8px solid var(--ink);
+  transform: translateY(-1px) rotate(-45deg); }
+.status .wait .icon { border: 2px solid var(--line-2); border-top-color: var(--ink-2); animation: spin 1s linear infinite; }
+.status .bad .icon { background: rgb(180 35 58 / 12%); }
+.status .bad .icon::after { content: "!"; font: 700 12px var(--sans); color: var(--bad); }
+.status .hint { grid-column: 2; font-size: 14px; color: var(--ink-2); }
+.status .bad .hint { color: var(--ink); }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .status .wait .icon { animation: none; } * { transition: none !important; } }
+.address { display: flex; gap: 8px; align-items: center; margin-top: 16px; padding: 8px 8px 8px 16px; border: 1px solid var(--line-2);
+  border-radius: 14px; background: #fff; box-shadow: var(--shadow-1); }
+.address code { flex: 1; min-width: 0; padding: 0; background: none; font-size: 15px; }
+.address code span { background: rgb(215 215 46 / 45%); border-radius: 3px; padding: 0 2px; }
+.address .btn { margin: 0; padding: 8px 16px; font-size: 14px; }
+ol.do { margin: 12px 0 0; padding: 0; list-style: none; counter-reset: do; }
+ol.do > li { position: relative; padding: 0 0 0 34px; margin-top: 14px; counter-increment: do; }
+ol.do > li::before { content: counter(do); position: absolute; left: 0; top: 1px; width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--chip); font: 500 11.5px var(--mono); color: var(--ink-2); }
+section.part { margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--line); }
+details { margin-top: 14px; }
+details > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg); transition: transform 0.2s var(--ease); }
+details[open] > summary::before { transform: rotate(45deg); }
+details .inner { margin-top: 8px; padding-left: 14px; }
+.cards { display: grid; gap: 12px; margin-top: 16px; }
+.card { padding: 18px 20px; border: 1px solid var(--line-2); border-radius: 18px; background: #fff; }
+.card p { font-size: 14.5px; color: var(--ink-2); }
+.foot { margin-top: 56px; font-size: 13px; color: var(--ink-3); }
+dl.values { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; align-items: center; margin: 10px 0 0;
+  padding: 12px 14px; background: var(--soft); border: 1px solid var(--line); border-radius: 12px; font-size: 14px; }
+dl.values dt { font: 500 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+dl.values dd { margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.copy-mini { padding: 3px 9px; border: 1px solid var(--line-2); border-radius: 999px; background: #fff; cursor: pointer;
+  font: 500 11px var(--mono); color: var(--ink-2); }
+.copy-mini:hover { border-color: var(--ink); color: var(--ink); }
 """
 
 SCRIPT = """
-function copyAddress(button) {
-  var field = document.getElementById("address");
-  field.select();
+function copyText(button, text) {
   var done = function () { button.textContent = "Copied"; setTimeout(function () { button.textContent = "Copy"; }, 1500); };
-  if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(field.value).then(done); }
-  else { document.execCommand("copy"); done(); }
+  if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(done); return; }
+  var area = document.createElement("textarea");
+  area.value = text; document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove(); done();
 }
-function updateSave() {
-  var tailscale = document.getElementById("mode-tailscale");
-  var ack = document.getElementById("ack");
-  var save = document.getElementById("save");
-  if (tailscale && ack && save) { save.disabled = tailscale.checked && !ack.checked; }
+function updateForm(form) {
+  var mode = form.querySelector("input[name=mode]:checked");
+  var chosen = mode ? mode.value : "";
+  form.querySelectorAll("[data-for]").forEach(function (el) {
+    el.hidden = el.getAttribute("data-for").split(" ").indexOf(chosen) < 0;
+  });
+  var save = form.querySelector("button[type=submit]");
+  var ack = form.querySelector("input[name=ack]");
+  var confirm = form.querySelector("input[name=confirm]");
+  var ready = Boolean(chosen) && (!ack || ack.checked);
+  if (confirm) { ready = ready && confirm.value.trim().toLowerCase() === confirm.getAttribute("data-expect"); }
+  if (save) { save.disabled = !ready; }
 }
-document.addEventListener("change", updateSave);
-document.addEventListener("DOMContentLoaded", updateSave);
+function reachFromHere(item) {
+  var host = item.getAttribute("data-host");
+  var text = item.querySelector(".text"), hint = item.querySelector(".hint");
+  var controller = new AbortController();
+  var timer = setTimeout(function () { controller.abort(); }, 6000);
+  fetch("https://" + host + "/_liveness", { mode: "no-cors", cache: "no-store", signal: controller.signal })
+    .then(function () {
+      item.className = "ok"; text.textContent = "This device reaches Buzz over your tailnet"; hint.textContent = "";
+    })
+    .catch(function () {
+      item.className = "bad"; text.textContent = "This device can't reach Buzz";
+      hint.textContent = "Is Tailscale on here, signed in to the same tailnet, and allowed to reach the buzz machine? Devices outside your tailnet can't connect, which is the point of this option.";
+    })
+    .finally(function () { clearTimeout(timer); });
+}
+function poll() {
+  var list = document.querySelector("[data-poll]");
+  if (!list) { return; }
+  var phase = list.getAttribute("data-phase");
+  fetch("status.json", { cache: "no-store", credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (data) {
+    if (data.phase !== phase) { location.reload(); return; }
+    list.innerHTML = data.html;
+    list.querySelectorAll("[data-host]").forEach(reachFromHere);
+  }).catch(function () {}).finally(function () { setTimeout(poll, 5000); });
+}
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll("form[data-guided]").forEach(function (form) {
+    form.addEventListener("input", function () { updateForm(form); });
+    form.addEventListener("change", function () { updateForm(form); });
+    updateForm(form);
+  });
+  document.querySelectorAll("[data-host]").forEach(reachFromHere);
+  setTimeout(poll, 5000);
+});
 """
 
 
-def tunnel_steps(domain):
-    return (
-        "<ol>"
-        "<li>Install <b>Cloudflare Tunnel</b> from the Umbrel App Store and connect it to your Cloudflare "
-        "account. Its page explains how.</li>"
-        "<li>In Cloudflare's dashboard, open the tunnel and add a public hostname: <code>" + html.escape(domain) +
-        "</code>, with the service type <b>HTTP</b> and the URL <code>" + GATEWAY_URL + "</code>.</li>"
-        "<li>Come back here. This page checks the address every few seconds.</li>"
-        "</ol>"
-    )
+def esc(text):
+    return html.escape(str(text), quote=True)
 
 
-def form(setup, error, values):
-    setup = setup or {}
-    owner = values.get("owner", setup.get("owner", ""))
-    mode = values.get("mode", setup.get("mode", "domain"))
-    domain = values.get("domain", setup.get("domain", "") if setup.get("mode") == "domain" else "")
-    checked = ' checked' if values.get("ack") == "yes" or (not values and setup.get("mode") == "tailscale") else ""
-    return (
-        '<form method="post" action="save">'
-        '<label for="owner">Your public ID</label>'
-        '<p class="muted small">In Buzz, open Settings, Identity, and copy the Nostr address (npub). In Buzz '
-        "0.X, it's on the Join a community screen. It makes you the community's owner.</p>"
-        '<input type="text" id="owner" name="owner" placeholder="npub1..." autocomplete="off" spellcheck="false" value="' +
-        html.escape(owner, quote=True) + '">'
-        "<fieldset><legend>Address</legend>"
-        '<p class="muted small">Members connect to this address. It is the community\'s permanent identity: '
-        "Buzz can't change a community's address yet (<a href=\"" + ISSUE + '" target="_blank" rel="noopener">'
-        "block/buzz#4952</a>).</p>"
-        '<div class="choice"><label><input type="radio" name="mode" value="domain" id="mode-domain"' +
-        (" checked" if mode != "tailscale" else "") + "> Your own domain (recommended)</label>"
-        '<p class="muted small">Yours for good: you can move the community to another server later and keep '
-        "it. Routed here by Cloudflare Tunnel.</p>"
-        '<input type="text" id="domain" name="domain" placeholder="buzz.example.com" autocomplete="off" '
-        'spellcheck="false" value="' + html.escape(domain, quote=True) + '"></div>'
-        '<div class="choice"><label><input type="radio" name="mode" value="tailscale" id="mode-tailscale"' +
-        (" checked" if mode == "tailscale" else "") + "> Free Tailscale address (to try it out)</label>"
-        '<p class="muted small">A public address like <code>buzz.tail1234.ts.net</code>, from a free Tailscale '
-        "account you sign in to next. Members don't need Tailscale. The address belongs to that Tailscale "
-        "account.</p>"
-        '<label class="check"><input type="checkbox" name="ack" value="yes" id="ack"' + checked + ">"
-        "I understand that moving to my own domain later starts a new, empty community. Messages and files "
-        "won't come with it.</label></div></fieldset>"
-        '<button id="save">Save</button></form>'
-        + ('<div class="card error">' + html.escape(error) + "</div>" if error else "")
-    )
-
-
-def item(state, text):
-    return '<li class="' + state + '"><span class="dot"></span><span>' + text + "</span></li>"
-
-
-def tailscale_steps():
-    """The Tailscale sign-in and Funnel steps, or None once the machine has its address."""
-    state, name, auth_url, node = tailscale_state()
-    if state == "NeedsLogin" and auth_url:
-        return ("<h2>Sign in to Tailscale</h2><p>Sign in, or make a free account, to give this Umbrel its "
-                'Buzz address.</p><a class="button" href="' + html.escape(auth_url, quote=True) +
-                '" target="_blank" rel="noopener">Sign in to Tailscale</a>')
-    if state == "NeedsMachineAuth":
-        return ('<h2>Approve this machine</h2><p>Your Tailscale network requires approving new machines. Approve '
-                '<b>buzz</b> in <a href="https://login.tailscale.com/admin/machines" target="_blank" '
-                'rel="noopener">Tailscale\'s admin console</a>.</p>')
-    if state != "Running" or not name:
-        return "<h2>Starting Tailscale</h2><p>This takes a few seconds.</p>"
-    return None
-
-
-def funnel_steps(node):
-    # Tailscale's own link from the Funnel command, if it printed one, else the same consent page
-    # built from the machine's ID.
-    link = ""
-    try:
-        with open(os.path.join(SETTINGS_DIR, "tailscale-funnel.log")) as f:
-            found = re.search(r"https://login\.tailscale\.com/\S+", f.read())
-            link = found.group(0) if found else ""
-    except OSError:
-        pass
-    if not link:
-        link = "https://login.tailscale.com/f/funnel?node=" + urllib.parse.quote(node) if node else \
-            "https://login.tailscale.com/admin/machines"
-    return ("<h2>Turn on public access</h2><p>Tailscale Funnel makes the address reachable for members "
-            "without Tailscale. Turn it on for this machine, and if Tailscale asks, turn on HTTPS "
-            'certificates too.</p><a class="button" href="' + html.escape(link, quote=True) +
-            '" target="_blank" rel="noopener">Turn on Funnel</a>'
-            '<p class="muted small">This page checks the address every few seconds.</p>')
-
-
-def page(error=None, values=None):
-    values = values or {}
-    setup = read_json(SETUP_JSON)
-    refresh = ""
-    if not setup:
-        return wrap("<p>Run your Buzz community on this Umbrel. Choose its address and its owner to start "
-                    "the relay.</p>" + form(None, error, values), refresh)
-    mode = setup.get("mode", "domain")
-    if mode == "tailscale":
-        steps = tailscale_steps()
-        if not steps and not relay_domain():
-            steps = "<h2>Getting the address</h2><p>This takes a few seconds.</p>"
-        if steps:
-            body = steps + "<details><summary>Change settings</summary>" + form(setup, error, values) + "</details>"
-            return wrap(body, '<meta http-equiv="refresh" content="5">')
-    domain = relay_domain() or setup.get("domain") or ""
-    state = checks(domain)
-    address = "https://" + domain
-    if not (state["relay"] and state["public"]):
-        refresh = '<meta http-equiv="refresh" content="8">'
-    status = '<ul class="status">'
-    status += item("ok" if state["relay"] else "wait",
-                   "Relay running on this Umbrel" if state["relay"] else "Starting the relay. This takes about a minute the first time.")
-    if state["public"]:
-        status += item("ok", "Reachable at <code>https://" + html.escape(domain) + "</code>")
-    else:
-        reason = " (HTTP " + str(state["public_status"]) + ")" if state["public_status"] else ""
-        status += item("wait", "Not reachable at <code>https://" + html.escape(domain) + "</code> yet" + reason)
-    status += item("ok" if state["pair"] else "wait", "Phones can pair" if state["pair"] else "Phone pairing not reachable yet")
-    status += "</ul>"
-    body = '<div class="card">' + status + "</div>"
-    if not state["public"]:
-        if mode == "tailscale":
-            body += funnel_steps(tailscale_state()[3])
-        else:
-            body += "<h2>Route your domain here with Cloudflare Tunnel</h2>" + tunnel_steps(domain)
-    if mode == "tailscale":
-        body += ('<p class="muted small">A free Tailscale address. Moving to your own domain later starts a new, '
-                 "empty community; Buzz can't change a community's address yet (<a href=\"" + ISSUE +
-                 '" target="_blank" rel="noopener">block/buzz#4952</a>). In <a href="https://login.tailscale.com/'
-                 'admin/machines" target="_blank" rel="noopener">Tailscale\'s admin console</a>, turn off key '
-                 "expiry for this machine, or the address goes offline after 180 days.</p>")
-    body += (
-        "<h2>Join</h2><p>In Buzz, choose Join a community and paste this address, with the identity whose "
-        "public ID you entered. Buzz 0.X takes it as <code>wss://" + html.escape(domain) + "</code>.</p>"
-        '<div class="copy"><input type="text" id="address" readonly value="' + html.escape(address, quote=True) +
-        '"><button type="button" onclick="copyAddress(this)">Copy</button></div>'
-        "<h2>Members</h2><p>In Buzz, open Settings, Community admin, Membership, Invite members: send a link, "
-        "or add someone directly by their public ID. In Buzz 0.X, it's Settings, Invites.</p>"
-        "<h2>Phones</h2><p>In Buzz, open Settings, Pair mobile, and scan the code with the Buzz app on the "
-        "phone (Buzz 0.X: Settings, Mobile). Push notifications aren't available for self-hosted "
-        "communities yet.</p>"
-        "<details" + (" open" if error else "") + "><summary>Change settings</summary>"
-        '<p class="muted small">A different address starts a new, empty community at that address.</p>'
-        + form(setup, error, values) + "</details>"
-    )
-    return wrap(body, refresh)
-
-
-def wrap(body, refresh):
+def layout(body, signed_in=True, title="Buzz on Umbrel"):
+    logout = ('<form method="post" action="logout"><button class="link" type="submit">Sign out</button></form>'
+              if signed_in else "")
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
-        '<meta name="viewport" content="width=device-width, initial-scale=1">' + refresh +
-        "<title>Buzz</title><style>" + STYLE + "</style><script>" + SCRIPT + "</script></head>"
-        '<body><main><h1>Buzz</h1><p class="muted">Your community\'s relay, on this Umbrel.</p>' + body +
+        '<meta name="viewport" content="width=device-width, initial-scale=1"><title>' + esc(title) + "</title>"
+        "<style>" + STYLE + "</style><script>" + SCRIPT + "</script></head><body>"
+        '<header class="hd"><span class="brand">' + BEE + "<span>Buzz on Umbrel</span></span>" + logout + "</header>"
+        "<main>" + body + '<p class="foot">Buzz is open source, from Block: '
+        '<a href="https://github.com/block/buzz" target="_blank" rel="noopener">github.com/block/buzz</a>.</p>'
         "</main></body></html>"
     )
 
 
+def error_box(error):
+    return '<div class="error" role="alert">' + esc(error) + "</div>" if error else ""
+
+
+def login_page(error=""):
+    return layout(
+        '<p class="eyebrow">Sign in</p><h1>Set up your <mark>Buzz</mark> community</h1>'
+        '<p class="lede">Enter this app\'s password to continue.</p>'
+        '<form method="post" action="login"><label class="field" for="password">Password</label>'
+        '<input type="password" id="password" name="password" autocomplete="current-password" autofocus>'
+        '<button class="btn" type="submit">Sign in</button></form>' + error_box(error) +
+        '<div class="panel" style="margin-top:28px"><p><b>Where to find it.</b> Umbrel shows this app\'s password '
+        "when you open Buzz from the home screen, under Default credentials. Later, right-click Buzz on the home "
+        "screen and choose Settings, then Default credentials (on umbrelOS 1.7: right-click Buzz, then Show default "
+        "credentials).</p><p class=\"muted\">Why a second password? Umbrel's sign-in protects "
+        "this page in your browser, but every app on an Umbrel shares one network, so other apps could reach it "
+        "directly. This password keeps them out. It stays signed in on this browser for 30 days.</p></div>",
+        signed_in=False)
+
+
+def choice(mode, kicker, badge, title, text, needs, checked):
+    return (
+        '<label class="choice"><input type="radio" name="mode" value="' + mode + '"' + (" checked" if checked else "") + ">"
+        '<span class="kicker"><span>' + kicker + (" &middot; " + badge if badge else "") + '</span><span class="pick"></span></span>'
+        "<h3>" + title + "</h3><p>" + text + '</p><p class="needs"><b>Needs</b>' + needs + "</p></label>"
+    )
+
+
+def address_fields(values, setup):
+    mode = values.get("mode") or (setup or {}).get("mode") or ""
+    domain = values.get("domain", (setup or {}).get("domain", "") if (setup or {}).get("mode") == "domain" else "")
+    return (
+        '<div class="choices">'
+        + choice("domain", "Lasting", "recommended", "Your own domain",
+                 "A name you own, like <code>buzz.yourteam.com</code>. Cloudflare Tunnel connects it to this Umbrel, "
+                 "so members reach it from anywhere, with no router changes.",
+                 "a domain (around 10 US dollars a year) whose DNS is on a free Cloudflare account, and "
+                 "Umbrel's Cloudflare Tunnel app.", mode == "domain")
+        + choice("funnel", "Quickest", "", "A free Tailscale address",
+                 "Tailscale gives this Umbrel a public name like <code>buzz.tail1234.ts.net</code>. Members reach it "
+                 "from anywhere and don't need Tailscale.",
+                 "a free Tailscale account for you, the owner.", mode == "funnel")
+        + choice("private", "Private network", "", "Only devices on your Tailscale network",
+                 "Nothing is reachable from the internet. Members' devices connect through Tailscale.",
+                 "Tailscale on every member's device, and their access to your Tailscale network.", mode == "private")
+        + "</div>"
+        '<div data-for="domain"><label class="field" for="domain">The domain<span class="tag">for keeps</span></label>'
+        '<input type="text" id="domain" name="domain" placeholder="buzz.yourteam.com" autocomplete="off" '
+        'spellcheck="false" value="' + esc(domain) + '">'
+        '<div class="panel"><p>Saving the name here doesn\'t set up DNS or the tunnel. The next screen walks you '
+        "through both in Cloudflare, and checks the result.</p><ul>"
+        "<li>Cloudflare serves HTTPS for you, so it can read the traffic it carries. Uploads are limited to 100 MB.</li>"
+        "<li>A tunnel opens no router ports and hides your home address, but Buzz is still reachable from the "
+        "internet. Only members can read or post; keep Umbrel updated.</li></ul></div></div>"
+        '<div data-for="funnel"><div class="panel"><p>Tailscale names the address after you sign in, on the next '
+        "screen. It stays the same while you keep this Tailscale account and don't rename the machine.</p><ul>"
+        "<li>Traffic passes through Tailscale encrypted; HTTPS ends on this Umbrel.</li>"
+        "<li>The address belongs to your Tailscale account. If you later want your own domain, that's a new "
+        "address, so a new, empty community.</li></ul></div></div>"
+        '<div data-for="private"><div class="panel"><p>Tailscale names the address after you sign in, with a trusted '
+        "HTTPS certificate, so Buzz and phones accept it. Every member needs:</p><ul>"
+        "<li>the Tailscale app on each device they use, phones included;</li>"
+        "<li>access to your Tailscale network: invite them to it, or share the <b>buzz</b> machine with them;</li>"
+        "<li>Buzz membership, which you give in Buzz as usual.</li></ul></div></div>"
+    )
+
+
+def continuity_note():
+    return (
+        '<div class="warn"><p><b>Choose the address for keeps.</b> Buzz knows a community by its address. If you '
+        "later switch to an address this community hasn't used, Buzz starts a separate, empty community there: "
+        "messages, files and members don't come with it. The old ones stay stored, and come back if you switch "
+        'back. Buzz can\'t move a community to a new address yet (<a href="' + ISSUE + '" target="_blank" '
+        'rel="noopener">block/buzz#4952</a>).</p><p class="muted small">Moving to another server is different: with '
+        "the same address and Buzz's data restored, the community comes along intact.</p></div>"
+    )
+
+
+def setup_page(error="", values=None):
+    values = values or {}
+    owner = values.get("owner", "")
+    body = (
+        '<p class="eyebrow">Set up</p><h1>Host your <mark>Buzz</mark> community</h1>'
+        '<p class="lede">Three choices, a few minutes. Then this page connects the address and checks it.</p>'
+        + error_box(error) +
+        '<form method="post" action="save" data-guided>'
+        '<div class="step on"><span class="num">1</span><div class="step-body"><h2>Who owns it</h2>'
+        "<p class=\"muted\">The owner adds members, makes admins and runs the community.</p>"
+        '<label class="field" for="owner">Your public ID (npub)</label>'
+        '<input type="text" id="owner" name="owner" placeholder="npub1..." autocomplete="off" spellcheck="false" '
+        'value="' + esc(owner) + '"><p class="muted small">In Buzz, open Settings, Identity, and copy the Nostr '
+        "address. In Buzz 0.X, it's on the Join a community screen.</p></div></div>"
+        '<div class="step on"><span class="num">2</span><div class="step-body"><h2>How members reach it</h2>'
+        "<p class=\"muted\">Your community is private either way: only people you add can read or post. This choice "
+        "is about how members' apps find this Umbrel.</p>" + address_fields(values, None) + "</div></div>"
+        '<div class="step on"><span class="num">3</span><div class="step-body"><h2>Before you create it</h2>'
+        + continuity_note() +
+        '<label class="check"><input type="checkbox" name="ack" value="yes"' + (" checked" if values.get("ack") == "yes" else "") + ">"
+        "<span>I understand that changing the address later starts a separate, empty community.</span></label>"
+        '<button class="btn" type="submit">Create the community</button></div></div></form>'
+    )
+    return layout(body)
+
+
+def status_html(items):
+    out = []
+    for entry in items:
+        host = ""
+        if entry["key"] == "device":
+            host = ' data-host="' + esc(relay_domain()) + '"'
+        out.append('<li class="' + entry["state"] + '"' + host + '><span class="icon"></span><span class="text">'
+                   + entry["text"] + '</span><span class="hint">' + entry["hint"] + "</span></li>")
+    return "".join(out)
+
+
+def phase_of(setup, live):
+    return setup["mode"] + ":" + ("live" if live else "connecting") + ":" + (relay_domain() or "-")
+
+
+def copy_button(text):
+    return ('<button class="copy-mini" type="button" onclick="copyText(this, \'' + esc(text) + '\')">Copy</button>')
+
+
+def connect_steps(setup, domain):
+    mode = setup["mode"]
+    if mode == "domain":
+        return (
+            '<section class="part"><h2>Connect the name in Cloudflare</h2>'
+            "<p class=\"muted\">The domain is the name; the tunnel connects it to this Umbrel. Do these once:</p>"
+            '<ol class="do"><li><b>Put the domain on Cloudflare.</b> Buy one anywhere (or from Cloudflare) and add it '
+            "to a free Cloudflare account, so Cloudflare runs its DNS.</li>"
+            "<li><b>Install Cloudflare Tunnel</b> from the Umbrel App Store. Create a tunnel in Cloudflare's dashboard "
+            "and paste its token into the app. "
+            '<a href="' + TUNNEL_GUIDE + '" target="_blank" rel="noopener">The app\'s guide</a> shows each screen.</li>'
+            "<li><b>Add a public hostname</b> to the tunnel, with these values:"
+            '<dl class="values"><dt>Hostname</dt><dd><code>' + esc(domain) + "</code>" + copy_button(domain) + "</dd>"
+            "<dt>Service type</dt><dd><code>HTTP</code></dd>"
+            "<dt>URL</dt><dd><code>" + GATEWAY_URL + "</code>" + copy_button(GATEWAY_URL) + "</dd></dl>"
+            '<p class="muted small">Route only this name to Buzz. The setup page, Umbrel and your other apps stay '
+            "off the internet.</p></li></ol>"
+            '<p class="muted small">This page checks every few seconds. A new name can take a few minutes to work.</p></section>'
+        )
+    state = tailscale_state()
+    if state["backend"] in ("", "NoState", "Starting") or (state["backend"] == "NeedsLogin" and not state["auth_url"]):
+        action = "<p class=\"muted\">Starting Tailscale. This takes a few seconds.</p>"
+    elif state["backend"] == "NeedsLogin":
+        action = ("<p>Sign in, or make a free account. The link waits as long as you need.</p>"
+                  '<a class="btn" href="' + esc(state["auth_url"]) + '" target="_blank" rel="noopener">Sign in to Tailscale</a>')
+    elif state["backend"] == "NeedsMachineAuth":
+        action = ('<p>Your Tailscale network requires approving new machines. Approve <b>buzz</b> in '
+                  '<a href="' + TAILSCALE_ADMIN + '" target="_blank" rel="noopener">Tailscale\'s admin console</a>.</p>')
+    else:
+        link = consent_link()
+        wanted = published() == mode
+        action = ("" if wanted else
+                  ("<p>Tailscale asks you once to allow " + ("Funnel and " if mode == "funnel" else "") +
+                   "HTTPS certificates for this machine.</p>" +
+                   ('<a class="btn" href="' + esc(link) + '" target="_blank" rel="noopener">Allow it in Tailscale</a>' if link else
+                    '<p class="muted small">Waiting for Tailscale to ask.</p>')))
+    title = "Connect through Tailscale" if mode == "funnel" else "Connect your private network"
+    return '<section class="part"><h2>' + title + "</h2>" + action + "</section>" if action else ""
+
+
+def private_members_note():
+    return (
+        '<div class="panel"><p><b>Each member needs three things.</b></p><ul>'
+        "<li>The Tailscale app on every device, signed in.</li>"
+        "<li>Access to your Tailscale network: invite them, or share the <b>buzz</b> machine with them in "
+        '<a href="' + TAILSCALE_ADMIN + '" target="_blank" rel="noopener">the admin console</a>. If your access rules '
+        'aren\'t the default, <a href="' + TAILSCALE_ACCESS + '" target="_blank" rel="noopener">allow them</a> to reach '
+        "the buzz machine on port 443.</li>"
+        "<li>Buzz membership, from you in Buzz.</li></ul>"
+        "<p class=\"muted small\">A device without the first two can't connect at all; one without the third "
+        "connects but can't read or post.</p></div>"
+    )
+
+
+def notifications_note(setup):
+    if not push_on(setup):
+        return ('<p class="muted small">Phone notifications are off: the phone shows new messages while the Buzz app is '
+                "open. Settings, below, turns them on.</p>")
+    return ('<p class="muted small">Phone notifications are on, for direct messages and mentions, on iPhones with the '
+            "Buzz app 0.25 or later. This Umbrel wakes the phone through Block's push service, which passes Apple a "
+            'fixed "reconnect" signal, never a message; the phone then fetches the message from here'
+            + (", over Tailscale" if setup["mode"] == "private" else "") +
+            ". Android has no notifications yet. Settings, below, says what Block's service sees, and turns them "
+            "off.</p>")
+
+
+def settings_part(setup, error, values):
+    current = relay_domain() or setup.get("domain") or ""
+    owner = values.get("owner", "") if values.get("form") == "owner" else ""
+    address_values = values if values.get("form") == "address" else {}
+    return (
+        '<section class="part"><h2>Settings</h2>'
+        "<details" + (" open" if values.get("form") == "owner" else "") + "><summary>Change the owner</summary><div class=\"inner\">"
+        '<form method="post" action="owner"><p class="muted small">The current owner becomes an admin, which you can '
+        "remove in Buzz. The address and community stay the same.</p>"
+        '<label class="field" for="new-owner">New owner\'s public ID (npub)</label>'
+        '<input type="text" id="new-owner" name="owner" autocomplete="off" spellcheck="false" placeholder="npub1..." value="' + esc(owner) + '">'
+        '<button class="btn small ghost" type="submit">Change the owner</button></form>'
+        + (error_box(error) if values.get("form") == "owner" else "") + "</div></details>"
+        "<details><summary>Phone notifications</summary><div class=\"inner\">"
+        '<form method="post" action="notifications"><p class="muted small">When they\'re on, this Umbrel wakes '
+        "members' iPhones (the Buzz app 0.25 or later) for direct messages and mentions, through Block's push "
+        'service. It passes Apple a fixed "reconnect" signal, never a message, and sees when a phone is woken and '
+        "this Umbrel's internet address. Saving restarts Buzz for a few seconds.</p>"
+        '<label class="check"><input type="checkbox" name="push" value="on"' + (" checked" if push_on(setup) else "")
+        + "><span>Send phone notifications</span></label>"
+        '<button class="btn small ghost" type="submit">Save</button></form></div></details>'
+        "<details" + (" open" if values.get("form") == "address" else "") + "><summary>Change the address</summary><div class=\"inner\">"
+        + continuity_note() +
+        '<form method="post" action="address" data-guided><input type="hidden" name="owner" value="' + esc(setup["owner"]) + '">'
+        + address_fields(address_values, setup)
+        + ('<label class="field" for="confirm">To confirm, type the current address: <code>' + esc(current) + "</code></label>"
+           '<input type="text" id="confirm" name="confirm" autocomplete="off" spellcheck="false" data-expect="' + esc(current) + '">'
+           if current else '<p class="muted small">There\'s no address yet, so there\'s nothing to type to confirm.</p>') +
+        '<label class="check"><input type="checkbox" name="ack" value="yes"><span>I understand this starts a separate, '
+        "empty community unless I'm switching back to an address used before.</span></label>"
+        '<button class="btn small ghost" type="submit">Change the address</button></form>'
+        + (error_box(error) if values.get("form") == "address" else "") + "</div></details>"
+        "<details><summary>Moving to another server</summary><div class=\"inner\"><p class=\"muted\">Keep the address and "
+        "restore Buzz's data on the new server (for example from an Umbrel backup), and the community comes along "
+        "intact: members reconnect as before. A new address is a new community.</p></div></details></section>"
+    )
+
+
+def main_page(setup, error="", values=None):
+    values = values or {}
+    live, items = cached_check(setup)
+    mode = setup["mode"]
+    domain = relay_domain() or setup.get("domain") or ""
+    status = ('<ul class="status" data-poll data-phase="' + esc(phase_of(setup, live)) + '">' + status_html(items) + "</ul>")
+    if not live:
+        head = ('<p class="eyebrow">Connecting &middot; ' + MODE_NAMES[mode] + "</p><h1>Connect "
+                + ('<mark>' + esc(domain) + "</mark>" if domain else "your <mark>address</mark>") + "</h1>"
+                '<p class="lede">' + {
+                    "domain": "Your community exists on this Umbrel. Now connect its name, so members' apps can reach it.",
+                    "funnel": "Your community exists on this Umbrel. Tailscale is giving it its public address.",
+                    "private": "Your community exists on this Umbrel. Tailscale is putting it on your private network.",
+                }[mode] + "</p>")
+        body = head + status + connect_steps(setup, domain)
+        if mode == "private" and domain:
+            body += '<section class="part"><h2>Who can connect</h2>' + private_members_note() + "</section>"
+        return layout(body + settings_part(setup, error, values))
+    reach = {"domain": "Members reach it from anywhere at this address.",
+             "funnel": "Members reach it from anywhere at this address, without Tailscale.",
+             "private": "Members reach it at this address from devices on your Tailscale network."}[mode]
+    body = (
+        '<p class="eyebrow">Live &middot; ' + MODE_NAMES[mode] + '</p><h1>Your community is <mark>live</mark></h1>'
+        '<p class="lede">' + reach + " Only people you add can read or post.</p>"
+        '<div class="address"><code><span>https://' + esc(domain) + "</span></code>"
+        '<button class="btn" type="button" onclick="copyText(this, \'https://' + esc(domain) + '\')">Copy</button></div>'
+        + status +
+        '<section class="part"><h2>Join it</h2><ol class="do">'
+        "<li>In Buzz, choose <b>Join a community</b> and paste the address above. Use the identity whose public ID "
+        "you entered: that makes you the owner.</li>"
+        "<li>Buzz 0.X takes the address as <code>wss://" + esc(domain) + "</code>.</li></ol></section>"
+        '<section class="part"><h2>Add members</h2><p>In Buzz, open <b>Settings, Community admin, Membership, Invite '
+        "members</b>. Send an invite link, or add someone directly by their public ID. In Buzz 0.X, it's "
+        "<b>Settings, Invites</b>.</p>" + (private_members_note() if mode == "private" else "") + "</section>"
+        '<section class="part"><h2>Phones</h2><p>In Buzz on your computer, open <b>Settings, Pair mobile</b> and scan '
+        "the code with the Buzz app on the phone" + (", with Tailscale on" if mode == "private" else "") + ". "
+        "In Buzz 0.X, it's <b>Settings, Mobile</b>.</p>" + notifications_note(setup) + "</section>"
+    )
+    return layout(body + settings_part(setup, error, values))
+
+
+# ---------------------------------------------------------------- the server
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
-    def send_page(self, text, status=200):
-        data = text.encode()
+    def send(self, status, data, kind="text/html; charset=utf-8", headers=None):
+        payload = data.encode() if isinstance(data, str) else data
         self.send_response(status)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Content-Type", kind)
+        self.send_header("Content-Length", str(len(payload)))
         self.send_header("Cache-Control", "no-store")
+        # same-origin, not no-referrer: with no-referrer, browsers send this page's own forms as Origin: null
+        self.send_header("Referrer-Policy", "same-origin")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
-        self.wfile.write(data)
+        self.wfile.write(payload)
+
+    def redirect(self, where, headers=None):
+        self.send_response(303)
+        self.send_header("Location", where)
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
+        self.end_headers()
+
+    def signed_in(self):
+        for part in (self.headers.get("Cookie") or "").split(";"):
+            name, _, value = part.strip().partition("=")
+            if name == COOKIE and session_ok(value):
+                return True
+        return False
+
+    def form(self):
+        length = min(int(self.headers.get("Content-Length") or 0), 20000)
+        fields = urllib.parse.parse_qs(self.rfile.read(length).decode(errors="replace"))
+        return {name: values[0] for name, values in fields.items()}
+
+    def same_origin(self):
+        """Refuses forms posted from other sites, and from other apps' pages on the same Umbrel (another
+        port on the same host is "same-site"). Browsers say where a request comes from in Sec-Fetch-Site,
+        whatever Host Umbrel's proxy passes on; Origin is the fallback for browsers that don't send it.
+        Not authentication: the session cookie is that."""
+        site = self.headers.get("Sec-Fetch-Site")
+        if site:
+            return site in ("same-origin", "none")
+        origin = self.headers.get("Origin")
+        if not origin:
+            return True
+        hosts = {self.headers.get("Host"), self.headers.get("X-Forwarded-Host")}
+        return urllib.parse.urlsplit(origin).netloc in hosts
 
     def do_GET(self):
-        if urllib.parse.urlsplit(self.path).path in ("/", ""):
-            self.send_page(page())
-        else:
-            self.send_page("Not found", 404)
+        path = urllib.parse.urlsplit(self.path).path
+        if path == "/login":
+            return self.send(200, login_page())
+        if not self.signed_in():
+            if path == "/status.json":
+                return self.send(401, json.dumps({"error": "sign in"}), "application/json")
+            return self.redirect("./login")
+        setup = load_setup()
+        if path == "/status.json":
+            if not setup:
+                return self.send(200, json.dumps({"phase": "setup", "html": ""}), "application/json")
+            live, items = cached_check(setup)
+            return self.send(200, json.dumps({"phase": phase_of(setup, live), "live": live, "html": status_html(items)}),
+                             "application/json")
+        if path not in ("/", ""):
+            return self.send(404, layout("<h1>Not found</h1>"))
+        return self.send(200, main_page(setup) if setup else setup_page())
 
     def do_POST(self):
-        if urllib.parse.urlsplit(self.path).path != "/save":
-            return self.send_page("Not found", 404)
-        origin = self.headers.get("Origin")
-        if origin and urllib.parse.urlsplit(origin).netloc != self.headers.get("Host"):
-            return self.send_page("This form only accepts requests from its own page.", 403)
-        length = min(int(self.headers.get("Content-Length") or 0), 10000)
-        fields = urllib.parse.parse_qs(self.rfile.read(length).decode(errors="replace"))
-        values = {name: fields.get(name, [""])[0] for name in ("owner", "mode", "domain", "ack")}
-        values["mode"] = "tailscale" if values["mode"] == "tailscale" else "domain"
-        try:
-            key = owner_hex(values["owner"])
-            if values["mode"] == "tailscale":
-                if values["ack"] != "yes":
-                    raise ValueError("Tick the box to confirm you understand a Tailscale address can't be "
-                                     "changed to your own domain later without starting over.")
-                setup = read_json(SETUP_JSON) or {}
-                # Keep the machine's address if it already has one: it's still the same community.
-                domain = setup.get("domain", "") if setup.get("mode") == "tailscale" else ""
-            else:
-                domain = clean_domain(values["domain"])
-        except ValueError as error:
-            return self.send_page(page(str(error), values), 400)
-        save(values["owner"].strip(), key, values["mode"], domain)
-        self.send_response(303)
-        self.send_header("Location", "./")
-        self.end_headers()
+        path = urllib.parse.urlsplit(self.path).path
+        if not self.same_origin():
+            return self.send(403, "This page only accepts its own forms.", "text/plain")
+        if path == "/login":
+            ip = self.client_address[0]
+            if too_many_failures(ip):
+                return self.send(429, login_page("Too many tries. Wait ten minutes, then try again."))
+            password = self.form().get("password", "")
+            if PASSWORD and hmac.compare_digest(password.encode(), PASSWORD.encode()):
+                cookie = COOKIE + "=" + new_session() + "; Path=/; HttpOnly; SameSite=Strict; Max-Age=" + str(SESSION_SECONDS)
+                return self.redirect("./", {"Set-Cookie": cookie})
+            note_failure(ip)
+            return self.send(401, login_page("That password doesn't match. Copy it again from Umbrel."))
+        if path == "/logout":
+            return self.redirect("./login", {"Set-Cookie": COOKIE + "=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0"})
+        if not self.signed_in():
+            return self.send(401, layout("<h1>Sign in first</h1><p><a href=\"./login\">Sign in</a></p>", signed_in=False))
+        values = self.form()
+        setup = load_setup()
+        if path == "/save":
+            if setup:
+                return self.redirect("./")
+            try:
+                key, mode, domain = self.address(values)
+                if values.get("ack") != "yes":
+                    raise ValueError("Tick the box to confirm you understand that changing the address later "
+                                     "starts a separate, empty community.")
+            except ValueError as error:
+                return self.send(400, setup_page(str(error), values))
+            save(values["owner"].strip(), key, mode, domain)
+            return self.redirect("./")
+        if not setup:
+            return self.redirect("./")
+        if path == "/owner":
+            values["form"] = "owner"
+            try:
+                key = owner_hex(values.get("owner", ""))
+            except ValueError as error:
+                return self.send(400, main_page(setup, str(error), values))
+            setup["owner"], setup["owner_hex"] = values["owner"].strip(), key
+            save(setup["owner"], key, setup["mode"], relay_domain() or setup.get("domain", ""))
+            return self.redirect("./")
+        if path == "/notifications":
+            save(setup["owner"], setup["owner_hex"], setup["mode"], relay_domain() or setup.get("domain", ""),
+                 values.get("push") == "on")
+            return self.redirect("./")
+        if path == "/address":
+            values["form"] = "address"
+            current = relay_domain() or setup.get("domain") or ""
+            try:
+                if current and values.get("confirm", "").strip().lower() != current:
+                    raise ValueError("Type the current address exactly, to confirm.")
+                if values.get("ack") != "yes":
+                    raise ValueError("Tick the box to confirm you understand a new address starts a separate community.")
+                values["owner"] = setup["owner"]
+                key, mode, domain = self.address(values)
+                if mode != "domain" and setup["mode"] != "domain":
+                    domain = current  # the same Tailscale machine, published another way
+            except ValueError as error:
+                return self.send(400, main_page(setup, str(error), values))
+            save(setup["owner"], setup["owner_hex"], mode, domain)
+            return self.redirect("./")
+        return self.send(404, layout("<h1>Not found</h1>"))
+
+    def address(self, values):
+        key = owner_hex(values.get("owner", ""))
+        mode = values.get("mode", "")
+        if mode not in MODES:
+            raise ValueError("Choose how members reach the community.")
+        domain = clean_domain(values.get("domain", "")) if mode == "domain" else ""
+        return key, mode, domain
 
     def log_message(self, format, *args):
         pass
 
 
 if __name__ == "__main__":
+    migrate()
+    if not PASSWORD:
+        print("APP_PASSWORD is not set: the setup page refuses every sign-in.", flush=True)
     threading.Thread(target=tailscale_watcher, daemon=True).start()
     http.server.ThreadingHTTPServer(("0.0.0.0", 8080), Handler).serve_forever()

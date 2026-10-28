@@ -1,0 +1,95 @@
+# The Umbrel package's rebuilt setup page, tested on a Mac without umbrelOS (no cost)
+# 2026-10-25. Relay sha-9e8c9fc. Docker Desktop on an Apple Silicon Mac.
+#
+# Real: the package's own containers, run by tests/umbrel/local/up.sh with umbrelOS's container
+# names, one shared network and data owned by 1000:1000. Not umbrelOS: no Umbrel proxy, login, app
+# lifecycle or updates. Tailscale ran for real up to its sign-in link; nobody signed in.
+# Mocked: render.py (every page state from the page's own code, with settings, Tailscale and the
+# network checks faked) and preview.py (the screens behind a sign-in, for screenshots).
+
+== Mocked: python3 tests/umbrel/local/render.py
+rendered 123 page states without errors
+
+== Real: python3 tests/umbrel/local/check.py, on a fresh run
+== Sign-in
+PASS  the page sends a visitor without a session to sign in
+PASS  status.json refuses a visitor without a session (HTTP 401)
+== Another app on the same Docker network, going around Umbrel's proxy
+PASS  a direct request from another container can't save settings or read status (HTTP 401 401)
+PASS  nothing was saved by that request
+PASS  a wrong password is refused
+PASS  the app password signs in and sets a session cookie
+PASS  the session cookie is HttpOnly
+PASS  a form posted from another app's page on the same Umbrel is refused (HTTP 403)
+PASS  the page's own forms pass whatever Host the proxy forwards (reached validation)
+== Setup
+PASS  signed in, the page shows the setup steps
+PASS  creating without the acknowledgement is refused
+PASS  a bad public ID is refused
+PASS  a home-network-only name is refused
+PASS  the owner and the domain are saved (HTTP 303)
+PASS  the relay starts with the saved address (NIP-11 answers for buzz-one.local-test.invalid)
+PASS  the relay's owner is the page's owner
+PASS  the page shows the Cloudflare steps, and that the name doesn't resolve
+PASS  the page gives the tunnel's service URL
+== Persistence across a restart of every container
+PASS  the relay comes back with the same identity
+PASS  the owner survives the restart
+PASS  the session survives the restart and the page remembers the setup
+== Changing the owner
+PASS  the new owner is saved
+PASS  the relay's owner is the new one
+PASS  the previous owner is now an admin
+== Changing the address, guarded
+PASS  a change without typing the current address is refused
+PASS  a change without the acknowledgement is refused
+PASS  with both, the address changes
+PASS  the new address is a separate community: the owner, and none of the old members
+PASS  switching back to the first address brings its community back, admin included
+== The Tailscale modes, up to the sign-in
+PASS  choosing the free Tailscale address starts Tailscale in Funnel mode
+PASS  Tailscale is waiting for a sign-in, with a link
+PASS  the page shows that sign-in link
+PASS  the relay waits: no address until Tailscale names the machine
+PASS  with no address yet, switching to the private network needs only the acknowledgement
+PASS  going back to the domain turns Tailscale off
+PASS  and the first address's community is back
+PASS  Tailscale stopped and cleared its state for the page
+PASS  switching to Tailscale again starts it again, with a sign-in link (private network)
+PASS  the page shows the private network's sign-in step
+
+passed: 39  failed: 0
+
+== Real: tests/umbrel/e2e.sh's setup section (SETUP_ONLY=1) on a fresh run, through a helper
+== container on the shared network standing in for umbrelOS (docker CLI and curl, as umbrelOS has)
+== Tunnel
+PASS  relay address https://buzz-e2e.local-test.invalid
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+setup only: passed 6, failed 0
+
+== Real: a browser (Chromium) on http://127.0.0.1:8090
+- Signed in with the app password; signed out and in again.
+- Setup: typed the owner's npub, chose an option with the keyboard alone (Tab, then arrow keys:
+  the focus ring and the chosen card both show), read each option's panel, ticked the
+  acknowledgement (Create stays disabled until then), created the community.
+- The connecting screen: the status list, then the Cloudflare values with copy buttons.
+- Settings, Change the address: the button stays disabled until the current address is typed
+  exactly and the box is ticked; the change went through and the page showed the new address.
+- Found and fixed on the way: with Referrer-Policy no-referrer, the browser sent the page's own
+  forms as Origin: null and the first version refused every sign-in. The page now sends
+  same-origin, and checks Sec-Fetch-Site, which doesn't depend on the Host that Umbrel's proxy
+  forwards.
+
+== Umbrel's linter: npm run lint:apps -- buzz --check-images (in a getumbrel/umbrel-apps clone)
+Linting buzz
+ERROR manifest.submission buzz/umbrel-app.yml:50
+  `submission` must not be empty.
+ERROR manifest.submission buzz/umbrel-app.yml:50
+  `submission` must be a valid pull request URL.
+2 error(s), 0 warning(s).
+(Expected: the PR link exists only at submission. Image checks passed.)

@@ -12,22 +12,29 @@ description: >-
   (Buzz 1.0, or Buzz 0.X) and the Buzz mobile app.
 
 
-  Setup asks for two things on the app's page after install: your public ID from Buzz, which
-  makes you the community's owner, and the community's address. The address is permanent:
-  Buzz can't change a community's address yet, so a different address later starts a new, empty
-  community.
+  After install, open the app and sign in with the password Umbrel shows for it. The setup page
+  asks for your public ID from Buzz, which makes you the community's owner, and how members reach
+  the community. Either way the community is private: only people you add can read or post.
 
 
-  - Your own domain (recommended), routed to this Umbrel by the Cloudflare Tunnel app. You can
-  move the community to another server later and keep it. Cloudflare decrypts the traffic between
-  members and your Umbrel, and uploads are limited to 100 MB.
+  - Your own domain (recommended), connected to this Umbrel by the Cloudflare Tunnel app, with no
+  router changes. You can move the community to another server later and keep it. Cloudflare
+  serves HTTPS for you, so it can read the traffic it carries, and uploads are limited to 100 MB.
 
-  - A free Tailscale address, to try it out. Members don't need Tailscale, but the address belongs
-  to your Tailscale account and can't become your own domain later.
+  - A free Tailscale address, the quickest start. Members don't need Tailscale. The address
+  belongs to your Tailscale account, so a later move to your own domain starts a new community.
+
+  - Only devices on your Tailscale network. Nothing is reachable from the internet; every member
+  needs the Tailscale app and access to your Tailscale network.
 
 
-  Phones pair through the desktop app. Push notifications aren't available for self-hosted
-  communities yet.
+  Choose the address for keeps: Buzz knows a community by its address, so a different address
+  later starts a separate, empty community. The old one stays stored on your Umbrel.
+
+
+  Phones pair through the desktop app. iPhones get notifications for direct messages and mentions
+  through Block's push service, which passes Apple a fixed wake-up signal, never a message; a setting
+  on the app's page turns them off. Android has no notifications yet.
 releaseNotes: ""
 developer: Block
 website: https://buzz.xyz
@@ -39,5 +46,6 @@ gallery: []
 path: ""
 defaultUsername: ""
 defaultPassword: ""
+deterministicPassword: true
 submitter: Beige-Coffee
 submission: ""

@@ -11,6 +11,12 @@ services:
     image: python:3.13.16-alpine3.24@sha256:2d9aefe2fef018a7eb2c13064c89c71929800fd2e5dccdbf52ea5da5bb8d929a
     user: "1000:1000"
     command: ["python3", "-u", "/app/setup.py"]
+    environment:
+      # The page's own sign-in: Umbrel shows APP_PASSWORD to the owner (deterministicPassword).
+      # Umbrel's login guards browsers, but other apps on the shared network could reach this
+      # page directly.
+      APP_PASSWORD: ${APP_PASSWORD}
+      SETUP_SESSION_SECRET: ${APP_BUZZ_SETUP_SECRET}
     volumes:
       - ${APP_DATA_DIR}/setup.py:/app/setup.py:ro
       - ${APP_DATA_DIR}/data/settings:/settings
@@ -48,7 +54,8 @@ services:
           echo "Waiting for setup: open Buzz from the Umbrel home screen."
           sleep 5
         done
-        stamp=$$(stat -c %Y "$$settings")
+        # The content, not the time: two saves within a second have the same modification time.
+        stamp=$$(cksum "$$settings")
         set -a
         . "$$key"
         . "$$settings"
@@ -58,7 +65,7 @@ services:
         trap 'kill -TERM "$$pid" 2>/dev/null || true; wait "$$pid" || true; exit 0' TERM INT
         while kill -0 "$$pid" 2>/dev/null; do
           sleep 3
-          if [ "$$(stat -c %Y "$$settings" 2>/dev/null || echo 0)" != "$$stamp" ]; then
+          if [ "$$(cksum "$$settings" 2> /dev/null || echo gone)" != "$$stamp" ]; then
             echo "Settings changed: restarting the relay."
             kill -TERM "$$pid" || true
             wait "$$pid" || true
@@ -84,7 +91,9 @@ services:
       BUZZ_REQUIRE_AUTH_TOKEN: "true"
       BUZZ_REQUIRE_RELAY_MEMBERSHIP: "true"
       BUZZ_ALLOW_NIP_OA_AUTH: "true"
-      BUZZ_PUSH_ENABLED: "false"
+      # Phone notifications, through Block's push service: it passes Apple a fixed "reconnect"
+      # signal, never a message. The setup page's own setting, in its settings file, wins.
+      BUZZ_PUSH_ENABLED: "true"
       BUZZ_PUSH_GATEWAY_DELIVERY_URL: https://push.buzz.xyz/v1/deliveries/apns
       # Cloudflare's free plan refuses uploads over 100 MB.
       BUZZ_MAX_FILE_BYTES: "100000000"
@@ -112,41 +121,58 @@ services:
       start_period: 60s
     restart: on-failure
 
-  # The free Tailscale address, only when the owner picks it on the setup page: this app's own
-  # Tailscale machine, publishing the gateway with Tailscale Funnel. It never touches Umbrel's
-  # Tailscale app, and it runs in userspace, so it needs no extra privileges.
+  # The Tailscale addresses, only when the owner picks one on the setup page: this app's own
+  # Tailscale machine, publishing the gateway either to the internet with Tailscale Funnel
+  # ("funnel") or to the owner's tailnet alone ("private"). It never touches Umbrel's Tailscale
+  # app, and it runs in userspace, so it needs no extra privileges. It starts tailscaled itself:
+  # the image's containerboot restarts after 60 seconds without a sign-in.
   tailscale:
-    image: tailscale/tailscale:v1.102.5@sha256:c507f3a2a6ab1cabd8d809b98edeb41edbd5c3fb6ad9632ffd098b4c7d0b4065
-    # Starts Tailscale directly rather than through the image's containerboot, which gives an
-    # interactive sign-in 60 seconds before restarting with a new link.
+    image: tailscale/tailscale:v1.104.2@sha256:b11583ad2e93e4671128538c88cf11f460444a5d7e449311dd1933a400ab849d
     entrypoint:
       - /bin/sh
       - -c
       - |
         set -u
-        until [ -e /settings/tailscale-enabled ]; do sleep 5; done
+        want() { m=$$(tr -d ' \n' < /settings/tailscale-enabled 2> /dev/null); [ "$$m" = on ] && m=funnel; echo "$$m"; }
         sock=/tmp/tailscaled.sock
         ts() { tailscale --socket="$$sock" "$$@"; }
-        tailscaled --tun=userspace-networking --statedir=/var/lib/tailscale --socket="$$sock" &
-        daemon=$$!
-        trap 'kill -TERM "$$daemon" 2> /dev/null; wait "$$daemon"; exit 0' TERM INT
-        until [ -S "$$sock" ]; do sleep 1; done
-        # Waits for the sign-in with no time limit; the setup page shows the link from the status.
-        ts up --hostname=buzz --accept-dns=false > /dev/null 2>&1 &
-        # Reports the machine's state to the setup page, publishes the gateway with Funnel once
-        # signed in, and stops when the owner switches to a domain.
-        while kill -0 "$$daemon" 2> /dev/null; do
-          [ -e /settings/tailscale-enabled ] || { kill -TERM "$$daemon"; wait "$$daemon"; exit 0; }
-          ts status --json > /settings/tailscale-status.json.tmp 2> /dev/null &&
-            mv -f /settings/tailscale-status.json.tmp /settings/tailscale-status.json
-          if grep -q '"BackendState": "Running"' /settings/tailscale-status.json 2> /dev/null &&
-            ! ts funnel status 2> /dev/null | grep -q buzz-gateway &&
-            ! pgrep -f "funnel --bg" > /dev/null; then
-            ts funnel --bg http://buzz-gateway:80 > /settings/tailscale-funnel.log 2>&1 &
-          fi
-          sleep 5
+        trap '[ -n "$${daemon:-}" ] && kill -TERM "$$daemon" 2> /dev/null; wait; exit 0' TERM INT
+        # Runs Tailscale while the owner has a Tailscale option chosen, and waits otherwise, so the
+        # owner can switch back and forth from the setup page.
+        while :; do
+          until [ -n "$$(want)" ]; do sleep 5; done
+          tailscaled --tun=userspace-networking --statedir=/var/lib/tailscale --socket="$$sock" &
+          daemon=$$!
+          until [ -S "$$sock" ]; do sleep 1; done
+          # Waits for the sign-in with no time limit; the setup page shows the link from the status.
+          ts up --hostname=buzz --accept-dns=false > /dev/null 2>&1 &
+          # Reports the machine's state to the setup page, and publishes the gateway the way the owner
+          # chose once signed in.
+          while kill -0 "$$daemon" 2> /dev/null; do
+            mode=$$(want)
+            if [ -z "$$mode" ]; then
+              ts serve reset > /dev/null 2>&1
+              kill -TERM "$$daemon"; wait "$$daemon"
+              rm -f /settings/tailscale-status.json /settings/tailscale-serve.txt /settings/tailscale-publish.log
+              break
+            fi
+            ts status --json > /settings/tailscale-status.json.tmp 2> /dev/null &&
+              mv -f /settings/tailscale-status.json.tmp /settings/tailscale-status.json
+            ts serve status > /settings/tailscale-serve.txt.tmp 2>&1 &&
+              mv -f /settings/tailscale-serve.txt.tmp /settings/tailscale-serve.txt
+            if grep -q '"BackendState": "Running"' /settings/tailscale-status.json 2> /dev/null &&
+              ! pgrep -f "funnel --bg" > /dev/null && ! pgrep -f "serve --bg" > /dev/null; then
+              if [ "$$mode" = funnel ] && ! grep -q "Funnel on" /settings/tailscale-serve.txt; then
+                ts serve reset > /dev/null 2>&1
+                ts funnel --bg http://buzz-gateway:80 > /settings/tailscale-publish.log 2>&1 &
+              elif [ "$$mode" = private ] && ! grep -q "tailnet only" /settings/tailscale-serve.txt; then
+                ts serve reset > /dev/null 2>&1
+                ts serve --bg http://buzz-gateway:80 > /settings/tailscale-publish.log 2>&1 &
+              fi
+            fi
+            sleep 5
+          done
         done
-        exit 1
     volumes:
       - ${APP_DATA_DIR}/data/tailscale:/var/lib/tailscale
       - ${APP_DATA_DIR}/data/settings:/settings

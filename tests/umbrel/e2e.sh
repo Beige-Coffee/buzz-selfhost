@@ -59,10 +59,27 @@ members() { umbrel "docker exec buzz_relay_1 bash -c 'set -a; . /data/settings/r
 
 if [ -z "${SKIP_SETUP:-}" ]; then
 echo "== Setup, through the app's page"
-code=$(umbrel "ip=\$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' buzz_web_1); curl -s -o /dev/null -w '%{http_code}' --data 'owner=npub1notreal&domain=$DOMAIN' http://\$ip:8080/save")
+# Requests from inside umbrelOS straight to the page, past Umbrel's proxy, as another app could
+# make them. post PATH FORM prints the HTTP status, with the session cookie once signed in.
+WEB="ip=\$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' buzz_web_1)"
+JAR=/tmp/buzz-e2e-jar
+post() { umbrel "$WEB; curl -s -o /dev/null -w '%{http_code}' -b $JAR -c $JAR --data '$2' http://\$ip:8080$1"; }
+saved() { umbrel 'docker exec buzz_web_1 cat /settings/setup.json 2>/dev/null'; }
+umbrel "rm -f $JAR"
+before=$(saved)
+code=$(post /save "owner=$OWNER_HEX&mode=domain&domain=evil.example.com&ack=yes")
+[ "$code" = 401 ] && [ "$(saved)" = "$before" ] &&
+  pass "without the app password, a direct request can't save settings (HTTP 401)" || fail "a save without signing in got HTTP $code"
+# The app password from the page's own environment, on stdin: never printed or in a process list
+code=$(umbrel "$WEB; docker exec buzz_web_1 printenv APP_PASSWORD | tr -d '\n' | curl -s -o /dev/null -w '%{http_code}' -c $JAR --data-urlencode password@- http://\$ip:8080/login")
+[ "$code" = 303 ] && pass "the app password signs in to the page (HTTP 303)" || fail "signing in got HTTP $code"
+code=$(post /save "owner=npub1notreal&mode=domain&domain=$DOMAIN&ack=yes")
 [ "$code" = 400 ] && pass "the page refuses a bad public ID (HTTP 400)" || fail "a bad public ID got HTTP $code"
-code=$(umbrel "ip=\$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' buzz_web_1); curl -s -o /dev/null -w '%{http_code}' --data 'owner=$OWNER_HEX&domain=https://$DOMAIN/' http://\$ip:8080/save")
+code=$(post /save "owner=$OWNER_HEX&mode=domain&domain=https://$DOMAIN/")
+[ "$code" = 400 ] && pass "the page refuses to create without the acknowledgement (HTTP 400)" || fail "no acknowledgement got HTTP $code"
+code=$(post /save "owner=$OWNER_HEX&mode=domain&domain=https://$DOMAIN/&ack=yes")
 [ "$code" = 303 ] && pass "the page saves the owner and domain (HTTP 303)" || fail "saving got HTTP $code"
+umbrel "rm -f $JAR"
 fi
 [ -n "${SETUP_ONLY:-}" ] && { echo "setup only: passed $PASS, failed $FAIL"; rm -rf "$TMP"; [ "$FAIL" = 0 ]; exit; }
 

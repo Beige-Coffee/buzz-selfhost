@@ -10,6 +10,8 @@ on Oct 5, with secrets masked.
 
 | When (PDT) | Run | Relay version | Result |
 |---|---|---|---|
+| Oct 26 13:55 | [Script: the Umbrel package with phone notifications on, on a Mac without umbrelOS](2026-10-26-1355-umbrel-push-local.log) | `sha-9e8c9fc` | 45 of 45 real checks of the setup page, the notification setting included; 243 page states rendered with mocks. |
+| Oct 25 13:32 | [Script and browser: the Umbrel package's rebuilt setup page, on a Mac without umbrelOS](2026-10-25-1332-umbrel-setup-page-local.log) | `sha-9e8c9fc` | 39 of 39 real checks of the page, `e2e.sh`'s setup section 6 of 6, a browser walkthrough that caught a sign-in bug (fixed), and 123 page states rendered with mocks. |
 | Oct 23 15:39 | [Script: the Umbrel package retested for Buzz 1.0](2026-10-23-1539-umbrel-buzz-1.0-retest.log) | `sha-16eb0b6`, then `sha-9e8c9fc` | An update through Umbrel 14 of 14, the updated install 31 of 31, umbrelOS 1.7.4 33 of 33, the Tailscale address 31 of 31. |
 | Oct 23 14:25 | [Railway: Block's template, deployed from the CLI](2026-10-23-1425-railway-template-check.md) | `sha-788b3c0`, then `sha-9e8c9fc` | The template still deploys, and every railway.md check passed. check-relay.sh failed only channel labels (`nip-cl`) on the template's image, and passed every line after the image update. $0.0002, then the project was deleted. |
 | Oct 23 12:10 | [Script: local test at https://localhost, left running](2026-10-23-1210-local-sha-e8781ca.log) | `sha-e8781ca` | 51 of 51, then left running with a 7-day invite link, to join from Buzz 1.0 once the Mac trusts the local authority. |

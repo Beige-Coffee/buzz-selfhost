@@ -1,12 +1,13 @@
 # Buzz on Umbrel
 
-Status on 2026-10-26: a working Umbrel App Store package in [`umbrel/buzz/`](../umbrel/buzz/), on
+Status on 2026-10-28: a working Umbrel App Store package in [`umbrel/buzz/`](../umbrel/buzz/), on
 relay `sha-9e8c9fc`. On 2026-10-23 it passed for Buzz 1.0 on umbrelOS 2.0 and 1.7, through an
 update from the previous package, with both address options of the time. Since then the setup page
 was rebuilt as a guided onboarding: its own sign-in, three ways for members to reach the community
 (a private Tailscale network is new), a guarded address change, and phone notifications on by
 default with a setting to turn them off. The rebuilt page passed real tests on Docker Desktop and
-in a browser, but hasn't run on umbrelOS yet (see Not yet tested). Not yet submitted to Umbrel. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
+in a browser, and on 2026-10-28 ran on umbrelOS 2.0.0 on a Mac, where a community went live with
+the free Tailscale address. Not yet submitted to Umbrel. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package
 
@@ -28,9 +29,10 @@ Credit #5928 when we submit.
   Members, the owner included, chat in Buzz Desktop and the iPhone app. Block ships no browser
   version to run on Umbrel: the relay's own web pages are invite pages and a code browser.
 - **For Buzz 1.0 only.** The package ships once Buzz 1.0 is out, so the page names its menus and
-  no others. Under the owner's field, a dropdown shows where to find the public ID in Buzz's own
-  screens, adapted from the guide site's drawings (`site/src/scenes/identity.ts`); redraw them when
-  Buzz's Settings change.
+  no others. Dropdowns show Buzz's own screens, adapted from the guide site's drawings
+  (`site/src/scenes/identity.ts` and `members.ts`): where to find the public ID, under the owner's
+  field, and, once the community is live, how to join it, add members and pair a phone. Redraw
+  them when Buzz's screens change.
 - **Reaching the community is separate from joining it.** Every option keeps the community
   members-only: the relay requires membership, so only people the owner adds can read or post. The
   options differ in how members' apps reach the Umbrel.
@@ -58,10 +60,10 @@ Credit #5928 when we submit.
   and members stay stored and come back on switching back (tested locally, below). Buzz can't move
   a community to a new address yet ([block/buzz#4952](https://github.com/block/buzz/issues/4952));
   the package doesn't try, by SQL or otherwise. Moving to another server is different: with the
-  same address and Buzz's data restored, the community comes along. The page explains this before
-  setup and needs a tick to create; changing the address later needs the current address typed
-  exactly and a tick. The Tailscale name is taken once, so a renamed machine never moves the
-  community.
+  same address and Buzz's data restored, the community comes along (not tested on Umbrel, so the
+  page doesn't offer it). The page explains this before setup and needs a tick to create; changing
+  the address later needs the current address typed exactly, or a tick when there's none yet. The
+  Tailscale name is taken once, so a renamed machine never moves the community.
 - **Its own sign-in.** The page asks for the app's password, which Umbrel shows the owner
   (`deterministicPassword`). Umbrel's login guards the page in a browser, but every app on an Umbrel
   shares one Docker network, and Umbrel's proxy passes on no identity the page could check, so
@@ -210,20 +212,30 @@ so the owner-side checks run:
 the relay offers notifications after setup, that turning them off restarts it without them and
 survives an owner change, and that turning them on offers them again. No phone was involved.
 
+2026-10-28, umbrelOS 2.0.0 in Docker Desktop on an Apple Silicon Mac (`UMBREL_LOCAL=1`), relay
+`sha-9e8c9fc` on its ARM image:
+
+- Installed through Umbrel. Opening the app, Umbrel showed its password under Default
+  credentials, and the page's forms and sign-in worked through Umbrel's proxy.
+- By hand: setup with the free Tailscale address. The owner signed in to Tailscale from the
+  page's link, Funnel turned on (`Funnel on` seen live in `tailscale serve status`), and the page
+  went live: the relay answered at the ts.net address from the internet, and pairing was reachable.
+- Found and fixed: Docker Desktop's kernel can't run umbrelOS 2.0's nftables `fib` rule, so no app
+  page opened (see Gotchas); and the connecting page kept showing "Starting Tailscale" after
+  Tailscale had its sign-in link, until a reload.
+- After the page's redesign (drawn how-tos for joining, members and phones, a shorter address
+  change, plainer words): `check.py` 45 of 45 on Docker Desktop without umbrelOS
+  ([log](../tests/runs/2026-10-28-1437-umbrel-dropdowns-local.log)), and 243 page states rendered.
+
 ## Not yet tested
 
-- The rebuilt page on umbrelOS: forms and sign-in through Umbrel's proxy, where Umbrel shows the
-  app's password, and an update from the previous package (the setup should carry over, with one
-  sign-in).
-- Tailscale past the sign-in with the rebuilt Tailscale service: Funnel turning on, and the private
-  option end to end (a device on the tailnet joins, one off it can't, a phone pairs with Tailscale
-  on). It needs a sign-in to a test tailnet. The service tells the two apart by `Funnel on` and
-  `tailnet only` in `tailscale serve status`, which match v1.104.2's source but haven't been seen
-  live.
+- An update from the previous package on umbrelOS: the setup should carry over, with one sign-in.
+- The private option end to end: a device on the tailnet joins, one off it can't, a phone pairs
+  with Tailscale on. The service tells it apart by `tailnet only` in `tailscale serve status`,
+  which matches v1.104.2's source but hasn't been seen live (`Funnel on` has, 2026-10-28).
 - Phone notifications from an Umbrel install to a real iPhone (the local checks only see the relay
   offer them), and on the private option, where the phone fetches the message over Tailscale.
 - Umbrel's Cloudflare Tunnel app with a real domain. It needs a Cloudflare account and a domain.
-- ARM on relay `sha-9e8c9fc`. The image is built for ARM; the package's ARM run was on `sha-16eb0b6`.
 - A real Raspberry Pi: ARM itself passed on a Mac, but not the Pi's slower processor and storage.
   Umbrel asks for the chip type to be tested, not a particular device.
 

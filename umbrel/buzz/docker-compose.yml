@@ -133,7 +133,7 @@ services:
       - -c
       - |
         set -u
-        want() { m=$$(tr -d ' \n' < /settings/tailscale-enabled 2> /dev/null); [ "$$m" = on ] && m=funnel; echo "$$m"; }
+        want() { m=$$([ -f /settings/tailscale-enabled ] && tr -d ' \n' < /settings/tailscale-enabled); [ "$$m" = on ] && m=funnel; echo "$$m"; }
         sock=/tmp/tailscaled.sock
         ts() { tailscale --socket="$$sock" "$$@"; }
         trap '[ -n "$${daemon:-}" ] && kill -TERM "$$daemon" 2> /dev/null; wait; exit 0' TERM INT
@@ -175,6 +175,98 @@ services:
         done
     volumes:
       - ${APP_DATA_DIR}/data/tailscale:/var/lib/tailscale
+      - ${APP_DATA_DIR}/data/settings:/settings
+    restart: on-failure
+
+  # Your own domain: this app's own Cloudflare tunnel. The owner signs in to Cloudflare from the
+  # setup page and chooses the domain; then it creates the tunnel and the DNS name, and connects
+  # the gateway. With another option chosen, it waits. The image is the connector of Umbrel's
+  # Cloudflare Tunnel app (Radiokot/umbrel-cloudflared): Alpine with Cloudflare's own cloudflared.
+  cloudflared:
+    image: ghcr.io/radiokot/umbrel-cloudflared-connector:1.1.0-cf.2026.10.4@sha256:2d56d59924d5b91a75ea4263b377330b0d90892bd9e09ab0230d298f9d409915
+    user: "1000:1000"
+    entrypoint:
+      - /sbin/tini
+      - -g
+      - --
+      - /bin/sh
+      - -c
+      - |
+        set -u
+        cf=/cloudflared
+        # Its sign-in certificate and tunnel token live in the settings folder: a folder of their
+        # own wouldn't exist in installs updated from an earlier version of this app
+        mkdir -p "$$HOME" && chmod 700 "$$HOME"
+        want() { [ -f /settings/cloudflare-enabled ] && tr -d ' \n' < /settings/cloudflare-enabled; }
+        state() { printf '%s\n' "$$1" > /settings/cloudflare-state.tmp && mv -f /settings/cloudflare-state.tmp /settings/cloudflare-state; }
+        job=
+        trap '[ -n "$$job" ] && kill -TERM "$$job" 2> /dev/null; wait; exit 0' TERM INT
+        while :; do
+          host=$$(want)
+          if [ -z "$$host" ]; then
+            rm -f /settings/cloudflare-state /settings/cloudflare-login.log
+            until [ -n "$$(want)" ]; do sleep 5; done
+            continue
+          fi
+          # The page's "Sign in again": a new sign-in, and a new tunnel in whichever account it's for
+          if [ -e /settings/cloudflare-reset ]; then
+            [ -s "$$HOME/.cloudflared/cert.pem" ] && [ -s "$$HOME/tunnel-name" ] &&
+              $$cf tunnel delete -f "$$(cat "$$HOME/tunnel-name")" > /dev/null 2>&1
+            rm -rf "$$HOME/.cloudflared" "$$HOME/tunnel.token" "$$HOME/tunnel-name" "$$HOME/routed" /settings/cloudflare-reset
+          fi
+          # Tunnel names are unique within a Cloudflare account, so this one is made once
+          [ -s "$$HOME/tunnel-name" ] || echo "buzz-relay-$$(od -An -tx1 -N3 /dev/urandom | tr -d ' \n')" > "$$HOME/tunnel-name"
+          name=$$(cat "$$HOME/tunnel-name")
+          # 1. Cloudflare's own sign-in, where the owner chooses the domain. Its link lasts about ten
+          # minutes; a new one then takes its place on the page.
+          if [ ! -s "$$HOME/.cloudflared/cert.pem" ]; then
+            state signin
+            $$cf tunnel login > /settings/cloudflare-login.log 2>&1 &
+            job=$$!
+            while kill -0 "$$job" 2> /dev/null && [ "$$(want)" = "$$host" ] && [ ! -e /settings/cloudflare-reset ]; do sleep 3; done
+            kill -TERM "$$job" 2> /dev/null; wait "$$job" 2> /dev/null; job=
+            continue
+          fi
+          rm -f /settings/cloudflare-login.log
+          # 2. The tunnel, once, and the token that runs it
+          if [ ! -s "$$HOME/tunnel.token" ]; then
+            state creating
+            if ! $$cf tunnel create "$$name" > /settings/cloudflare-setup.log 2>&1 &&
+              ! grep -q "already exists" /settings/cloudflare-setup.log; then
+              state error; sleep 30; continue
+            fi
+            if ! $$cf tunnel token "$$name" > "$$HOME/tunnel.token.tmp" 2>> /settings/cloudflare-setup.log; then
+              state error; sleep 30; continue
+            fi
+            mv -f "$$HOME/tunnel.token.tmp" "$$HOME/tunnel.token"
+          fi
+          # 3. The address: a DNS name for the tunnel, in the domain chosen at sign-in
+          if [ "$$(cat "$$HOME/routed" 2> /dev/null)" != "$$host" ]; then
+            state routing
+            if ! $$cf tunnel route dns "$$name" "$$host" > /settings/cloudflare-setup.log 2>&1; then
+              if grep -q "already exists" /settings/cloudflare-setup.log; then state taken; else state error; fi
+              sleep 20; continue
+            fi
+            # Cloudflare names the record within the chosen domain, so a name from another domain comes out wrong
+            if ! grep -q -F -e "CNAME $$host which" -e "$$host updated to route" -e "$$host is already configured" /settings/cloudflare-setup.log; then
+              state wrong-domain
+              until [ "$$(want)" != "$$host" ] || [ -e /settings/cloudflare-reset ]; do sleep 5; done
+              continue
+            fi
+            echo "$$host" > "$$HOME/routed"
+          fi
+          # 4. The tunnel, to the gateway, until the owner chooses something else
+          state running
+          $$cf --no-autoupdate tunnel run --token-file "$$HOME/tunnel.token" --url http://buzz-gateway:80 &
+          job=$$!
+          while kill -0 "$$job" 2> /dev/null && [ "$$(want)" = "$$host" ] && [ ! -e /settings/cloudflare-reset ]; do sleep 5; done
+          kill -TERM "$$job" 2> /dev/null; wait "$$job" 2> /dev/null; job=
+          # a tunnel that stopped by itself starts again after a pause
+          if [ "$$(want)" = "$$host" ]; then sleep 5; fi
+        done
+    environment:
+      HOME: /settings/cloudflare
+    volumes:
       - ${APP_DATA_DIR}/data/settings:/settings
     restart: on-failure
 

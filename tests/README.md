@@ -119,7 +119,10 @@ owner set up the community with a free Tailscale address, signed in to Tailscale
 went live once Funnel was on. Opening app pages needed two fixes to `install.sh` for Docker
 Desktop, and the page didn't refresh when Tailscale's sign-in link appeared, fixed. After the
 page's redesign: 45 of 45 real checks on Docker Desktop without umbrelOS, and 243 page states
-rendered with mocks ([log](runs/2026-10-28-1437-umbrel-dropdowns-local.log)).
+rendered with mocks ([log](runs/2026-10-28-1437-umbrel-dropdowns-local.log)). Later the same day,
+the package got its own Cloudflare tunnel, set up from a Cloudflare sign-in on its page: 48 of 48
+real checks, reaching Cloudflare's sign-in link ([log](runs/2026-10-28-1533-umbrel-cloudflare-local.log)), and an
+update on umbrelOS that added the service and carried the setup over.
 
 ## Results, 2026-10-26: Umbrel, phone notifications on
 

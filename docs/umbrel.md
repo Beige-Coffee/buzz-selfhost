@@ -36,11 +36,18 @@ Credit #5928 when we submit.
 - **Reaching the community is separate from joining it.** Every option keeps the community
   members-only: the relay requires membership, so only people the owner adds can read or post. The
   options differ in how members' apps reach the Umbrel.
-  - **Your own domain (recommended):** Umbrel's Cloudflare Tunnel app connects the name to
-    `http://buzz-gateway:80`, with no router ports opened. The page lists the public hostname's
-    values with copy buttons, then checks DNS, the tunnel (Cloudflare's 1033 and 502 errors get
-    their own hints), that the name reaches this Umbrel's relay and not another, and pairing. The
-    owner can move the community to another server later and keep it. Cloudflare serves HTTPS, so
+  - **Your own domain (recommended):** the app's own Cloudflare tunnel connects the name to
+    `http://buzz-gateway:80`, with no router ports opened. The owner signs in to Cloudflare from
+    the page with `cloudflared tunnel login` and chooses the domain; the `cloudflared` service then
+    creates a tunnel, adds the name to the domain's DNS (refusing a name that already has a
+    record, and catching a domain chosen wrong), and runs it. Its image is the connector of
+    Umbrel's Cloudflare Tunnel app (Radiokot/umbrel-cloudflared), Alpine with Cloudflare's own
+    `cloudflared`; the official image has no shell to wait in, so it would restart every minute
+    until set up. With another option chosen, the service waits. Owners who already run Umbrel's
+    Cloudflare Tunnel app can point a public hostname at the same address instead. The page then
+    checks DNS, the tunnel (Cloudflare's 1033 and 502 errors get their own hints), that the name
+    reaches this Umbrel's relay and not another, and pairing. The owner can move the community to
+    another server later and keep it. Cloudflare serves HTTPS, so
     it can read the traffic it carries, and its free plan refuses uploads over 100 MB, so the
     package caps uploads at 100 MB. A tunnel hides the home address, but Buzz is still reachable
     from the internet.
@@ -235,7 +242,9 @@ survives an owner change, and that turning them on offers them again. No phone w
   which matches v1.104.2's source but hasn't been seen live (`Funnel on` has, 2026-10-28).
 - Phone notifications from an Umbrel install to a real iPhone (the local checks only see the relay
   offer them), and on the private option, where the phone fetches the message over Tailscale.
-- Umbrel's Cloudflare Tunnel app with a real domain. It needs a Cloudflare account and a domain.
+- Your own domain end to end: the app's Cloudflare sign-in with a real domain, the tunnel and the
+  name it creates, and a join and a phone through it. The local checks only reach Cloudflare's
+  sign-in link.
 - A real Raspberry Pi: ARM itself passed on a Mac, but not the Pi's slower processor and storage.
   Umbrel asks for the chip type to be tested, not a particular device.
 
@@ -295,6 +304,9 @@ The local run's password is `local-test-only`. `check.py` expects a fresh run: `
   server's network card and the server drops off the network. `install.sh` uses Docker's bridge
   network and masks NetworkManager.
 - `docker cp` can't see `/home/umbrel` inside the umbrelOS container; tar through `docker exec` can.
+- An update copies an app's compose file and templates, not new data folders, so a service added
+  in an update keeps its files in a folder that already exists (the Cloudflare service uses
+  `settings/cloudflare`).
 - umbrelOS 2.0 sends app ports to its sign-in gateway with an nftables `fib` rule, which Docker
   Desktop's kernel can't run: no app page opens, and `umbreld` logs "Failed waiting for app gateway".
   `install.sh` swaps in a rule that matches the container's network interfaces instead. Opening an

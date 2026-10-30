@@ -52,8 +52,11 @@ Credit #5928 when we submit.
     reaches this Umbrel's relay and not another, and pairing. The owner can move the community to
     another server later and keep it. Cloudflare serves HTTPS, so
     it can read the traffic it carries, and its free plan refuses uploads over 100 MB, so the
-    package caps uploads at 100 MB. A tunnel hides the home address, but Buzz is still reachable
-    from the internet.
+    package caps files and videos at 100 MB, in every option for one rule (images stop at Buzz's
+    own 50 MiB). Git pushes keep Buzz's 500 MB, so a push over 100 MB fails at Cloudflare with its
+    own error page; capping it needs `BUZZ_GIT_MAX_PACK_BYTES` and `BUZZ_GIT_MAX_REPO_BYTES`
+    together, since the repo limit defaults to twice the push limit. Left for later. A tunnel hides
+    the home address, but Buzz is still reachable from the internet.
   - **A free Tailscale address:** the app's own Tailscale machine publishes the gateway to the
     internet with Tailscale Funnel, so members don't need Tailscale. Traffic passes through
     Tailscale encrypted and HTTPS ends on the Umbrel. The address belongs to the owner's Tailscale
@@ -70,8 +73,9 @@ Credit #5928 when we submit.
   and members stay stored and come back on switching back (tested locally, below). Buzz can't move
   a community to a new address yet ([block/buzz#4952](https://github.com/block/buzz/issues/4952));
   the package doesn't try, by SQL or otherwise. Moving to another server is different: with the
-  same address and Buzz's data restored, the community comes along (not tested on Umbrel, so the
-  page doesn't offer it). The page explains this before setup and needs a tick to create; changing
+  same address and Buzz's data restored, the community comes along. On Umbrel, its own backup
+  restored onto another Umbrel did that (tested on 2026-10-30, below); the page offers no move of its
+  own. The page explains this before setup and needs a tick to create; changing
   the address later needs the current address typed exactly, or a tick when there's none yet. The
   Tailscale name is taken once, so a renamed machine never moves the community.
 - **Its own sign-in.** The page asks for the app's password, which Umbrel shows the owner
@@ -129,6 +133,12 @@ Credit #5928 when we submit.
 - **Names:** services reach each other by names without underscores (`buzz-silo`,
   `buzz-gateway`). Silo refuses a hostname with an underscore, like a container name, and a
   Cloudflare dashboard may too.
+- **Uninstalling** removes the app's data from the Umbrel, but not what it made in the owner's
+  accounts: the Cloudflare tunnel and DNS name, or the `buzz` machine in Tailscale. Installing again
+  then finds the name taken, or Tailscale names the new machine `buzz-1`. The App Store description
+  says to remove them first.
+- **Support** in the listing points at this repo's issues, since we maintain the package; Buzz's
+  own bugs go on to Block.
 
 ## Tested
 
@@ -262,8 +272,10 @@ survives an owner change, and that turning them on offers them again. No phone w
 2026-10-30, unattended, before the PR: relay `sha-a38fedb` with the reviewed copy, on Intel
 (umbrelOS 2.0.0 in Docker on a DigitalOcean droplet) and ARM (umbrelOS 2.0.0 in Docker Desktop on an
 Apple Silicon Mac) ([Intel log](../tests/runs/2026-10-30-1130-umbrel-intel-droplet-confidence.log),
-[ARM log](../tests/runs/2026-10-30-1130-umbrel-arm-local-confidence.log)). The scripts were one-offs,
-not in `tests/umbrel/` yet.
+[ARM log](../tests/runs/2026-10-30-1130-umbrel-arm-local-confidence.log)). These checks ran as
+one-off scripts; they're now [`pre-submit.sh`](../tests/umbrel/pre-submit.sh), which passed 85 of 85 on
+the Mac's umbrelOS ([log](../tests/runs/2026-10-30-1333-umbrel-pre-submit-arm-local.log)). Its restart
+and restore run only on a droplet, and haven't run in script form yet.
 
 - Installed through Umbrel, then `e2e.sh` 36 of 36 on both.
 - Memory, the app's containers together: about 130 MiB on Intel and 180 MiB on ARM installed but not
@@ -301,7 +313,9 @@ not in `tests/umbrel/` yet.
 3. Settle `version`. The relay has no release, so it's the image's commit for now.
 4. Copy the package into a fork of getumbrel/umbrel-apps and open the PR, crediting #5928 and
    [#5993](https://github.com/getumbrel/umbrel-apps/pull/5993), a second submission (Aug 15, no
-   review). Neither has been reviewed or updated since August.
+   review). Neither has been reviewed or updated since August. Copy without `__pycache__`.
+5. Say in the PR what it was tested on: umbrelOS 2.0.0 in Docker on Intel and ARM (1.7.4 with an
+   earlier version of the package), not on a Raspberry Pi.
 
 ## Testing again
 
@@ -316,6 +330,13 @@ python3 tests/umbrel/server.py down     # deletes the droplet and its firewall
 Or all of it, unattended, deleting the droplet at the end: `BUZZ_CLI=path/to/buzz bash
 tests/umbrel/droplet-run.sh`. The droplet gets the test SSH key at first boot when the key isn't on
 the DigitalOcean account.
+
+Before a submission or an update to it, the longer test, also unattended on a droplet:
+`BUZZ_CLI=path/to/buzz bash tests/umbrel/pre-submit.sh`. Beyond `e2e.sh` it measures memory, runs a
+load of 20 members, sends a 20 MB image and a real 96 MB video (with ffmpeg on this machine) and
+checks the size limits, checks what the public address shows and the logs for secrets, restarts
+the whole Umbrel, restores Umbrel's own backup onto a second umbrelOS, and reinstalls. With
+`UMBREL_LOCAL=1` it runs on this machine's umbrelOS, without the restart and the restore.
 
 `UMBREL_LOCAL=1` runs the same scripts on this machine's Docker instead of the droplet, which is how
 the ARM test ran on an Apple Silicon Mac. Umbrel then opens at http://localhost:8080 and its apps on

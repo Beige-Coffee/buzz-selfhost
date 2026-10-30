@@ -10,6 +10,7 @@ on Oct 5, with secrets masked.
 
 | When (PDT) | Run | Relay version | Result |
 |---|---|---|---|
+| Oct 30 13:33 | [Script: pre-submit.sh on ARM, umbrelOS in Docker Desktop on a Mac](2026-10-30-1333-umbrel-pre-submit-arm-local.log) | `sha-a38fedb` | 85 of 85: `e2e.sh` twice, around a load of 20 members, a 20 MB image and a real 96 MB video up and back, the size limits, the public address, secrets in the logs, and a reinstall. The restart and the restore run only on a droplet. |
 | Oct 30 11:30 | [Script: the Umbrel package before the PR, on Intel, unattended on a DigitalOcean droplet](2026-10-30-1130-umbrel-intel-droplet-confidence.log) | `sha-a38fedb` | `e2e.sh` 36 of 36; 20 members and 200 messages in 23 s; a reboot with every table the same; Umbrel's own backup restored onto a fresh Umbrel with the tables, setup and file the same; a reinstall at a fresh setup page, then 36 of 36 again. |
 | Oct 30 11:30 | [Script: the Umbrel package before the PR, on ARM, umbrelOS in Docker Desktop on a Mac](2026-10-30-1130-umbrel-arm-local-confidence.log) | `sha-a38fedb` | `e2e.sh` 36 of 36, three times; a real 96 MB video up through Cloudflare and back intact, and a 100.5 MB one refused at the package's limit; no secrets in the logs. |
 | Oct 28 16:56 | [Script: the Umbrel package on Intel, unattended on a DigitalOcean droplet](2026-10-28-1656-umbrel-intel-droplet.log) | `sha-a38fedb` | Installed through Umbrel; `e2e.sh` 36 of 36; the app's Cloudflare tunnel and both Tailscale options up to their sign-in links, 6 of 6. |

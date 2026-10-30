@@ -37,12 +37,16 @@ description: >-
   and mentions through Block's push service. No message text, sender or channel leaves your
   Umbrel, but Block sees its address and which phones it wakes and when, and Apple sees when a
   phone is woken. A setting on the app's page turns them off. Android doesn't get notifications yet.
+
+
+  Uninstalling deletes the community from your Umbrel, but leaves its tunnel and name in your
+  Cloudflare account, or the buzz machine in Tailscale. Remove them there before installing again.
 releaseNotes: ""
 developer: Block
 website: https://buzz.xyz
 dependencies: []
 repo: https://github.com/block/buzz
-support: https://github.com/block/buzz/issues
+support: https://github.com/Beige-Coffee/buzz-selfhost/issues
 port: 3024
 gallery: []
 path: ""

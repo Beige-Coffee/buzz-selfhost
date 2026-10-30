@@ -1,13 +1,15 @@
 # Buzz on Umbrel
 
-Status on 2026-10-28: a working Umbrel App Store package in [`umbrel/buzz/`](../umbrel/buzz/), on
+Status on 2026-10-30: a working Umbrel App Store package in [`umbrel/buzz/`](../umbrel/buzz/), on
 relay `sha-a38fedb`, the version the readiness review picked for launch. On 2026-10-23 it passed for Buzz 1.0 on umbrelOS 2.0 and 1.7, through an
 update from the previous package, with both address options of the time. Since then the setup page
 was rebuilt as a guided onboarding: its own sign-in, three ways for members to reach the community
 (a private Tailscale network is new), a guarded address change, and phone notifications on by
 default with a setting to turn them off. The rebuilt page passed real tests on Docker Desktop and
 in a browser, and on 2026-10-28 ran on umbrelOS 2.0.0 on a Mac, where a community went live with
-the free Tailscale address. Not yet submitted to Umbrel. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
+the free Tailscale address. On 2026-10-30, after a review of every screen's copy, it passed a
+longer unattended run on Intel and ARM: a load, a reboot, Umbrel's own backup restored onto a fresh
+Umbrel, and a reinstall. Not yet submitted to Umbrel. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package
 
@@ -256,6 +258,35 @@ survives an owner change, and that turning them on offers them again. No phone w
   tunnel and both Tailscale options up to their sign-in links, 6 of 6
   ([log](../tests/runs/2026-10-28-1656-umbrel-intel-droplet.log)). A run before it failed in Umbrel's own
   app environment step, on the first install; the script now saves Umbrel's log and retries once.
+
+2026-10-30, unattended, before the PR: relay `sha-a38fedb` with the reviewed copy, on Intel
+(umbrelOS 2.0.0 in Docker on a DigitalOcean droplet) and ARM (umbrelOS 2.0.0 in Docker Desktop on an
+Apple Silicon Mac) ([Intel log](../tests/runs/2026-10-30-1130-umbrel-intel-droplet-confidence.log),
+[ARM log](../tests/runs/2026-10-30-1130-umbrel-arm-local-confidence.log)). The scripts were one-offs,
+not in `tests/umbrel/` yet.
+
+- Installed through Umbrel, then `e2e.sh` 36 of 36 on both.
+- Memory, the app's containers together: about 130 MiB on Intel and 180 MiB on ARM installed but not
+  set up, 230 and 300 MiB with a community. On Intel, 20 members sent 200 messages, ten at a time,
+  in 23 s, every one read back, and memory, sampled during and after, stayed under 330 MiB. App
+  data: 72 MB.
+- Files: a 20 MB image went up in 4 s. Images stop at 50 MiB, Buzz's default; its CLI refuses a
+  101 MB image before sending. On ARM, a real 96 MB video went up through Cloudflare in 12 s and
+  another member downloaded it intact, with memory under 340 MiB; one of 100.5 MB was refused by
+  the relay, at the package's 100 MB limit for videos and files. Buzz takes only H.264 MP4 videos
+  without metadata, as its apps make them.
+- The community's public address shows only the relay: the setup page's paths answer 404.
+- No setting's secret value shows up in the app's container logs, on either chip.
+- Restarting the whole Umbrel: back in 25 s, every table and the setup the same.
+- Umbrel's own backup, to a network share, restored onto a fresh umbrelOS 2.0.0 that was never set
+  up: the backup took 8 s. After the restore, the new Umbrel started Buzz on its own, with every
+  table as at backup time, the same setup, the relay serving the community's address, and the
+  stored 20 MB file byte for byte the same. Umbrel copies Postgres's files while it runs, so
+  Postgres recovered on its first start, as after a power cut, with no errors.
+- Uninstalling removed the app's data. Installing again started at a fresh setup page, and `e2e.sh`
+  passed 36 of 36 on it.
+- In the test setup only: umbrelOS in Docker on a droplet uses Ubuntu's kernel, which needs
+  `linux-modules-extra` before Umbrel can mount a network share.
 
 ## Not yet tested
 

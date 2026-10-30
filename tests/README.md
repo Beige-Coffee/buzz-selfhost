@@ -111,6 +111,17 @@ No script here yet. The steps and operations were run against projects made with
 `railway deploy -t buzz-relay-block`, by hand on 2026-09-30 and by script on 2026-10-01. The
 deploy, the image update and the checks ran again on 2026-10-23.
 
+## Results, 2026-10-30: Umbrel, before the PR
+
+Unattended, relay `sha-a38fedb` with the reviewed copy, on umbrelOS 2.0.0. Installed through Umbrel
+and `e2e.sh` 36 of 36 on Intel (a DigitalOcean droplet) and ARM (a Mac). On Intel: 20 members sent
+200 messages in 23 s and read them back; a reboot kept every table; Umbrel's own backup, restored
+onto a fresh Umbrel, brought back the tables, the setup and a 20 MB file; and a reinstall started at
+a fresh setup page, then passed 36 of 36 again
+([Intel log](runs/2026-10-30-1130-umbrel-intel-droplet-confidence.log)). On ARM: a real
+96 MB video went up through Cloudflare and came back intact, one over the package's 100 MB limit
+was refused, and no secret showed up in the logs ([ARM log](runs/2026-10-30-1130-umbrel-arm-local-confidence.log)).
+
 ## Results, 2026-10-28: Umbrel on umbrelOS, on a Mac
 
 umbrelOS 2.0.0 in Docker Desktop on an Apple Silicon Mac, relay `sha-9e8c9fc` on its ARM image. The

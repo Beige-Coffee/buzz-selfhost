@@ -12,7 +12,7 @@ C=${UMBREL_CONTAINER:-umbrelos-test}
 target() { if [ -n "${UMBREL_LOCAL:-}" ]; then bash -c "$1"; else bash "$HERE/ssh.sh" "$1"; fi; }
 if [ -n "${UMBREL_LOCAL:-}" ]; then PKG=$HOME/.buzz-test/umbrel-pkg; else PKG=/root/buzz-pkg; fi
 # PKG_ROOT is the folder holding buzz/, by default this branch's umbrel/; an earlier version for the update test
-COPYFILE_DISABLE=1 tar --no-xattrs -C "${PKG_ROOT:-$HERE/../../umbrel}" -czf - buzz |
+COPYFILE_DISABLE=1 tar --no-xattrs --exclude=__pycache__ -C "${PKG_ROOT:-$HERE/../../umbrel}" -czf - buzz |
   target "rm -rf $PKG && mkdir -p $PKG && tar -C $PKG -xzf - 2>/dev/null"
 # Not VERSION: Docker's install script reads that name as the Docker version to install.
 # Umbrel's own port, its sign-in page for apps (2000), and the ports of Buzz and the apps to compare

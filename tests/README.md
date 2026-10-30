@@ -121,6 +121,8 @@ a fresh setup page, then passed 36 of 36 again
 ([Intel log](runs/2026-10-30-1130-umbrel-intel-droplet-confidence.log)). On ARM: a real
 96 MB video went up through Cloudflare and came back intact, one over the package's 100 MB limit
 was refused, and no secret showed up in the logs ([ARM log](runs/2026-10-30-1130-umbrel-arm-local-confidence.log)).
+The checks are now `umbrel/pre-submit.sh`, which passed 85 of 85 on the Mac
+([log](runs/2026-10-30-1333-umbrel-pre-submit-arm-local.log)).
 
 ## Results, 2026-10-28: Umbrel on umbrelOS, on a Mac
 

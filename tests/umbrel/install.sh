@@ -59,7 +59,7 @@ SHIM
 STORE=/home/umbrel/umbrel/app-stores/getumbrel-umbrel-apps-github-53f74447
 until docker exec "$C" test -d "$STORE/tailscale" 2> /dev/null; do sleep 5; done
 # docker cp can't see /home/umbrel inside the container; tar through docker exec can.
-tar --no-xattrs -C "$PKG" -cf - buzz | docker exec -i "$C" sh -c \
+COPYFILE_DISABLE=1 tar --no-xattrs -C "$PKG" -cf - buzz | docker exec -i "$C" sh -c \
   "rm -rf $STORE/buzz && tar -C $STORE -xf - && find $STORE/buzz -name .gitkeep -delete && chown -R 1000:1000 $STORE/buzz"
 docker exec "$C" umbreld client apps.install.mutate --appId buzz > /dev/null
 docker exec "$C" umbreld client apps.state.query --appId buzz

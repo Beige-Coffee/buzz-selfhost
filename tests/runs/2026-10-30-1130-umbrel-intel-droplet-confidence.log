@@ -1,0 +1,278 @@
+Pre-submission run, unattended: Intel, umbrelOS 2.0.0 in Docker on a DigitalOcean droplet, relay sha-a38fedb.
+
+## Phase 1: install through Umbrel, footprint before setup, end to end
+== Droplet
+created buzz-umbrel-test in sfo2
+buzz-umbrel-test at <ip>
+x86_64
+4
+Mem:            7941         496        7049           4         637        7445
+== umbrelOS and Buzz Relay, installed through Umbrel
+{
+  "state": "ready",
+  "progress": 0
+}
+== Footprint, installed, before setup (after two minutes)
+buzz_relay_1 0.00% 848KiB / 7.755GiB
+buzz_redis_1 0.87% 3.191MiB / 7.755GiB
+buzz_pair_1 0.00% 748KiB / 7.755GiB
+buzz_web_1 0.02% 16.44MiB / 7.755GiB
+buzz_silo_1 0.00% 74.03MiB / 7.755GiB
+buzz_postgres_1 0.02% 24.52MiB / 7.755GiB
+buzz_gateway_1 0.00% 11.29MiB / 7.755GiB
+buzz_cloudflared_1 0.00% 672KiB / 7.755GiB
+buzz_tailscale_1 0.00% 540KiB / 7.755GiB
+Mem:            7941        1559         379          25        6665        6381
+== End to end
+== Tunnel
+PASS  relay address https://wax-tuner-sunglasses-recordings.trycloudflare.com
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://wax-tuner-sunglasses-recordings.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://wax-tuner-sunglasses-recordings.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 36  failed: 0
+community address: https://wax-tuner-sunglasses-recordings.trycloudflare.com
+== phase 1 done
+
+## Phase 2a: footprint live, a load, file limits, the public address, secrets in logs, a reboot
+== Footprint, live with a community
+buzz_cloudflared_1 0.00% 14.95MiB / 7.755GiB
+buzz_gateway_1 0.05% 11.38MiB / 7.755GiB
+buzz_pair_1 0.00% 728KiB / 7.755GiB
+buzz_postgres_1 4.59% 63.75MiB / 7.755GiB
+buzz_redis_1 4.70% 3.41MiB / 7.755GiB
+buzz_relay_1 0.17% 11.89MiB / 7.755GiB
+buzz_silo_1 4.17% 103.7MiB / 7.755GiB
+buzz_tailscale_1 0.25% 524KiB / 7.755GiB
+buzz_web_1 0.01% 16.39MiB / 7.755GiB
+TOTAL 227 MiB
+== Load: 20 members, 10 messages each, ten at a time
+INFO  channel: made
+INFO  mid-load footprint:
+buzz_cloudflared_1 0.00% 15MiB / 7.755GiB
+buzz_gateway_1 0.02% 13.46MiB / 7.755GiB
+buzz_pair_1 0.00% 728KiB / 7.755GiB
+buzz_postgres_1 8.94% 129.9MiB / 7.755GiB
+buzz_redis_1 0.83% 3.594MiB / 7.755GiB
+buzz_relay_1 0.54% 14.99MiB / 7.755GiB
+buzz_silo_1 3.72% 108.2MiB / 7.755GiB
+buzz_tailscale_1 0.00% 516KiB / 7.755GiB
+buzz_web_1 0.02% 16.39MiB / 7.755GiB
+TOTAL 303 MiB
+INFO  sent 200/200 in 23s
+INFO  member 1 reads 200 of them back
+== Files: 20 MB goes up, 101 MB is refused
+INFO  20 MB upload: ok in 4s 
+INFO  101 MB upload, after 0s: {"error":"user_error","message":"file too large: 101003187 bytes (max 52428800)","retryable":false} 
+INFO  Buzz's CLI refused it before sending; the relay's own default for images is the same, 50 MiB
+== Footprint after the load
+buzz_cloudflared_1 0.01% 15MiB / 7.755GiB
+buzz_gateway_1 0.00% 13.53MiB / 7.755GiB
+buzz_pair_1 0.00% 728KiB / 7.755GiB
+buzz_postgres_1 1.27% 130.8MiB / 7.755GiB
+buzz_redis_1 0.87% 3.594MiB / 7.755GiB
+buzz_relay_1 0.16% 35.29MiB / 7.755GiB
+buzz_silo_1 0.05% 108.7MiB / 7.755GiB
+buzz_tailscale_1 0.00% 524KiB / 7.755GiB
+buzz_web_1 0.02% 16.39MiB / 7.755GiB
+TOTAL 325 MiB
+== What the public address shows
+INFO  / -> HTTP 200, setup page in it: 0
+INFO  /login -> HTTP 404, setup page in it: 0
+INFO  /status.json -> HTTP 404, setup page in it: 0
+INFO  /save -> HTTP 404, setup page in it: 0
+INFO  /metrics -> HTTP 404, setup page in it: 0
+INFO  /settings -> HTTP 404, setup page in it: 0
+== Secrets in the logs
+settings checked: 16, log lines: 619
+== Reboot: the whole Umbrel restarts
+INFO  before: _operator_global_tables=28 _sqlx_migrations=73 audit_log=293 channel_members=25 channels=3 communities=1 event_mentions=307 events=364 events_p2026_10=364 relay_invites=1 relay_members=24 replica_heartbeat=1 users=3 
+INFO  back after 25s
+INFO  after:  _operator_global_tables=28 _sqlx_migrations=73 audit_log=293 channel_members=25 channels=3 communities=1 event_mentions=307 events=364 events_p2026_10=364 relay_invites=1 relay_members=24 replica_heartbeat=1 users=3 
+PASS  every table has the same rows after the reboot
+PASS  the setup survives the reboot
+INFO  postgres errors after the reboot: 0
+== phase 2a done
+
+## Phase 2b: Umbrel's own backup of A, restored onto B, a fresh umbrelOS 2.0.0 never set up
+INFO  first try: Umbrel couldn't mount the network share. umbrelOS in Docker uses the droplet's Ubuntu
+INFO  kernel, which lacked nls_utf8 (it comes in linux-modules-extra). No backup was taken. Installed
+INFO  that package on the droplet and ran again.
+== Back up Umbrel A, with Umbrel's own backups, to a network share
+INFO  share on A: /Network/localhost/Backups (Umbrel)
+INFO  repository: made
+INFO  A's tables at backup time: _operator_global_tables=28 _sqlx_migrations=73 audit_log=293 channel_members=25 channels=3 communities=1 event_mentions=307 events=364 events_p2026_10=364 relay_invites=1 relay_members=24 replica_heartbeat=1 users=3 
+INFO  backup: true after 8s
+INFO  backups in the repository: 1
+== Umbrel B: a fresh umbrelOS 2.0.0, never set up
+INFO  B has a user: false
+INFO  A's share, seen from B: /Network/172.17.0.2/Backups (Umbrel)
+INFO  B sees the backup: yes
+== Restore onto B
+INFO  the restore copied A's data and B rebooted into it on its own (umbreld: "Found Umbrel data to
+INFO  import", "Detected first start after backup restore"). The script waited for an Umbrel user,
+INFO  which these test Umbrels never have (A has none either), so it was stopped and the checks ran:
+INFO  user on A: false, on B: false
+INFO  Buzz Relay on B: {"state":"ready","progress":0}
+== B against A
+INFO  B's tables: _operator_global_tables=28 _sqlx_migrations=73 audit_log=293 channel_members=25 channels=3 communities=1 event_mentions=307 events=364 events_p2026_10=364 relay_invites=1 relay_members=24 replica_heartbeat=1 users=3 
+PASS  every table on B matches A at backup time
+PASS  B's relay serves the community at its address
+FAIL  B is missing the uploaded file
+INFO  a test error: media needs a member's signature, and A answers the same request with 401 too
+PASS  A and B store the 20 MB file byte for byte the same (Silo's stored part, compared by SHA-256)
+PASS  B has A's setup
+INFO  postgres errors on B: 0
+INFO  postgres recovery on B: 2
+
+## Phase 2e: B's footprint, then on A: uninstall, reinstall, end to end, a 95 MB video
+INFO  two earlier tries at the video test didn't reach the relay: the first sent a file type Buzz's CLI
+INFO  doesn't upload, the second used the test tunnel's old name, which changed when A rebooted in 2a.
+== Footprint on B, restored
+buzz_cloudflared_1 0.01% 38.31MiB / 7.755GiB
+buzz_gateway_1 0.00% 10.72MiB / 7.755GiB
+buzz_pair_1 0.00% 756KiB / 7.755GiB
+buzz_postgres_1 0.13% 85.14MiB / 7.755GiB
+buzz_redis_1 0.70% 3.305MiB / 7.755GiB
+buzz_relay_1 0.06% 15.26MiB / 7.755GiB
+buzz_silo_1 0.00% 90.85MiB / 7.755GiB
+buzz_tailscale_1 0.00% 552KiB / 7.755GiB
+buzz_web_1 0.05% 16.45MiB / 7.755GiB
+TOTAL 261 MiB
+== Disk on B
+92M	~/umbrel/app-data/buzz
+INFO  B removed
+== Uninstall, then install again, on A
+{"state":"not-installed","progress":0}
+app data removed
+{"state":"ready","progress":0}
+PASS  a reinstall starts at a fresh setup page
+INFO  the sign-in page answers HTTP 200
+== phase 2c done
+== End to end, on the reinstalled app
+== Tunnel
+PASS  relay address https://cleaners-nokia-ipod-queries.trycloudflare.com
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://cleaners-nokia-ipod-queries.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://cleaners-nokia-ipod-queries.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 36  failed: 0
+community address: https://cleaners-nokia-ipod-queries.trycloudflare.com
+INFO  member added
+== Videos: 95 MB goes up and comes back, 100.5 MB is refused
+INFO  footprint while it goes up:
+buzz_cloudflared_1 0.01% 15.05MiB / 7.755GiB
+buzz_gateway_1 0.00% 11.65MiB / 7.755GiB
+buzz_pair_1 0.00% 740KiB / 7.755GiB
+buzz_postgres_1 3.22% 78.22MiB / 7.755GiB
+buzz_redis_1 0.68% 3.418MiB / 7.755GiB
+buzz_relay_1 0.24% 13.8MiB / 7.755GiB
+buzz_silo_1 4.25% 101.2MiB / 7.755GiB
+buzz_tailscale_1 0.00% 524KiB / 7.755GiB
+buzz_web_1 0.02% 16.39MiB / 7.755GiB
+TOTAL 241 MiB
+INFO  95 MB upload:  in 13s {"error":"relay_error","message":"relay error 422: {\"error\":\"moov atom not at front of file (not fast-start)\"}","retryable":false} 
+INFO  the 95 MB request passed Cloudflare and the package's size limit; Buzz then refused the file
+INFO  itself, MP4-shaped random bytes rather than a real video. A real 96 MB video went up and came
+INFO  back intact on ARM: see 2026-10-30-1130-umbrel-arm-local-confidence.log.
+INFO  footprint after:
+buzz_cloudflared_1 0.00% 15.05MiB / 7.755GiB
+buzz_gateway_1 0.00% 11.65MiB / 7.755GiB
+buzz_pair_1 0.00% 740KiB / 7.755GiB
+buzz_postgres_1 1.11% 78.25MiB / 7.755GiB
+buzz_redis_1 0.79% 3.422MiB / 7.755GiB
+buzz_relay_1 0.12% 13.8MiB / 7.755GiB
+buzz_silo_1 0.05% 101.2MiB / 7.755GiB
+buzz_tailscale_1 0.00% 532KiB / 7.755GiB
+buzz_web_1 0.02% 16.39MiB / 7.755GiB
+TOTAL 241 MiB
+INFO  100.5 MB upload, after 5s: {"error":"relay_error","message":"relay error 413: length limit exceeded","retryable":false} 
+PASS  the relay refuses a video over the package's 100 MB limit ("length limit exceeded" is the relay's
+      reply; Cloudflare's own refusal would be an HTML page)
+== phase 2d done
+
+== Deleting the droplet
+deleted droplet buzz-umbrel-test
+deleted firewall buzz-umbrel-test-ssh-only

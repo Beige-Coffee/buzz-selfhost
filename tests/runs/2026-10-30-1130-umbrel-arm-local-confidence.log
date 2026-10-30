@@ -1,0 +1,269 @@
+Pre-submission run, unattended: ARM, umbrelOS 2.0.0 in Docker Desktop on an Apple Silicon Mac, relay sha-a38fedb.
+
+== Install through Umbrel
+{"state":"ready","progress":0}
+== Footprint, installed, before setup (after two minutes)
+buzz_cloudflared_1 0.22% 1.641MiB / 7.653GiB
+buzz_gateway_1 0.02% 20.39MiB / 7.653GiB
+buzz_pair_1 0.00% 1.973MiB / 7.653GiB
+buzz_postgres_1 0.04% 24.82MiB / 7.653GiB
+buzz_redis_1 0.69% 8.812MiB / 7.653GiB
+buzz_relay_1 0.00% 1.406MiB / 7.653GiB
+buzz_silo_1 0.31% 98.87MiB / 7.653GiB
+buzz_tailscale_1 0.12% 1.828MiB / 7.653GiB
+buzz_web_1 0.02% 16.91MiB / 7.653GiB
+TOTAL 177 MiB
+== End to end
+== Tunnel
+PASS  relay address https://weight-powerseller-twin-because.trycloudflare.com
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://weight-powerseller-twin-because.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://weight-powerseller-twin-because.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 36  failed: 0
+community address: https://weight-powerseller-twin-because.trycloudflare.com
+== Footprint, live with a community (after two minutes)
+buzz_cloudflared_1 0.01% 20.49MiB / 7.653GiB
+buzz_gateway_1 0.04% 11.6MiB / 7.653GiB
+buzz_pair_1 0.00% 1.262MiB / 7.653GiB
+buzz_postgres_1 0.15% 93.02MiB / 7.653GiB
+buzz_redis_1 0.39% 5.719MiB / 7.653GiB
+buzz_relay_1 0.30% 23.78MiB / 7.653GiB
+buzz_silo_1 0.00% 126.6MiB / 7.653GiB
+buzz_tailscale_1 0.00% 1.176MiB / 7.653GiB
+buzz_web_1 0.02% 17.02MiB / 7.653GiB
+TOTAL 301 MiB
+== Disk
+72M	~/umbrel/app-data/buzz
+Images 6.095GB
+Containers 80.01MB
+== Secrets in the logs
+secret values checked: 12, log lines: 134, lines with a secret: 1
+== Uninstall, back to ready to record
+{"state":"not-installed","progress":0}
+~/umbrel/app-stores/getumbrel-umbrel-apps-github-53f74447/buzz/umbrel-app.yml
+listing kept
+== local done
+
+## Again: the corrected secrets scan, and a real 96 MB video through the tunnel
+INFO  the first scan above checked public keys too. Its one line was most likely the owner's public
+INFO  key, which is in the relay's log once and isn't secret. This version leaves public keys out and
+INFO  names any setting it finds.
+== Install through Umbrel
+{"state":"ready","progress":0}
+== End to end
+== Tunnel
+PASS  relay address https://ebooks-money-advisors-yukon.trycloudflare.com
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://ebooks-money-advisors-yukon.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://ebooks-money-advisors-yukon.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 36  failed: 0
+community address: https://ebooks-money-advisors-yukon.trycloudflare.com
+== Secrets in the logs
+settings checked: 16, log lines: 134
+== Is the owner's public key in the logs? (what the first scan likely matched)
+INFO  buzz_relay_1: 1 lines
+== Videos: a real 96 MB video goes up and comes back, 100.5 MB is refused
+INFO  the video: 96482368 bytes, H.264, 1280x720, 40 s, fast-start
+INFO  footprint while it goes up:
+buzz_cloudflared_1 0.11% 16.09MiB / 7.653GiB
+buzz_gateway_1 6.46% 21.92MiB / 7.653GiB
+buzz_pair_1 0.00% 1.289MiB / 7.653GiB
+buzz_postgres_1 0.43% 77.45MiB / 7.653GiB
+buzz_redis_1 0.39% 9.602MiB / 7.653GiB
+buzz_relay_1 10.43% 23.68MiB / 7.653GiB
+buzz_silo_1 0.04% 131.4MiB / 7.653GiB
+buzz_tailscale_1 0.00% 1.543MiB / 7.653GiB
+buzz_web_1 0.14% 19.43MiB / 7.653GiB
+TOTAL 302 MiB
+FAIL  the 96 MB video: {"error":"relay_error","message":"relay error 422: {\"error\":\"media contains metadata or a non-canonical metadata channel\"}","retryable":false} 
+INFO  Buzz refuses a video carrying metadata (it can hold a location); this one had ffmpeg's encoder
+INFO  tag. Made again without it, in the next section. The request itself passed Cloudflare.
+INFO  footprint after:
+buzz_cloudflared_1 0.01% 15.42MiB / 7.653GiB
+buzz_gateway_1 0.00% 14.45MiB / 7.653GiB
+buzz_pair_1 0.00% 1.289MiB / 7.653GiB
+buzz_postgres_1 2.35% 82.12MiB / 7.653GiB
+buzz_redis_1 0.62% 4.699MiB / 7.653GiB
+buzz_relay_1 0.53% 31.45MiB / 7.653GiB
+buzz_silo_1 0.00% 114.3MiB / 7.653GiB
+buzz_tailscale_1 0.00% 1.332MiB / 7.653GiB
+buzz_web_1 0.08% 17.36MiB / 7.653GiB
+TOTAL 282 MiB
+INFO  100.5 MB video: {"error":"relay_error","message":"relay error 413: length limit exceeded","retryable":false} 
+PASS  the relay refuses a video over the package's 100 MB limit
+== Uninstall, back to ready to record
+{"state":"not-installed","progress":0}
+~/umbrel/app-stores/getumbrel-umbrel-apps-github-53f74447/buzz/umbrel-app.yml
+listing kept
+== local done
+
+## Again: the 96 MB video, made without metadata
+== Install through Umbrel
+{"state":"ready","progress":0}
+== End to end
+== Tunnel
+PASS  relay address https://sam-wagon-moderate-advocate.trycloudflare.com
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.2.1
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://sam-wagon-moderate-advocate.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://sam-wagon-moderate-advocate.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 36  failed: 0
+community address: https://sam-wagon-moderate-advocate.trycloudflare.com
+== Videos: a real 96 MB video goes up and comes back, 100.5 MB is refused
+INFO  the video: 96434336 bytes, H.264, 1280x720, 40 s, fast-start, no metadata
+INFO  footprint while it goes up:
+buzz_cloudflared_1 0.00% 15.25MiB / 7.653GiB
+buzz_gateway_1 7.38% 23MiB / 7.653GiB
+buzz_pair_1 0.00% 1.266MiB / 7.653GiB
+buzz_postgres_1 4.01% 72.66MiB / 7.653GiB
+buzz_redis_1 0.41% 7.605MiB / 7.653GiB
+buzz_relay_1 13.44% 43.16MiB / 7.653GiB
+buzz_silo_1 0.07% 116.3MiB / 7.653GiB
+buzz_tailscale_1 0.00% 1.668MiB / 7.653GiB
+buzz_web_1 0.02% 17.48MiB / 7.653GiB
+TOTAL 298 MiB
+PASS  the 96 MB video goes up, in 12s
+PASS  another member downloads it intact, in 7s
+INFO  footprint after:
+buzz_cloudflared_1 0.38% 15.63MiB / 7.653GiB
+buzz_gateway_1 0.00% 14.57MiB / 7.653GiB
+buzz_pair_1 0.00% 1.266MiB / 7.653GiB
+buzz_postgres_1 1.22% 78.75MiB / 7.653GiB
+buzz_redis_1 0.66% 6.09MiB / 7.653GiB
+buzz_relay_1 0.00% 31.59MiB / 7.653GiB
+buzz_silo_1 0.04% 168.5MiB / 7.653GiB
+buzz_tailscale_1 0.00% 1.242MiB / 7.653GiB
+buzz_web_1 0.04% 16.88MiB / 7.653GiB
+TOTAL 335 MiB
+INFO  100.5 MB video: {"error":"relay_error","message":"relay error 413: length limit exceeded","retryable":false} 
+PASS  the relay refuses a video over the package's 100 MB limit
+== Uninstall, back to ready to record
+{"state":"not-installed","progress":0}
+~/umbrel/app-stores/getumbrel-umbrel-apps-github-53f74447/buzz/umbrel-app.yml
+listing kept
+== local done

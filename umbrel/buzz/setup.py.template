@@ -1506,6 +1506,10 @@ def main_page(setup, error="", values=None):
         '<section class="part next"><p class="eyebrow">Next steps</p>'
         '<div class="step on"><span class="num">1</span><div class="step-body"><h2>Join your community</h2>'
         "<p class=\"muted\">Join in Buzz with this address, using the same identity you entered as the owner.</p>"
+        # Buzz 1.0's own link for a community's address (docs/deep-links.md in block/buzz-app): it opens
+        # the join screen with the address filled in, and joins nothing by itself
+        + ('<a class="btn" href="buzz://connect?relay=' + esc(urllib.parse.quote("wss://" + domain, safe="")) + '">Open in Buzz</a>'
+           '<p class="muted small">Opens Buzz on this computer with the address filled in.</p>' if domain else "")
         + how_to("Show me how", join_steps(domain))
         + ('<p class="muted small">Just bought the domain? Your computer can take a while to find it. If Buzz '
            "can't connect, try again in a few minutes.</p>" if mode == "domain" else "") + "</div></div>"

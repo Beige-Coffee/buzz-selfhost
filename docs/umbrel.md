@@ -118,7 +118,9 @@ Credit #5928 when we submit.
   after the guide site: three steps (the owner, how members reach it, the acknowledgement), with
   the npub's checksum checked and a private key refused. Then a status list that refreshes every
   five seconds, and the steps for the chosen option: the Cloudflare values, or Tailscale's sign-in,
-  machine approval and consent links. Once live: the join address, adding members, pairing phones
+  machine approval and consent links. Once live: the join address, with an Open in Buzz button
+  (`buzz://connect?relay=wss://…`, Buzz 1.0's link that opens its join screen with the address filled
+  in, as Pavlenex's package did), adding members, pairing phones
   (with Tailscale on, for the private option), and phone notifications. Settings: change the owner
   (the old one becomes an admin), turn phone notifications off or on, change the address, and how
   moving servers works. Umbrel's rules require a page like this for an app with no web interface of its

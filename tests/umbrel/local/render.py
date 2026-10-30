@@ -33,6 +33,7 @@ for mode in ("domain", "funnel", "private"):
                     page = m.main_page(m.load_setup(), "an error" if values else "", values)
                     assert "<main>" in page and "Traceback" not in page
                     assert ("Phone notifications are " + ("on" if push else "off")) in page or not live
+                    assert ('href="buzz://connect?relay=wss%3A%2F%2F' + domain + '"') in page or not (live and named)
                     count += 1
 for values in ({}, {"owner": "x", "mode": "private", "ack": "yes"}):
     assert "<main>" in m.setup_page("e", values); count += 1

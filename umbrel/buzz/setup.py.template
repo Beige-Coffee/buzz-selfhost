@@ -915,7 +915,7 @@ def error_box(error):
 
 def login_page(error=""):
     return layout(
-        '<p class="eyebrow">Sign in</p><h1>Set up your <mark>Buzz</mark> community</h1>'
+        '<p class="eyebrow">Sign in</p><h1>Your <mark>Buzz</mark> community</h1>'
         '<p class="lede">Enter this app\'s password to continue.</p>'
         '<form method="post" action="login"><label class="field" for="password">Password</label>'
         '<input type="password" id="password" name="password" autocomplete="current-password" autofocus>'

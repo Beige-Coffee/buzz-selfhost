@@ -78,17 +78,17 @@ def owner_hex(text):
     if re.fullmatch(r"[0-9a-f]{64}", value):
         return value
     if value.startswith("nsec"):
-        raise ValueError("That's a private key. Keep it secret and don't paste it anywhere. Your public ID starts with npub.")
+        raise ValueError("That's a private key. Keep it secret and don't paste it anywhere. Your public ID starts with npub1.")
     if not value.startswith("npub1") or len(value) != 63:
-        raise ValueError("Paste your public ID from Buzz, under Settings, Identity, Nostr address. It starts with npub1 and is 63 characters long.")
+        raise ValueError("Paste your public ID from Buzz. It's under Settings, then Identity, then Nostr address. It starts with npub1 and is 63 characters long.")
     data = []
     for char in value[5:]:
         if char not in BECH32:
-            raise ValueError("That public ID has a character a public ID can't contain. Copy it again from Buzz.")
+            raise ValueError("That public ID contains a character that isn't allowed. Copy it again from Buzz.")
         data.append(BECH32.index(char))
     expanded = [ord(c) >> 5 for c in "npub"] + [0] + [ord(c) & 31 for c in "npub"]
     if bech32_polymod(expanded + data) != 1:
-        raise ValueError("That public ID doesn't check out: a character is wrong or missing. Copy it again from Buzz.")
+        raise ValueError("That public ID has a wrong or missing character. Copy it again from Buzz.")
     acc = bits = 0
     key = bytearray()
     for value5 in data[:-6]:
@@ -108,7 +108,7 @@ def clean_domain(text):
     if not domain:
         raise ValueError("Enter your domain, like yourteam.com.")
     if len(domain) > 253 or not re.fullmatch(r"(" + label + r"\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]", domain):
-        raise ValueError("Enter a domain name, like buzz.example.com, with no port or path.")
+        raise ValueError("That isn't a domain. Enter one like yourteam.com, with no port or path.")
     if domain.endswith((".local", ".localhost", ".internal", ".lan", ".home.arpa")):
         raise ValueError("That name only works on your home network. Use a public domain, "
                          "or choose a Tailscale option.")
@@ -412,7 +412,7 @@ def check(setup):
     public_self = relay_self(*got["info"])
     if reach_ok and local_self and public_self and local_self != public_self:
         items.append(item("reach", "bad", "<code>" + html.escape(domain) + "</code> reaches a different Buzz relay",
-                          "The name points somewhere else, not this Umbrel. Check which tunnel or server it routes to."))
+                          "The name points to another server, not this Umbrel. Check which tunnel or server it goes to."))
         reach_ok = False
     elif reach_ok:
         items.append(item("reach", "ok", "This Umbrel's Buzz answers at <code>https://" + html.escape(domain) + "</code>"))
@@ -446,12 +446,12 @@ def reach_hint(mode, status, body):
         return ("The tunnel runs but can't reach Buzz. In Cloudflare, set the hostname's service to HTTP and "
                 "the URL to " + GATEWAY_URL + ".")
     if status == 404 and "no community" in text:
-        return ("The name reaches Buzz, but not with the address saved here. Check the hostname in Cloudflare "
-                "matches it exactly.")
+        return ("The name reaches Buzz, but it doesn't match the address saved here. Check that the hostname in "
+                "Cloudflare matches it exactly.")
     if status:
-        return "It answered HTTP " + str(status) + ". Check the hostname and service in Cloudflare."
+        return "The name answered with HTTP " + str(status) + ". Check the hostname and service in Cloudflare."
     if text.startswith("tls"):
-        return "The name answers without a valid HTTPS certificate yet. In Cloudflare, the name must be proxied."
+        return "The name has no valid HTTPS certificate yet. In Cloudflare, set this name to Proxied."
     return "Nothing answers yet. A new name can take a few minutes to work."
 
 
@@ -848,7 +848,7 @@ function reachFromHere(item) {
     })
     .catch(function () {
       item.className = "bad"; text.textContent = "This device can't reach Buzz";
-      hint.textContent = "Is Tailscale on here, signed in to the same Tailscale network, and allowed to reach the buzz machine? Devices outside your network can't connect. That's what keeps this option private.";
+      hint.textContent = "Check that Tailscale is on here, signed in to the same Tailscale network, and allowed to reach the buzz machine. Devices outside your network can't connect, which keeps this option private.";
     })
     .finally(function () { clearTimeout(timer); });
 }
@@ -974,7 +974,7 @@ def address_fields(values, setup):
                  more=domain_field(values, "Your address")
                  + '<p class="small">Next, you sign in to Cloudflare and choose your domain. This page sets up the rest and '
                  "checks that it works. "
-                 "Cloudflare handles HTTPS, so it can see the traffic it carries, and it caps uploads at 100 MB.</p>")
+                 "Cloudflare handles HTTPS, so it can see the traffic it carries, and uploads are limited to 100 MB.</p>")
         + choice("funnel", "For trying Buzz out", "", "A free Tailscale address",
                  "The quickest start. Tailscale gives this Umbrel an address like <code>buzz.tail1234.ts.net</code> "
                  "that anyone you invite can reach. It's tied to your Tailscale account, not a name you own.",
@@ -1176,8 +1176,8 @@ def join_steps(domain):
         ("Open Join a community", drawn_switcher(),
          "In Buzz, open the community menu at the top right, then <b>Join a community</b>."),
         ("Paste the address", drawn_join("https://" + domain),
-         "Paste the address into <b>Community URL</b> and choose <b>Continue</b>. Leave the invite code blank, since "
-         "you're already the owner. Then set how you appear, and open the community."),
+         "Paste the address into <b>Community URL</b> and choose <b>Continue</b>. Leave the invite code blank, "
+         "because you're already the owner. Then set how you appear and open the community."),
     ]
 
 
@@ -1187,8 +1187,8 @@ def member_steps(domain):
          "In Buzz, open <b>Settings</b>. Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite "
          "members</b>."),
         ("Add someone, or send a link", drawn_membership(domain, inviting=True),
-         "Paste their public ID and choose <b>Add member</b>. Or copy the invite link and send it: anyone with it can "
-         "join until it expires. They open it and choose <b>Accept invite in Buzz</b>."),
+         "Paste their public ID and choose <b>Add member</b>. Or copy the invite link and send it. Anyone with the "
+         "link can join until it expires. They open it and choose <b>Accept invite in Buzz</b>."),
     ]
 
 
@@ -1274,8 +1274,8 @@ def setup_page(error="", values=None):
         'value="' + esc(owner) + '">' + how_to_find_npub() + "</div></div>"
         '<div class="step on"><span class="num">2</span><div class="step-body"><h2>How members reach it</h2>'
         "<p class=\"muted\">How you set this up depends on what it's for: trying Buzz out, hosting an existing "
-        "community, or a private group behind a VPN that only certain people can reach. Pick the option that fits, "
-        "and this page walks you through the rest.</p>" + address_fields(values, None) + "</div></div>"
+        "community, or a private group behind a VPN that only certain people can reach. Pick the option that fits "
+        "you best.</p>" + address_fields(values, None) + "</div></div>"
         '<div class="step on"><span class="num">3</span><div class="step-body"><h2>Create it</h2>'
         '<label class="confirm-box"><input type="checkbox" name="ack" value="yes"' + (" checked" if values.get("ack") == "yes" else "") + ">"
         "<span><b>I understand that changing the address later starts a new, empty community.</b> Buzz can't move "
@@ -1428,10 +1428,10 @@ def address_change(setup, values, current):
         + (" disabled" if mode == now and mode != "domain" else "") + "><span><b>" + title + "</b><small>" + tag
         + "</small></span>" + ("<em>Current</em>" if mode == now else "") + "</label>"
         for mode, title, tag in rows)
-    note = ("A different address starts a new, empty community. This one stays on your Umbrel, and comes back if you "
-            "switch back to its address.")
+    note = ("Changing the address starts a new, empty community. The current one stays on your Umbrel. Switch back "
+            "to this address to bring it back.")
     if now != "domain":
-        note += " Moving between the two Tailscale options keeps the address."
+        note += " Switching between the two Tailscale options keeps the same address."
     confirm = (
         '<label class="field" for="confirm">To confirm, type <code>' + esc(current) + "</code></label>"
         '<input type="text" id="confirm" name="confirm" autocomplete="off" spellcheck="false" data-expect="' + esc(current) + '">'
@@ -1454,18 +1454,18 @@ def settings_part(setup, error, values):
     return (
         '<section class="part"><h2>Settings</h2><div class="set-card">'
         "<details" + (" open" if values.get("form") == "owner" else "") + "><summary>Owner<span class=\"val\">" + esc(owner_now[:10] + "\u2026" + owner_now[-4:]) + "</span></summary><div class=\"inner\">"
-        '<form method="post" action="owner"><p class="muted small">The current owner becomes an admin, and you can '
-        "change that in Buzz. The community and its address stay the same.</p>"
+        '<form method="post" action="owner"><p class="muted small">Make someone else the owner. The current owner '
+        "becomes an admin, which you can change in Buzz. The community and its address stay the same.</p>"
         '<label class="field" for="new-owner">New owner\'s public ID (npub)</label>'
         '<input type="text" id="new-owner" name="owner" autocomplete="off" spellcheck="false" placeholder="npub1..." value="' + esc(owner) + '">'
         '<button class="btn small ghost" type="submit">Change the owner</button></form>'
         + (error_box(error) if values.get("form") == "owner" else "") + "</div></details>"
         "<details><summary>Phone notifications<span class=\"val word\">" + ("On" if push_on(setup) else "Off") + "</span></summary><div class=\"inner\">"
-        '<form method="post" action="notifications"><p class="muted small">When they\'re on, this Umbrel wakes '
-        "members' iPhones for direct messages and mentions, through Block's push service. No message text, "
-        "sender or channel leaves this Umbrel. Block's service does see this Umbrel's internet address and "
-        "which phones it wakes, and when, and Apple sees when a phone is woken. Saving restarts Buzz for a "
-        "few seconds.</p>"
+        '<form method="post" action="notifications"><p class="muted small">When this is on, members\' iPhones get '
+        "notifications for direct messages and mentions, through Block's push service. Android phones don't "
+        "get notifications yet. Message text, senders and channels never leave this Umbrel. Block's service "
+        "does see this Umbrel's internet address, and which phones it wakes and when. Apple sees when a phone "
+        "is woken. Saving restarts Buzz for a few seconds.</p>"
         '<label class="check"><input type="checkbox" name="push" value="on"' + (" checked" if push_on(setup) else "")
         + "><span>Send phone notifications</span></label>"
         '<button class="btn small ghost" type="submit">Save</button></form></div></details>'
@@ -1493,28 +1493,30 @@ def main_page(setup, error="", values=None):
         if mode == "private" and domain:
             body += '<section class="part"><h2>Who can connect</h2>' + private_members_note() + "</section>"
         return layout(body + settings_part(setup, error, values))
-    reach = {"domain": "Members reach it from anywhere at this address.",
-             "funnel": "Members reach it from anywhere at this address, without Tailscale.",
-             "private": "Members reach it at this address from devices on your Tailscale network."}[mode]
+    reach = {"domain": "from anywhere",
+             "funnel": "from anywhere, without Tailscale",
+             "private": "from devices on your Tailscale network"}[mode]
     body = (
         '<p class="eyebrow">Live &middot; ' + MODE_NAMES[mode] + '</p><h1>Your community is <mark>live</mark></h1>'
-        '<p class="lede">' + reach + " Only people you add can read or post.</p>"
+        '<p class="lede">Only people you add by their public ID, or who join with an invite link, can read or '
+        "post. They join in Buzz with this address, " + reach + ".</p>"
         '<div class="address"><code><span>https://' + esc(domain) + "</span></code>"
         '<button class="btn" type="button" onclick="copyText(this, \'https://' + esc(domain) + '\')">Copy</button></div>'
         + status +
         '<section class="part next"><p class="eyebrow">Next steps</p>'
         '<div class="step on"><span class="num">1</span><div class="step-body"><h2>Join your community</h2>'
-        "<p class=\"muted\">Join from Buzz with the same identity you entered as the owner.</p>"
+        "<p class=\"muted\">Join in Buzz with this address, using the same identity you entered as the owner.</p>"
         + how_to("Show me how", join_steps(domain))
         + ('<p class="muted small">Just bought the domain? Your computer can take a while to find it. If Buzz '
            "can't connect, try again in a few minutes.</p>" if mode == "domain" else "") + "</div></div>"
         '<div class="step on"><span class="num">2</span><div class="step-body"><h2>Add members</h2>'
-        '<p class="muted">Add people by their public ID, or send them an invite link.</p>'
+        '<p class="muted">Add people by their public ID, then send them this address. Or send them an invite '
+        "link, which lets them join in one step.</p>"
         + how_to("Show me how", member_steps(domain)) + (private_members_note() if mode == "private" else "")
         + "</div></div>"
         '<div class="step on"><span class="num">3</span><div class="step-body"><h2>Pair your phone</h2>'
-        '<p class="muted">Pair the Buzz app on a phone from Buzz on your computer'
-        + (", with Tailscale on the phone" if mode == "private" else "") + ".</p>"
+        '<p class="muted">Pair Buzz on your phone with Buzz on your computer.'
+        + (" The phone needs Tailscale too." if mode == "private" else "") + "</p>"
         + how_to("Show me how", phone_steps(domain)) + notifications_note(setup) + "</div></div></section>"
     )
     return layout(body + settings_part(setup, error, values))
@@ -1645,9 +1647,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             current = relay_domain() or setup.get("domain") or ""
             try:
                 if current and values.get("confirm", "").strip().lower() != current:
-                    raise ValueError("Type the current address exactly, to confirm.")
+                    raise ValueError("To confirm, type the current address exactly.")
                 if not current and values.get("ack") != "yes":
-                    raise ValueError("Tick the box to confirm you understand that a new address starts a new community.")
+                    raise ValueError("Tick the box to confirm you understand this starts a new, empty community.")
                 values["owner"] = setup["owner"]
                 key, mode, domain = self.address(values)
                 if mode != "domain" and setup["mode"] != "domain":

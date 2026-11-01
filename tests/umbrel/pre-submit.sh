@@ -84,6 +84,32 @@ echo "== End to end"
 python3 $L/keygen.py > $TMP/owner.keys
 e2e
 [ -n "$DOMAIN" ] || exit 1
+
+echo "== What each service can reach, and how fast the page stops"
+# After e2e.sh the app's own Cloudflare tunnel waits for a sign-in, having named itself in its folder.
+host "docker exec -i $C sh -s" > $TMP/reach.txt <<'REACH'
+for i in $(seq 1 20); do docker exec buzz_cloudflared_1 test -s /cloudflare/tunnel-name && break; sleep 3; done
+docker exec buzz_cloudflared_1 test -s /cloudflare/tunnel-name && echo "OWN cloudflared"
+docker exec buzz_web_1 test -e /settings/cloudflare && echo "SHARED settings/cloudflare"
+for c in $(docker ps --format '{{.Names}}' | grep '^buzz_'); do
+  docker inspect -f '{{range .Mounts}}{{.Source}} {{end}}' $c | grep -q '/data/cloudflare ' && echo "MOUNTS $c"
+done
+for c in buzz_web_1 buzz_relay_1 buzz_pair_1 buzz_tailscale_1; do
+  [ "$(docker inspect -f '{{.HostConfig.Init}}' $c)" = true ] || echo "NOINIT $c"
+done
+s=$(date +%s); docker stop buzz_web_1 > /dev/null; echo "STOPPED $(( $(date +%s) - s ))"
+docker start buzz_web_1 > /dev/null
+REACH
+cat $TMP/reach.txt
+grep -q '^OWN cloudflared' $TMP/reach.txt && ! grep -q '^SHARED' $TMP/reach.txt &&
+  [ "$(grep '^MOUNTS' $TMP/reach.txt)" = "MOUNTS buzz_cloudflared_1" ] &&
+  pass "Cloudflare's sign-in and tunnel files are in a folder only its own service mounts" ||
+  fail "Cloudflare's sign-in folder is shared or missing"
+grep -q '^NOINIT' $TMP/reach.txt && fail "a service runs without an init process" ||
+  pass "the page, relay, pairing and Tailscale services run under an init process"
+[ "$(sed -n 's/^STOPPED //p' $TMP/reach.txt)" -lt 5 ] 2> /dev/null && pass "the setup page stops in under 5 s" ||
+  fail "the setup page took $(sed -n 's/^STOPPED //p' $TMP/reach.txt) s to stop"
+
 echo "== Memory with a community"
 footprint
 

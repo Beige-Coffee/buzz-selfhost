@@ -9,7 +9,9 @@ default with a setting to turn them off. The rebuilt page passed real tests on D
 in a browser, and on 2026-10-28 ran on umbrelOS 2.0.0 on a Mac, where a community went live with
 the free Tailscale address. On 2026-10-30, after a review of every screen's copy, it passed a
 longer unattended run on Intel and ARM: a load, a reboot, Umbrel's own backup restored onto a fresh
-Umbrel, and a reinstall. Not yet submitted to Umbrel. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
+Umbrel, and a reinstall. On 2026-11-01, for Umbrel's reviewers, Cloudflare's sign-in moved to a
+folder of its own, four services got an init process, and the port moved to 3025; `pre-submit.sh`
+then passed 96 of 96 on an Intel droplet. Not yet submitted to Umbrel. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package
 
@@ -281,7 +283,7 @@ Apple Silicon Mac) ([Intel log](../tests/runs/2026-10-30-1130-umbrel-intel-dropl
 [ARM log](../tests/runs/2026-10-30-1130-umbrel-arm-local-confidence.log)). These checks ran as
 one-off scripts; they're now [`pre-submit.sh`](../tests/umbrel/pre-submit.sh), which passed 85 of 85 on
 the Mac's umbrelOS ([log](../tests/runs/2026-10-30-1333-umbrel-pre-submit-arm-local.log)). Its restart
-and restore run only on a droplet, and haven't run in script form yet.
+and restore run only on a droplet, and first ran in script form on 2026-11-01.
 
 - Installed through Umbrel, then `e2e.sh` 36 of 36 on both.
 - Memory, the app's containers together: about 130 MiB on Intel and 180 MiB on ARM installed but not
@@ -305,6 +307,19 @@ and restore run only on a droplet, and haven't run in script form yet.
   passed 36 of 36 on it.
 - In the test setup only: umbrelOS in Docker on a droplet uses Ubuntu's kernel, which needs
   `linux-modules-extra` before Umbrel can mount a network share.
+
+2026-11-01, unattended, after three changes for Umbrel's reviewers (Cloudflare's sign-in in its own
+folder, `init: true`, port 3025): `pre-submit.sh` on a fresh DigitalOcean droplet (Intel), relay
+`sha-a38fedb`, passed 96 of 96 ([log](../tests/runs/2026-11-01-0937-umbrel-pre-submit-intel-droplet.log)).
+
+- Cloudflare's sign-in folder is mounted by its own service alone, the page, relay, pairing and
+  Tailscale services run under an init process, and the page stops in under a second.
+- `e2e.sh` 36 of 36, before and after a reinstall. Memory with a community: 237 MiB.
+- Restarting the whole Umbrel: back in 25 s, every table and the setup the same. Umbrel's backup
+  took 14 s; the second Umbrel ran Buzz from it after 85 s, with every table, the setup and the
+  stored files the same.
+- ARM wasn't run again: none of the three changes depends on the chip, and every image is the one
+  that passed 85 of 85 on ARM on 2026-10-30.
 
 ## Not yet tested
 

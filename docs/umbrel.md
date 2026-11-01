@@ -43,7 +43,8 @@ Credit #5928 when we submit.
     `http://buzz-gateway:80`, with no router ports opened. The owner signs in to Cloudflare from
     the page with `cloudflared tunnel login` and chooses the domain; the `cloudflared` service then
     creates a tunnel, adds the name to the domain's DNS (refusing a name that already has a
-    record, and catching a domain chosen wrong), and runs it. Its image is the connector of
+    record, and catching a domain chosen wrong), and runs it. The sign-in certificate and tunnel
+    token stay in `data/cloudflare`, which no other service mounts. Its image is the connector of
     Umbrel's Cloudflare Tunnel app (Radiokot/umbrel-cloudflared), Alpine with Cloudflare's own
     `cloudflared`; the official image has no shell to wait in, so it would restart every minute
     until set up. With another option chosen, the service waits. Owners who already run Umbrel's
@@ -135,6 +136,9 @@ Credit #5928 when we submit.
 - **Names:** services reach each other by names without underscores (`buzz-silo`,
   `buzz-gateway`). Silo refuses a hostname with an underscore, like a container name, and a
   Cloudflare dashboard may too.
+- **Stopping:** the page, relay, pairing and Tailscale services run with `init: true`. Python and
+  the pairing service ignore Docker's stop signal as a container's first process, so without it
+  each stop waited out Docker's 10 seconds.
 - **Uninstalling** removes the app's data from the Umbrel, but not what it made in the owner's
   accounts: the Cloudflare tunnel and DNS name, or the `buzz` machine in Tailscale. Installing again
   then finds the name taken, or Tailscale names the new machine `buzz-1`. The App Store description
@@ -312,7 +316,8 @@ and restore run only on a droplet, and haven't run in script form yet.
 
 1. Run the untested steps above.
 2. Set `submitter` and `submission` in `umbrel-app.yml`; the linter requires the PR link.
-3. Settle `version`. The relay has no release, so it's the image's commit for now.
+3. `version` is the relay image's commit, which Umbrel's guide asks for when upstream has no
+   release.
 4. Copy the package into a fork of getumbrel/umbrel-apps and open the PR, crediting #5928 and
    [#5993](https://github.com/getumbrel/umbrel-apps/pull/5993), a second submission (Aug 15, no
    review). Neither has been reviewed or updated since August. Copy without `__pycache__`.
@@ -388,8 +393,12 @@ The local run's password is `local-test-only`. `check.py` expects a fresh run: `
   can't join until it's cleared: `sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder`,
   or a wait. The page says to try again in a few minutes.
 - An update copies an app's compose file and templates, not new data folders, so a service added
-  in an update keeps its files in a folder that already exists (the Cloudflare service uses
-  `settings/cloudflare`).
+  in a later update has to keep its files in a folder that already exists. Before the first
+  submission, the Cloudflare service moved out of `settings/cloudflare` into a folder of its own.
+- The manifest's port must be unique in the store, and Umbrel's linter checks only what's merged.
+  3024 was free there but claimed by an open submission
+  ([#5907](https://github.com/getumbrel/umbrel-apps/pull/5907)), so the app moved to 3025, free
+  on master and in every open pull request on 2026-11-01.
 - umbrelOS 2.0 sends app ports to its sign-in gateway with an nftables `fib` rule, which Docker
   Desktop's kernel can't run: no app page opens, and `umbreld` logs "Failed waiting for app gateway".
   `install.sh` swaps in a rule that matches the container's network interfaces instead. Opening an

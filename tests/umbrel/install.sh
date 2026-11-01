@@ -17,7 +17,7 @@ COPYFILE_DISABLE=1 tar --no-xattrs --exclude=__pycache__ -C "${PKG_ROOT:-$HERE/.
 # Not VERSION: Docker's install script reads that name as the Docker version to install.
 # Umbrel's own port, its sign-in page for apps (2000), and the ports of Buzz and the apps to compare
 # it with: Nostr Relay, Synapse, Element, Cloudflare Tunnel, Tailscale, Mattermost and Home Assistant
-[ -n "${UMBREL_LOCAL:-}" ] && PUBLISH=${UMBREL_PUBLISH-8080:80 2000:2000 3024:3024 4848:4848 8008:8008 8088:8088 4499:4499 8240:8240 8765:8765 8123:8123}
+[ -n "${UMBREL_LOCAL:-}" ] && PUBLISH=${UMBREL_PUBLISH-8080:80 2000:2000 3025:3025 4848:4848 8008:8008 8088:8088 4499:4499 8240:8240 8765:8765 8123:8123}
 target "UMBREL_VERSION=$VERSION C=$C PKG=$PKG PUBLISH='${PUBLISH:-}' bash -s" <<'REMOTE'
 set -euo pipefail
 trap 'echo "install.sh: failed at line $LINENO of the server script" >&2' ERR

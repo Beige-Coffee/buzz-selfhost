@@ -47,7 +47,7 @@ website: https://buzz.xyz
 dependencies: []
 repo: https://github.com/block/buzz
 support: https://github.com/Beige-Coffee/buzz-selfhost/issues
-port: 3024
+port: 3025
 gallery: []
 path: ""
 defaultUsername: ""

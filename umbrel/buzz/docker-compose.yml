@@ -9,6 +9,7 @@ services:
   # Setup and status page: the owner's public ID, the community's domain, and checks.
   web:
     image: python:3.13.16-alpine3.24@sha256:2d9aefe2fef018a7eb2c13064c89c71929800fd2e5dccdbf52ea5da5bb8d929a
+    init: true
     user: "1000:1000"
     command: ["python3", "-u", "/app/setup.py"]
     environment:
@@ -36,6 +37,7 @@ services:
 
   relay:
     image: ghcr.io/block/buzz:sha-a38fedb@sha256:ec4e4b1cf56507af53804418a20df733ddaf70f7df3c5c0060cc6df746e724a2
+    init: true
     # Generates the relay's own key on first start, waits for the setup page, then runs the
     # relay. When the setup page changes the settings, it exits so the relay restarts with them.
     entrypoint:
@@ -128,6 +130,7 @@ services:
   # the image's containerboot restarts after 60 seconds without a sign-in.
   tailscale:
     image: tailscale/tailscale:v1.104.2@sha256:b11583ad2e93e4671128538c88cf11f460444a5d7e449311dd1933a400ab849d
+    init: true
     entrypoint:
       - /bin/sh
       - -c
@@ -194,8 +197,7 @@ services:
       - |
         set -u
         cf=/cloudflared
-        # Its sign-in certificate and tunnel token live in the settings folder: a folder of their
-        # own wouldn't exist in installs updated from an earlier version of this app
+        # Its sign-in certificate and tunnel token stay in its own folder, which no other service mounts
         mkdir -p "$$HOME" && chmod 700 "$$HOME"
         want() { [ -f /settings/cloudflare-enabled ] && tr -d ' \n' < /settings/cloudflare-enabled; }
         state() { printf '%s\n' "$$1" > /settings/cloudflare-state.tmp && mv -f /settings/cloudflare-state.tmp /settings/cloudflare-state; }
@@ -265,14 +267,16 @@ services:
           if [ "$$(want)" = "$$host" ]; then sleep 5; fi
         done
     environment:
-      HOME: /settings/cloudflare
+      HOME: /cloudflare
     volumes:
+      - ${APP_DATA_DIR}/data/cloudflare:/cloudflare
       - ${APP_DATA_DIR}/data/settings:/settings
     restart: on-failure
 
   # Phones pair with Buzz Desktop through this service, at wss://<domain>/pair.
   pair:
     image: ghcr.io/block/buzz:sha-a38fedb@sha256:ec4e4b1cf56507af53804418a20df733ddaf70f7df3c5c0060cc6df746e724a2
+    init: true
     entrypoint: ["/usr/local/bin/buzz-pair-relay"]
     environment:
       BUZZ_PAIR_RELAY_BIND_ADDR: 0.0.0.0:5000

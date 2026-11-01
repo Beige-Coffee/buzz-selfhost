@@ -110,7 +110,7 @@ s, body, _ = call("/save", {"owner": OWNER2, "mode": "domain", "domain": "evil.e
                   headers={"Sec-Fetch-Site": "same-site", "Origin": "http://umbrel.local:4000"})
 ok(s == 403 and settings("setup.json") == "", "a form posted from another app's page on the same Umbrel is refused (HTTP %s)" % s)
 s, body, _ = call("/save", {"owner": OWNER, "mode": "domain", "domain": D1},
-                  headers={"Sec-Fetch-Site": "same-origin", "Origin": "http://umbrel.local:3024"})
+                  headers={"Sec-Fetch-Site": "same-origin", "Origin": "http://umbrel.local:3025"})
 ok(s == 400 and "Tick the box" in body, "the page's own forms pass whatever Host the proxy forwards (reached validation)")
 
 print("== Setup")

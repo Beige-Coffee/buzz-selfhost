@@ -11,7 +11,8 @@ the free Tailscale address. On 2026-10-30, after a review of every screen's copy
 longer unattended run on Intel and ARM: a load, a reboot, Umbrel's own backup restored onto a fresh
 Umbrel, and a reinstall. On 2026-11-01, for Umbrel's reviewers, Cloudflare's sign-in moved to a
 folder of its own, four services got an init process, and the port moved to 3025; `pre-submit.sh`
-then passed 96 of 96 on an Intel droplet. Not yet submitted to Umbrel. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
+then passed 96 of 96 on an Intel droplet. Submitted to Umbrel on 2026-11-01 as
+[getumbrel/umbrel-apps#6291](https://github.com/getumbrel/umbrel-apps/pull/6291). It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package
 
@@ -327,17 +328,14 @@ folder, `init: true`, port 3025): `pre-submit.sh` on a fresh DigitalOcean drople
 - A real Raspberry Pi: ARM itself passed on a Mac, but not the Pi's slower processor and storage.
   Umbrel asks for the chip type to be tested, not a particular device.
 
-## Before submitting
+## Submitted
 
-1. Run the untested steps above.
-2. Set `submitter` and `submission` in `umbrel-app.yml`; the linter requires the PR link.
-3. `version` is the relay image's commit, which Umbrel's guide asks for when upstream has no
-   release.
-4. Copy the package into a fork of getumbrel/umbrel-apps and open the PR, crediting #5928 and
-   [#5993](https://github.com/getumbrel/umbrel-apps/pull/5993), a second submission (Aug 15, no
-   review). Neither has been reviewed or updated since August. Copy without `__pycache__`.
-5. Say in the PR what it was tested on: umbrelOS 2.0.0 in Docker on Intel and ARM (1.7.4 with an
-   earlier version of the package), not on a Raspberry Pi.
+[getumbrel/umbrel-apps#6291](https://github.com/getumbrel/umbrel-apps/pull/6291), opened on 2026-11-01 from the fork
+`Beige-Coffee/umbrel-apps`, branch `add-buzz-relay`, which holds only `buzz/`. Umbrel's linter
+found no issues once the PR link was set. To change the PR, change the package here, copy
+`umbrel/buzz/` over the fork's `buzz/` without `__pycache__`, run
+`npm run lint:apps -- buzz --check-images` there, and push. The PR credits #5928 and says how it
+differs from [#5993](https://github.com/getumbrel/umbrel-apps/pull/5993).
 
 ## Testing again
 

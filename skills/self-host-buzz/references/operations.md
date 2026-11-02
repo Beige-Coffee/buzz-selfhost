@@ -19,8 +19,8 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   current owner can't be removed.
 - **Agents.** Buzz 1.0 runs agents on the owner's computer, each with its own key and the
   owner's signed attestation (NIP-OA). The relay admits them through the owner's membership,
-  because `.env` has `BUZZ_ALLOW_NIP_OA_AUTH=true` (the bundle's default, as in the chart and
-  Railway's template): don't add them as members. They lose access if the owner leaves or is
+  because `.env` has `BUZZ_ALLOW_NIP_OA_AUTH=true` (the bundle's default, as in the chart):
+  don't add them as members. They lose access if the owner leaves or is
   removed, and the app adds them to the channels and chats it uses them in. Tested: an agent
   posted in a chat that named it, its key without the attestation was refused, and so was an agent
   of a non-member. Showing agents online needs an image from 2026-10-13 or later. An agent with
@@ -138,45 +138,6 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   ```
   Check: `0` (nothing from before is missing), then `intact`. If a check fails, go back: Restore,
   with the bundle moved back to the old tag.
-
-## Railway
-
-- **Add a member.** Check the npub first: `python3 $SKILL/scripts/npub-to-hex.py <npub>`.
-  `railway ssh` needs an SSH key registered with the user's Railway account (ask first):
-  `railway ssh keys add --key ~/.ssh/<key>.pub` takes only a key in `~/.ssh`, and names it after
-  the key's comment, often the user's email. Then, once, the user confirms the host key of
-  `ssh.railway.com` in their own terminal, from the directory linked to the project:
-  `railway ssh -s "block/buzz:main" true`. A shell without a terminal can't answer that prompt
-  and fails with `Host key verification failed`. After that, from the same directory, this works
-  without a terminal (tested):
-  `railway ssh -s "block/buzz:main" /usr/local/bin/buzz-admin add-member --pubkey <npub-or-hex> --role member`
-  → `added <hex> as member`. Check: `railway ssh -s "block/buzz:main" /usr/local/bin/buzz-admin list-members`
-  lists it. Each `railway ssh` first prints the key file it used, with that key's comment.
-- **Back up.** Needs `pg_dump` 18 and the AWS CLI locally. `railway run` hands each command its
-  service's credentials, so nothing secret is printed or copied. The dump goes through the public
-  TCP proxy the template gives Postgres.
-  ```bash
-  railway run -s Postgres -- sh -c 'pg_dump "$DATABASE_PUBLIC_URL" -Fc -f buzz.dump'
-  railway run -s "block/buzz:main" -- sh -c 'AWS_ACCESS_KEY_ID=$BUZZ_S3_ACCESS_KEY \
-    AWS_SECRET_ACCESS_KEY=$BUZZ_S3_SECRET_KEY aws s3 sync "s3://$BUZZ_S3_BUCKET" buzz-bucket \
-    --endpoint-url "$BUZZ_S3_ENDPOINT" --region "$BUZZ_S3_REGION"'
-  ```
-- **Restore** (ask first: it replaces the data), into an empty schema: Buzz's partitioned tables
-  make `pg_restore --clean` fail on a live database.
-  ```bash
-  railway down -s "block/buzz:main" -y
-  railway run -s Postgres -- sh -c 'psql "$DATABASE_PUBLIC_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" \
-    && pg_restore -d "$DATABASE_PUBLIC_URL" buzz.dump'
-  railway run -s "block/buzz:main" -- sh -c 'AWS_ACCESS_KEY_ID=$BUZZ_S3_ACCESS_KEY \
-    AWS_SECRET_ACCESS_KEY=$BUZZ_S3_SECRET_KEY aws s3 sync buzz-bucket "s3://$BUZZ_S3_BUCKET" \
-    --endpoint-url "$BUZZ_S3_ENDPOINT" --region "$BUZZ_S3_REGION"'
-  railway redeploy --from-source -s "block/buzz:main" -y
-  ```
-- **Upgrade.** Back up, then
-  `railway service source connect --image ghcr.io/block/buzz:<tag> --service "block/buzz:main"`,
-  and the same with `--service buzz-pair` if phone pairing is set up (railway.md step 6).
-  The relay has no volume and needs none: git repositories live in the bucket, and `/data/git`
-  is scratch that every redeploy clears.
 
 ## Kubernetes
 

@@ -22,7 +22,7 @@ export interface FixDef {
   fix: string;
 }
 
-const ALL: Track[] = ["vps", "vps-private", "own-public", "own-private", "practice", "railway", "k8s", "k8s-private"];
+const ALL: Track[] = ["vps", "vps-private", "own-public", "own-private", "practice", "k8s", "k8s-private"];
 
 /** The skill's checks run its scripts; an agent already has them, a reader downloads them here. */
 const GET_SKILL: StepDef = {

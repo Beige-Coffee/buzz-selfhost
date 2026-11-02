@@ -1,7 +1,7 @@
 # Self-hosting Buzz
 
 An agent skill, a guide and end-to-end tests for running your own [Buzz](https://github.com/block/buzz)
-relay: on a VPS, your own hardware, a private Tailscale network, Railway or Kubernetes.
+relay: on a VPS, your own hardware, a private Tailscale network or Kubernetes.
 
 - **Guide:** https://buzz-selfhost.vercel.app
 - **Skill:** [`skills/self-host-buzz`](skills/self-host-buzz), in the open [Agent Skills](https://agentskills.io)

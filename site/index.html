@@ -35,7 +35,7 @@
 
   <section class="hero">
     <h1>Run Buzz on <mark>your own</mark> server</h1>
-    <p class="lede">Buzz is open-source team chat for people and their agents. This guide sets it up on a VPS, your own hardware, Railway or Kubernetes, with an agent skill that does the work.</p>
+    <p class="lede">Buzz is open-source team chat for people and their agents. This guide sets it up on a VPS, your own hardware or Kubernetes, with an agent skill that does the work.</p>
     <div class="hero-cta">
       <a class="btn" href="#where">Set it up<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9.5M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       <a class="btn ghost" href="#how">How it works</a>
@@ -124,10 +124,6 @@
         <p class="sub" data-tracks="own-private">Run Buzz on a Linux machine you own, on your Tailscale network, with no router changes.</p>
         <p class="sub" data-tracks="practice">Try Buzz on this computer with Docker. Nothing here carries over to a server, and phones can't pair with it.</p>
       </div>
-      <div data-tracks="railway">
-        <h2>Self-host on Railway</h2>
-        <p class="sub">Deploy Block's template to Railway, which runs the relay for you.</p>
-      </div>
       <div data-tracks="k8s k8s-private">
         <h2>Self-host on Kubernetes</h2>
         <p class="sub" data-tracks="k8s">Install Buzz with Block's Helm chart on a cluster you already run.</p>
@@ -136,7 +132,7 @@
       <p class="mode-note">Your agent follows the skill's steps and asks you before anything that costs money or can't be undone.</p>
     </div>
 
-    <div class="guide-grid" data-tracks="vps vps-private own-public own-private practice railway k8s k8s-private">
+    <div class="guide-grid" data-tracks="vps vps-private own-public own-private practice k8s k8s-private">
       <aside class="guide-side"><div data-widget="panel"></div></aside>
       <div class="guide-steps">
         <div data-widget="agent"></div>

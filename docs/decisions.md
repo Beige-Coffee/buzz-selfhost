@@ -9,19 +9,26 @@ The guide is for people and teams who want their own Buzz relay instead of Block
 agent first: most readers will hand the skill to their coding agent. The step-by-step view stays,
 as the transparency view of the same commands, rendered from the skill so the two can't drift.
 
+## Railway is out (2026-11-02)
+
+On 2026-10-21 Railway disclosed that someone had reached the systems holding its customers'
+environment variables, and had decrypted some of them
+([BleepingComputer](https://www.bleepingcomputer.com/news/security/railway-warns-devs-to-rotate-secrets-after-potential-breach/)).
+On Railway, the relay key and every password live in those variables. The owner removed Railway
+from the guide and the skill: its setup, its operations, its troubleshooting rows and the
+picker's "Managed platform" answer. The test records keep its runs as history.
+
 ## The setups, and how to present them
 
-The setups follow the three ways Block ships Buzz: the Compose bundle (`deploy/compose`), the Helm
-chart (`deploy/charts/buzz`) and Railway's template. Block publishes nothing else; the "Hostinger
-Docker template" people mention is Hostinger's own.
+The setups follow the ways Block ships Buzz: the Compose bundle (`deploy/compose`) and the Helm
+chart (`deploy/charts/buzz`). Block's third, a Railway template, was dropped on 2026-11-02 (see
+"Railway is out"). Block publishes nothing else; the "Hostinger Docker template" people mention is
+Hostinger's own.
 
 - **A VPS** is the default. Name the clouds people think in (AWS, Google Cloud, DigitalOcean,
   Hetzner) and the catches: x86 is the tested platform, which rules out ARM servers like AWS
   Graviton. Bundles from before 2026-10-07 need it (their MinIO image is amd64-only); Silo also
   runs on ARM, untested. Ports 80 and 443 open; a fixed IP.
-- **Railway** has the least to run, and the most limits: its own stack, a plan cap on services,
-  and phone pairing needs a fifth service. The relay has no volume and needs none: it keeps git
-  repositories in the bucket.
 - **Your own hardware** keeps everything at home. Steer it to Tailscale: reaching a home server
   publicly needs router port forwarding, which isn't tested and which CGNAT can block.
 - **Kubernetes** is a different install, so it stays, but as "Already run Kubernetes?", not an
@@ -45,7 +52,7 @@ refused (block/buzz#6500). For a team that mostly uses phones, recommend public.
 
 - **Pairing works.** A member joins from Buzz, opens Settings, Pair mobile (Buzz 0.X: Settings,
   Mobile), and scans the QR code with the Buzz app. Block's bundles don't start the pairing service (block/buzz#7721), so the
-  skill adds it. Tested with an iPhone on a VPS (public and private), Kubernetes and Railway; not
+  skill adds it. Tested with an iPhone on a VPS (public and private) and Kubernetes; not
   yet on Kubernetes on a private network.
 - **Push notifications work** since the App Store app 0.25 (2026-10-21): with
   `BUZZ_PUSH_ENABLED=true`, the relay wakes the phone through Block's gateway, `push.buzz.xyz`

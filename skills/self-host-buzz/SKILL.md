@@ -3,11 +3,11 @@ name: self-host-buzz
 description: >
   Set up and operate a self-hosted Buzz relay (github.com/block/buzz): the Docker Compose bundle
   on a VPS or your own hardware, a local test on this machine, a relay reachable only over a
-  Tailscale network, Block's Railway template, or Block's Helm chart on Kubernetes. Covers keys,
-  the permanent URL, HTTPS, members, backups, restore and upgrades. Use when someone wants to
-  self-host Buzz or run a Buzz relay, or to add members to, back up, restore or upgrade one.
+  Tailscale network, or Block's Helm chart on Kubernetes. Covers keys, the permanent URL, HTTPS,
+  members, backups, restore and upgrades. Use when someone wants to self-host Buzz or run a Buzz
+  relay, or to add members to, back up, restore or upgrade one.
 license: Apache-2.0
-compatibility: Runs from macOS or Linux (Windows isn't tested) with python3, bash and curl. Then Docker, kubectl and helm, or the Railway CLI, depending on the setup.
+compatibility: Runs from macOS or Linux (Windows isn't tested) with python3, bash and curl. Then Docker, or kubectl and helm, depending on the setup.
 metadata:
   tested: "2026-10-23"
   tested-image: sha-e8781ca
@@ -28,14 +28,14 @@ steps say so.
 ## Rules
 
 1. **Never print a secret.** Don't `cat`, `echo`, `grep` or paste `BUZZ_RELAY_PRIVATE_KEY`, any
-   secret in `.env`, any Railway or Kubernetes value holding a key or password, a Tailscale auth
+   secret in `.env`, any Kubernetes value holding a key or password, a Tailscale auth
    key, or any secret key. These print every secret at once, so their output goes to a file or
    nowhere, never the screen: `./run.sh config`, `docker compose config`, `docker inspect`,
-   `railway variables` (or `railway variable list`), `helm get manifest`, `helm get all`,
+   `helm get manifest`, `helm get all`,
    `kubectl get secret -o yaml`. Generate keys straight into their file. When a check needs a
    secret, check its length, never its value. Safe to show as is (tested): every check in these
    files, `run.sh start`, `status` and `list-members`, `docker compose ps`, the services' logs,
-   `kubectl describe`, `helm get values`, `helm install`'s notes, `railway deploy`, and
+   `kubectl describe`, `helm get values`, `helm install`'s notes, and
    `run.sh upgrade` (its reminder names secrets but never prints them). The user copies the relay
    key into their password manager themselves.
 2. **Ask first** before anything that costs money, changes DNS, deletes volumes or data, changes a
@@ -59,7 +59,7 @@ steps say so.
 ## 1. Pick the setup
 
 Unless the user already said, ask: a local test or production; on their own hardware, a rented
-VPS, Railway or an existing Kubernetes cluster; and reachable from the public internet or only
+VPS or an existing Kubernetes cluster; and reachable from the public internet or only
 over a private network (Tailscale). Then read only the file for that setup:
 
 | Setup | Read | Mode |
@@ -67,15 +67,13 @@ over a private network (Tailscale). Then read only the file for that setup:
 | Local test on this machine | [compose.md](references/compose.md) | `local` |
 | A VPS or own hardware, public | [compose.md](references/compose.md) | `server` |
 | A VPS or own hardware, private network | [compose.md](references/compose.md) | `private` |
-| Railway | [railway.md](references/railway.md) | |
 | Kubernetes, the chart's quickstart profile, public or private network | [kubernetes.md](references/kubernetes.md) | |
 
-Railway runs only public relays here; a private relay on it isn't tested, so offer a VPS or
-Kubernetes on a private network instead. On Kubernetes, the tested install is the chart's
-quickstart profile (Postgres, Redis and MinIO in the cluster, one replica); if the user asked for
-production, say so and point to the chart's production profile, which isn't tested here. A local
-test never migrates: a server gets a new URL, so a new community. For members, backups, restore
-and upgrades on a running relay, read [operations.md](references/operations.md).
+On Kubernetes, the tested install is the chart's quickstart profile (Postgres, Redis and MinIO in
+the cluster, one replica); if the user asked for production, say so and point to the chart's
+production profile, which isn't tested here. A local test never migrates: a server gets a new URL,
+so a new community. For members, backups, restore and upgrades on a running relay, read
+[operations.md](references/operations.md).
 
 ## 2. Inputs, for every setup
 
@@ -101,14 +99,14 @@ an installer instead: ask the user to run `xcode-select --install` first.
   don't show), if they'd rather stay on a tested version. Buzz 1.0's New chat needs an image from
   2026-10-15 or later, which has channel labels; older images, such as `sha-30873ba`, refuse it.
 - **Domain.** `server` and Kubernetes need the community's permanent domain, such as
-  `buzz.example.org`. Railway assigns one at deploy, or takes the user's (railway.md). `private` uses the machine's Tailscale name, found in its setup, and
+  `buzz.example.org`. `private` uses the machine's Tailscale name, found in its setup, and
   Kubernetes on a private network the name kubernetes.md builds. `local` needs none.
 
 Then:
 
 | Mode | `HOST` | `RELAY_URL` | `ORIGIN` |
 | --- | --- | --- | --- |
-| `server`, Railway, Kubernetes | `$DOMAIN` | `wss://$DOMAIN` | `https://$DOMAIN` |
+| `server`, Kubernetes | `$DOMAIN` | `wss://$DOMAIN` | `https://$DOMAIN` |
 | `private` | the Tailscale name | `wss://<name>` | `https://<name>` |
 | `local` | `localhost` | `wss://localhost` | `https://localhost` |
 
@@ -138,7 +136,7 @@ goes in an SSH call of its own.
 Once the setup's own steps pass, run from this machine:
 
 ```bash
-bash $SKILL/scripts/check-relay.sh "$ORIGIN"                          # Railway
+bash $SKILL/scripts/check-relay.sh "$ORIGIN"                          # Kubernetes
 bash $SKILL/scripts/check-relay.sh "$ORIGIN" <public IP>              # public server: 3000 and 5000 closed
 bash $SKILL/scripts/check-relay.sh "$ORIGIN" <public IP> 80 443 3000 5000  # private server: nothing public
 CA_FILE=local-ca.crt bash $SKILL/scripts/check-relay.sh "$ORIGIN"     # local, from buzz/deploy/compose

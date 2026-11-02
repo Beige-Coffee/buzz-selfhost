@@ -52,8 +52,3 @@
 | Local: Buzz 1.0 can't join after the test was removed and set up again | The new test has a new local authority. Save and trust its `local-ca.crt` (compose.md step 12), and remove the old one's trust (Removing the local test). |
 | Postgres refuses the relay's password after an earlier try | Leftover `buzz-prod` volumes keep the old password. Ask, then `docker volume rm` them and start again. |
 | Relay logs `transport drop` warnings at start | The git storage self-test. Harmless when it ends with `conformance probe passed`. |
-| Railway: `Too many services in project` | The account's live projects already hold as many services as its plan allows, even when deploying into a new project. Deleting a project makes room at once; that, or changing plans, is the user's call. |
-| Railway: `Service "block/buzz:main" not found` right after deploying | The services appear 10 to 20 seconds after `railway deploy` returns. Wait and retry. |
-| `railway ssh`: `No registered SSH keys found` | `railway ssh keys add` (ask first: it changes the account). It takes only a key in `~/.ssh`. |
-| `railway ssh`: `Host key verification failed` | The first connection must confirm Railway's host key, which a shell without a terminal can't. Have the user run `railway ssh -s "block/buzz:main" true` once in their own terminal. |
-| `railway redeploy`: `No deployment found for service` | After `railway down`, use `railway redeploy --from-source`. |

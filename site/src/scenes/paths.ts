@@ -16,7 +16,6 @@ interface Option {
 
 const OPTIONS: Option[] = [
   { k: "vps", kind: "Rent", name: "A VPS", line: "A rented Linux server. Buzz runs on it with Docker Compose." },
-  { k: "railway", kind: "Managed", name: "Railway", line: "Block's one-click option. Railway, a hosting service, runs Buzz for you: no server to rent or maintain.", publicOnly: "Not on Railway" },
   { k: "own", kind: "Own", name: "Your hardware", line: "A Linux machine you own, like a mini PC. Same Docker Compose setup as a VPS." },
   { k: "k8s", kind: "Cluster", name: "Kubernetes", line: "For teams that already run a cluster. Installs with Block's Helm chart." },
 ];
@@ -37,13 +36,6 @@ const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
     facts: [
       ["Relay key", "On your server"],
       ["Best for", "Teams with sensitive work that want nothing open to the internet"],
-    ],
-  },
-  railway: {
-    reach: `Not on Railway: ${PUBLIC}`,
-    facts: [
-      ["Relay key", "In Railway's variables; copy it somewhere safe"],
-      ["Best for", "Teams that want the least upkeep, with their data on Railway, and plan to stay: this guide has no way to move a community off it"],
     ],
   },
   "own-public": {

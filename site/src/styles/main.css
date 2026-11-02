@@ -350,7 +350,7 @@ h3 { font-weight: 500; letter-spacing: -0.02em; }
 .b1-tools { display: flex; align-items: center; gap: 11px; color: var(--b1-text); }
 
 /* ── where to run it ────────────────────────── */
-.pa-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.pa-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .pa-card {
   position: relative; display: flex; flex-direction: column; padding: 22px 20px 10px;
   color: var(--ink); background: #fff; border: 1px solid var(--line-2); border-radius: 22px; box-shadow: var(--shadow-1);
@@ -420,6 +420,9 @@ h3 { font-weight: 500; letter-spacing: -0.02em; }
 .pa-qw-key { position: relative; z-index: 1; }
 .pa-qw-key .pa-q { width: 15px; height: 15px; font-size: 9.5px; }
 .pa-qw-key .pa-tip { left: -12px; bottom: calc(100% + 8px); width: min(280px, calc(100vw - 40px)); text-transform: none; letter-spacing: 0; font-family: var(--sans); }
+/* the last card's tips open leftward, so they stay on the page */
+.pa-card:last-child .pa-tip { left: auto; right: 0; }
+.pa-card:last-child .pa-qw-key .pa-tip { right: -12px; }
 
 /* ── what's a relay key: a dropdown under the cards ──
    Each step is a drawing made at a fixed size (wide 560 x 380, tall 360 x 340) and scaled to fit. */
@@ -1044,7 +1047,6 @@ h2 .hl svg { width: 19px; }
   .guide-side { grid-column: 1; grid-row: 1; position: static; }
   .guide-steps { grid-row: 2; }
   .guide-side .vl-row { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.45fr) minmax(0, 0.8fr); }
-  .pa-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cards3 { grid-template-columns: 1fr; }
 }
 .story-nav { display: none; }

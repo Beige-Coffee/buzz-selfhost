@@ -16,7 +16,6 @@ body:
         - A VPS or own hardware, public (compose.md, server mode)
         - A VPS or own hardware, private network (compose.md, private mode)
         - Local test on this machine (compose.md, local mode)
-        - Railway
         - Kubernetes, public
         - Kubernetes, private network
         - Something else

@@ -7,8 +7,8 @@ export function mountPanel(host: HTMLElement): void {
   host.innerHTML = `
     <p class="vl-pick"><span>Running on</span><b data-picked></b><a href="#where">Change</a></p>
     <div class="vl-row">
-      <label class="vl-field" data-tracks="vps vps-private own-public own-private railway k8s k8s-private">
-        <span><b data-tracks="vps own-public k8s">Domain</b><b data-tracks="railway">Your domain, optional</b><b data-tracks="vps-private own-private k8s-private">Tailscale name</b><i class="vl-perm" title="Can't be changed later: Buzz stores your community under this exact address, and a different one later starts a new, empty community.">permanent</i></span>
+      <label class="vl-field" data-tracks="vps vps-private own-public own-private k8s k8s-private">
+        <span><b data-tracks="vps own-public k8s">Domain</b><b data-tracks="vps-private own-private k8s-private">Tailscale name</b><i class="vl-perm" title="Can't be changed later: Buzz stores your community under this exact address, and a different one later starts a new, empty community.">permanent</i></span>
         <input name="domain" placeholder="buzz.example.org" autocomplete="off" spellcheck="false" value="${attr(v.domain)}">
       </label>
       <label class="vl-field">
@@ -31,7 +31,7 @@ export function mountPanel(host: HTMLElement): void {
     const cur = getValues();
     const t = trackOf();
     host.querySelector<HTMLElement>("[data-picked]")!.innerHTML = PICK[t];
-    host.querySelector<HTMLInputElement>('input[name="domain"]')!.placeholder = isPrivate(t) ? "buzz.your-tailnet.ts.net" : t === "railway" ? "Railway names it for you" : "buzz.example.org";
+    host.querySelector<HTMLInputElement>('input[name="domain"]')!.placeholder = isPrivate(t) ? "buzz.your-tailnet.ts.net" : "buzz.example.org";
     const state = host.querySelector<HTMLElement>("[data-npub-state]")!;
     const input = host.querySelector<HTMLInputElement>('input[name="npub"]')!;
     const ok = npubToHex(cur.npub);
@@ -110,7 +110,6 @@ function linkValues(panel: HTMLElement): void {
 export const PICK: Record<Track, string> = {
   vps: "A VPS, on the internet",
   "vps-private": "A VPS, on a private network",
-  railway: "Railway",
   "own-public": "Your hardware, on the internet",
   "own-private": "Your hardware, on a private network",
   practice: "Your laptop, to practice",

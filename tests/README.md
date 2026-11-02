@@ -12,6 +12,9 @@ git clone https://github.com/block/buzz.git && cd buzz
 cargo build --release -p buzz-cli --bin buzz
 ```
 
+Railway was removed from the guide and the skill on 2026-11-02 (`docs/decisions.md`, "Railway is
+out"). Its runs below are kept as history.
+
 ## VPS path: `smoke.sh`
 
 On a fresh Ubuntu 24.04 x86 server (4 GB) you can SSH into as root, with a domain that

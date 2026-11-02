@@ -2,7 +2,7 @@
  * The agent path, per track: what to have ready, the prompt to paste, and what to expect.
  * "What to expect" is not a transcript: an agent's own screen looks different. It lists, in order, what the
  * agent does on its own and where it stops for the reader, as the skill's reference files
- * (skills/self-host-buzz/references) tell the agent to: compose.md, kubernetes.md, railway.md.
+ * (skills/self-host-buzz/references) tell the agent to: compose.md and kubernetes.md.
  * Text may contain {{KEYS}} from values.ts and simple inline HTML.
  */
 import type { Track } from "../lib/values";
@@ -297,58 +297,6 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       TS_JOIN,
     ],
   },
-  // railway.md: step 1 (name), 2 (deploy, CLI or the template page), 3 (the key), 4 (your domain), 5 (image), 7 (notifications), checks
-  railway: {
-    ready: [
-      // railway.md: the template adds three services and a bucket; phone pairing (step 6) one more service
-      { t: "<b>A Railway account</b> on a plan with room for four services and a storage bucket." },
-      { t: "<b>The Railway CLI</b>, installed and logged in (<code>railway login</code>). Your agent runs every step after the deploy with it." },
-      {
-        t: "<b>Optional: your own domain.</b> Without one, the address is the <code>*.up.railway.app</code> name Railway gives you.",
-        warn: FOREVER("address"),
-      },
-      NPUB,
-      AGENT,
-    ],
-    prompt: "Use the self-host-buzz skill to set up Buzz on Railway with Block's template. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
-    expect: [
-      { who: "you", ask: true, icon: "ask", t: "Choose the address", d: "Railway's <code>*.up.railway.app</code> name, or your own domain. It can't be changed once anyone joins." },
-      {
-        who: "you",
-        ask: true,
-        icon: "ask",
-        t: "Approve the deploy",
-        d: "It asks before creating the project, which Railway bills for. Or you deploy from Railway's template page with the owner key it gives you, then run <code>railway link</code> in a new folder and pick the project.",
-      },
-      {
-        who: "you",
-        icon: "key",
-        t: "Save the relay key",
-        d: "In Railway, the relay service, <b>Variables</b>: copy <code>BUZZ_RELAY_PRIVATE_KEY</code> into your password manager. It's your community's permanent identity.",
-      },
-      {
-        who: "you",
-        icon: "dns",
-        t: "Add your domain",
-        d: "Only with your own domain: the relay service's <b>Settings</b>, <b>Networking</b>, then the CNAME record Railway shows.",
-        note: "if needed",
-      },
-      {
-        who: "agent",
-        icon: "agent",
-        t: "Updates the image and checks it",
-        d: "It moves the relay off the template's July image, on which anyone with a file's link can open it and Buzz can't start chats, then adds phone pairing and notifications.",
-      },
-      {
-        who: "you",
-        icon: "phone",
-        t: "Set the pairing service's start command",
-        d: "In Railway, open the <b>buzz-pair</b> service, <b>Settings</b>, <b>Deploy</b>, and set Custom Start Command to <code>/usr/local/bin/buzz-pair-relay</code>.",
-      },
-      JOIN(JOIN_IN("the address your agent gives you")),
-      PHONE(PAIR),
-    ],
-  },
 };
 
 /* ── a running relay: people, backups, restore, upgrades ── */
@@ -374,8 +322,6 @@ export const OP_WHERE: Record<Track, string> = {
   "own-public": SSH_OWN,
   "own-private": SSH_OWN,
   practice: "My Buzz relay is a local test on this machine.",
-  // every railway command acts on the project linked to the folder it runs in (railway.md)
-  railway: "My Buzz relay runs on Railway; its project is linked in <folder>.",
   k8s: KUBE,
   "k8s-private": KUBE,
 };
@@ -393,8 +339,8 @@ export interface OpDetail {
   /** the skill has no steps for it on this setup: no prompt, only the why */
   manual?: boolean;
 }
-export type OpSetup = "compose" | "railway" | "k8s";
-export const opSetup = (t: Track): OpSetup => (t === "railway" ? "railway" : t === "k8s" || t === "k8s-private" ? "k8s" : "compose");
+export type OpSetup = "compose" | "k8s";
+export const opSetup = (t: Track): OpSetup => (t === "k8s" || t === "k8s-private" ? "k8s" : "compose");
 
 const UPGRADE_WHY = "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup.";
 const agent = (t: string): OpStep => ({ who: "agent", icon: "agent", t });
@@ -430,20 +376,6 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
       { t: "Check it", d: CHECK_BACK },
     ],
   },
-  railway: {
-    backup: [
-      { t: "Run it on this computer", d: "In the folder linked to the Railway project. It needs <code>pg_dump</code> 18 and the AWS CLI.", code: 0 },
-      { t: "Check it", d: "<code>buzz.dump</code> and the <code>buzz-bucket</code> folder are here, and neither is empty." },
-      {
-        t: "Keep it safe",
-        d: "Encrypt the copies and keep one off this computer. The relay key is in Railway's variables: keep it where two people can open it.",
-      },
-    ],
-    restore: [
-      { t: "Put the backup back", d: "In the folder with <code>buzz.dump</code> and <code>buzz-bucket</code>. It stops the relay, empties the database, restores it and the bucket, then redeploys.", code: 0 },
-      { t: "Check it", d: CHECK_BACK },
-    ],
-  },
   k8s: {
     backup: [
       { t: "Run it", d: "With <code>kubectl</code> connected to the cluster, in a folder only you can read. The relay keeps running.", code: 0 },
@@ -469,18 +401,6 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
         agent("Turns on phone notifications, if the relay predates them"),
         agent("Checks the members are still there and the relay answers"),
       ],
-    },
-  },
-  railway: {
-    backup: {
-      why: "Saves the database and the file bucket to this computer. The bucket holds the uploaded files and the git repositories.",
-    },
-    restore: {
-      why: "Puts the backup on this computer back into Railway, and replaces the relay's current data.",
-    },
-    upgrade: {
-      why: UPGRADE_WHY,
-      steps: [agent("Backs up the database and the bucket first"), agent("Points the relay, and phone pairing if you set it up, at the new image")],
     },
   },
   k8s: {

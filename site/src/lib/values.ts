@@ -3,12 +3,12 @@
  * guide the rest of the page shows; the values fill every command.
  * Nothing secret is entered here: keys are generated where the relay runs.
  */
-export type Path = "vps" | "railway" | "own" | "k8s";
+export type Path = "vps" | "own" | "k8s";
 export type OwnMode = "public" | "practice";
 /** Who can reach a server you run: anyone on the internet (members only), or only devices on a private network. */
 export type Reach = "public" | "private";
 /** A path, narrowed: a server is public or on a private network (Tailscale); own hardware can also be practice. */
-export type Track = "vps" | "vps-private" | "railway" | "own-public" | "own-private" | "practice" | "k8s" | "k8s-private";
+export type Track = "vps" | "vps-private" | "own-public" | "own-private" | "practice" | "k8s" | "k8s-private";
 /** How the reader sets it up: an agent runs the skill, or they follow the steps by hand. */
 export type Mode = "agent" | "steps";
 
@@ -27,7 +27,7 @@ export const DEFAULT_TAG = "sha-e8781ca";
 const OLD_DEFAULT_TAGS = ["sha-53a1210", "sha-83aab8c", "sha-d1b7da4", "sha-30873ba"];
 const KEY = "buzz-selfhost-values-v2";
 const DEFAULTS: Values = { path: "vps", ownMode: "public", reach: "public", domain: "", npub: "", tag: "", mode: "agent" };
-const PATHS: Path[] = ["vps", "railway", "own", "k8s"];
+const PATHS: Path[] = ["vps", "own", "k8s"];
 
 let state: Values = load();
 const listeners = new Set<() => void>();
@@ -78,8 +78,6 @@ export function trackHash(track: Track): string {
       return "path=k8s&reach=public";
     case "k8s-private":
       return "path=k8s&reach=private";
-    default:
-      return `path=${track}`;
   }
 }
 
@@ -94,8 +92,7 @@ export function getValues(): Values {
 export function trackOf(v: Values = state): Track {
   if (v.path === "own") return v.ownMode === "practice" ? "practice" : v.reach === "private" ? "own-private" : "own-public";
   if (v.path === "vps") return v.reach === "private" ? "vps-private" : "vps";
-  if (v.path === "k8s") return v.reach === "private" ? "k8s-private" : "k8s";
-  return v.path;
+  return v.reach === "private" ? "k8s-private" : "k8s";
 }
 
 export function setValues(patch: Partial<Values>): void {
@@ -176,8 +173,7 @@ export function npubToHex(input: string): string | null {
 export function derived(v: Values = state): Record<string, string> {
   const t = trackOf(v);
   const practice = t === "practice";
-  // Railway assigns a *.up.railway.app name unless you bring your own domain
-  const fallback = isPrivate(t) ? "buzz.your-tailnet.ts.net" : t === "railway" ? "your-relay.up.railway.app" : "buzz.example.org";
+  const fallback = isPrivate(t) ? "buzz.your-tailnet.ts.net" : "buzz.example.org";
   const domain = v.domain.trim().toLowerCase().replace(/^\w+:\/\//, "").replace(/\/.*$/, "") || fallback;
   const tag = v.tag.trim() || DEFAULT_TAG;
   const hex = npubToHex(v.npub);

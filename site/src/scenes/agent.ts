@@ -40,8 +40,7 @@ const NPX_CMD = `npx skills add ${SKILL_REPO} --skill self-host-buzz -g`;
 function missing(track: Track): string[] {
   const v = getValues();
   const out: string[] = [];
-  // Railway names the relay unless you bring a domain
-  if (track !== "practice" && track !== "railway" && !v.domain.trim()) out.push(isPrivate(track) ? "Tailscale name" : "domain");
+  if (track !== "practice" && !v.domain.trim()) out.push(isPrivate(track) ? "Tailscale name" : "domain");
   if (!derived().OWNER_HEX.match(/^[0-9a-f]{64}$/)) out.push("npub");
   return out;
 }

@@ -43,8 +43,8 @@ const HOST_BACKUPS =
 
 /** The Running on box: which setup, at which address, the commands below are for. */
 export function runningOnHTML(track: Track): string {
-  // a practice relay has a fixed address; Railway names its own unless you bring a domain
-  const at = track === "practice" || (track === "railway" && !hasDomain()) ? "" : ` at ${hasDomain() ? fillRich("{{DOMAIN}}") : gap(track)}`;
+  // a practice relay has a fixed address
+  const at = track === "practice" ? "" : ` at ${hasDomain() ? fillRich("{{DOMAIN}}") : gap(track)}`;
   return `<div class="opx-ctx">${SERVER}<span class="opx-ctx-l">Running on</span><span class="opx-ctx-v"><b>${PICK[track]}</b>${at}</span><a class="opx-ctx-a" href="#where">Change</a></div>`;
 }
 

@@ -310,7 +310,7 @@ const GROUPS: [string, Question[]][] = [
         a:
           rec("On the server, plus one copy in a shared vault that only the server's people can open.") +
           KEY_HOME +
-          note(`A <a href="#operations" data-q-link="backup">backup</a> includes <code>.env</code>. On Railway the key is in Railway's variables; on Kubernetes, in a Secret.`),
+          note(`A <a href="#operations" data-q-link="backup">backup</a> includes <code>.env</code>. On Kubernetes the key is in a Secret.`),
       },
     ],
   ],

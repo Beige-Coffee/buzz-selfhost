@@ -36,11 +36,10 @@ export const QUESTIONS: Question[] = [
   {
     id: "run",
     text: "Infrastructure",
-    hint: "Who runs the machine: you, a hosting provider, or a platform.",
+    hint: "Who runs the machine: you, a hosting provider, or your own cluster.",
     options: [
       { id: "all", label: "Own hardware", hint: "You run the machine: power, network, disks, backups.", when: "Pick this if the data must stay on hardware you own." },
       { id: "server", label: "Rented VPS", hint: "The provider runs the hardware. You run the OS, Docker and backups.", when: "Pick this for full control without owning hardware." },
-      { id: "little", label: "Managed platform", hint: "Railway runs the containers. You run backups and upgrades.", when: "Pick this if nobody wants to maintain a server. Less control, less upkeep." },
       { id: "cluster", label: "Already run Kubernetes", hint: "Block's Helm chart on your cluster, behind your ingress.", when: "Pick this if your team already runs a cluster with an ingress controller and cert-manager." },
     ],
   },
@@ -87,12 +86,6 @@ export const RESULTS: Record<Track, Result> = {
     why: "Hardware you own, with no public ports.",
     trade: ["You handle power, network and disks.", "Every device needs Tailscale, phones included."],
   },
-  railway: {
-    name: "Railway",
-    set: { path: "railway" },
-    why: "The least upkeep: Railway runs and restarts the containers.",
-    trade: ["Your data and the relay key live on Railway.", "Needs a plan with room for four services and a storage bucket."],
-  },
   k8s: {
     name: "Kubernetes",
     set: { path: "k8s", reach: "public" },
@@ -123,8 +116,6 @@ export function pick(a: Answers): { track: Track; note?: string } | null {
       return { track: priv ? "own-private" : "own-public" };
     case "server":
       return { track: priv ? "vps-private" : "vps" };
-    case "little":
-      return priv ? { track: "vps-private", note: "Railway has no private option. This is the closest setup." } : { track: "railway" };
     case "cluster":
       return { track: priv ? "k8s-private" : "k8s" };
     default:

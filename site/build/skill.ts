@@ -16,7 +16,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Marked } from "marked";
 
-export type Track = "vps" | "vps-private" | "own-public" | "own-private" | "practice" | "railway" | "k8s" | "k8s-private";
+export type Track = "vps" | "vps-private" | "own-public" | "own-private" | "practice" | "k8s" | "k8s-private";
 export interface SkillStep {
   id: string;
   title: string;
@@ -49,7 +49,7 @@ const PRIVATE: Track[] = ["vps-private", "own-private"];
 const LOCAL: Track[] = ["practice"];
 const COMPOSE: Track[] = [...SERVER, ...PRIVATE, ...LOCAL];
 const K8S: Track[] = ["k8s", "k8s-private"];
-export const TRACKS: Track[] = [...COMPOSE, "railway", ...K8S];
+export const TRACKS: Track[] = [...COMPOSE, ...K8S];
 
 const fail = (msg: string): never => {
   throw new Error(`skill parser: ${msg}`);
@@ -65,7 +65,6 @@ const FILES: Record<string, (modes: string[], p: boolean, where: string) => Trac
         : COMPOSE,
   // the private section replaces the public steps, so a P step is private and a plain one public
   "kubernetes.md": (_modes, p) => (p ? ["k8s-private"] : ["k8s"]),
-  "railway.md": () => ["railway"],
 };
 
 /** The skill's shell variables, as the page's panel fills them in. */
@@ -268,7 +267,7 @@ function skillSections(dir: string): SkillStep[] {
     .map((m) => ({ id: `skill-${m[1]}`, title: m[2].replace(/, for every setup$/, "").trim(), tracks: [...TRACKS], html: toHTML(m[3]) }));
 }
 
-/** troubleshooting.md's table. A row's prefix, like `Railway:`, limits it to that setup. */
+/** troubleshooting.md's table. A row's prefix, like `Kubernetes:`, limits it to that setup. */
 function fixes(dir: string): SkillFix[] {
   const rows = readFileSync(join(dir, "references", "troubleshooting.md"), "utf8")
     .split("\n")
@@ -277,23 +276,21 @@ function fixes(dir: string): SkillFix[] {
     const cells = row.slice(2, -2).split(" | ");
     if (cells.length !== 2) fail(`troubleshooting.md: a row without two cells: ${row.slice(0, 60)}`);
     const [symptom, fix] = cells;
-    const tracks: Track[] = /^(Railway:|`railway )/.test(symptom)
-      ? ["railway"]
-      : /^Kubernetes or Compose:/.test(symptom)
-        ? [...COMPOSE, ...K8S]
-        : /^Kubernetes:/.test(symptom)
-          ? K8S
-          : /^Private:/.test(symptom)
-            ? PRIVATE
-            : /^Local:/.test(symptom)
-              ? LOCAL
-              : [...TRACKS];
+    const tracks: Track[] = /^Kubernetes or Compose:/.test(symptom)
+      ? [...TRACKS]
+      : /^Kubernetes:/.test(symptom)
+        ? K8S
+        : /^Private:/.test(symptom)
+          ? PRIVATE
+          : /^Local:/.test(symptom)
+            ? LOCAL
+            : [...TRACKS];
     return { tracks, symptom: md.parseInline(current(untested(symptom))) as string, fix: md.parseInline(current(untested(fix))) as string };
   });
 }
 
 /** operations.md: a section per setup, a bold-titled bullet per task. */
-const OP_SECTIONS: Record<string, Track[]> = { "Docker Compose": COMPOSE, Railway: ["railway"], Kubernetes: K8S };
+const OP_SECTIONS: Record<string, Track[]> = { "Docker Compose": COMPOSE, Kubernetes: K8S };
 const OP_KINDS: Record<string, OpKind> = { "add a member": "people", agents: "people", "back up": "backup", restore: "restore", upgrade: "upgrade" };
 
 function ops(dir: string): SkillOp[] {

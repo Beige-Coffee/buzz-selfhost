@@ -104,8 +104,8 @@ account. Whoever can log in can read every message.
 
 **Where should we keep the relay key?** (picture: server, shared vault, backups)
 Recommended: on the server plus one copy in a shared vault that only the operator and a backup can
-open; encrypt backups, which hold `.env` too. Railway keeps it in variables, Kubernetes in a Secret.
-*Facts:* skill `compose.md`, `railway.md`, `kubernetes.md`, `operations.md` (backups include `.env`).
+open; encrypt backups, which hold `.env` too. Kubernetes keeps it in a Secret.
+*Facts:* skill `compose.md`, `kubernetes.md`, `operations.md` (backups include `.env`).
 
 **Who can read our messages?**
 Recommended: protect the server like the messages: keep access small, encrypt disks and backups,

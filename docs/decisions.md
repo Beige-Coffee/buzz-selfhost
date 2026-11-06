@@ -44,7 +44,8 @@ decided:
 - **Moderation.** On public Compose setups the skill offers Buzz's Moderation console, at an
   `admin.` name. Elsewhere the owner or an admin uses the `buzz` command line that comes with Buzz
   1.0. "How do we moderate?" says to ban rather than only remove.
-- **Limits.** "What it can't do yet" sits above Where to run: seven one-line cards, dated.
+- **Limits.** "What it can't do yet" sat above Where to run, as seven one-line cards. The owner
+  removed it the same day; the FAQ answers still say what each limit means for a team.
 - **Hero and push.** The four reasons stay, reworded to what holds: the relay keeps running without
   Block, and messages and files are stored on your own server. Push text says Block's gateway sees
   the relay's public key, the server's IP address and when it wakes which phone. "What still

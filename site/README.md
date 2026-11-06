@@ -9,7 +9,7 @@ npm run build   # static output in dist/
 node build/skill.ts   # parses the skill and prints each setup's steps
 ```
 
-- Page order: the hero, the story (`#how`), What it can't do yet (`#not-yet`), where to run it (`#where`: three cards, a line for a local test, and Choose by requirements), the guide (`#guide`), Running your relay (`#operations`, a FAQ), then the footer.
+- Page order: the hero, the story (`#how`), where to run it (`#where`: three cards, a line for a local test, and Choose by requirements), the guide (`#guide`), Running your relay (`#operations`, a FAQ), then the footer.
 - `index.html`: the static prose, the limits cards and the link-preview tags. Blocks with `data-tracks` show only for those setups. A `<noscript>` paragraph points at the skill.
 - `src/scenes/`: `story.ts` (the scroll story), `paths.ts` (the cards and the local test line), `decide.ts` (Choose by requirements, its rules in `src/data/decide.ts`), `panel.ts` (the Running on box), `agent.ts` (Get ready, installing the skill, the prompt and What to expect, its content in `src/data/agent.ts`), `setup.ts` (the step-by-step view), `faq.ts` (Running your relay) with `operations.ts` (backing up, restoring and upgrading each setup), and click-throughs of Buzz's own screens (`members.ts`, `identity.ts`, `agentflow.ts`, `joinmock.ts`, `buzzapp.ts`).
 - `src/lib/values.ts`: the chosen setup, the reader's values and the templating. `DEFAULT_TAG` is the relay image every setup installs, the tag of `tested-image` in SKILL.md; the digest comes from SKILL.md's `tested-digest`.

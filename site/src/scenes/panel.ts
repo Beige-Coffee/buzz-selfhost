@@ -35,7 +35,7 @@ export function mountPanel(host: HTMLElement): void {
     const state = host.querySelector<HTMLElement>("[data-npub-state]")!;
     const input = host.querySelector<HTMLInputElement>('input[name="npub"]')!;
     const ok = npubToHex(cur.npub);
-    state.textContent = !cur.npub.trim() ? "in Buzz: Settings, Identity" : ok ? "✓ valid" : "not a valid npub";
+    state.textContent = !cur.npub.trim() ? "optional: the skill makes one" : ok ? "✓ valid" : "not a valid npub";
     state.className = !cur.npub.trim() ? "" : ok ? "ok" : "bad";
     if (cur.npub.trim() && !ok) input.setAttribute("aria-invalid", "true");
     else input.removeAttribute("aria-invalid");
@@ -53,7 +53,7 @@ const FROM: Record<string, string> = {
   HOST: "domain",
   RELAY_URL: "domain",
   HTTP_ORIGIN: "domain",
-  OWNER_NPUB: "npub",
+  OWNER: "npub",
   OWNER_HEX: "npub",
   TAG: "tag",
   IMAGE: "tag",

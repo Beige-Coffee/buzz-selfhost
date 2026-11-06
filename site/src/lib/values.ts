@@ -24,10 +24,11 @@ export interface Values {
 }
 
 /**
- * The relay image every setup installs and upgrades to: the tag of `tested-image` in SKILL.md, which
- * also gives its digest. Moving the pin is this one line here. Not every main commit gets an image.
+ * The relay image every setup installs and upgrades to: `tested-image` in SKILL.md, which also gives
+ * its digest, so moving the pin is an edit there. Add the old tag to OLD_DEFAULT_TAGS when it moves.
+ * Not every main commit gets an image.
  */
-export const DEFAULT_TAG = "sha-744f394";
+export const DEFAULT_TAG = skill.pin.tag;
 const OLD_DEFAULT_TAGS = ["sha-53a1210", "sha-83aab8c", "sha-d1b7da4", "sha-30873ba", "sha-e8781ca"];
 const KEY = "buzz-selfhost-values-v2";
 const DEFAULTS: Values = { path: "vps", ownMode: "public", reach: "public", domain: "", npub: "", tag: "", mode: "agent" };
@@ -189,7 +190,7 @@ export function derived(v: Values = state): Record<string, string> {
     HTTP_ORIGIN: practice ? "https://localhost" : `https://${domain}`,
     OWNER_HEX: hex ?? "CHANGE_ME_OWNER_PUBKEY_HEX",
     // the prompts' owner: the reader's own npub, or a key the skill makes for them (scripts/new-identity.py)
-    OWNER: npub ? `Owner: ${npub}.` : "I have no Buzz key yet: make the owner key with the skill's new-identity.py.",
+    OWNER: npub ? `Owner: ${npub}, copied from Buzz 1.0's Settings, Identity.` : "I have no Buzz key yet: make the owner key with the skill's new-identity.py.",
     TAG: tag,
     // the skill's checks compare the pulled image with its digest, which SKILL.md gives for its own tag only
     DIGEST: tag === skill.pin.tag && skill.pin.digest ? skill.pin.digest : "<that image's digest>",

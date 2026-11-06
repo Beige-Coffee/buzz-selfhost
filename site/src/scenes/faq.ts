@@ -80,7 +80,6 @@ const roles = (t: Track) => `<div class="fq-vis"><table class="fq-roles">
   </tbody></table></div>`;
 
 /** Moderating: in Buzz's screens on a public Compose relay, otherwise with the buzz command line. */
-const CLI = "https://github.com/block/buzz/tree/main/crates/buzz-cli";
 const NO_CONSOLE: Partial<Record<Track, string>> = {
   k8s: "Block's Helm chart has no setting yet for the address Buzz's moderation screens need.",
   practice: "Buzz's moderation screens can't reach a local test.",
@@ -96,7 +95,7 @@ const moderation = (t: Track) =>
       ])
     : rec("Ban rather than only remove: a ban keeps someone out and cuts off their agents. Someone you only remove can come back with any invite link that hasn't expired.") +
       note(
-        `${NO_CONSOLE[t] ?? "On a private network, Buzz's moderation screens can't reach your relay."} So the owner or an admin moderates with <a href="${CLI}">Buzz's command-line tool</a>, signed with their own key: <code>buzz moderation</code> lists the reports members send, and bans or times people out, and <code>buzz messages delete</code> removes a message.`,
+        `${NO_CONSOLE[t] ?? "On a private network, Buzz's moderation screens can't reach your relay."} So the owner or an admin moderates with the <code>buzz</code> command line that comes with Buzz 1.0 (on a Mac, <code>/Applications/Buzz.app/Contents/Resources/bin/buzz</code>), signed with their own key: <code>buzz moderation</code> lists the reports members send, and bans or times people out, and <code>buzz messages delete</code> removes a message.`,
       );
 
 /** A lost device: one question decides everything, whether the key is exposed. */
@@ -124,7 +123,7 @@ const KEYS =
   ) +
   `<pre class="cmd">curl -fsSLO ${KEYMAKER} &amp;&amp; python3 new-identity.py</pre>` +
   note(
-    "With the script's key, join with <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>, and delete the file once Buzz has the key. Builderlab can keep a copy of a key made or imported after you sign in to it, and gives it back to whoever signs in to that account: keep work identities in your password manager instead.",
+    "With the script's key, join with <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>, and drop the key file on the page. Then save the key in your password manager from <b>Settings</b>, <b>Identity</b>, <b>Copy private key</b>, and delete the file. Builderlab can keep a copy of a key made or imported after you sign in to it, and gives it back to whoever signs in to that account: keep work identities in your password manager instead.",
   );
 
 /** Single sign-on today: two locks in a row, your company's login and Buzz's member list. */

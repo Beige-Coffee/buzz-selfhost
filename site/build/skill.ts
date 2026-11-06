@@ -45,7 +45,7 @@ export interface SkillData {
   /** where the step-by-step view has a reader download the skill, so its scripts run by that path */
   home: string;
   /** the image the skill recommends, from SKILL.md's metadata: `tested-image` and `tested-digest` */
-  pin: { tag?: string; digest?: string };
+  pin: { tag: string; digest: string };
 }
 
 const SERVER: Track[] = ["vps", "own-public"];
@@ -318,7 +318,9 @@ function fixes(dir: string): SkillFix[] {
           ? PRIVATE
           : /^Local:/.test(symptom)
             ? LOCAL
-            : [...TRACKS];
+            : /^Own hardware, public:/.test(symptom)
+              ? (["own-public"] as Track[])
+              : [...TRACKS];
     const inline = (cell: string) => links(md.parseInline(vars(current(untested(cell)))) as string, "references");
     return { tracks, symptom: inline(symptom), fix: inline(fix) };
   });
@@ -362,7 +364,10 @@ export function parseSkill(dir: string): SkillData {
     if (n < 5) fail(`only ${n} steps for ${t}`);
   }
   const meta = (key: string) => readFileSync(join(dir, "SKILL.md"), "utf8").match(new RegExp(`^  ${key}: *"?([^"\\s]+)"?$`, "m"))?.[1];
-  const data = { steps, fixes: fixes(dir), ops: ops(dir), home: HOME, pin: { tag: meta("tested-image"), digest: meta("tested-digest") } };
+  const tag = meta("tested-image");
+  const digest = meta("tested-digest");
+  if (!tag || !digest) fail("SKILL.md's metadata needs tested-image and tested-digest: every setup installs that image");
+  const data = { steps, fixes: fixes(dir), ops: ops(dir), home: HOME, pin: { tag: tag!, digest: digest! } };
   for (const text of [...data.steps.map((x) => x.html), ...data.ops.map((x) => x.html), ...data.fixes.flatMap((x) => [x.symptom, x.fix])]) {
     const old = text.match(OLD);
     if (old) fail(`the site would show "${old[0]}": add a rule to CURRENT in build/skill.ts (${text.replace(/<[^>]+>/g, "").slice(0, 80)})`);
@@ -378,6 +383,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(`${t} (${list.length}): ${list.map((s) => `${s.id}${s.optional ? "*" : ""}`).join(" ")}`);
   }
   console.log(`fixes: ${data.fixes.length}`);
-  console.log(`pin: ${data.pin.tag ?? "none"}${data.pin.digest ? `@${data.pin.digest}` : ""}`);
+  console.log(`pin: ${data.pin.tag}@${data.pin.digest}`);
   for (const t of TRACKS) console.log(`ops ${t}: ${data.ops.filter((o) => o.tracks.includes(t)).map((o) => `${o.kind}/${o.title}`).join(", ")}`);
 }

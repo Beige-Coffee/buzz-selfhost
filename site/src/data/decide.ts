@@ -209,7 +209,7 @@ export const OWNER = {
 };
 
 /** "Something else": what the guide leaves out, shown above the closest setup. */
-export const NOT_COVERED = `This guide doesn't cover ARM machines such as a Raspberry Pi, a NAS's own apps, a Mac or Windows computer as the server, or app platforms such as Railway, Fly.io or Render. It also leaves out managed Postgres, Redis or S3, VPNs other than Tailscale, more than one relay, and moving a community from buzz.xyz ${issue(6803)}.`;
+export const NOT_COVERED = `This guide doesn't cover ARM machines such as a Raspberry Pi, a NAS's own apps, a Mac or Windows computer as the server, or app platforms such as Fly.io or Render. It also leaves out managed Postgres, Redis or S3, VPNs other than Tailscale, more than one relay, and moving a community from buzz.xyz ${issue(6803)}.`;
 
 /** A setup, the closest setup to one the guide doesn't cover, or an owner to find first. */
 export type Outcome = { kind: "setup" | "closest"; track: Track } | { kind: "owner" };

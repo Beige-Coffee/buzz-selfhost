@@ -4,13 +4,13 @@
 Usage: python3 new-identity.py [--out PATH]
        python3 new-identity.py --selftest
 
-Writes the private key (nsec) to a new file that only you can read: ~/buzz-identity.nsec, or the
+Writes the private key (nsec) to a new file that only you can read: ~/buzz-identity.key, or the
 full path --out names. It never overwrites a file. Then it prints two lines, the public ID (npub)
 and the file's path, and never the private key.
 
 In Buzz 1.0, choose Other options, paste the community's address and choose Continue, then Use an
-existing key, and drop this file on the page. Once Buzz has joined, save the key in your password
-manager (Settings, Identity, Copy private key) and delete the file.
+existing key, and drop this file on the page or pick it with Browse. Once Buzz has joined, save the
+key in your password manager (Settings, Identity, Copy private key) and delete the file.
 
 Pure Python 3, with nothing to install. The key comes from the operating system's secure random
 source. --selftest checks the encoding against NIP-19's published examples and the key math against
@@ -171,11 +171,11 @@ def selftest():
 def main(argv):
     if argv == ["--selftest"]:
         return selftest()
-    path = os.path.join(os.path.expanduser("~"), "buzz-identity.nsec")
+    path = os.path.join(os.path.expanduser("~"), "buzz-identity.key")
     if argv[:1] == ["--out"] and len(argv) == 2:
         path = os.path.expanduser(argv[1])
         if not os.path.isabs(path):
-            sys.exit("--out needs a full path, such as ~/keys/buzz-identity.nsec")
+            sys.exit("--out needs a full path, such as ~/keys/buzz-identity.key")
     elif argv:
         sys.exit("usage: new-identity.py [--out PATH] | --selftest")
     path = os.path.abspath(path)

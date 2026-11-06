@@ -158,6 +158,23 @@ const LEDGER = `<div class="fq-vis fq-audit">
   <div class="fq-card"><p class="fq-card-h">${icon("lock")}Your hosting provider's log</p><p class="fq-le"><time>08:58</time><b>Maya signed in to the server</b></p><p class="fq-dim">Who touched the server itself</p></div>
 </div>`;
 
+/**
+ * What still reaches Block from a self-hosted community: the apps' update checks (block/buzz-app
+ * src/features/updates/updates.ts, hourly, installed on restart), push through push.buzz.xyz (relay key,
+ * IP and wake timing; a fixed payload, crates/buzz-push-gateway/src/model.rs; docs/buzz-push.md calls it
+ * experimental), and Builderlab's key backup and community list (block/buzz-app#2325, known-communities).
+ */
+const dep = (i: string, t: string, d: string) => `<li><span class="fq-dep-i">${icon(i)}</span><div><b>${t}</b><p>${d}</p></div></li>`;
+const DEPS = `<div class="fq-vis"><ul class="fq-check">${[
+  dep("download", "Apps and images", "Buzz's apps and the relay's images come from Block. The desktop app checks for updates every hour and downloads them; they install when you restart it."),
+  dep(
+    "bell",
+    "iPhone notifications",
+    "They go through Block's gateway, <code>push.buzz.xyz</code>. No message text passes through it, but it sees your relay's key, your server's IP address and when it wakes which phone, and Apple sees when a phone is woken. Block calls push experimental; <code>BUZZ_PUSH_ENABLED=false</code> turns it off.",
+  ),
+  dep("user", "Builderlab accounts", "Signing in to Builderlab, Block's service, can give Block a copy of your key, and tells it which communities you join. A key from this guide's key maker needs no account."),
+].join("")}</ul></div>`;
+
 interface Question {
   id: string;
   icon: string;
@@ -294,7 +311,7 @@ const GROUPS: [string, Question[]][] = [
           rec("Anyone with access to the server, its database or its backups can read every message, direct messages included. Protect the server the way you'd protect the messages.") +
           READ +
           note(
-            `Keep server access small, turn on your provider's disk encryption, encrypt backups, and consider a private network, where the relay has no public address. Phone notifications carry no message text, but Block's gateway sees your relay's key, your server's IP address and when it wakes which phone.`,
+            `Keep server access small, turn on your provider's disk encryption, encrypt backups, and consider a private network, where the relay has no public address. Phone notifications carry no message text, but Block's gateway sees your relay's key, your server's IP address and when it wakes which phone: see <a href="#operations" data-q-link="block">What still depends on Block?</a>`,
           ) +
           // reads check community membership only (block/buzz crates/buzz-relay/src/api/media.rs); #8444 and #9077 start off
           note(
@@ -340,6 +357,15 @@ const GROUPS: [string, Question[]][] = [
           rec("On the server, plus one copy in a shared vault that only the server's people can open.") +
           KEY_HOME +
           note(`A <a href="#operations" data-q-link="backup">backup</a> includes <code>.env</code>. On Kubernetes the key is in a Secret.`),
+      },
+      {
+        id: "block",
+        icon: "link",
+        q: "What still depends on Block?",
+        a:
+          rec("Your relay runs without Block, but the apps, iPhone notifications and Builderlab accounts come from Block. Make keys with this guide's key maker, and turn notifications off if Block mustn't see when your team's phones wake.") +
+          DEPS +
+          note("If Block stopped, your relay would keep running, without app updates or phone notifications."),
       },
     ],
   ],

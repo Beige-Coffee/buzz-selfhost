@@ -1002,16 +1002,6 @@ ul.plain li a { margin-left: 4px; font: 12.5px var(--mono); color: var(--ink-3);
 .btn.ghost { background: #fff; color: var(--ink); border-color: var(--line-2); }
 .btn.ghost:hover { border-color: var(--ink); box-shadow: var(--shadow-1); }
 
-/* ── limits ─────────────────────────────────── */
-.limits { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 30px 28px; }
-.limit { display: flex; flex-direction: column; padding: 22px 0 0; border-top: 1px solid var(--line-2); }
-.limit .limit-k { margin: 0; font: 500 11px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
-.limit p { flex: 1; margin: 10px 0 14px; font-size: 15px; line-height: 1.55; color: var(--ink-2); }
-.limit .limit-links { flex: none; display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 0; }
-.limit a { font: 12.5px var(--mono); color: var(--ink-3); }
-.limit a:hover { color: var(--ink); }
-.limits-fine { max-width: var(--wide); margin: 26px auto 0; }
-
 /* ── links to sections and steps ────────────── */
 .hl {
   display: inline-grid; place-items: center; width: 26px; height: 26px; margin-left: 8px; vertical-align: middle;
@@ -1067,7 +1057,6 @@ h2 .hl svg { width: 19px; }
 @media (max-width: 880px) {
   .hd-links { display: none; }
   .hd-menu { display: inline-flex; }
-  .limits { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 28px; }
 }
 @media (max-width: 1000px) {
   .guide-grid { grid-template-columns: 1fr; gap: 0; }
@@ -1129,7 +1118,6 @@ h2 .hl svg { width: 19px; }
   .opx-pane { padding: 18px 16px 20px; }
   .ag-clouds { grid-template-columns: 1fr; gap: 2px; }
   .ag-clouds dd { margin-bottom: 8px; }
-  .limits { grid-template-columns: 1fr; }
   .btn { padding: 12px 19px; font-size: 15px; }
   /* where to run: only the picked card opens; the others are a line each, tap to pick */
   .pa-card:not(.sel) { padding-bottom: 14px; }

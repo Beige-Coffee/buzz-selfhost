@@ -6,7 +6,7 @@ import { BUZZ_ROBOT, TABLER } from "./tabler";
 
 /** A Tabler outline icon, the set Buzz 1.0 draws its interface with. `cls` sets its size or stroke. */
 const i = (name: string, cls = "") => `<svg class="b1-i${cls ? ` ${cls}` : ""}" viewBox="0 0 24 24" aria-hidden="true">${TABLER[name]}</svg>`;
-/** Buzz 1.0's own agent mark, its one interface icon that isn't Tabler's. */
+/** Buzz 1.0's own agent mark, drawn for Buzz rather than taken from Tabler. */
 const robot = (cls = "") => `<svg class="b1-i${cls ? ` ${cls}` : ""}" viewBox="0 0 24 24" aria-hidden="true">${BUZZ_ROBOT}</svg>`;
 /** The icon each spot uses in block/buzz-app. Sizes follow the app's: dk and lg for its 20px icons, md for 18px, the rest 16px. */
 const IC = {
@@ -74,13 +74,13 @@ export function buzzAppHTML(): string {
     <span class="b1-find">${IC.search}Search<kbd>⌘K</kbd></span>
   </div>
   <div class="b1-body">
-    <nav class="b1-dock">
+    <div class="b1-dock">
       <span class="b1-dk">${IC.activity}</span>
       <span class="b1-dk on">${IC.msgs}</span>
       <span class="b1-dk">${IC.agents}</span>
       <span class="b1-comm">B</span>
       <span class="b1-me-av"><img src="${AV.leo}" alt=""><i></i></span>
-    </nav>
+    </div>
     <div class="b1-panel">
       <aside class="b1-side">
         <div class="b1-side-top"><div class="b1-seg"><b>All</b><b>Solo</b><b class="on">Team</b></div><span class="b1-new">${IC.plus}</span></div>

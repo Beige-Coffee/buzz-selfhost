@@ -96,15 +96,15 @@ SNIP
 # operations.md's restore block, verbatim: it restores only into an empty database, stops at the
 # first pg_restore error, and starts the relay only after `restored`.
 IFS= read -r -d '' RESTORE <<'SNIP' || true
-cp ~/buzz-backup/env .env
+cp "$BACKUP/env" .env
 docker compose create
 for v in minio-data git-data; do
-  docker run --rm -v buzz-prod_buzz-$v:/data -v ~/buzz-backup:/backup alpine \
+  docker run --rm -v buzz-prod_buzz-$v:/data -v "$BACKUP":/backup alpine \
     tar xzf /backup/$v.tgz -C /data
 done
 docker compose up -d --wait postgres
 [ "$(docker compose exec -T postgres psql -U buzz -d buzz -tAc "select count(*) from pg_tables where schemaname = 'public'" < /dev/null)" = 0 ] &&
-  docker compose exec -T postgres pg_restore -U buzz -d buzz --exit-on-error --single-transaction < ~/buzz-backup/postgres.dump &&
+  docker compose exec -T postgres pg_restore -U buzz -d buzz --exit-on-error --single-transaction < "$BACKUP/postgres.dump" &&
   echo restored && BUZZ_COMPOSE_TLS=true ./run.sh start
 SNIP
 # operations.md's check before an upgrade, verbatim: no two open channels share a name (block/buzz#8787)
@@ -345,23 +345,25 @@ list-members)
 # ══ Day two: back up (the page's commands) ════════════════════════════
 backup)
   cd "$COMPOSE_DIR" || exit 1
-  run backup 'mkdir -p ~/buzz-backup && chmod 700 ~/buzz-backup
+  run backup 'BACKUP=~/buzz-backup/$(date +%F)
+mkdir -p "$BACKUP" && chmod 700 ~/buzz-backup "$BACKUP"
 docker compose stop relay
-docker compose exec -T postgres pg_dump -U buzz -Fc buzz > ~/buzz-backup/postgres.dump < /dev/null
+docker compose exec -T postgres pg_dump -U buzz -Fc buzz > "$BACKUP/postgres.dump" < /dev/null
 for v in minio-data git-data; do
-  docker run --rm -v buzz-prod_buzz-$v:/data:ro -v ~/buzz-backup:/backup alpine \
+  docker run --rm -v buzz-prod_buzz-$v:/data:ro -v "$BACKUP":/backup alpine \
     tar czf /backup/$v.tgz -C /data .
 done
-cp .env ~/buzz-backup/env
+cp .env "$BACKUP/env"
 docker compose start relay' && pass "backup" || fail "backup"
-  run backup-files 'ls -la ~/buzz-backup'
+  run backup-files 'ls -la "$BACKUP"'
   for f in postgres.dump minio-data.tgz git-data.tgz env; do
-    [[ -s ~/buzz-backup/$f ]] && pass "backup has $f" || fail "backup missing $f"
+    [[ -s $BACKUP/$f ]] && pass "backup has $f" || fail "backup missing $f"
   done
-  run backup-bucket 'tar tzf ~/buzz-backup/minio-data.tgz | grep -c buzz-media'
+  expect "the backup folder is private" "700" "$(stat -c %a "$BACKUP")"
+  run backup-bucket 'tar tzf "$BACKUP/minio-data.tgz" | grep -c buzz-media'
   N=$(tail -1 "$OUT/backup-bucket.out")
   [[ $N =~ ^[0-9]+$ && $N -gt 0 ]] && pass "the object store's archive holds the bucket ($N entries)" || fail "no buzz-media in minio-data.tgz"
-  run backup-dump 'docker compose exec -T postgres pg_restore -l < ~/buzz-backup/postgres.dump | wc -l'
+  run backup-dump 'docker compose exec -T postgres pg_restore -l < "$BACKUP/postgres.dump" | wc -l'
   N=$(tail -1 "$OUT/backup-dump.out" | tr -d ' ')
   [[ $N =~ ^[0-9]+$ && $N -ge 100 ]] && pass "the dump reads back ($N lines)" || fail "the dump doesn't read back"
   wait_alive && pass "relay back up after the backup" || fail "relay down after the backup"
@@ -381,19 +383,22 @@ cd /root && rm -rf buzz' && pass "wipe" || fail "wipe"
 # ══ Day two: restore onto a fresh checkout (the page's commands) ══════
 restore)
   RESTORE_DOMAIN="${2:?domain}"
+  # operations.md: BACKUP names the folder to restore; here, the newest
+  BACKUP=$(ls -d ~/buzz-backup/20*/ | tail -1)
+  BACKUP=${BACKUP%/}
   cd /root
-  run reclone 'TAG=$(grep '"'"'^BUZZ_IMAGE='"'"' ~/buzz-backup/env | cut -d: -f2)
+  run reclone 'TAG=$(grep '"'"'^BUZZ_IMAGE='"'"' "$BACKUP/env" | cut -d: -f2)
 git clone https://github.com/block/buzz.git
 cd buzz && git checkout -q ${TAG#sha-} && cd deploy/compose
 cp .env.example .env && chmod 600 .env' >/dev/null && pass "fresh checkout" || fail "fresh checkout"
   cd "$COMPOSE_DIR" || exit 1
   object_store_edit
   pairing_edits server
-  expect "fresh checkout at the backup's commit" "$(grep '^BUZZ_IMAGE=' ~/buzz-backup/env | cut -d: -f2 | sed 's/^sha-//')" "$(git rev-parse HEAD | cut -c1-7)"
+  expect "fresh checkout at the backup's commit" "$(grep '^BUZZ_IMAGE=' "$BACKUP/env" | cut -d: -f2 | sed 's/^sha-//')" "$(git rev-parse HEAD | cut -c1-7)"
   # operations.md's checks before the block: the four files, this community's address, no database left
-  run backup-complete 'for f in postgres.dump minio-data.tgz git-data.tgz env; do [ -s ~/buzz-backup/$f ] || echo missing $f; done'
+  run backup-complete 'for f in postgres.dump minio-data.tgz git-data.tgz env; do [ -s "$BACKUP/$f" ] || echo missing $f; done'
   expect "the backup has all four files" "" "$(cat "$OUT/backup-complete.out")"
-  run backup-address "grep '^RELAY_URL=' ~/buzz-backup/env"
+  run backup-address 'grep '"'"'^RELAY_URL='"'"' "$BACKUP/env"'
   expect "the backup is this community's" "RELAY_URL=wss://$RESTORE_DOMAIN" "$(cat "$OUT/backup-address.out")"
   run db-volume 'docker volume ls -q --filter name=buzz-prod_buzz-postgres-data'
   expect "no database volume before the restore" "" "$(cat "$OUT/db-volume.out")"

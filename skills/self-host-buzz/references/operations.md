@@ -61,30 +61,41 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   owner key a bootstrap script makes; with the owner's npub from the Buzz app, that key stays in
   their app.
   Plain `docker compose` works in every mode here: these commands touch only the relay, Postgres
-  and the volumes.
+  and the volumes. Each backup gets a folder of its own in `~/buzz-backup`, named by the day, in
+  `BACKUP` (set it again in each call if each command runs in a fresh shell):
   ```bash
-  mkdir -p ~/buzz-backup && chmod 700 ~/buzz-backup
+  BACKUP=~/buzz-backup/$(date +%F)
+  mkdir -p "$BACKUP" && chmod 700 ~/buzz-backup "$BACKUP"
   docker compose stop relay
-  docker compose exec -T postgres pg_dump -U buzz -Fc buzz > ~/buzz-backup/postgres.dump < /dev/null
+  docker compose exec -T postgres pg_dump -U buzz -Fc buzz > "$BACKUP/postgres.dump" < /dev/null
   for v in minio-data git-data; do
-    docker run --rm -v buzz-prod_buzz-$v:/data:ro -v ~/buzz-backup:/backup alpine \
+    docker run --rm -v buzz-prod_buzz-$v:/data:ro -v "$BACKUP":/backup alpine \
       tar czf /backup/$v.tgz -C /data .
   done
-  cp .env ~/buzz-backup/env
+  cp .env "$BACKUP/env"
   docker compose start relay
   ```
   Check: `check-relay.sh`, run the way the install ran it, passes again (it waits the half minute
   the relay takes to start).
-  `ls -la ~/buzz-backup` shows four non-empty files; `git-data.tgz` stays tiny until someone hosts
-  a repository. `tar tzf ~/buzz-backup/minio-data.tgz | grep -c buzz-media` is above 0 (a mistyped
+  `ls -la "$BACKUP"` shows four non-empty files; `git-data.tgz` stays tiny until someone hosts
+  a repository. `tar tzf "$BACKUP/minio-data.tgz" | grep -c buzz-media` is above 0 (a mistyped
   volume name would have made an empty volume and an empty archive), and
-  `docker compose exec -T postgres pg_restore -l < ~/buzz-backup/postgres.dump | wc -l` is in the
+  `docker compose exec -T postgres pg_restore -l < "$BACKUP/postgres.dump" | wc -l` is in the
   hundreds (the dump reads back). The backup holds every
   secret: ask the user how to encrypt it (for example `gpg --symmetric`) and where the off-machine
-  copy goes. Those are their decisions.
-- **Restore** into empty volumes (ask first: it replaces the data). On a new machine: stop the old
-  relay first if it still runs, run compose.md steps 3, 4 and 9, with the backup's tag for step 4
-  (`TAG=$(grep '^BUZZ_IMAGE=' ~/buzz-backup/env | cut -d: -f2)`), and point the domain's A record
+  copy goes. Those are their decisions. The disk is small, so once the copies are off the server,
+  keep the newest few folders on it (ask first: it deletes the older ones):
+  `ls -d ~/buzz-backup/20*/ | head -n -4 | xargs -r rm -rf` keeps four (not tested). Tell the user
+  what the schedule means: with weekly backups, losing the server can lose up to a week of
+  messages. The provider's own server backups narrow that, or a nightly backup does (compose.md,
+  For a server that runs for months).
+- **Restore** into empty volumes (ask first: it replaces the data). Set `BACKUP` to the folder to
+  restore, such as `BACKUP=~/buzz-backup/2026-11-06` (`ls ~/buzz-backup` lists them; a backup from
+  before dated folders is `~/buzz-backup` itself). One server has no standby: tell the user that
+  nobody can send or read new messages until the restore ends. On a new machine: stop the old
+  relay first if it still runs, copy the backup's folder to the same path there, run compose.md
+  steps 3, 4 and 9, with the backup's tag for step 4
+  (`TAG=$(grep '^BUZZ_IMAGE=' "$BACKUP/env" | cut -d: -f2)`), and point the domain's A record
   at the new machine before the restore below starts the relay, so Caddy gets its certificate
   there. On a private network a move to a new machine isn't covered: the community's address is
   the old machine's Tailscale name (compose.md step 2P). On this one, stop the relay and delete the
@@ -97,24 +108,24 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   the way Upgrade moves it (the two `git checkout` lines, then compose.md step 9). Wherever this
   redoes step 9 and the backup's `env` has `BUZZ_ADMIN_HOST`, add the moderation console's Caddy
   route again too, and on a new machine move `admin.$DOMAIN`'s record with the domain's.
-  Check first (not tested): `for f in postgres.dump minio-data.tgz git-data.tgz env; do [ -s ~/buzz-backup/$f ] || echo missing $f; done`
+  Check first (not tested): `for f in postgres.dump minio-data.tgz git-data.tgz env; do [ -s "$BACKUP/$f" ] || echo missing $f; done`
   prints nothing, since a missing file archive would bring the community back without its files.
-  `grep '^RELAY_URL=' ~/buzz-backup/env` shows this community's address, as the user knows it:
+  `grep '^RELAY_URL=' "$BACKUP/env"` shows this community's address, as the user knows it:
   another install's backup would swap the relay's identity and owner. And
   `docker volume ls -q --filter name=buzz-prod_buzz-postgres-data` prints nothing. If it prints the
   volume, this server still has its database: stop, and delete the volumes as above if you mean to
   replace it. Run on a live server, the block below stops the relay before it refuses.
   `docker compose create` makes the volumes the way Compose expects, so it doesn't warn later.
   ```bash
-  cp ~/buzz-backup/env .env
+  cp "$BACKUP/env" .env
   docker compose create
   for v in minio-data git-data; do
-    docker run --rm -v buzz-prod_buzz-$v:/data -v ~/buzz-backup:/backup alpine \
+    docker run --rm -v buzz-prod_buzz-$v:/data -v "$BACKUP":/backup alpine \
       tar xzf /backup/$v.tgz -C /data
   done
   docker compose up -d --wait postgres
   [ "$(docker compose exec -T postgres psql -U buzz -d buzz -tAc "select count(*) from pg_tables where schemaname = 'public'" < /dev/null)" = 0 ] &&
-    docker compose exec -T postgres pg_restore -U buzz -d buzz --exit-on-error --single-transaction < ~/buzz-backup/postgres.dump &&
+    docker compose exec -T postgres pg_restore -U buzz -d buzz --exit-on-error --single-transaction < "$BACKUP/postgres.dump" &&
     echo restored && BUZZ_COMPOSE_TLS=true ./run.sh start
   ```
   Check: `restored`, then the relay starts, and `./run.sh list-members` lists the members from

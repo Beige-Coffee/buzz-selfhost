@@ -32,16 +32,20 @@ deprecated. It still works with the same relay; where its screens differ, the st
    secret in `.env`, any Kubernetes value holding a key or password, a Tailscale auth key, the key
    file `new-identity.py` writes, or any secret key. These print every secret at once, so their
    output goes to a file or nowhere, never the screen: `./run.sh config`, `docker compose config`,
-   `docker inspect`,
-   `helm get manifest`, `helm get all`,
-   `kubectl get secret -o yaml`. Generate keys straight into their file. When a check needs a
-   secret, check its length, never its value. Safe to show as is (tested): every check in these
-   files, `run.sh start`, `status` and `list-members`, `docker compose ps`, the services' logs,
-   `kubectl describe`, `helm get values`, `helm install`'s notes, and
-   `run.sh upgrade` (its reminder names secrets but never prints them). The user copies the relay
-   key into their password manager themselves.
+   `docker inspect`, `helm get manifest`, `helm get all`, `kubectl get secret -o yaml`. Generate
+   keys straight into their file. When a check needs a secret, check its length, never its value.
+   Safe to show as is (tested): every check in these files, `run.sh start`, `status` and
+   `list-members`, `docker compose ps`, the services' logs except the relay's access lines,
+   `kubectl describe`, `helm get values`, `helm install`'s notes, and `run.sh upgrade` (its
+   reminder names secrets but never prints them). The relay's log names who read what and from
+   where, so show only the lines a check needs:
+   `docker logs --tail 300 buzz-prod-relay-1 2>&1 | grep -v 'buzz_relay::access' | tail -40`, or on
+   Kubernetes the same filter on `kubectl -n buzz logs deploy/buzz -c relay --tail 300`.
+   The user copies the relay key into their password manager themselves, in a terminal window of
+   its own: some agents' apps can read their own terminal panel.
 2. **Ask first** before anything that costs money, changes DNS, deletes volumes or data, changes a
-   firewall, or changes the user's account settings. A public server serves ports 80 and 443 to
+   firewall, changes the user's account settings, or stops or changes another program on the
+   machine. A public server serves ports 80 and 443 to
    the internet: confirm that when you confirm the setup. Use only the access the user gives you:
    if a server's address or login is missing or doesn't work, ask, rather than looking it up with
    cloud credentials found on the machine.

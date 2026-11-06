@@ -57,7 +57,7 @@ const OWNER_KEY: Ready = {
   t: "<b>Your key</b>, your identity in Buzz. The skill makes it and shows its npub, your public ID, which makes you the owner.",
   more: {
     label: "How it works",
-    t: "The skill makes the key on this computer, in a file only you can read, and shows only its npub. Save the key in your password manager: you join with it, and need it to use Buzz on another computer. Delete the file once Buzz has the key. Already have a key in Buzz? Type its npub into the Running on box: it's in <b>Settings</b>, <b>Identity</b> (press ⌘, or Ctrl+, on Windows and Linux). The other way to get a key is a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details. For that, choose <b>Create account</b> on Buzz's first screen. When Buzz asks for a community, quit it, open it again, choose <b>Continue without signing in</b> and copy your npub from Settings, Identity.",
+    t: "The skill makes the key on this computer, in a file only you can read, and shows only its npub. You join by dropping that file into Buzz. Then copy the key from <b>Settings</b>, <b>Identity</b>, <b>Copy private key</b> into your password manager, and delete the file: you need the key to use Buzz on another computer. Already have a key in Buzz? Type its npub into the Running on box: it's in <b>Settings</b>, <b>Identity</b> (press ⌘, or Ctrl+, on Windows and Linux). The other way to get a key is a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details. For that, choose <b>Create account</b> on Buzz's first screen. When Buzz asks for a community, quit it, open it again, choose <b>Continue without signing in</b> and copy your npub from Settings, Identity.",
   },
 };
 // a first connection asks to trust the fingerprint, which an agent's shell can't answer (SKILL.md, SSH to a server)
@@ -83,7 +83,7 @@ const CLOUDS = (open: boolean) => ({
   label: "Which server to rent",
   t: `<dl class="ag-clouds">
     <dt>DigitalOcean</dt><dd>A Basic Droplet with 4 GB of RAM.${open ? " Its IP address doesn't change, and nothing blocks ports 80 and 443 unless you add a Cloud Firewall." : ""}</dd>
-    <dt>Hetzner</dt><dd>A CX or CPX server (x86), not CAX (ARM), with 4 GB of RAM. Keep its IPv4 address when you create it: GitHub, where the install downloads from, has no IPv6.</dd>
+    <dt>Hetzner</dt><dd>A CX or CPX server (x86), not CAX (ARM), with 4 GB of RAM. If they show as unavailable, try another location. Keep its IPv4 address when you create it: GitHub, where the install downloads from, has no IPv6.</dd>
     <dt>AWS</dt><dd>An x86 instance with 4 GB of RAM, such as <code>t3.medium</code>, not Graviton (<code>t4g</code>). Set its storage to 20 GB; the default is 8.${open ? " In its security group, allow HTTP and HTTPS. Attach an Elastic IP, or the address changes whenever the instance stops." : ""} You log in as <code>ubuntu</code>.</dd>
     <dt>Google Cloud</dt><dd>An x86 machine with 4 GB of RAM, such as <code>e2-medium</code>. Make its boot disk 20 GB; the default is 10.${open ? " Tick Allow HTTP traffic and Allow HTTPS traffic, and reserve a static external IP address." : ""}</dd>
   </dl>`,
@@ -385,8 +385,8 @@ const CHECK_BACK = "The relay check passes, and your messages, files and members
 export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", FlowStep[]>>> = {
   compose: {
     backup: [
-      { t: "Run it where Buzz runs", d: "From <code>buzz/deploy/compose</code>. Members lose the connection for about half a minute.", code: "pg_dump" },
-      { t: "Check it", d: "<code>ls -la ~/buzz-backup</code> shows four files, none of them empty, and Buzz reconnects." },
+      { t: "Run it where Buzz runs", d: "From <code>buzz/deploy/compose</code>. Each backup gets a folder named for the day, such as <code>~/buzz-backup/2026-11-06</code>, held in <code>BACKUP</code>. Members lose the connection for about half a minute.", code: "pg_dump" },
+      { t: "Check it", d: "<code>ls -la \"$BACKUP\"</code> shows four files, none of them empty, and Buzz reconnects." },
       {
         t: "Keep it safe",
         d: "It holds every secret. Encrypt it, for example with <code>gpg --symmetric</code>, keep a copy off the server, and keep the relay key where two people can open it.",
@@ -396,7 +396,7 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
     restore: [
       {
         t: "Check the backup",
-        d: "Before you change anything: its four files are there and none is empty, and its <code>env</code> shows this community's address. A backup from another install would swap your relay's identity and owner.",
+        d: "Set <code>BACKUP</code> to the backup's folder, such as <code>BACKUP=~/buzz-backup/2026-11-06</code> (<code>ls ~/buzz-backup</code> lists them). Then, before you change anything: its four files are there and none is empty, and its <code>env</code> shows this community's address. A backup from another install would swap your relay's identity and owner.",
       },
       {
         t: "Clear the way",
@@ -405,7 +405,7 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
       },
       {
         t: "Put the backup back",
-        d: "From <code>buzz/deploy/compose</code>, with the backup in <code>~/buzz-backup</code>. First, <code>docker volume ls -q --filter name=buzz-prod_buzz-postgres-data</code> must print nothing; if it prints a name, this server still has its data, so stop. The block prints <code>restored</code> and starts Buzz only if the database was empty and the backup went in whole.",
+        d: "From <code>buzz/deploy/compose</code>, with <code>BACKUP</code> set. First, <code>docker volume ls -q --filter name=buzz-prod_buzz-postgres-data</code> must print nothing; if it prints a name, this server still has its data, so stop. The block prints <code>restored</code> and starts Buzz only if the database was empty and the backup went in whole.",
         code: "pg_restore",
       },
       { t: "Check it", d: CHECK_BACK },

@@ -143,10 +143,13 @@ function frames(L: Layout): string[] {
     d === undefined ? `<div class="${cls} ghost"><i></i><span></span></div>` : `<div class="${cls}"${A(d)}><i>M</i><span>Release is Friday</span></div>`;
   const deskHTML = (sent?: number) => `
     <div class="rk-desk" style="${at(desk.x, desk.y, desk.w, desk.h)}">
-      <div class="rk-desk-top"><i></i><i></i><i></i><span class="rk-desk-tabs"><b></b><b class="on"></b><b></b><b></b></span><span class="rk-desk-me"></span></div>
+      <div class="rk-desk-top"><i></i><i></i><i></i><span class="rk-desk-find"></span></div>
       <div class="rk-desk-body">
-        <div class="rk-desk-side"><span class="rk-desk-seg"></span><i></i><i class="on"></i><i></i></div>
-        <div class="rk-desk-main"><p># release</p><div class="rk-msgs">${msg()}${sent === undefined ? "" : msg(sent)}</div><div class="rk-comp"><b></b></div></div>
+        <div class="rk-desk-dock"><b></b><b class="on"></b><b></b><span class="rk-desk-me"></span></div>
+        <div class="rk-desk-panel">
+          <div class="rk-desk-side"><span class="rk-desk-seg"></span><i></i><i class="on"></i><i></i></div>
+          <div class="rk-desk-main"><p># release</p><div class="rk-msgs">${msg()}${sent === undefined ? "" : msg(sent)}</div><div class="rk-comp"><b></b></div></div>
+        </div>
       </div>
     </div>
     <div class="rk-cap" style="${at(desk.x - 10, L.capY, desk.w + 20)}"><b>Maya</b><span>Buzz</span></div>`;

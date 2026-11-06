@@ -105,7 +105,7 @@ an installer instead: ask the user to run `xcode-select --install` first.
   - **A new key, on the owner's computer** (recommended where Buzz isn't set up yet: it holds one
     key per computer, and only Sign out of Buzz removes the one it has). There, never on the
     server, run `python3 $SKILL/scripts/new-identity.py`. It writes the private key to
-    `~/buzz-identity.nsec`, a new file only they can read, and prints the npub, then the file's
+    `~/buzz-identity.key`, a new file only they can read, and prints the npub, then the file's
     path. It never prints the private key and never overwrites a file (`--out <full path>` names
     another). If the agent doesn't run on the computer the owner will use Buzz on, the user runs
     the script there. Never read, print or copy the file: the user imports it into Buzz in
@@ -200,19 +200,18 @@ request; the script waits. If this computer still has the domain's old address c
 Tell the user to open Buzz 1.0 on the owner's computer. On its first screen they choose Other
 options, paste `$RELAY_URL` into "Community address or invite link" and choose Continue: Buzz looks
 the community up first, so the relay must be running. Under Connect to your community they choose
-Use an existing key, drop the key file from section 2 (`~/buzz-identity.nsec`) on the page (its
-Browse button looks for `.txt` and `.key` files), check that the "Public identity" it shows is the
-owner's npub, and choose Continue with this key. A Builderlab owner on a new computer chooses Sign
-in with Builderlab there instead. If Buzz already holds the owner's key, from an identity they use
-or the Builderlab account section 2 made, it opens past that screen (after Continue without
-signing in, if it asks): with no community yet, on Join a community, where they paste the address
-into "Invite link or community URL" and choose Join; otherwise they use the community button, below
-(not tested). The `https://` form of the address works too; `ws://` and `http://` addresses
-don't. In Buzz 0.X, paste the same address into its Join a community screen. With the key file,
-once Buzz has joined, the user saves the key in a password manager (Settings, Identity, Copy
-private key), then deletes the file: `rm ~/buzz-identity.nsec`. To join another community later,
-it's the community button, then Join a community, whose box takes an address but not an invite
-link.
+Use an existing key, drop the key file from section 2 (`~/buzz-identity.key`) on the page or pick it
+with Browse, check that the "Public identity" it shows is the owner's npub, and choose Continue with
+this key. A Builderlab owner on a new computer chooses Sign in with Builderlab there instead. If
+Buzz already holds the owner's key, from an identity they use or the Builderlab account section 2
+made, it opens past that screen (after Continue without signing in, if it asks): with no community
+yet, on Join a community, where they paste the address into "Invite link or community URL" and
+choose Join; otherwise they use the community button, below (not tested). The `https://` form of the
+address works too; `ws://` and `http://` addresses don't. In Buzz 0.X, paste the same address into
+its Join a community screen. With the key file, once Buzz has joined, the user saves the key in a
+password manager (Settings, Identity, Copy private key), then deletes the file:
+`rm ~/buzz-identity.key`. To join another community later, it's the community button, then Join a
+community, whose box takes an address but not an invite link.
 
 **People.** Each member needs a key. They can make one on their own computer with this skill's
 `new-identity.py`, which the guide's site also serves
@@ -265,10 +264,10 @@ notifications (`BUZZ_PUSH_ENABLED=true`): the phone app, 0.25 or later, gets the
 messages and mentions (a thread reply notifies only with a mention), through Block's gateway,
 `push.buzz.xyz`. Tell the user what that shares: no message text, sender or channel passes through
 the gateway or Apple, because the phone fetches messages from this relay; but Block's gateway sees
-this relay's key, its server's address and when it wakes which phone, and Apple sees when a phone
-is woken. Each member's iPhone signs up on its own while push is on. Block calls push experimental,
-and delivery is best effort. `BUZZ_PUSH_ENABLED=false` turns it off. Tested on public VPSs on
-2026-10-23 and 2026-10-27.
+this relay's public key, its server's address and when it wakes which phone, and Apple sees when a
+phone is woken. Each member's iPhone signs up on its own while push is on. Block calls push
+experimental, and delivery is best effort. `BUZZ_PUSH_ENABLED=false` turns it off. Tested on public
+VPSs on 2026-10-23 and 2026-10-27.
 
 **Agents.** Buzz 1.0 runs agents on the user's computer, each with its own key that the owner's
 identity vouches for. The relay admits them through the owner's membership, which every setup here

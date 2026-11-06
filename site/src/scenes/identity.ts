@@ -12,6 +12,8 @@ import { communityNav, CURSOR, invite, settings, settingsModal, ti, type Flow } 
  */
 
 const NPUB = "npub1qm…8k3a";
+/** The new key after a lost device: the npub the admin's Add member then pastes (members.ts invite). */
+const NEW_NPUB = "npub1qk3f8w…7x2a";
 
 /**
  * Buzz's first screen: the wordmark on Buzz's chartreuse among its bees, then Create account and Sign
@@ -51,29 +53,33 @@ const keyImport = onboardingStep(
 );
 
 /** The guide's key script on the person's own computer: it shows the npub and where the key is, never the key. */
-const keyScript = `<div class="id-term">
+const keyScript = (npub = NPUB) => `<div class="id-term">
   <p class="id-term-h"><i></i><i></i><i></i><span>your computer</span></p>
   <pre><span class="p">$</span> python3 new-identity.py
-<b>${NPUB}</b>
-/Users/maya/buzz-identity.nsec</pre>
+<b>${npub}</b>
+/Users/maya/buzz-identity.key</pre>
 </div>`;
 
-/** Settings, Identity: the two public keys, the npub's copy button ringed. */
+/**
+ * Settings, Identity: the two public keys, then the private key. Either the npub's copy button is
+ * ringed, with its toast, or Copy private key, with the line PrivateKey.tsx shows under it.
+ */
 const nav = (open: string) => communityNav(open, false);
-const identityPage = `<section class="mb-page id-page">
+const identityPage = (copy: "npub" | "nsec") => `<section class="mb-page id-page">
   <h5>Identity</h5>
   <p class="mb-sub">Your identity is shared across communities. Public keys are safe to share.</p>
   <div class="id-group">
     <div class="id-row"><span><b>Public key (hex)</b><code>3f9c0a52…07e81b</code></span><span class="id-ic">${ti("copy")}</span></div>
-    <div class="id-row"><span><b>Nostr address (npub)</b><code>${NPUB}</code></span><span class="id-ic hot">${ti("copy")}</span></div>
+    <div class="id-row"><span><b>Nostr address (npub)</b><code>${NPUB}</code></span><span class="id-ic${copy === "npub" ? " hot" : ""}">${ti("copy")}</span></div>
   </div>
   <div class="id-group id-form">
     <b>Private key (nsec)</b>
     <p class="mb-sub">Anyone with this key can act as you. Never share it.</p>
     <span class="id-input">••••••••••••••••</span>
-    <div class="id-btns"><span class="mb-btn">Reveal private key</span><span class="mb-btn">Copy private key</span></div>
+    <div class="id-btns"><span class="mb-btn">Reveal private key</span><span class="mb-btn${copy === "nsec" ? " hot" : ""}">Copy private key</span></div>
+    ${copy === "nsec" ? `<p class="id-msg">Private key copied. Keep it somewhere safe; your clipboard now contains it.</p>` : ""}
   </div>
-  <div class="id-toast">${ti("check")}Nostr address copied.</div>
+  ${copy === "npub" ? `<div class="id-toast">${ti("check")}Nostr address copied.</div>` : ""}
 </section>`;
 
 /** Settings, Pair mobile, once the phone has scanned: the six digits and Codes match, beside Buzz's three steps. */
@@ -126,13 +132,14 @@ export const identityFlows: Flow[] = [
     id: "identity",
     label: "Set up an identity",
     steps: [
-      { k: "Make your key", t: "Run this guide's key script on your own computer, not the server. It saves your private key in a file only you can read, and shows only your npub and where the file is.", frame: keyScript },
-      { k: "Save it in your password manager", t: "Copy the key from that file into your own item, then copy something else so it leaves your clipboard. Anyone with this key can act as you.", frame: vault },
+      { k: "Make your key", t: "Run this guide's key script on your own computer, not the server. It saves your private key in a file only you can read, and shows only your npub and where the file is.", frame: keyScript() },
       { k: "Choose Other options", t: "On Buzz's first screen, choose <b>Other options</b>. <b>Create account</b> and <b>Sign in</b> are for a Builderlab account, which is Block's.", frame: welcome },
       { k: "Paste your community's address", t: "Paste it, or an invite link an admin sent you, into <b>Community address or invite link</b>, then choose <b>Continue</b>.", frame: joinCard(ADDRESS, true) },
       { k: "Use an existing key", t: "On <b>Connect to your community</b>, choose <b>Use an existing key</b>. <b>Sign in with Builderlab</b> would go through Block's service instead.", frame: connect },
-      { k: "Paste your key", t: "Paste the key from your password manager, or drop the key file on the page. Choose <b>Continue with this key</b>, then <b>Join</b>, and delete the key file. If Buzz says the community needs an invite, an admin hasn't added your npub yet.", frame: keyImport },
-      { k: "Copy your npub for others", t: "Press ⌘, (Ctrl+, on Windows and Linux), or choose your profile picture, then <b>Settings</b>. Under <b>Buzz</b>, choose <b>Identity</b> and copy your <b>Nostr address (npub)</b>. It's public, so any channel works.", frame: settingsModal(nav("Identity"), identityPage) },
+      { k: "Drop in your key file", t: "Drop the key file on the page, or choose <b>Browse</b> and pick it. Check that <b>Public identity</b> is your npub, choose <b>Continue with this key</b>, then <b>Join</b>, and enter your name under <b>Set up your profile</b>. If Buzz says the community needs an invite, an admin hasn't added your npub yet.", frame: keyImport },
+      { k: "Copy your private key", t: "Press ⌘, (Ctrl+, on Windows and Linux), or choose your profile picture, then <b>Settings</b>. Under <b>Buzz</b>, choose <b>Identity</b>, then <b>Copy private key</b>.", frame: settingsModal(nav("Identity"), identityPage("nsec")) },
+      { k: "Save it in your password manager", t: "Paste it into your own item, then copy something else so it leaves your clipboard. Then delete the key file: <code>rm ~/buzz-identity.key</code>. Anyone with this key can act as you.", frame: vault },
+      { k: "Copy your npub for others", t: "On the same Identity page, copy your <b>Nostr address (npub)</b>. It's public, so any channel works.", frame: settingsModal(nav("Identity"), identityPage("npub")) },
       { k: "Lock your devices", t: "Turn on disk encryption and a screen lock on your computer, and a passcode on your phone.", frame: devices },
     ],
   },
@@ -150,9 +157,9 @@ export const lostFlows: Flow[] = [
     label: "The key is exposed",
     steps: [
       { k: "Remove the old key now", t: "An admin opens <b>Membership</b>, the <b>…</b> on the person's row, then <b>Remove</b>. That disconnects the key at once, but an invite link that hasn't expired would still let it back in.", frame: settings("remove") },
-      { k: "Make a new key", t: "On the new device, make a new key with the guide's key script and save it in your password manager. Not the saved copy: whoever has the old device has that key too.", frame: keyScript },
+      { k: "Make a new key", t: "On the new device, make a new key with the guide's key script. Not the saved copy: whoever has the old device has that key too.", frame: keyScript(NEW_NPUB) },
       { k: "An admin adds the new npub", t: "Send the npub the script shows to an admin, who adds it: <b>Membership</b>, <b>Invite members</b>, paste it, <b>Add member</b>.", frame: settings("", invite("add")) },
-      { k: "Sign in with the new key", t: "On the new device: <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>. Then pair the phone again, and start your agents again from the new identity.", frame: connect },
+      { k: "Sign in with the new key", t: "On the new device: <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>, and drop in the new key file. Save the new key in your password manager and delete the file, as when you first joined. Then pair the phone again, and start your agents again from the new identity.", frame: connect },
     ],
   },
   {

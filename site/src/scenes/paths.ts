@@ -119,7 +119,7 @@ export function mountPaths(host: HTMLElement): void {
         </div>`,
       ).join("")}
     </div>
-    <p class="pa-local"><button type="button" class="pa-local-go" data-local aria-pressed="false">Try a local test first</button> on this computer: about 5 minutes with your agent, free, and only you can reach it. Nothing carries over to a server.</p>`;
+    <p class="pa-local"><button type="button" class="pa-local-go" data-local aria-pressed="false">Try a local test first</button> on this computer, with your agent: it's free, and only you can reach it. Nothing carries over to a server.</p>`;
 
   // Each card keeps its own switch, so a private VPS and a public machine can sit side by side.
   // The picked card's switch is the page's choice. Your hardware starts private, as decisions.md's

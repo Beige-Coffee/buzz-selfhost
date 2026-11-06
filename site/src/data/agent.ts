@@ -342,24 +342,26 @@ export interface OpDetail {
 export type OpSetup = "compose" | "k8s";
 export const opSetup = (t: Track): OpSetup => (t === "k8s" || t === "k8s-private" ? "k8s" : "compose");
 
-const UPGRADE_WHY = "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup.";
+const UPGRADE_WHY =
+  "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup, which loses anything posted after it.";
 const agent = (t: string): OpStep => ({ who: "agent", icon: "agent", t });
 const asks = (t: string): OpStep => ({ who: "you", icon: "ask", t });
 
 /**
  * Backing up and restoring, as numbered steps for a person to run. `code` picks a command block from
- * the skill's own step (operations.md), so the commands still come from the skill.
+ * the skill's own step (operations.md) by a command it contains, so the commands still come from the
+ * skill, and a block added to the step doesn't shift the others.
  */
 export interface FlowStep {
   t: string;
   d: string;
-  code?: number;
+  code?: string;
 }
 const CHECK_BACK = "The relay check passes, and your messages, files and members are back.";
 export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", FlowStep[]>>> = {
   compose: {
     backup: [
-      { t: "Run it where Buzz runs", d: "From <code>buzz/deploy/compose</code>. Members lose the connection for about half a minute.", code: 0 },
+      { t: "Run it where Buzz runs", d: "From <code>buzz/deploy/compose</code>. Members lose the connection for about half a minute.", code: "pg_dump" },
       { t: "Check it", d: "<code>ls -la ~/buzz-backup</code> shows four files, none of them empty, and Buzz reconnects." },
       {
         t: "Keep it safe",
@@ -369,16 +371,20 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
     restore: [
       {
         t: "Clear the way",
-        d: "On this server, stop Buzz and delete the data the backup replaces; if you upgraded since the backup, first move the bundle back to the backup's version. On a new server, skip this: install Docker and get the bundle at the backup's version, with its edits, as the setup does, without starting Buzz.",
-        code: 0,
+        d: "On this server, stop Buzz and delete the data the backup replaces; if you upgraded since the backup, first move the bundle back to the backup's version. On a new server, skip this: stop the old one if it still runs, install Docker and get the bundle at the backup's version, with its edits, as the setup does, without starting Buzz, and point your domain at the new server.",
+        code: "volume rm",
       },
-      { t: "Put the backup back", d: "From <code>buzz/deploy/compose</code>, with the backup in <code>~/buzz-backup</code>.", code: 1 },
+      {
+        t: "Put the backup back",
+        d: "From <code>buzz/deploy/compose</code>, with the backup in <code>~/buzz-backup</code>. First, <code>docker volume ls -q --filter name=buzz-prod_buzz-postgres-data</code> must print nothing; if it prints a name, this server still has its data, so stop. The block prints <code>restored</code> and starts Buzz only if the database was empty and the backup went in whole.",
+        code: "pg_restore",
+      },
       { t: "Check it", d: CHECK_BACK },
     ],
   },
   k8s: {
     backup: [
-      { t: "Run it", d: "With <code>kubectl</code> connected to the cluster, in a folder only you can read. The relay keeps running.", code: 0 },
+      { t: "Run it", d: "With <code>kubectl</code> connected to the cluster, in a folder only you can read. The relay keeps running.", code: "pg_dump" },
       { t: "Check it", d: "Four files, none of them empty." },
       { t: "Keep it safe", d: "The Secret file holds the relay key. Encrypt the copies, keep one off this computer, and keep the relay key where two people can open it." },
     ],

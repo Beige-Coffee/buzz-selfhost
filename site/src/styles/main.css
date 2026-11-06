@@ -270,42 +270,51 @@ h3 { font-weight: 500; letter-spacing: -0.02em; }
 .story-stage:is([data-state="repo"], [data-state="run"]) .portrait .sg-app { left: 40px; top: 150px; }
 
 
-/* ── the mini Buzz app: Buzz 1.0 in light mode, Citrus (block/buzz-app tokens.css) ── */
+/* ── the mini Buzz app: Buzz 1.0 in light mode, Citrus (block/buzz-app tokens.css, v0.7.0-preview.248.1) ── */
 .b1-app, .j1-win, .rk-desk, .mb { --b1-base: #f5f5f6; --b1-text: #0f0f0f; --b1-nav-text: #404040; --b1-meta: #5f5f5f; --b1-line: #e8e8e8; --b1-citrus: #beda36; --b1-bub: #f3f3f4; }
+/* since the dock (block/buzz-app #2626) the window behind the panels is bg-app, a step darker, with its dot texture */
+.b1-app, .mb { --b1-base: #f1f1f2; --b1-inset: #f5f5f6; --b1-dots: #e3e3e4; }
 /* Tabler's stroke; page icons are drawn heavier; sizes stand for the app's 16, 18 and 20px icons; off is a disabled control */
 .b1-i { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .b1-i.pg { stroke-width: 2.5; }
 .b1-i.md { width: 14.5px; height: 14.5px; }
 .b1-i.lg { width: 16px; height: 16px; }
+.b1-i.dk { width: 16px; height: 16px; stroke-width: 2.5; }
 .b1-i.em { width: 1em; height: 1em; }
 .b1-i.off { color: #959595; }
 .b1-lights { display: flex; gap: 6px; }
 .b1-lights i { width: 10px; height: 10px; border-radius: 50%; background: #d9d9db; }
-.b1-app { background: var(--b1-base); border: 1px solid #e3e3e5; border-radius: 16px; overflow: hidden; color: var(--b1-text); font-size: 13px; line-height: 1.45; text-align: left; box-shadow: 0 1px 1px rgb(24 20 14 / 4%), 0 14px 44px rgb(24 20 14 / 11%); }
-.b1-top { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 10px 0 11px; }
-.b1-nav { display: flex; gap: 7px; color: var(--b1-text); }
-.b1-tabs { display: flex; align-items: center; margin: 0 auto; padding: 3px; border-radius: 999px; background: var(--b1-line); }
-.b1-tab { display: inline-flex; align-items: center; gap: 3px; padding: 4px 5.5px; border-radius: 999px; font-size: 11px; color: var(--b1-nav-text); white-space: nowrap; }
-.b1-tab.on { background: #fff; color: var(--b1-text); box-shadow: 0 1px 2px rgb(0 0 0 / 10%); }
-.b1-me { display: flex; align-items: center; gap: 5px; }
-.b1-comm { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; background: #fff; box-shadow: 0 0 0 1px #dadada; font: 600 10px var(--sans); }
-.b1-me-av { position: relative; width: 24px; height: 24px; }
-.b1-me-av img { display: block; width: 24px; height: 24px; border-radius: 50%; }
-.b1-me-av i { position: absolute; right: -1px; bottom: -1px; width: 8px; height: 8px; border-radius: 50%; background: #3fb26b; box-shadow: 0 0 0 2px var(--b1-base); }
-.b1-body { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 7px; height: 400px; padding: 0 7px 7px; }
-.b1-side, .b1-main { min-height: 0; border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px var(--b1-line); }
-.b1-side { display: flex; flex-direction: column; gap: 1px; padding: 8px; }
-.b1-seg { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 8px; padding: 2px; border-radius: 999px; background: var(--b1-base); }
-.b1-seg b { padding: 3px 0; border-radius: 999px; text-align: center; font-size: 11px; font-weight: 500; color: var(--b1-nav-text); }
+.b1-app { background: var(--b1-base) radial-gradient(var(--b1-dots) 0.9px, transparent 1.1px) 0 0 / 19px 19px; border: 1px solid #e3e3e5; border-radius: 16px; overflow: hidden; color: var(--b1-text); font-size: 13px; line-height: 1.45; text-align: left; box-shadow: 0 1px 1px rgb(24 20 14 / 4%), 0 14px 44px rgb(24 20 14 / 11%); }
+/* the header: the sidebar toggle, back and forward, and Search in the middle */
+.b1-top { position: relative; display: flex; align-items: center; height: 44px; padding: 0 10px 0 13px; }
+.b1-nav { display: flex; gap: 9px; margin-left: 24px; color: var(--b1-text); }
+.b1-find { position: absolute; top: 9px; left: 50%; display: flex; align-items: center; gap: 6px; width: 210px; height: 26px; padding: 0 5px 0 10px; transform: translateX(-50%); border-radius: 999px; background: #fff; font-size: 11.5px; color: #525252; }
+.b1-find kbd { margin-left: auto; padding: 1px 6px; border-radius: 7px; background: var(--b1-base); font: 500 10.5px var(--sans); color: var(--b1-meta); }
+/* the dock: the pages, then the community button and the profile picture at its foot */
+.b1-body { display: grid; grid-template-columns: 44px minmax(0, 1fr); height: 400px; padding: 0 7px 7px 0; }
+.b1-dock { display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 0; padding-bottom: 4px; }
+.b1-dk { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: #525252; }
+.b1-dk.on { background: var(--b1-citrus); color: #000; }
+.b1-comm { display: grid; place-items: center; width: 20px; height: 20px; margin-top: auto; border-radius: 7px; background: #fff; box-shadow: 0 0 0 1px #dadada; font: 600 9.5px var(--sans); color: #525252; }
+.b1-me-av { position: relative; width: 20px; height: 20px; margin: 9px 0 6px; }
+.b1-me-av img { display: block; width: 20px; height: 20px; border-radius: 50%; }
+.b1-me-av i { position: absolute; right: -1px; bottom: -1px; width: 7px; height: 7px; border-radius: 50%; background: #3fb26b; box-shadow: 0 0 0 2px var(--b1-base); }
+/* one white panel: the sidebar joined to the open channel */
+.b1-panel { display: grid; grid-template-columns: 132px minmax(0, 1fr); min-height: 0; overflow: hidden; border-radius: 16px; background: #fff; box-shadow: 0 0 0 1px var(--b1-line); }
+.b1-side { display: flex; flex-direction: column; gap: 1px; min-height: 0; padding: 8px; border-right: 1px solid var(--b1-line); }
+.b1-side-top { display: flex; align-items: center; gap: 2px; margin-bottom: 6px; }
+.b1-seg { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); padding: 2px; border-radius: 999px; background: var(--b1-inset); }
+.b1-seg b { padding: 3px 0; border-radius: 999px; text-align: center; font-size: 10px; font-weight: 500; letter-spacing: -0.01em; color: var(--b1-nav-text); }
 .b1-seg b.on { background: #fff; color: var(--b1-text); box-shadow: 0 1px 2px rgb(0 0 0 / 10%); }
+.b1-new { display: grid; place-items: center; width: 17px; height: 20px; color: var(--b1-text); }
 .b1-row { display: flex; align-items: center; gap: 7px; padding: 4px 8px; border-radius: 999px; color: var(--b1-nav-text); white-space: nowrap; }
 .b1-row.on { background: var(--b1-citrus); color: var(--b1-text); }
-.b1-sub { padding: 10px 8px 3px; color: var(--b1-meta); }
-.b1-main { display: flex; flex-direction: column; min-width: 0; }
-.b1-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid var(--b1-line); }
+.b1-sub { padding: 10px 0 3px 8px; overflow: hidden; color: var(--b1-meta); white-space: nowrap; text-overflow: ellipsis; }
+.b1-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+/* the channel's header: its members and name as one button, then its huddle, terminal and menu */
+.b1-head { display: flex; align-items: center; justify-content: space-between; padding: 7px 14px 7px 10px; border-bottom: 1px solid var(--b1-line); }
 .b1-head b { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
 .b1-head > span { display: flex; align-items: center; gap: 10px; color: var(--b1-text); }
-/* the members button shows the people in the channel, each overlapping the one before */
 .b1-stack { display: flex; padding-right: 3px; }
 .b1-stack img { width: 20px; height: 20px; margin-right: -3px; padding: 1.5px; border-radius: 50%; background: #fff; }
 .b1-msgs { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 7px 14px 6px; overflow: hidden; }

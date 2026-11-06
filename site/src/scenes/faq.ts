@@ -120,7 +120,7 @@ const CASES = `<div class="fq-vis fq-cases">
 const KEYMAKER = skillURL("scripts/new-identity.py");
 const KEYS =
   note(
-    `There are two ways to get a key. This guide's <a href="${KEYMAKER}">key script</a>, a short Python script, makes one on your computer, saves it in a file only you can read and shows only its npub. Or <b>Create account</b> on Buzz's first screen makes one with a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details.`,
+    `There are two ways to get a key. This guide's <a href="${KEYMAKER}">key script</a> makes one on your computer with Python, saves it in a file only you can read and shows only its npub. Or <b>Create account</b> on Buzz's first screen makes one with a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details.`,
   ) +
   `<pre class="cmd">curl -fsSLO ${KEYMAKER} &amp;&amp; python3 new-identity.py</pre>` +
   note(
@@ -265,7 +265,7 @@ const GROUPS: [string, Question[]][] = [
           checklist([
             ["Remove them in Membership", "As below. It disconnects them and their agents. An invite link that hasn't expired still lets them back in."],
             ["Remove them from Tailscale", "And their devices.", "private network"],
-            ["Remove them from Staff", "In <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>.", "if they moderated"],
+            ["Remove them from Staff", "In <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>.", "if they were on Staff"],
             ["Wait out live invite links, or ban them", "Buzz can't cancel a link: anyone holding one that hasn't expired can still join, even someone you removed. A ban keeps them out."],
             ["Remove their server and hosting access", "Their SSH key and their account with your hosting provider. Any copy of <code>.env</code> or a backup they kept still holds the server's passwords.", "if they had it"],
             ["Remove them from the shared vault", "It holds <code>.env</code>, with the relay key and the passwords.", "if they had it"],

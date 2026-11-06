@@ -14,7 +14,7 @@ import { PICK } from "./panel";
 const svg = (d: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const SERVER = svg(`<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>`);
 
-const promptOf = (t: Track, task: OpTask) => `${OP_WHERE[t]} Use the self-host-buzz skill to ${OP_TASKS[task].ask}`;
+const promptOf = (t: Track, task: OpTask) => `${OP_WHERE[t]} Use the self-host-buzz skill to ${OP_TASKS[task].ask} The skill is at {{SKILL_URL}}.`;
 
 /** The domain is the Running on box's. Until it's typed there, it shows as a gap that jumps to its field. */
 const hasDomain = () => Boolean(getValues().domain.trim());

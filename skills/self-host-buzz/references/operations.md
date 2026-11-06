@@ -37,7 +37,7 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   with Buzz 1.0 (`/Applications/Buzz.app/Contents/Resources/bin/buzz` on a Mac). They run it in a
   terminal of their own, never the agent's, since it signs with their private key:
   `read -rs BUZZ_PRIVATE_KEY && export BUZZ_PRIVATE_KEY` asks for the key without showing it, and
-  `export BUZZ_RELAY_URL=` followed by `$ORIGIN`'s value names the relay (give them the value).
+  `export BUZZ_RELAY_URL=$ORIGIN`, with the address written out, names the relay.
   Then `buzz moderation reports` lists reports; `buzz moderation ban --pubkey <hex>` bans someone,
   which disconnects them and their agents and refuses them at any invite link;
   `buzz moderation timeout --pubkey <hex> --expires-in 3600` stops their posts for an hour;

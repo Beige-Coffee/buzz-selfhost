@@ -4,8 +4,10 @@
 
 Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
 
-- **Add a member.** Members copy their npub from the Buzz app: in Buzz 1.0, Settings, Identity,
-  "Nostr address (npub)"; in Buzz 0.X, the Join screen. Check it with
+- **Add a member.** A member who made their key with `new-identity.py` has the npub it printed.
+  Otherwise they copy it from the Buzz app: in Buzz 1.0, Settings, Identity,
+  "Nostr address (npub)"; in Buzz 0.X, the Join screen. Before they've joined, Buzz 1.0 also shows
+  it on "This community needs an invite". Check it with
   `python3 $SKILL/scripts/npub-to-hex.py <npub>`, then
   `./run.sh add-member <npub-or-hex> --role member`, one at a time with `sleep 1` between adds
   (adds in the same second collide). `./run.sh list-members` confirms; it prints hex. A member

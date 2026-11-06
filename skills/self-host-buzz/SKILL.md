@@ -45,8 +45,8 @@ deprecated. It still works with the same relay; where its screens differ, the st
    its own: some agents' apps can read their own terminal panel.
 2. **Ask first** before anything that costs money, changes DNS, deletes volumes or data, changes a
    firewall, changes the user's account settings, or stops or changes another program on the
-   machine. A public server serves ports 80 and 443 to
-   the internet: confirm that when you confirm the setup. Use only the access the user gives you:
+   machine. A public server serves ports 80 and 443 to the internet: confirm that when you confirm
+   the setup. Use only the access the user gives you:
    if a server's address or login is missing or doesn't work, ask, rather than looking it up with
    cloud credentials found on the machine.
 3. **Check every step.** Run the step's check and show its output. A check passes when its output
@@ -132,14 +132,14 @@ an installer instead: ask the user to run `xcode-select --install` first.
   DIGEST=$(awk '/^  tested-digest:/ {print $2}' "$SKILL/SKILL.md")
   ```
   Check: `echo $TAG $DIGEST` prints a tag like `sha-1a2b3c4` and a `sha256:` digest. Tell the user
-  which tag. Once the setup has pulled the image (compose.md step 6, kubernetes.md step 6), its
-  digest must be `DIGEST`; if it isn't, stop: the tag no longer names the image this skill
-  recommends. Only if the user asks for the newest image: `TAG=$(python3 $SKILL/scripts/pick-tag.py)`
-  prints the newest commit on main that has one, and `DIGEST` stays unset. Tell them this skill
-  hasn't run that image, and that the newest has broken upgrades before: images from 2026-10-30 to
-  2026-11-05 looped at start when they upgraded a relay with members (block/buzz#8802). Buzz 1.0's
-  New chat needs an image from 2026-10-15 or later, which has channel labels; older images, such as
-  `sha-30873ba`, refuse it.
+  which tag. Once the setup has pulled the image (compose.md step 6, kubernetes.md step 6 or P6),
+  its digest must be `DIGEST`; if it isn't, stop: the tag no longer names the image this skill
+  recommends. Only if the user asks for the newest image:
+  `TAG=$(python3 $SKILL/scripts/pick-tag.py)` prints the newest commit on main that has one, and
+  `DIGEST` stays unset. Tell them this skill hasn't run that image, and that the newest has broken
+  upgrades before: images from 2026-10-30 to 2026-11-05 looped at start when they upgraded a relay
+  with members (block/buzz#8802). Buzz 1.0's New chat needs an image from 2026-10-15 or later,
+  which has channel labels; older images, such as `sha-30873ba`, refuse it.
 - **Domain.** `server` and Kubernetes need the community's permanent domain, such as
   `buzz.example.org`. `private` uses the machine's Tailscale name, found in its setup, and
   Kubernetes on a private network the name kubernetes.md builds. `local` needs none.
@@ -198,8 +198,9 @@ request; the script waits. If this computer still has the domain's old address c
 Tell the user to open Buzz 1.0 on the owner's computer. On its first screen they choose Other
 options, paste `$RELAY_URL` into "Community address or invite link" and choose Continue: Buzz looks
 the community up first, so the relay must be running. Under Connect to your community they choose
-Use an existing key, drop the key file (`~/buzz-identity.nsec`) on the page, check that the
-"Public identity" it shows is the owner's npub, and choose Continue with this key. If the owner's
+Use an existing key, drop the key file from section 2 (`~/buzz-identity.nsec`) on the page (its
+Browse button looks for `.txt` and `.key` files), check that the "Public identity" it shows is the
+owner's npub, and choose Continue with this key. If the owner's
 key came from a Builderlab account, they choose Sign in with Builderlab instead. The `https://`
 form of the address works too; `ws://` and `http://` addresses don't. In Buzz 0.X, paste the same
 address into its Join a community screen. With the key file, once Buzz has joined, the user saves
@@ -208,16 +209,17 @@ the key in a password manager (Settings, Identity, Copy private key), then delet
 community, whose box takes an address but not an invite link.
 
 **People.** Each member needs a key. They can make one on their own computer with this skill's
-`new-identity.py`, which the guide's page also offers to download, or with a Builderlab account,
-which is Block's: Create account on Buzz's first screen asks for their details, and Block can keep
-a copy of the key. A member sends the owner their npub: the script prints it, and Buzz 1.0 shows it
-on "This community needs an invite" before they've joined, and in Settings, Identity after. The
-owner adds them ([operations.md](references/operations.md)), or does it in Buzz 1.0: Settings,
-Community admin, Membership, Invite members, then "Add directly" with the npub, or "Invite with a
-link" and Copy link. Anyone with the link can join until it expires: they paste it into Other
-options' "Community address or invite link", or open it and choose Accept invite in Buzz. In Buzz
-0.X, the same things are in Settings, Invites. `Relay request failed (403)` in Buzz 1.0, or
-`Not a member yet` in Buzz 0.X, means the relay works but doesn't know that identity
+`new-identity.py`, which the guide's site also serves
+(https://buzz-selfhost.vercel.app/skills/self-host-buzz/scripts/new-identity.py), or with a
+Builderlab account, which is Block's: Create account on Buzz's first screen asks for their details,
+and Block can keep a copy of the key. A member sends the owner their npub: the script prints it,
+and Buzz 1.0 shows it on "This community needs an invite" before they've joined, and in Settings,
+Identity after. The owner adds them ([operations.md](references/operations.md)), or does it in
+Buzz 1.0: Settings, Community admin, Membership, Invite members, then "Add directly" with the npub,
+or "Invite with a link" and Copy link. Anyone with the link can join until it expires: they paste
+it into Other options' "Community address or invite link", or open it and choose Accept invite in
+Buzz. In Buzz 0.X, the same things are in Settings, Invites. `Relay request failed (403)` in
+Buzz 1.0, or `Not a member yet` in Buzz 0.X, means the relay works but doesn't know that identity
 ([troubleshooting](references/troubleshooting.md)).
 
 New members join any starter channel an owner or admin turns on: Starter channel for new members,
@@ -258,7 +260,7 @@ messages and mentions (a thread reply notifies only with a mention), through Blo
 `push.buzz.xyz`. Tell the user what that shares: no message text, sender or channel passes through
 the gateway or Apple, because the phone fetches messages from this relay; but Block's gateway sees
 this relay's key, its server's address and when it wakes which phone, and Apple sees when a phone
-is woken. Every member's iPhone signs up on its own while it's on. Block calls push experimental,
+is woken. Each member's iPhone signs up on its own while push is on. Block calls push experimental,
 and delivery is best effort. `BUZZ_PUSH_ENABLED=false` turns it off. Tested on public VPSs on
 2026-10-23 and 2026-10-27.
 

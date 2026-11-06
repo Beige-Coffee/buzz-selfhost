@@ -96,19 +96,19 @@ harmless.
    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
    sudo usermod -aG docker $USER
    ```
-   Then cap Docker's logs, which otherwise grow until the disk fills. If `/etc/docker/daemon.json`
-   already exists, or `sudo docker ps -q | wc -l` shows other containers running here (the restart
-   below restarts them), ask first:
+   Over SSH, apt may warn `debconf: unable to initialize frontend`: harmless. Then cap Docker's
+   logs, which otherwise grow until the disk fills. If `/etc/docker/daemon.json` already exists, or
+   `sudo docker ps -q | wc -l` shows other containers running here (the restart below restarts
+   them), ask first:
    ```bash
    [ -e /etc/docker/daemon.json ] || printf '%s\n' '{"log-driver": "json-file", "log-opts": {"max-size": "50m", "max-file": "5"}}' | sudo tee /etc/docker/daemon.json > /dev/null
    sudo systemctl restart docker
    ```
-   Over SSH, apt may warn `debconf: unable to initialize frontend`: harmless. Check:
-   `docker compose version` → 2.24.4 or later (the Caddy overlay needs it; Docker's
+   Check: `docker compose version` → 2.24.4 or later (the Caddy overlay needs it; Docker's
    repository gives v5, which counts), `sudo docker info --format '{{.LoggingDriver}}'` →
-   `json-file`, and `grep -c max-size /etc/docker/daemon.json` → `1` (not tested). As a user other
-   than root, the docker group applies at the next login: log out and in, or run `newgrp docker`,
-   before step 6.
+   `json-file`, and `grep -c max-size /etc/docker/daemon.json` → `1` (the log cap is not tested).
+   As a user other than root, the docker group applies at the next login: log out and in, or run
+   `newgrp docker`, before step 6.
 4. **The bundle**, at the commit the image was built from so the two match. It goes in the home
    directory unless the user wants another folder; then use that folder wherever this file says
    `~`. For a local test, keep it somewhere permanent, not under `/tmp` (`/private/tmp` on a
@@ -299,11 +299,11 @@ A new local test makes a new authority, to trust again.
 **For a server that runs for months.** A server set up before step 3 capped Docker's logs keeps
 uncapped ones: add the file the same way, then `BUZZ_COMPOSE_TLS=true ./run.sh stop` and
 `BUZZ_COMPOSE_TLS=true ./run.sh start` (without the flag in `private` mode; members lose the
-connection for about half a minute), since only new containers pick it up. Nothing schedules backups: offer a nightly one, at an hour the
-user picks, since members lose the connection for about half a minute each time (ask first; not
-tested). Save operations.md's backup block as `~/buzz-backup.sh`, with `cd ~/buzz/deploy/compose`
-as its first line and, as its last, a line that keeps the newest seven folders once the night's
-backup is whole:
+connection for about half a minute), since only new containers pick it up. Nothing schedules
+backups, so offer a nightly one (ask first; not tested). Members lose the connection for about half
+a minute each time, so the user picks the hour. Save operations.md's backup block as
+`~/buzz-backup.sh`, with `cd ~/buzz/deploy/compose` as its first line and, as its last, a line that
+keeps the newest seven folders once the night's backup is whole:
 `[ -s "$BACKUP/postgres.dump" ] && [ -s "$BACKUP/env" ] && ls -d ~/buzz-backup/20*/ | head -n -7 | xargs -r rm -rf`.
 Then `chmod 700 ~/buzz-backup.sh` and, for 03:30 server time,
 `(crontab -l 2>/dev/null; echo '30 3 * * * bash ~/buzz-backup.sh > ~/buzz-backup/last.log 2>&1') | crontab -`.

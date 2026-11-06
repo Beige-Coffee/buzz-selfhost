@@ -36,13 +36,14 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   moderation screens can't connect, the owner or an admin uses the `buzz` command line that ships
   with Buzz 1.0 (`/Applications/Buzz.app/Contents/Resources/bin/buzz` on a Mac). They run it in a
   terminal of their own, never the agent's, since it signs with their private key:
-  `read -rs BUZZ_PRIVATE_KEY && export BUZZ_PRIVATE_KEY BUZZ_RELAY_URL=$ORIGIN` asks for the key
-  without showing it. Then `buzz moderation reports` lists reports;
-  `buzz moderation ban --pubkey <hex>` bans someone, which disconnects them and their agents and
-  refuses them at any invite link; `buzz moderation timeout --pubkey <hex> --expires-in 3600`
-  stops their posts for an hour; `buzz moderation restricted` lists both, and `unban` and
-  `untimeout` lift them. `buzz messages delete --event <id>` deletes a message in a channel they
-  own or administer (not tested).
+  `read -rs BUZZ_PRIVATE_KEY && export BUZZ_PRIVATE_KEY` asks for the key without showing it, and
+  `export BUZZ_RELAY_URL=` followed by `$ORIGIN`'s value names the relay (give them the value).
+  Then `buzz moderation reports` lists reports; `buzz moderation ban --pubkey <hex>` bans someone,
+  which disconnects them and their agents and refuses them at any invite link;
+  `buzz moderation timeout --pubkey <hex> --expires-in 3600` stops their posts for an hour;
+  `buzz moderation restricted` lists both, and `unban` and `untimeout` lift them. The `<hex>` is
+  the person's key as `npub-to-hex.py` prints it. `buzz messages delete --event <id>` deletes a
+  message in a channel they own or administer (not tested).
 - **Agents.** Buzz 1.0 runs agents on the owner's computer, each with its own key and the
   owner's signed attestation (NIP-OA). The relay admits them through the owner's membership,
   because `.env` has `BUZZ_ALLOW_NIP_OA_AUTH=true` (the bundle's default, as in the chart):
@@ -58,8 +59,8 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   minute). The file store's volume keeps MinIO's name with Silo too, so the commands are the same
   for every tag. Redis holds nothing that needs keeping. The list `run.sh` prints after an upgrade
   also names Caddy's volumes, which hold only certificates Caddy gets again on its own, and an
-  owner key a bootstrap script makes; with the owner's npub from the Buzz app, that key stays in
-  their app.
+  owner key a bootstrap script makes; with the owner's own npub, from `new-identity.py` or the Buzz
+  app, the owner keeps that key.
   Plain `docker compose` works in every mode here: these commands touch only the relay, Postgres
   and the volumes. Each backup gets a folder of its own in `~/buzz-backup`, named by the day, in
   `BACKUP` (set it again in each call if each command runs in a fresh shell):
@@ -92,8 +93,13 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
 - **Restore** into empty volumes (ask first: it replaces the data). Set `BACKUP` to the folder to
   restore, such as `BACKUP=~/buzz-backup/2026-11-06` (`ls ~/buzz-backup` lists them; a backup from
   before dated folders is `~/buzz-backup` itself). One server has no standby: tell the user that
-  nobody can send or read new messages until the restore ends. On a new machine: stop the old
-  relay first if it still runs, copy the backup's folder to the same path there, run compose.md
+  nobody can send or read new messages until the restore ends. Before changing anything, check the
+  backup (not tested):
+  `for f in postgres.dump minio-data.tgz git-data.tgz env; do [ -s "$BACKUP/$f" ] || echo missing $f; done`
+  prints nothing, since a missing file archive would bring the community back without its files,
+  and `grep '^RELAY_URL=' "$BACKUP/env"` shows this community's address, as the user knows it:
+  another install's backup would swap the relay's identity and owner. On a new machine: stop the
+  old relay first if it still runs, copy the backup's folder to the same path there, run compose.md
   steps 3, 4 and 9, with the backup's tag for step 4
   (`TAG=$(grep '^BUZZ_IMAGE=' "$BACKUP/env" | cut -d: -f2)`), and point the domain's A record
   at the new machine before the restore below starts the relay, so Caddy gets its certificate
@@ -108,13 +114,10 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   the way Upgrade moves it (the two `git checkout` lines, then compose.md step 9). Wherever this
   redoes step 9 and the backup's `env` has `BUZZ_ADMIN_HOST`, add the moderation console's Caddy
   route again too, and on a new machine move `admin.$DOMAIN`'s record with the domain's.
-  Check first (not tested): `for f in postgres.dump minio-data.tgz git-data.tgz env; do [ -s "$BACKUP/$f" ] || echo missing $f; done`
-  prints nothing, since a missing file archive would bring the community back without its files.
-  `grep '^RELAY_URL=' "$BACKUP/env"` shows this community's address, as the user knows it:
-  another install's backup would swap the relay's identity and owner. And
-  `docker volume ls -q --filter name=buzz-prod_buzz-postgres-data` prints nothing. If it prints the
-  volume, this server still has its database: stop, and delete the volumes as above if you mean to
-  replace it. Run on a live server, the block below stops the relay before it refuses.
+  Then check (not tested): `docker volume ls -q --filter name=buzz-prod_buzz-postgres-data` prints
+  nothing. If it prints the volume, this server still has its database: stop, and delete the
+  volumes as above if you mean to replace it. Run on a live server, the block below stops the relay
+  before it refuses.
   `docker compose create` makes the volumes the way Compose expects, so it doesn't warn later.
   ```bash
   cp "$BACKUP/env" .env

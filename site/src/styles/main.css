@@ -1379,6 +1379,7 @@ h2 .hl svg { width: 19px; }
 .fq-y { background: var(--accent); color: var(--ink); }
 .fq-n { background: #f2f2ee; color: var(--ink-3); }
 .fq-srv { color: var(--ink-2); font-size: 13.5px; }
+.fq-if { font-size: 12.5px; line-height: 1.3; color: var(--ink-2); }
 .fq-srv svg { width: 15px; height: 15px; margin-right: 6px; vertical-align: -3px; }
 /* a lost device: the one question, then the two cases */
 .fq-cases { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }

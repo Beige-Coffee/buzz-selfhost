@@ -1,113 +1,95 @@
-import { communityNav, CURSOR, invite, settings, settingsModal, settingsNav, ti, type Flow } from "./members";
+import { BACK, joinCard, onboardingStep } from "./joinmock";
+import { communityNav, CURSOR, invite, settings, settingsModal, ti, type Flow } from "./members";
 
 /**
  * A person's identity in Buzz 1.0, as click-throughs of its own screens, in light mode. Drawn from
- * block/buzz-app (2026-10-27): the first screen and "Use your existing identity"
- * (src/features/identity/IdentitySetup.tsx and its .module.css, public/shell-gradient.png), the profile
- * menu with no community yet (src/app/shell/ProfileButton.tsx), Settings with no community
- * (src/app/settings-sections.ts), Identity (src/app/IdentitySettings.tsx,
- * src/features/identity/PrivateKey.tsx) and Pair mobile, checked against the app running in a browser
- * with sample data. The password manager and the devices are generic, not any product.
+ * block/buzz-app as released in v0.7.0-preview.248.1: the account-first first run (#2579:
+ * src/features/identity/Welcome.tsx, OnboardingBees.tsx, IdentitySetup.module.css, ConnectChoice.tsx,
+ * KeyImport.tsx, and CommunityUrlField.tsx through joinmock.ts), Settings (src/app/settings-sections.ts),
+ * Identity (src/app/IdentitySettings.tsx) and Pair mobile with Codes match (#1597:
+ * src/bundled/pairing/PairingSettings.tsx). The key script's terminal, the password manager and the
+ * devices are generic, not any product, and the terminal never shows a key.
  */
 
 const NPUB = "npub1qm…8k3a";
 
-/** Buzz's first screen, for someone without an earlier Buzz: Create a new identity leads. */
-const firstScreen = (spot: "create" | "existing") => `<div class="id-ob ${spot}">
+/**
+ * Buzz's first screen: the wordmark on Buzz's chartreuse among its bees, then Create account and Sign
+ * in, for a Builderlab account, and Other options. The bees start where OnboardingBees.tsx places them.
+ */
+const BEES = Array.from({ length: 16 }, (_, i) => {
+  const n = i + 1;
+  const seed = (n * 0.7548776662) % 1;
+  const x = (0.5 + n / 1.324717957244746) % 1;
+  const y = (0.5 + n / 1.324717957244746 ** 2) % 1;
+  return `<svg class="id-bee${i % 2 ? " lime" : ""}" style="left:${(x * 92).toFixed(1)}%;top:${(y * 90).toFixed(1)}%;transform:rotate(${Math.round(seed * 360 + 90)}deg)" viewBox="0 0 466 309"><use href="#bee"/></svg>`;
+}).join("");
+const welcome = `<div class="j1-win id-wel">
+  <div class="id-bees" aria-hidden="true">${BEES}</div>
   <div class="b1-lights" aria-hidden="true"><i></i><i></i><i></i></div>
   <svg class="id-word" viewBox="0 0 300 96" aria-hidden="true"><text x="150" y="74" text-anchor="middle" filter="url(#buzz-grain)">Buzz</text></svg>
-  <div class="id-ob-btns"><span class="id-ob-main${spot === "create" ? " hot" : ""}">Create a new identity</span><span class="id-ob-ghost${spot === "existing" ? " hot" : ""}">Use an existing key</span></div>
+  <p class="id-tag">Your people, your agents, one place.</p>
+  <div class="id-wel-btns"><span class="j1-go">Create account</span><span class="id-glass">Sign in</span><span class="id-ghost hot">Other options</span></div>
   ${CURSOR}
 </div>`;
 
-/** Use an existing key: paste the saved private key, then Import this identity. */
-const importScreen = `<div class="id-ob id-import">
-  <div class="b1-lights" aria-hidden="true"><i></i><i></i><i></i></div>
-  <div class="id-imp">
-    <h4>Use your existing identity</h4>
-    <b>Private key (nsec)</b>
-    <p>Copy this from Identity details in your old Buzz app. Never share it with anyone.</p>
-    <span class="id-input">••••••••••••••••••••••••</span>
-  </div>
-  <span class="id-ob-main id-imp-go hot">Import this identity</span>
-</div>`;
+/** Connect to your community: the found address, then Sign in with Builderlab or Use an existing key. */
+const connect = onboardingStep(`<h4 class="j1-h">Connect to your community</h4>
+  <p class="j1-sub">Sign in to your Builderlab account with email, or use an existing private key to continue.</p>
+  <p class="id-host"><span>B</span>buzz.yourteam.org</p>
+  <div class="id-pick"><span class="j1-go">Sign in with Builderlab</span><span class="j1-btn hot">Use an existing key</span></div>
+  <div class="j1-acts">${BACK}</div>`);
 
-/** The app before any community, with the profile menu open: Settings works without one. */
-const profileMenu = `<div class="mb-app">
-  <div class="mb-top">
-    <span class="mb-track">${ti("messages")}Messages<span>${ti("robot")}Agents</span><span>${ti("bolt")}Workflows</span></span>
-    <span class="id-comms">Communities${ti("chevron-down")}</span><span class="mb-me id-me">${ti("user")}</span>
-  </div>
-  <div class="mb-app-body"><div class="mb-app-main id-empty"><p>Your channels, one conversation.</p><span></span><span class="short"></span></div></div>
-  <div class="mb-pmenu">
-    <div class="mb-pm-head"><span class="mb-pm-av id-me">${ti("user")}</span><span><b>Your profile</b></span></div>
-    <p class="id-pm-note">Status updates are unavailable in this community.</p>
-    <hr>
-    <p>${ti("device-desktop")}Appearance<span class="mb-pm-more">${ti("chevron-right")}</span></p>
-    <p>${ti("layout-grid")}Plugins</p>
-    <p class="mb-pm-set">${ti("settings")}Settings</p>
-    <hr>
-    <p>${ti("message-circle")}Send feedback</p>
-  </div>
-  ${CURSOR}
-</div>`;
-
-/** Settings with no community yet: Personal space, Buzz and Plugins. */
-const nav = settingsNav(
-  [
-    ["Personal space", [["user", "Profile"], ["device-mobile", "Pair mobile"]]],
-    ["Buzz", [["shield", "Identity"], ["palette", "Appearance"], ["bell", "Notifications"], ["keyboard", "Shortcuts"], ["robot", "Agent setup"]]],
-    ["Plugins", [["layout-grid", "Manage plugins"]]],
-  ],
-  "Identity",
+/** Enter your private key: the key pasted, its npub shown under the field, then Continue with this key. */
+const keyImport = onboardingStep(
+  `<h4 class="j1-h">Enter your private key</h4>
+  <p class="j1-sub">Paste your private key to sign in to Buzz. You can also select or drop a text file with your key.</p>
+  <p class="j1-lab">Private key (nsec)</p>
+  <div class="id-key"><span class="j1-input">••••••••••••••••••••••••${ti("eye")}</span><span class="j1-btn">Browse</span></div>
+  <p class="id-pub">Public identity: <code>${NPUB}</code></p>
+  <div class="j1-acts">${BACK}<span class="j1-go hot">Continue with this key</span></div>`,
 );
 
-type Spot = "key" | "npub";
-/** Settings, Identity: the two public keys, then the private key with its two buttons. */
-const identityPage = (spot: Spot) => `<section class="mb-page id-page">
+/** The guide's key script on the person's own computer: it shows the npub and where the key is, never the key. */
+const keyScript = `<div class="id-term">
+  <p class="id-term-h"><i></i><i></i><i></i><span>your computer</span></p>
+  <pre><span class="p">$</span> python3 new-identity.py
+<b>${NPUB}</b>
+/Users/maya/buzz-identity.nsec</pre>
+</div>`;
+
+/** Settings, Identity: the two public keys, the npub's copy button ringed. */
+const nav = (open: string) => communityNav(open, false);
+const identityPage = `<section class="mb-page id-page">
   <h5>Identity</h5>
   <p class="mb-sub">Your identity is shared across communities. Public keys are safe to share.</p>
   <div class="id-group">
     <div class="id-row"><span><b>Public key (hex)</b><code>3f9c0a52…07e81b</code></span><span class="id-ic">${ti("copy")}</span></div>
-    <div class="id-row"><span><b>Nostr address (npub)</b><code>${NPUB}</code></span><span class="id-ic${spot === "npub" ? " hot" : ""}">${ti("copy")}</span></div>
+    <div class="id-row"><span><b>Nostr address (npub)</b><code>${NPUB}</code></span><span class="id-ic hot">${ti("copy")}</span></div>
   </div>
   <div class="id-group id-form">
     <b>Private key (nsec)</b>
     <p class="mb-sub">Anyone with this key can act as you. Never share it.</p>
     <span class="id-input">••••••••••••••••</span>
-    <div class="id-btns"><span class="mb-btn">Reveal private key</span><span class="mb-btn${spot === "key" ? " hot" : ""}">Copy private key</span></div>
-    ${spot === "key" ? `<p class="id-status">Private key copied. Keep it somewhere safe; your clipboard now contains it.</p>` : ""}
+    <div class="id-btns"><span class="mb-btn">Reveal private key</span><span class="mb-btn">Copy private key</span></div>
   </div>
-  ${spot === "npub" ? `<div class="id-toast">${ti("check")}Nostr address copied.</div>` : ""}
+  <div class="id-toast">${ti("check")}Nostr address copied.</div>
 </section>`;
 
-/** Settings, Pair mobile: the code to scan, beside the three steps Buzz lists. */
-const qr = (() => {
-  // a made-up code: a finder square in three corners, a quiet gap around each, and a fixed scatter between
-  const finder = (x: number, y: number, ox: number, oy: number) => {
-    const dx = x - ox;
-    const dy = y - oy;
-    if (dx < -1 || dy < -1 || dx > 7 || dy > 7) return null;
-    if (dx < 0 || dy < 0 || dx > 6 || dy > 6) return false;
-    return dx === 0 || dy === 0 || dx === 6 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4);
-  };
-  let cells = "";
-  for (let y = 0; y < 21; y++)
-    for (let x = 0; x < 21; x++) {
-      const f = finder(x, y, 0, 0) ?? finder(x, y, 14, 0) ?? finder(x, y, 0, 14);
-      const on = f ?? (x * 31 + y * 17 + x * y * 7) % 11 < 5;
-      if (on) cells += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
-    }
-  return `<svg class="id-qr" viewBox="-1 -1 23 23" shape-rendering="crispEdges" aria-hidden="true">${cells}</svg>`;
-})();
+/** Settings, Pair mobile, once the phone has scanned: the six digits and Codes match, beside Buzz's three steps. */
 const pairPage = `<section class="mb-page id-pair">
   <h5>Pair mobile</h5>
   <p class="mb-sub">Connect the Buzz mobile app to this community. Pairing is secured with end-to-end encryption and a verification code.</p>
   <div class="id-pair-b">
-    <div class="id-pair-code">${qr}</div>
+    <div class="id-pair-code">
+      <b>Verify the code on your phone</b>
+      <span class="id-digits">482 913</span>
+      <span class="mb-btn dark hot">Codes match</span>
+      <span class="mb-btn">Cancel</span>
+    </div>
     <ol>
-      <li><span>1</span><div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the code shown here.</p></div></li>
-      <li><span>2</span><div><b>Enter code on your phone</b><p>After scanning, enter the six-digit code shown on this desktop into your phone.</p></div></li>
+      <li class="done"><span>${ti("check")}</span><div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the code shown here.</p></div></li>
+      <li><span>2</span><div><b>Verify the code on your phone</b><p>If your phone asks for a code, enter these digits and finish confirming on your phone. If it shows a code, check that the digits match. Then choose Codes match here to send your Buzz identity.</p></div></li>
       <li><span>3</span><div><b>Pair your mobile app</b><p>Your mobile app will connect after you verify the code.</p></div></li>
     </ol>
   </div>
@@ -137,40 +119,48 @@ const devices = `<div class="id-devs">
   <div class="id-dev">${phone}<b>Phone</b><span>${ti("check")}Passcode on</span></div>
 </div>`;
 
+const ADDRESS = `<span class="typed">buzz.yourteam.org</span>`;
+
 export const identityFlows: Flow[] = [
   {
     id: "identity",
     label: "Set up an identity",
     steps: [
-      { k: "Create a new identity", t: "On Buzz's first screen, choose <b>Create a new identity</b>. Buzz keeps its key in your computer's secure storage.", frame: firstScreen("create") },
-      { k: "Open Settings", t: "Your profile icon at the top right, then <b>Settings</b>. Or press ⌘, (Ctrl+, on Windows and Linux).", frame: profileMenu, loop: true },
-      { k: "Copy the private key", t: "Under <b>Buzz</b>, choose <b>Identity</b>, then <b>Copy private key</b>.", frame: settingsModal(nav, identityPage("key")) },
-      { k: "Save it in your password manager", t: "Paste it into your own item, then copy something else so it leaves your clipboard. Anyone with this key can act as you.", frame: vault },
-      { k: "Send your npub to an admin", t: "On the same page, copy your <b>Nostr address (npub)</b> and send it to an admin, who adds you. It's public, so any channel works.", frame: settingsModal(nav, identityPage("npub")) },
+      { k: "Make your key", t: "Run this guide's key script on your own computer, not the server. It saves your private key in a file only you can read, and shows only your npub and where the file is.", frame: keyScript },
+      { k: "Save it in your password manager", t: "Copy the key from that file into your own item, then copy something else so it leaves your clipboard. Anyone with this key can act as you.", frame: vault },
+      { k: "Choose Other options", t: "On Buzz's first screen, choose <b>Other options</b>. <b>Create account</b> and <b>Sign in</b> are for a Builderlab account, which is Block's.", frame: welcome },
+      { k: "Paste your community's address", t: "Paste it, or an invite link an admin sent you, into <b>Community address or invite link</b>, then choose <b>Continue</b>.", frame: joinCard(ADDRESS, true) },
+      { k: "Use an existing key", t: "On <b>Connect to your community</b>, choose <b>Use an existing key</b>. <b>Sign in with Builderlab</b> would go through Block's service instead.", frame: connect },
+      { k: "Paste your key", t: "Paste the key from your password manager, or drop the key file on the page. Choose <b>Continue with this key</b>, then <b>Join</b>, and delete the key file. If Buzz says the community needs an invite, an admin hasn't added your npub yet.", frame: keyImport },
+      { k: "Copy your npub for others", t: "Press ⌘, (Ctrl+, on Windows and Linux), or choose your profile picture, then <b>Settings</b>. Under <b>Buzz</b>, choose <b>Identity</b> and copy your <b>Nostr address (npub)</b>. It's public, so any channel works.", frame: settingsModal(nav("Identity"), identityPage) },
       { k: "Lock your devices", t: "Turn on disk encryption and a screen lock on your computer, and a passcode on your phone.", frame: devices },
     ],
   },
 ];
 
-/** A lost device: retire an exposed key for a new identity, or bring a safe one back. */
-const pairAgain = { k: "Pair the phone again", t: "<b>Settings</b>, <b>Pair mobile</b>. On the phone, <b>Add community</b>, scan the code, and type the six digits.", frame: settingsModal(communityNav("Pair mobile"), pairPage) };
+/** A lost device: retire an exposed key for a new one, or sign in again with a safe one. */
+const pairAgain = {
+  k: "Pair the phone again",
+  t: "<b>Settings</b>, <b>Pair mobile</b>. On the phone, <b>Add community</b> and scan the code. Type the six digits if the phone asks, or check that they match, then choose <b>Codes match</b> on your computer.",
+  frame: settingsModal(nav("Pair mobile"), pairPage),
+};
 export const lostFlows: Flow[] = [
   {
     id: "exposed",
     label: "The key is exposed",
     steps: [
-      { k: "Remove the old key now", t: "An admin opens <b>Membership</b>, the <b>…</b> on the person's row, then <b>Remove</b>. Whoever has the device can't get in with it anymore.", frame: settings("remove") },
-      { k: "Create a new identity", t: "On the new device, <b>Create a new identity</b>. Not the saved copy: whoever has the old device has that key too.", frame: firstScreen("create") },
-      { k: "Send the new npub", t: "<b>Settings</b>, <b>Identity</b>, copy <b>Nostr address (npub)</b>, and send it to an admin.", frame: settingsModal(nav, identityPage("npub")) },
-      { k: "An admin adds it", t: "<b>Membership</b>, <b>Invite members</b>, paste the npub, <b>Add member</b>. Then pair the phone again, and start their agents again from the new identity.", frame: settings("", invite("add")) },
+      { k: "Remove the old key now", t: "An admin opens <b>Membership</b>, the <b>…</b> on the person's row, then <b>Remove</b>. That disconnects the key at once, but an invite link that hasn't expired would still let it back in.", frame: settings("remove") },
+      { k: "Make a new key", t: "On the new device, make a new key with the guide's key script and save it in your password manager. Not the saved copy: whoever has the old device has that key too.", frame: keyScript },
+      { k: "An admin adds the new npub", t: "Send the npub the script shows to an admin, who adds it: <b>Membership</b>, <b>Invite members</b>, paste it, <b>Add member</b>.", frame: settings("", invite("add")) },
+      { k: "Sign in with the new key", t: "On the new device: <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>. Then pair the phone again, and start your agents again from the new identity.", frame: connect },
     ],
   },
   {
     id: "safe",
     label: "The key is safe",
     steps: [
-      { k: "Use an existing key", t: "On the new device's first screen, <b>Use an existing key</b>. With a Block account, <b>Restore from backup</b> appears here too.", frame: firstScreen("existing") },
-      { k: "Paste the saved key", t: "Paste the private key from the password manager, then <b>Import this identity</b>. Same identity, nothing for an admin to do.", frame: importScreen },
+      { k: "Sign in with the saved copy", t: "On the new device's first screen: <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>.", frame: connect },
+      { k: "Paste the saved key", t: "Paste it from your password manager, choose <b>Continue with this key</b>, then <b>Join</b>. You're still a member, so nobody has to add you again.", frame: keyImport },
       pairAgain,
     ],
   },

@@ -57,7 +57,7 @@ const OWNER_KEY: Ready = {
   t: "<b>Your key</b>, your identity in Buzz. The skill makes it and shows its npub, your public ID, which makes you the owner.",
   more: {
     label: "How it works",
-    t: "The skill makes the key on this computer, in a file only you can read, and shows only its npub. Save the key in your password manager: you need it to join from Buzz and to use Buzz on another computer. Already have a key in Buzz? Type its npub into the Running on box: it's in <b>Settings</b>, <b>Identity</b> (press ⌘, or Ctrl+, on Windows and Linux). The other way to get a key is a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details. For that, choose <b>Create account</b> on Buzz's first screen. When Buzz asks for a community, quit it, open it again, choose <b>Continue without signing in</b> and copy your npub from Settings, Identity.",
+    t: "The skill makes the key on this computer, in a file only you can read, and shows only its npub. Save the key in your password manager: you join with it, and need it to use Buzz on another computer. Delete the file once Buzz has the key. Already have a key in Buzz? Type its npub into the Running on box: it's in <b>Settings</b>, <b>Identity</b> (press ⌘, or Ctrl+, on Windows and Linux). The other way to get a key is a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details. For that, choose <b>Create account</b> on Buzz's first screen. When Buzz asks for a community, quit it, open it again, choose <b>Continue without signing in</b> and copy your npub from Settings, Identity.",
   },
 };
 // a first connection asks to trust the fingerprint, which an agent's shell can't answer (SKILL.md, SSH to a server)
@@ -128,7 +128,7 @@ const JOIN = (d: string): Expect => ({ who: "you", icon: "join", t: "Join from B
  * Builderlab. Later communities come from the community button's Join a community.
  */
 const JOIN_IN = (url: string) =>
-  `On Buzz's first screen, choose <b>Other options</b>, paste ${url} and choose <b>Continue</b>. Then choose <b>Use an existing key</b> and paste your key, or drop its file there. With a Builderlab account, choose <b>Sign in with Builderlab</b> instead. Already in a community? It's <b>Join a community</b>, under the community button.`;
+  `On Buzz's first screen, choose <b>Other options</b>, paste ${url} and choose <b>Continue</b>. Choose <b>Use an existing key</b>, paste your key or drop its file there, then <b>Continue with this key</b> and <b>Join</b>. With a Builderlab account, choose <b>Sign in with Builderlab</b> instead. Already in a community? It's <b>Join a community</b>, under the community button.`;
 const JOIN_AT = (url: string) => JOIN(JOIN_IN(`<code>${url}</code>`));
 const TS_JOIN = JOIN(`Turn Tailscale on. ${JOIN_IN("<code>{{RELAY_URL}}</code>")}`);
 const PHONE = (d: string): Expect => ({ who: "you", icon: "phone", t: "Pair your phone", d, note: "optional" });

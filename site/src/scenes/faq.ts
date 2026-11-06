@@ -113,18 +113,18 @@ const CASES = `<div class="fq-vis fq-cases">
 </div>`;
 
 /**
- * Two ways to get a key (decision of 2026-11-06): the skill's key maker, which the site serves with the
+ * Two ways to get a key (decision of 2026-11-06): the skill's key script, which the site serves with the
  * rest of the skill, or a Builderlab account, Block's, which can back the key up with Block
  * (block/buzz-app#2325) and, created on Block's hosted page, asks for the person's details (#2579).
  */
 const KEYMAKER = skillURL("scripts/new-identity.py");
 const KEYS =
   note(
-    `There are two ways to get a key. This guide's <a href="${KEYMAKER}">key maker</a>, a short Python script, makes one on your computer, saves it in a file only you can read and shows only its npub. Or <b>Create account</b> on Buzz's first screen makes one with a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details.`,
+    `There are two ways to get a key. This guide's <a href="${KEYMAKER}">key script</a>, a short Python script, makes one on your computer, saves it in a file only you can read and shows only its npub. Or <b>Create account</b> on Buzz's first screen makes one with a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details.`,
   ) +
   `<pre class="cmd">curl -fsSLO ${KEYMAKER} &amp;&amp; python3 new-identity.py</pre>` +
   note(
-    "With the key maker's key, join with <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>. Builderlab can keep a copy of a key made or imported after you sign in to it, and gives it back to whoever signs in to that account: keep work identities in your password manager instead.",
+    "With the script's key, join with <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>, and delete the file once Buzz has the key. Builderlab can keep a copy of a key made or imported after you sign in to it, and gives it back to whoever signs in to that account: keep work identities in your password manager instead.",
   );
 
 /** Single sign-on today: two locks in a row, your company's login and Buzz's member list. */
@@ -207,7 +207,7 @@ const DEPS = `<div class="fq-vis"><ul class="fq-check">${[
     "iPhone notifications",
     "They go through Block's gateway, <code>push.buzz.xyz</code>. No message text passes through it, but it sees your relay's key, your server's IP address and when it wakes which phone, and Apple sees when a phone is woken. Block calls push experimental; <code>BUZZ_PUSH_ENABLED=false</code> turns it off.",
   ),
-  dep("user", "Builderlab accounts", "Signing in to Builderlab, Block's service, can give Block a copy of your key, and tells it which communities you join. A key from this guide's key maker needs no account."),
+  dep("user", "Builderlab accounts", "Signing in to Builderlab, Block's service, can give Block a copy of your key, and tells it which communities you join. A key from this guide's key script needs no account."),
 ].join("")}</ul></div>`;
 
 interface Question {
@@ -230,7 +230,7 @@ const GROUPS: [string, Question[]][] = [
           rec("Add people you know by their npub. For a group, use an invite link that expires after a day, limited to the people you expect.") +
           ct("add") +
           note(
-            `Each person needs a key first (<a href="#operations" data-q-link="identity">how to get one</a>) and sends you its npub: the key maker prints it, and Buzz shows it if they try to join before you add them.`,
+            `Each person needs a key first (<a href="#operations" data-q-link="identity">how to get one</a>) and sends you its npub: the key script prints it, and Buzz shows it if they try to join before you add them.`,
           ) +
           // starter channels, from block/buzz#8594 (in the pin): invite claims and adds in Buzz, not buzz-admin add-member
           note("In a public channel's settings, turn on <b>Starter channel for new members</b>: everyone who joins by link, or whom you add in Buzz, joins it. People added from the server's command line aren't.") +
@@ -297,7 +297,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "key",
         q: "How should each person set up their identity?",
         a:
-          rec("One work identity per person, with a copy of its private key in your company's password manager. Make the key with this guide's key maker, so no copy goes to Block.") +
+          rec("One work identity per person, with a copy of its private key in your company's password manager. Make the key with this guide's key script, so no copy goes to Block.") +
           ct("identity") +
           KEYS +
           note("Nobody can reset a Buzz key. Without the saved copy, a lost key means a new identity."),
@@ -418,7 +418,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "link",
         q: "What still depends on Block?",
         a:
-          rec("Your relay runs without Block, but the apps, iPhone notifications and Builderlab accounts come from Block. Make keys with this guide's key maker, and turn notifications off if Block mustn't see when your team's phones wake.") +
+          rec("Your relay runs without Block, but the apps, iPhone notifications and Builderlab accounts come from Block. Make keys with this guide's key script, and turn notifications off if Block mustn't see when your team's phones wake.") +
           DEPS +
           note("If Block stopped, your relay would keep running, without app updates or phone notifications."),
       },

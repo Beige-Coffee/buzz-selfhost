@@ -139,8 +139,8 @@ const LOCKS = `<div class="fq-vis fq-locks">
 const lane = (head: string, cls: string, chips: string[]) =>
   `<div class="fq-lane${cls}"><span class="fq-lane-k">${head}</span>${chips.map((c) => `<span class="fq-chip">${c}</span>`).join("")}</div>`;
 const LANES = `<div class="fq-vis fq-lanes">
-  ${lane(`${icon("key")}A person's key`, "", ["Remove it in Membership", "Add their new identity"])}
-  ${lane(`${icon("server")}The relay key`, "", ["A new key in <code>.env</code>", "Restart the relay"])}
+  ${lane(`${icon("key")}A person's key`, "", ["Remove or ban it", "Add their new identity"])}
+  ${lane(`${icon("server")}The relay key`, "", ["Treat the server as exposed", "Ask before a new key"])}
   ${lane(`${icon("alert")}The server itself`, " hot", ["Change its logins", "Assume every message was read"])}
 </div>`;
 
@@ -186,7 +186,7 @@ const READ = `<div class="fq-vis fq-read">
 const entry = (time: string, what: string, hash: string) => `<p class="fq-le"><time>${time}</time><b>${what}</b><code>${hash}</code></p>`;
 const LEDGER = `<div class="fq-vis fq-audit">
   <div class="fq-card"><p class="fq-card-h">${icon("list")}Audit log, in the relay's database</p>
-    ${entry("09:12", "Leo signed in", "a41f…")}<span class="fq-ln">${icon("link")}</span>
+    ${entry("09:12", "Leo posted in #release", "a41f…")}<span class="fq-ln">${icon("link")}</span>
     ${entry("09:40", "plan.pdf uploaded", "7c02…")}<span class="fq-ln">${icon("link")}</span>
     ${entry("16:05", "Sam removed Leo", "e9b8…")}
   </div>
@@ -234,6 +234,10 @@ const GROUPS: [string, Question[]][] = [
           ) +
           // starter channels, from block/buzz#8594 (in the pin): invite claims and adds in Buzz, not buzz-admin add-member
           note("In a channel's settings, turn on <b>Starter channel for new members</b>: everyone who joins by link, or whom you add in Buzz, joins it. People added from the server's command line aren't.") +
+          // links last 30 days at most (block/buzz crates/buzz-core/src/invite.rs); nothing revokes one (#8529 open)
+          note(
+            `For a public project, once you've set up <a href="#operations" data-q-link="moderate">moderation</a>, post an invite link on your site or README with a use limit, and replace it when it fills or expires. A link lasts 30 days at most, and nothing cancels one early.`,
+          ) +
           (isPrivate(t) ? note(PRIVATE_PEOPLE) : ""),
       },
       {
@@ -259,11 +263,12 @@ const GROUPS: [string, Question[]][] = [
         a:
           rec("Run the same checklist on their last day.") +
           checklist([
-            ["Remove them in Membership", "As below. Their agents lose access too."],
+            ["Remove them in Membership", "As below. It disconnects them and their agents. An invite link that hasn't expired still lets them back in."],
             ["Remove them from Tailscale", "And their devices.", "private network"],
             ["Remove them from Staff", "In <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>.", "if they moderated"],
-            ["Remove their server and hosting access", "Their SSH key and their account with your hosting provider.", "if they had it"],
-            ["Replace the relay key", "A new key in <code>.env</code>, then restart the relay.", "if they could read .env"],
+            ["Wait out live invite links, or ban them", "Buzz can't cancel a link: anyone holding one that hasn't expired can still join, even someone you removed. A ban keeps them out."],
+            ["Remove their server and hosting access", "Their SSH key and their account with your hosting provider. Any copy of <code>.env</code> or a backup they kept still holds the server's passwords.", "if they had it"],
+            ["Remove them from the shared vault", "It holds <code>.env</code>, with the relay key and the passwords.", "if they had it"],
             ["Hand over ownership first", "Make someone else the owner on the server before removing them.", "if they were the owner"],
           ]) +
           ct("remove") +
@@ -276,7 +281,11 @@ const GROUPS: [string, Question[]][] = [
         a:
           rec("Run each agent from the Buzz app of the person responsible for it. It gets in through that person's membership, and loses access when they leave.") +
           ct("agents") +
-          note("A shared bot with only a key of its own, such as one on the buzz command-line tool, is added like a member; keep its key in the shared vault. The relay's settings limit how fast agents post, apart from people."),
+          note("A shared bot with only a key of its own, such as one on the buzz command-line tool, is added like a member; keep its key in the shared vault. The relay's settings limit how fast agents post, apart from people.") +
+          // block/buzz-app README (agents run while Buzz is open), the harnesses' owner check, builderlab/README
+          note(
+            "Agents answer only while their person's Buzz is open; for a bot that's always on, run it on a server with a key of its own, added as a member. An agent sends what it reads to its model's provider, such as Anthropic for Claude or OpenAI for Codex: use one your team has approved, or a local model through Goose. It takes requests only from its owner, but it runs commands as that person on their computer, and text it reads in a channel can steer it. Keep agents out of channels whose content shouldn't leave your team. Agents hosted by Builderlab, Block's service, run on Block's machines.",
+          ),
       },
     ],
   ],
@@ -308,7 +317,9 @@ const GROUPS: [string, Question[]][] = [
         icon: "alert",
         q: "What if a key leaks?",
         a:
-          rec("Remove a leaked person's key right away. Replace a leaked relay key, and treat the server as exposed.") +
+          rec(
+            `Remove a leaked person's key right away. If the relay key leaked, treat the server as exposed, and ask in block/buzz before replacing it: a new key splits your channels' records today (<a href="https://github.com/block/buzz/issues/7357">block/buzz#7357</a>).`,
+          ) +
           LANES +
           note("The old key still works in any other community that person joined, since a Buzz identity isn't tied to one community."),
       },
@@ -317,12 +328,12 @@ const GROUPS: [string, Question[]][] = [
         icon: "lock",
         q: "Can we use single sign-on?",
         a:
-          rec("Not today: Buzz has no single sign-on, and everyone signs in with their own key. The next best thing is a private network, where your company login decides who can reach the relay at all.") +
-          `<div class="fq-status"><span class="fq-status-k">${icon("bolt")}In progress in Buzz</span><p>Buzz is building company sign-in on a draft standard, <a href="https://github.com/block/buzz/blob/main/docs/nips/NIP-FI.md">NIP-FI</a>: your identity provider vouches for each person's key. The relay already understands it, behind a setting that's off by default, and the desktop app's side is open work (<a href="https://github.com/block/buzz-app/pull/1424">block/buzz-app#1424</a>). There's no date yet, and a self-hosted community can't turn it on.</p></div>` +
+          rec("Not on your own relay yet: everyone signs in with their own key. The next best thing is a private network, where your company login decides who can reach the relay at all.") +
+          `<div class="fq-status"><span class="fq-status-k">${icon("bolt")}In progress in Buzz</span><p>Buzz has company sign-in on a draft standard, <a href="https://github.com/block/buzz/blob/main/docs/nips/NIP-FI.md">NIP-FI</a>: your identity provider vouches for each person's key. The relay supports it behind a setting that's off by default. The app Block publishes uses it only with Block's own sign-in service, for communities Block hosts; another company's sign-in needs a build of the app made for it. So a self-hosted community can't turn it on yet.</p></div>` +
           LOCKS +
           steps([
             ["Run the relay on a private network", `On a VPS, your own hardware or Kubernetes, with <b>Private network</b> on. <a href="#guide" data-go-private>Set it up</a>.`],
-            ["Sign up for Tailscale with your identity provider", "Google, Microsoft, Okta or GitHub, among others, so only company accounts can join your network."],
+            ["Sign up for Tailscale with your identity provider", "Google, Microsoft, Okta or GitHub, among others, so only company accounts can join your network. On Tailscale's paid plans, provisioning from your identity provider, such as Okta, suspends someone in Tailscale when you deactivate them."],
             ["Keep the member list as the second lock", "The network gets someone to the relay; only Membership lets them in. When someone leaves, remove them in both places."],
           ]),
       },
@@ -369,7 +380,9 @@ const GROUPS: [string, Question[]][] = [
         a:
           rec("Keep the relay's audit log on, back it up with the database, and keep your hosting provider's access logs.") +
           LEDGER +
-          note("The audit log is on by default and chains each entry to the last, so an edit would show. Buzz has no screen for it yet: whoever runs the server reads it from the database."),
+          note(
+            "The audit log is on by default. It records each message, change and upload with who made it, and chains each entry to the last, so a damaged or edited entry shows. Sign-ins aren't in it. Someone who can write to the database could rewrite the chain, so keep copies with your backups, off the server. Buzz has no screen for it yet: whoever runs the server reads it from the database.",
+          ),
       },
     ],
   ],

@@ -157,7 +157,7 @@ section "Back up, lose the server's data, restore onto a fresh checkout"
 server backup
 server wipe
 curl -fsS -m 5 "https://$DOMAIN/_liveness" >/dev/null 2>&1 && fail "the relay still answers after the wipe" || pass "the relay is gone after the wipe"
-server restore
+server restore "$DOMAIN"
 read_both && pass "messages survived the restore" || fail "messages after the restore: $(cat "$TMP/read.json")"
 fetch_pic && pass "the file survived the restore" || fail "the file is gone after the restore"
 server list-members

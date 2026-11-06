@@ -8,7 +8,8 @@
 #   bash smoke-vps.sh install <domain> <image-tag> <owner-hex>
 #   bash smoke-vps.sh private <image-tag> <owner-hex> <tailnet machine name>   (needs /root/.ts-authkey)
 #   bash smoke-vps.sh add-member <hex>
-#   bash smoke-vps.sh list-members | backup | wipe | restore
+#   bash smoke-vps.sh list-members | backup | wipe
+#   bash smoke-vps.sh restore <domain>   (the community's domain, to check the backup's address)
 #   bash smoke-vps.sh upgrade [new-image-tag]   (no tag: run.sh upgrade on the same tag)
 set -uo pipefail
 
@@ -91,6 +92,20 @@ list_files() {
 IFS= read -r -d '' FETCH_FILE <<'SNIP' || true
 key=$(grep -E '^[0-9a-f]{64}\.[a-z0-9]+$' ~/buzz-files-before.txt | head -1)
 [ "$(docker compose run --rm --no-deps -T --entrypoint sh -e KEY="$key" minio-init -c 'mc alias set local http://minio:9000 "$BUZZ_S3_ACCESS_KEY" "$BUZZ_S3_SECRET_KEY" >/dev/null && mc cat "local/$BUZZ_S3_BUCKET/$KEY"' < /dev/null | sha256sum | cut -c1-64)" = "${key%%.*}" ] && echo intact
+SNIP
+# operations.md's restore block, verbatim: it restores only into an empty database, stops at the
+# first pg_restore error, and starts the relay only after `restored`.
+IFS= read -r -d '' RESTORE <<'SNIP' || true
+cp ~/buzz-backup/env .env
+docker compose create
+for v in minio-data git-data; do
+  docker run --rm -v buzz-prod_buzz-$v:/data -v ~/buzz-backup:/backup alpine \
+    tar xzf /backup/$v.tgz -C /data
+done
+docker compose up -d --wait postgres
+[ "$(docker compose exec -T postgres psql -U buzz -d buzz -tAc "select count(*) from pg_tables where schemaname = 'public'" < /dev/null)" = 0 ] &&
+  docker compose exec -T postgres pg_restore -U buzz -d buzz --exit-on-error --single-transaction < ~/buzz-backup/postgres.dump &&
+  echo restored && BUZZ_COMPOSE_TLS=true ./run.sh start
 SNIP
 # pairing_edits MODE: the edits for server or private mode, with their checks
 pairing_edits() {
@@ -352,6 +367,7 @@ cd /root && rm -rf buzz' && pass "wipe" || fail "wipe"
 
 # ══ Day two: restore onto a fresh checkout (the page's commands) ══════
 restore)
+  RESTORE_DOMAIN="${2:?domain}"
   cd /root
   run reclone 'TAG=$(grep '"'"'^BUZZ_IMAGE='"'"' ~/buzz-backup/env | cut -d: -f2)
 git clone https://github.com/block/buzz.git
@@ -361,15 +377,16 @@ cp .env.example .env && chmod 600 .env' >/dev/null && pass "fresh checkout" || f
   object_store_edit
   pairing_edits server
   expect "fresh checkout at the backup's commit" "$(grep '^BUZZ_IMAGE=' ~/buzz-backup/env | cut -d: -f2 | sed 's/^sha-//')" "$(git rev-parse HEAD | cut -c1-7)"
-  run restore 'cp ~/buzz-backup/env .env
-docker compose create
-for v in minio-data git-data; do
-  docker run --rm -v buzz-prod_buzz-$v:/data -v ~/buzz-backup:/backup alpine \
-    tar xzf /backup/$v.tgz -C /data
-done
-docker compose up -d --wait postgres
-docker compose exec -T postgres pg_restore -U buzz -d buzz < ~/buzz-backup/postgres.dump
-BUZZ_COMPOSE_TLS=true ./run.sh start' && pass "restore" || fail "restore"
+  # operations.md's checks before the block: the four files, this community's address, no database left
+  run backup-complete 'for f in postgres.dump minio-data.tgz git-data.tgz env; do [ -s ~/buzz-backup/$f ] || echo missing $f; done'
+  expect "the backup has all four files" "" "$(cat "$OUT/backup-complete.out")"
+  run backup-address "grep '^RELAY_URL=' ~/buzz-backup/env"
+  expect "the backup is this community's" "RELAY_URL=wss://$RESTORE_DOMAIN" "$(cat "$OUT/backup-address.out")"
+  run db-volume 'docker volume ls -q --filter name=buzz-prod_buzz-postgres-data'
+  expect "no database volume before the restore" "" "$(cat "$OUT/db-volume.out")"
+  [[ -s $OUT/db-volume.out ]] && finish
+  run restore "$RESTORE" && pass "restore" || fail "restore"
+  grep -qx restored "$OUT/restore.out" && pass "the restore printed restored" || fail "the restore didn't print restored"
   grep -q "not created by Docker Compose" "$OUT/restore.out" && fail "compose warns about volumes it didn't create" || pass "no volume warnings"
   wait_alive && pass "relay answers after the restore" || fail "relay down after the restore"
   expect "pairing answers after the restore" "101" "$(ws_status "https://$(domain)/pair")"

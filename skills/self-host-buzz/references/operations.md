@@ -15,13 +15,23 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   **To change the owner**, set `OWNER_HEX` from the new owner's npub, run compose.md step 7's
   command and check, then `BUZZ_COMPOSE_TLS=true ./run.sh restart` (members lose the connection
   for about 20 seconds). Check: `./run.sh list-members` shows the new key as `owner` and the old one
-  as `admin`. `./run.sh remove-member <old hex>` removes the old one, if the user wants; the
-  current owner can't be removed.
+  as `admin`. `./run.sh remove-member <old hex>` removes the old one, if the user wants (then
+  restart, as below); the current owner can't be removed.
+  **To remove someone**, use Buzz 1.0 when you can (Settings, Community admin, Membership, the … on
+  their row, Remove): it disconnects them and their agents at once.
+  `./run.sh remove-member <npub-or-hex>` only deletes the membership: their open connection keeps
+  reading new messages, private channels included, and can post, and Remove in Buzz can't end it
+  afterwards (it answers "member not found"). So after a `remove-member`, restart the relay:
+  `BUZZ_COMPOSE_TLS=true ./run.sh restart` (everyone else reconnects within about 20 seconds).
+  Check: `./run.sh list-members` no longer lists them. A removed person can rejoin with an invite
+  link that hasn't expired, and nothing cancels a link early: wait them out, or keep links to 1 use
+  and 1 day. Their channel memberships stay, so adding them back restores every private channel
+  they were in. Tested on 2026-10-27.
 - **Agents.** Buzz 1.0 runs agents on the owner's computer, each with its own key and the
   owner's signed attestation (NIP-OA). The relay admits them through the owner's membership,
   because `.env` has `BUZZ_ALLOW_NIP_OA_AUTH=true` (the bundle's default, as in the chart):
-  don't add them as members. They lose access if the owner leaves or is
-  removed, and the app adds them to the channels and chats it uses them in. Tested: an agent
+  don't add them as members. They lose access if the owner leaves or is removed (in Buzz, or with
+  `remove-member` and a restart), and the app adds them to the channels and chats it uses them in. Tested: an agent
   posted in a chat that named it, its key without the attestation was refused, and so was an agent
   of a non-member. Showing agents online needs an image from 2026-10-13 or later. An agent with
   only a key of its own, such as a bot on the buzz CLI or one of Buzz 0.X's, is added like a
@@ -56,16 +66,26 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   hundreds (the dump reads back). The backup holds every
   secret: ask the user how to encrypt it (for example `gpg --symmetric`) and where the off-machine
   copy goes. Those are their decisions.
-- **Restore** into empty volumes (ask first: it replaces the data). On a new machine, first run
-  compose.md steps 3, 4 and 9, with the backup's tag for step 4
-  (`TAG=$(grep '^BUZZ_IMAGE=' ~/buzz-backup/env | cut -d: -f2)`). On this one, stop the relay and
-  delete the volumes the backup replaces:
+- **Restore** into empty volumes (ask first: it replaces the data). On a new machine: stop the old
+  relay first if it still runs, run compose.md steps 3, 4 and 9, with the backup's tag for step 4
+  (`TAG=$(grep '^BUZZ_IMAGE=' ~/buzz-backup/env | cut -d: -f2)`), and point the domain's A record
+  at the new machine before the restore below starts the relay, so Caddy gets its certificate
+  there. On a private network a move to a new machine isn't covered: the community's address is
+  the old machine's Tailscale name (compose.md step 2P). On this one, stop the relay and delete the
+  volumes the backup replaces:
   ```bash
   BUZZ_COMPOSE_TLS=true ./run.sh stop
   docker volume rm buzz-prod_buzz-postgres-data buzz-prod_buzz-minio-data buzz-prod_buzz-git-data
   ```
   If this one was upgraded since the backup, also move the bundle back to the backup's tag first,
   the way Upgrade moves it (the two `git checkout` lines, then compose.md step 9).
+  Check first (not tested): `for f in postgres.dump minio-data.tgz git-data.tgz env; do [ -s ~/buzz-backup/$f ] || echo missing $f; done`
+  prints nothing, since a missing file archive would bring the community back without its files.
+  `grep '^RELAY_URL=' ~/buzz-backup/env` shows this community's address, as the user knows it:
+  another install's backup would swap the relay's identity and owner. And
+  `docker volume ls -q --filter name=buzz-prod_buzz-postgres-data` prints nothing. If it prints the
+  volume, this server still has its database: stop, and delete the volumes as above if you mean to
+  replace it. Run on a live server, the block below stops the relay before it refuses.
   `docker compose create` makes the volumes the way Compose expects, so it doesn't warn later.
   ```bash
   cp ~/buzz-backup/env .env
@@ -75,13 +95,25 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
       tar xzf /backup/$v.tgz -C /data
   done
   docker compose up -d --wait postgres
-  docker compose exec -T postgres pg_restore -U buzz -d buzz < ~/buzz-backup/postgres.dump
-  BUZZ_COMPOSE_TLS=true ./run.sh start
+  [ "$(docker compose exec -T postgres psql -U buzz -d buzz -tAc "select count(*) from pg_tables where schemaname = 'public'" < /dev/null)" = 0 ] &&
+    docker compose exec -T postgres pg_restore -U buzz -d buzz --exit-on-error --single-transaction < ~/buzz-backup/postgres.dump &&
+    echo restored && BUZZ_COMPOSE_TLS=true ./run.sh start
   ```
-  Tested: messages, files, members, the relay's identity and the community all came back.
+  Check: `restored`, then the relay starts, and `./run.sh list-members` lists the members from
+  before. If `restored` doesn't print, the relay is stopped. With a `pg_restore: error` line, the
+  backup didn't go in and the database is empty again: fix the backup, then run the block again (no
+  need to delete anything first). Don't start the relay before that: it would serve a new, empty
+  community. With no such line, the database wasn't empty and nothing in it was replaced: start the
+  relay again with `BUZZ_COMPOSE_TLS=true ./run.sh start`. The block copied the backup's `env` over
+  `.env`, so if `.env` changed since the backup (an upgrade changes it), put those changes back first.
+  Tested: messages, files, members, the relay's identity and the community all came back, on this
+  server and on a new one (194 seconds from losing the old server to a working new one, on
+  2026-10-27). Tested as one command too, on 2026-10-27: a damaged dump stopped it with the database
+  left empty, and the same block then worked with the good dump.
 - **Upgrade.** Back up first. Members lose the connection for about 10 seconds (half a minute
   when the upgrade swaps MinIO for Silo), and the relay migrates its database on start, so going
-  back means restoring the backup with the old tag. Pick the new tag on the agent's machine
+  back means restoring the backup with the old tag, which loses anything posted after that backup:
+  back up right before upgrading, at a quiet time. Pick the new tag on the agent's machine
   (`python3 $SKILL/scripts/pick-tag.py`) and set `TAG` to it on the server. If
   `grep '^BUZZ_IMAGE=' .env` already shows it, there's nothing to do. Otherwise:
   ```bash
@@ -125,8 +157,9 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   it, passes. Then the relay's partition audit:
   `docker compose exec -T relay /usr/local/bin/buzz-admin partition-audit < /dev/null | grep -m1 '"outcome"'`
   → `"outcome": "ok",`. After an upgrade from an image before 2026-10-20 it says
-  `"outcome": "degraded",` (tested from `sha-30873ba`): older images kept every row in one
-  catch-all partition, which the audit flags while the relay keeps working, so it's harmless.
+  `"outcome": "degraded",` and keeps saying it (tested from `sha-30873ba`): older images kept every
+  row in one catch-all partition, which the audit flags while the relay keeps working, so it's
+  harmless.
   `unsafe` or `error` is not: go back, as below, and report it. Then the files: list them again,
   and read one uploaded file back through the store (its name is its sha256). Skip the last two
   lines if nobody has uploaded a file yet.

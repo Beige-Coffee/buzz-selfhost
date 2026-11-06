@@ -22,6 +22,11 @@
 | `.env still contains CHANGE_ME placeholders` | `grep -nE '^[A-Za-z_][A-Za-z0-9_]*=.*CHANGE_ME' .env` shows which step didn't write. |
 | An error about `!reset` | Compose is older than 2.24.4. |
 | Pull fails for `quay.io/minio/…` | A bundle from before 2026-10-07: do compose.md step 9. Newer bundles use Silo's images from Docker Hub. |
+| Files that exist answer 404, and uploads fail with 500 | The file store is down: `docker compose ps minio`. The relay logs nothing that names it. Start it (`docker compose start minio`); files read again within seconds. |
+| After a reboot or upgrade the relay never turns healthy, Caddy answers 502, and its log stops at the git storage probe | The file store is slow or down, and the relay waits for it without a time limit (up to five minutes in testing). It recovers by itself about 15 seconds after the store does; restarting the relay while the store is down doesn't help. Check `docker compose ps minio`. |
+| A new member sees no channels | Buzz's Search has a Channels tab that lists the open channels they can join. Or add them to a channel (its member list in Buzz, or the channel's settings). |
+| A removed member still sees new messages | They were removed with `remove-member`, which doesn't end an open connection, and Buzz's Remove then says "member not found". Restart the relay (operations.md, To remove someone). |
+| Buzz 1.0 says `Secure storage access was denied` | The computer's keychain refused Buzz, often after an update when macOS asks. Choose Retry secure storage access, then Always Allow. |
 | Relay never turns healthy | `docker logs --tail 100 buzz-prod-relay-1` (`./run.sh logs` follows the log and never returns). `RELAY_OWNER_PUBKEY` must be 64 hex characters, not an npub. |
 | TLS error or refused on 443 | DNS doesn't point here yet, or a firewall blocks 80. `docker logs --tail 100 buzz-prod-caddy-1`. |
 | 401 when joining | The address pasted in the Buzz app isn't the relay's `RELAY_URL`: another host or port. Buzz 1.0 takes it as `wss://` or `https://`, in any case, with or without a final slash; Buzz 0.X needs it byte for byte. |

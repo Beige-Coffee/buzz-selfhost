@@ -280,6 +280,42 @@ A new local test makes a new authority, to trust again.
 user about capping it (`log-opts` in `/etc/docker/daemon.json`, which applies to containers created
 afterwards). Nothing schedules backups: ask how often to run operations.md's backup.
 
+**Moderation console (`server`; optional, ask first).** Offer it for a community that strangers
+can join (not tested). Without it, members can report a message, but nobody sees reports in Buzz,
+and nobody can ban someone, time them out or delete their messages. Remove isn't a ban: a removed
+person comes back with any invite link that hasn't expired. Buzz 1.0's Moderation screens do all of
+that once the relay serves its admin API at a second name, `admin.$DOMAIN`, which Buzz finds in the
+relay's info. Every request to it must be signed by the owner or by staff the owner adds. Buzz
+connects to it only at a public address, so a private network moderates with the command line
+instead (operations.md). With the user's OK:
+- An A record for `admin.$DOMAIN` at the same address as `$DOMAIN` (it changes DNS). Check it on
+  the server as step 2 does:
+  `python3 -c "import socket; print(sorted({a[4][0] for a in socket.getaddrinfo('admin.$DOMAIN', 443)}))"`
+  prints only the machine's public IP.
+- The admin name in `.env`, with `BUZZ_ADMIN_AUTH` left unset, which means signed requests, and
+  Caddy's route for it. Upgrades and restores reset the Caddyfile, so they add the route again,
+  after step 9's edits:
+  ```bash
+  grep -q '^BUZZ_ADMIN_HOST=' .env || echo "BUZZ_ADMIN_HOST=admin.$HOST" >> .env
+  grep -q '^admin\.' Caddyfile || printf '\nadmin.{$BUZZ_DOMAIN} {\n    reverse_proxy relay:3000\n}\n' >> Caddyfile
+  ```
+  Check: `grep -E '^BUZZ_ADMIN_(HOST|AUTH)=' .env` prints only `BUZZ_ADMIN_HOST=admin.$HOST`, and
+  `grep -c '^admin\.' Caddyfile` → `1`.
+- Stop and start everything, so the relay reads `.env` and Caddy its file (members lose the
+  connection for about half a minute): `BUZZ_COMPOSE_TLS=true ./run.sh stop`, then
+  `BUZZ_COMPOSE_TLS=true ./run.sh start`. Check:
+  `curl -s -H 'Accept: application/nostr+json' $ORIGIN/ | python3 -c 'import json,sys; print(json.load(sys.stdin).get("admin_api"))'`
+  → `https://admin.$HOST`, and
+  `curl -s -o /dev/null -w '%{http_code}\n' https://admin.$HOST/api/admin/v1/probe` → `401`: the
+  name answers, and asks for a signature. Caddy can take a minute to get its certificate.
+
+Then tell the user: in Buzz 1.0 the owner opens Settings, where Moderation shows Reports, Feedback,
+Communities and Staff (Check again refreshes it). Moderators are people the owner adds under Staff,
+Add staff, with their npub and the role Moderator: being a community admin isn't enough. From
+those screens, staff ban people, time them out and delete messages. A ban disconnects the person
+and their agents, and refuses them at any invite link; after Remove, any live link still lets them
+back in.
+
 **Optional hardening (`server`; ask first: a wrong SSH rule locks the user out).** Docker
 publishes 80 and 443 around `ufw`, so a host firewall mainly guards SSH and anything else on the
 machine: `sudo ufw allow from <admin IP> to any port 22 proto tcp`, then `sudo ufw enable`.

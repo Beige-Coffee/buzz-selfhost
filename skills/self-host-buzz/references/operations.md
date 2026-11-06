@@ -31,6 +31,18 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   link that hasn't expired, and nothing cancels a link early: wait them out, or keep links to 1 use
   and 1 day. Their channel memberships stay, so adding them back restores every private channel
   they were in. Tested on 2026-10-27.
+  **To ban someone or time them out**, use Buzz 1.0's Settings, Moderation, on a public setup with
+  the moderation console (compose.md). Otherwise, and always on a private network, where Buzz's
+  moderation screens can't connect, the owner or an admin uses the `buzz` command line that ships
+  with Buzz 1.0 (`/Applications/Buzz.app/Contents/Resources/bin/buzz` on a Mac). They run it in a
+  terminal of their own, never the agent's, since it signs with their private key:
+  `read -rs BUZZ_PRIVATE_KEY && export BUZZ_PRIVATE_KEY BUZZ_RELAY_URL=$ORIGIN` asks for the key
+  without showing it. Then `buzz moderation reports` lists reports;
+  `buzz moderation ban --pubkey <hex>` bans someone, which disconnects them and their agents and
+  refuses them at any invite link; `buzz moderation timeout --pubkey <hex> --expires-in 3600`
+  stops their posts for an hour; `buzz moderation restricted` lists both, and `unban` and
+  `untimeout` lift them. `buzz messages delete --event <id>` deletes a message in a channel they
+  own or administer (not tested).
 - **Agents.** Buzz 1.0 runs agents on the owner's computer, each with its own key and the
   owner's signed attestation (NIP-OA). The relay admits them through the owner's membership,
   because `.env` has `BUZZ_ALLOW_NIP_OA_AUTH=true` (the bundle's default, as in the chart):
@@ -82,7 +94,9 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   docker volume rm buzz-prod_buzz-postgres-data buzz-prod_buzz-minio-data buzz-prod_buzz-git-data
   ```
   If this one was upgraded since the backup, also move the bundle back to the backup's tag first,
-  the way Upgrade moves it (the two `git checkout` lines, then compose.md step 9).
+  the way Upgrade moves it (the two `git checkout` lines, then compose.md step 9). Wherever this
+  redoes step 9 and the backup's `env` has `BUZZ_ADMIN_HOST`, add the moderation console's Caddy
+  route again too, and on a new machine move `admin.$DOMAIN`'s record with the domain's.
   Check first (not tested): `for f in postgres.dump minio-data.tgz git-data.tgz env; do [ -s ~/buzz-backup/$f ] || echo missing $f; done`
   prints nothing, since a missing file archive would bring the community back without its files.
   `grep '^RELAY_URL=' ~/buzz-backup/env` shows this community's address, as the user knows it:
@@ -151,8 +165,9 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   git checkout compose.yml Caddyfile
   git checkout -q ${TAG#sha-}
   ```
-  Then redo compose.md step 9; its greps say which edits are still needed. Settings the new
-  bundle added, if any:
+  Then redo compose.md step 9; its greps say which edits are still needed. If `.env` has
+  `BUZZ_ADMIN_HOST`, add the moderation console's Caddy route again too (compose.md). Settings the
+  new bundle added, if any:
   `comm -13 <(grep -oE '^[A-Z][A-Z0-9_]*=' .env | sort) <(grep -oE '^[A-Z][A-Z0-9_]*=' .env.example | sort)`.
   Copy those lines from `.env.example` into `.env`, redo compose.md step 5 for a
   `CHANGE_ME_RANDOM`, and ask the user about any other value. Relays set up before 2026-10-23
@@ -192,7 +207,9 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
 - **Add a member.** Check the npub first: `python3 $SKILL/scripts/npub-to-hex.py <npub>`. Then
   `kubectl -n buzz exec deploy/buzz -c relay -- /usr/local/bin/buzz-admin add-member --pubkey <npub-or-hex> --role member`.
   Check: `kubectl -n buzz exec deploy/buzz -c relay -- /usr/local/bin/buzz-admin list-members`
-  lists it.
+  lists it. A member added this way skips the starter channels, as on Compose. To ban someone or
+  time them out, use the `buzz` command line, as on Compose's private network (above): the chart
+  has no admin name for Buzz's moderation screens, so they aren't covered here.
 - **Back up** the quickstart's four stores (ask first; the relay keeps running), into a folder
   only the user can read:
   ```bash

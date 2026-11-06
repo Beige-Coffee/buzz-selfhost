@@ -216,7 +216,8 @@ their row, Remove): that also disconnects them and their agents. `./run.sh remov
 deletes the membership: an open connection keeps reading new messages, private channels included,
 and can post, until the relay restarts. So after a command-line removal, restart the relay
 ([operations.md](references/operations.md)). A removed person can rejoin with any invite link that
-hasn't expired.
+hasn't expired; a ban keeps them out, from Buzz 1.0's moderation screens on a public Compose setup
+(compose.md, Moderation console) or from the command line elsewhere (operations.md).
 
 **What stays private.** Tell the user, plainly: only members can read, post or open files, but
 files are shared with the whole community, not one channel. Any member with a file's link can open

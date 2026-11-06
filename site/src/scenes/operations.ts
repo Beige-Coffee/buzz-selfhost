@@ -61,10 +61,10 @@ export function taskHTML(task: OpTask, track: Track): string {
   const flow = task === "backup" || task === "restore" ? OP_FLOWS[opSetup(track)][task] : undefined;
   if (flow && !d.manual) {
     const blocks = ops.flatMap((o) => o.html.match(/<pre[\s\S]*?<\/pre>/g) ?? []);
+    // the skill's block that runs this step's command
+    const block = (cmd?: string) => (cmd ? blocks.find((b) => b.includes(cmd)) : undefined);
     const stepHTML = (f: FlowStep, n: number) =>
-      `<li><span class="opx-flow-n">${n + 1}</span><div><p class="opx-flow-t">${f.t}</p><p class="opx-flow-d">${fillRich(f.d)}</p>${
-        f.code !== undefined && blocks[f.code] ? fillRich(blocks[f.code]) : ""
-      }</div></li>`;
+      `<li><span class="opx-flow-n">${n + 1}</span><div><p class="opx-flow-t">${f.t}</p><p class="opx-flow-d">${fillRich(f.d)}</p>${fillRich(block(f.code) ?? "")}</div></li>`;
     return `${why}<ol class="opx-flow">${flow.map(stepHTML).join("")}</ol>`;
   }
   if (task !== "upgrade" || d.manual) return why;

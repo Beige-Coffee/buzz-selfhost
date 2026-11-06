@@ -179,24 +179,29 @@ export function derived(v: Values = state): Record<string, string> {
   const fallback = isPrivate(t) ? "buzz.your-tailnet.ts.net" : "buzz.example.org";
   const domain = v.domain.trim().toLowerCase().replace(/^\w+:\/\//, "").replace(/\/.*$/, "") || fallback;
   const tag = v.tag.trim() || DEFAULT_TAG;
-  const hex = npubToHex(v.npub);
+  const npub = v.npub.trim();
+  const hex = npubToHex(npub);
   return {
     DOMAIN: domain,
     HOST: practice ? "localhost" : domain,
     RELAY_URL: practice ? "wss://localhost" : `wss://${domain}`,
     HTTP_ORIGIN: practice ? "https://localhost" : `https://${domain}`,
     OWNER_HEX: hex ?? "CHANGE_ME_OWNER_PUBKEY_HEX",
-    OWNER_NPUB: v.npub.trim() || "<your npub>",
+    // the prompts' owner: the reader's own npub, or a key the skill makes for them (scripts/new-identity.py)
+    OWNER: npub ? `Owner: ${npub}.` : "I have no Buzz key yet: make the owner key with the skill's new-identity.py.",
     TAG: tag,
     // sha-<7> tags name the main commit the image was built from; the bundle is checked out there
     COMMIT: /^sha-[0-9a-f]{7,40}$/.test(tag) ? tag.slice(4) : "main",
     IMAGE: `ghcr.io/block/buzz:${tag}`,
     // Caddy serves public servers and the local test (with its own local authority); Tailscale serves the private ones
     RUN: isPrivate(t) ? "./run.sh" : "BUZZ_COMPOSE_TLS=true ./run.sh",
-    SKILL_URL: new URL("skills/self-host-buzz/SKILL.md", document.baseURI).href,
+    SKILL_URL: skillURL("SKILL.md"),
     SKILL_ARCHIVE: new URL("skills/self-host-buzz.tar.gz", document.baseURI).href,
   };
 }
+
+/** A file of the skill, as this site serves it (vite.config.ts serves the whole folder). */
+export const skillURL = (path: string) => new URL(`skills/self-host-buzz/${path}`, document.baseURI).href;
 
 export const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 

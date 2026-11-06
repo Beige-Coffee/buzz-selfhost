@@ -5,7 +5,7 @@ import { promptText, runningOnHTML, taskHTML } from "./operations";
 import { TABLER } from "./tabler";
 import { copyText, enhanceCode } from "../lib/code";
 import { jumpTo } from "../lib/nav";
-import { getValues, isPrivate, onValues, setValues, trackHash, trackOf, type Track } from "../lib/values";
+import { getValues, isPrivate, onValues, setValues, skillURL, trackHash, trackOf, type Track } from "../lib/values";
 
 /**
  * Running your relay: what we recommend for people, keys, data and the server, and how to set it up.
@@ -69,13 +69,28 @@ const CASES = `<div class="fq-vis fq-cases">
   <p class="fq-cases-q">${icon("device-mobile")}<span><b>Could someone get into the lost device?</b>It was unlocked, had no disk encryption, or someone knows its password.</span></p>
   <div class="fq-case bad">
     <p class="fq-case-h"><span class="fq-tag no">Yes, or not sure</span><b>The key is exposed: retire it</b></p>
-    <ol><li>Remove the old key in Membership, now.</li><li>Create a new identity on the new device. Not the saved copy: whoever has the device has that key too.</li><li>An admin adds the new npub.</li><li>Pair the phone, start their agents again, and tell any other community they joined.</li></ol>
+    <ol><li>Remove the old key in Membership, now. Ban it too if you moderate: an invite link that hasn't expired would let it back in.</li><li>Make a new key on the new device. Not the saved copy: whoever has the device has that key too.</li><li>An admin adds the new npub.</li><li>Pair the phone, start their agents again, and tell any other community they joined.</li></ol>
   </div>
   <div class="fq-case good">
     <p class="fq-case-h"><span class="fq-tag yes">No</span><b>The key is safe: bring it back</b></p>
-    <ol><li>Sign in on the new device with the saved copy, or Restore from backup with a Block account.</li><li>No copy? Then it's a new identity, added again.</li><li>Pair the phone again.</li></ol>
+    <ol><li>Sign in on the new device with the saved copy: <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>.</li><li>No copy? Then it's a new identity, added again.</li><li>Pair the phone again.</li></ol>
   </div>
 </div>`;
+
+/**
+ * Two ways to get a key (decision of 2026-11-06): the skill's key maker, which the site serves with the
+ * rest of the skill, or a Builderlab account, Block's, which can back the key up with Block
+ * (block/buzz-app#2325) and, created on Block's hosted page, asks for the person's details (#2579).
+ */
+const KEYMAKER = skillURL("scripts/new-identity.py");
+const KEYS =
+  note(
+    `There are two ways to get a key. This guide's <a href="${KEYMAKER}">key maker</a>, a short Python script, makes one on your computer, saves it in a file only you can read and shows only its npub. Or <b>Create account</b> on Buzz's first screen makes one with a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details.`,
+  ) +
+  `<pre class="cmd">curl -fsSLO ${KEYMAKER} &amp;&amp; python3 new-identity.py</pre>` +
+  note(
+    "With the key maker's key, join with <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>. Builderlab can keep a copy of a key made or imported after you sign in to it, and gives it back to whoever signs in to that account: keep work identities in your password manager instead.",
+  );
 
 /** Single sign-on today: two locks in a row, your company's login and Buzz's member list. */
 const LOCKS = `<div class="fq-vis fq-locks">
@@ -162,6 +177,11 @@ const GROUPS: [string, Question[]][] = [
         a: (t) =>
           rec("Add people you know by their npub. For a group, use an invite link that expires after a day, limited to the people you expect.") +
           ct("add") +
+          note(
+            `Each person needs a key first (<a href="#operations" data-q-link="identity">how to get one</a>) and sends you its npub: the key maker prints it, and Buzz shows it if they try to join before you add them.`,
+          ) +
+          // starter channels, from block/buzz#8594 (in the pin): invite claims and adds in Buzz, not buzz-admin add-member
+          note("In a channel's settings, turn on <b>Starter channel for new members</b>: everyone who joins by link, or whom you add in Buzz, joins it. People added from the server's command line aren't.") +
           (isPrivate(t) ? note(PRIVATE_PEOPLE) : ""),
       },
       {
@@ -209,8 +229,9 @@ const GROUPS: [string, Question[]][] = [
         icon: "key",
         q: "How should each person set up their identity?",
         a:
-          rec("One work identity per person, made in the Buzz app, with a copy of its private key in your company's password manager.") +
+          rec("One work identity per person, with a copy of its private key in your company's password manager. Make the key with this guide's key maker, so no copy goes to Block.") +
           ct("identity") +
+          KEYS +
           note("Nobody can reset a Buzz key. Without the saved copy, a lost key means a new identity."),
       },
       {

@@ -68,35 +68,46 @@
     </div>
   </section>
 
-  <section class="block reveal" id="not-yet" hidden>
+  <section class="block reveal" id="not-yet">
     <div class="text">
-      <h2>Know before you start</h2>
-      <p class="sub">What a self-hosted community can't do yet, on every path.</p>
+      <h2>What it can't do yet</h2>
+      <p class="sub">On every setup, as of November 2026.</p>
     </div>
     <div class="wide limits">
       <article class="limit">
-        <span class="limit-k">Moving</span>
-        <h3>No move from buzz.xyz</h3>
-        <p>A community Block hosts can't be exported to your relay. Start on your own server, before your team settles in.</p>
-        <a href="https://github.com/block/buzz/issues/6803">block/buzz#6803</a>
+        <h3 class="limit-k">Files</h3>
+        <p>Any member with a file's link can open it, even from a private channel or a direct message they're not in.</p>
+        <p class="limit-links"><a href="#operations" data-q-link="read">Details</a><a href="https://github.com/block/buzz/pull/8444">block/buzz#8444</a></p>
       </article>
       <article class="limit">
-        <span class="limit-k">Address</span>
-        <h3>One address per community</h3>
-        <p>A community answers only on the address it started on, so a new domain starts a new, empty community. An open pull request would add a second address.</p>
-        <a href="https://github.com/block/buzz/pull/5410">block/buzz#5410</a>
+        <h3 class="limit-k">Moving in</h3>
+        <p>No import or bridge from Slack, Discord or Matrix, and a community on buzz.xyz can't move here. A community keeps one address for good.</p>
+        <p class="limit-links"><a href="https://github.com/block/buzz/issues/3306">block/buzz#3306</a><a href="https://github.com/block/buzz/issues/4119">block/buzz#4119</a><a href="https://github.com/block/buzz/issues/6803">block/buzz#6803</a><a href="https://github.com/block/buzz/issues/4952">block/buzz#4952</a></p>
       </article>
       <article class="limit">
-        <span class="limit-k">Phones</span>
-        <h3>Notifications go through Block</h3>
-        <p>iPhones get notifications for direct messages and mentions through Block's gateway, which passes on only a signal to reconnect, never a message. Android gets none yet.</p>
-        <a href="https://github.com/block/buzz/issues/6092">block/buzz#6092</a>
+        <h3 class="limit-k">Sign-in</h3>
+        <p>No company sign-in on your own relay: everyone signs in with their own key.</p>
+        <p class="limit-links"><a href="#operations" data-q-link="sso">Details</a></p>
       </article>
       <article class="limit">
-        <span class="limit-k">Pairing</span>
-        <h3>Pairing needs an extra service</h3>
-        <p>Block's bundles don't start the phone pairing service, so the skill adds it, on every setup except Kubernetes on a private network.</p>
-        <a href="https://github.com/block/buzz/issues/7721">block/buzz#7721</a>
+        <h3 class="limit-k">Apps</h3>
+        <p>The Buzz app is in beta: its desktop builds are previews that update themselves, often several times a day. There's no web version, and nothing is readable without joining.</p>
+        <p class="limit-links"><a href="https://github.com/block/buzz/issues/8450">block/buzz#8450</a><a href="https://github.com/block/buzz/issues/2895">block/buzz#2895</a></p>
+      </article>
+      <article class="limit">
+        <h3 class="limit-k">Phones</h3>
+        <p>iPhone notifications go through Block's gateway, which sees no message text. Android gets none yet.</p>
+        <p class="limit-links"><a href="#operations" data-q-link="block">Details</a><a href="https://github.com/block/buzz/issues/5206">block/buzz#5206</a><a href="https://github.com/block/buzz/issues/6092">block/buzz#6092</a></p>
+      </article>
+      <article class="limit">
+        <h3 class="limit-k">Agents</h3>
+        <p>Agents run only while their person's Buzz is open, and send what they read to their model's provider.</p>
+        <p class="limit-links"><a href="#operations" data-q-link="agents">Details</a><a href="https://github.com/block/buzz-app/pull/1632">block/buzz-app#1632</a></p>
+      </article>
+      <article class="limit">
+        <h3 class="limit-k">Records</h3>
+        <p>No retention rules or export: nothing is deleted on a schedule, and a deleted message stays in the database.</p>
+        <p class="limit-links"><a href="https://github.com/block/buzz/issues/5731">block/buzz#5731</a></p>
       </article>
     </div>
   </section>

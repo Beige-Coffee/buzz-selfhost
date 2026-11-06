@@ -977,12 +977,12 @@ ul.plain li a { margin-left: 4px; font: 12.5px var(--mono); color: var(--ink-3);
 .btn.ghost:hover { border-color: var(--ink); box-shadow: var(--shadow-1); }
 
 /* ── limits ─────────────────────────────────── */
-.limits { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 28px; }
+.limits { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 30px 28px; }
 .limit { display: flex; flex-direction: column; padding: 22px 0 0; border-top: 1px solid var(--line-2); }
-.limit-k { font: 500 11px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
-.limit h3 { margin: 12px 0 8px; font-size: 19px; }
-.limit p { flex: 1; margin: 0 0 14px; font-size: 15px; line-height: 1.55; color: var(--ink-2); }
-.limit a { align-self: flex-start; font: 12.5px var(--mono); color: var(--ink-3); }
+.limit .limit-k { margin: 0; font: 500 11px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.limit p { flex: 1; margin: 10px 0 14px; font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+.limit .limit-links { flex: none; display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 0; }
+.limit a { font: 12.5px var(--mono); color: var(--ink-3); }
 .limit a:hover { color: var(--ink); }
 .limits-fine { max-width: var(--wide); margin: 26px auto 0; }
 

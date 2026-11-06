@@ -510,6 +510,18 @@ export function mountFaq(host: HTMLElement): void {
     e.preventDefault();
     show(all[(next + all.length) % all.length].id, true);
   });
+  // a link to an answer from elsewhere on the page, such as the limits: open it, then go there
+  document.addEventListener("click", (e) => {
+    const a = (e.target as HTMLElement).closest<HTMLElement>("[data-q-link]");
+    if (!a || host.contains(a)) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    show(a.dataset.qLink!);
+    if (!narrow.matches) return jumpTo("operations");
+    // on a phone the answer opens under its question, so land on the question
+    const q = list.querySelector<HTMLElement>(`[data-q="${open}"]`)!;
+    scrollTo({ top: q.getBoundingClientRect().top + scrollY - 72, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  });
   narrow.addEventListener("change", () => show(open));
   show(open);
   // the Running on box changed: redraw it, and the answer if it depends on the setup

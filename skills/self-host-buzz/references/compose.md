@@ -26,10 +26,17 @@ x86 emulation there (tested): Docker warns that the image's platform doesn't mat
 harmless.
 
 1. **Machine.**
-   - Server: `cloud-init status --wait; uname -m; free -h; df -h /` → `status: done`, `x86_64`,
+   - Server: `. /etc/os-release; echo $ID $VERSION_ID` → `ubuntu 24.04`. On anything else, stop
+     and tell the user this setup expects Ubuntu 24.04. Then
+     `command -v cloud-init > /dev/null && cloud-init status --wait; uname -m; free -h; df -h /` →
+     `status: done` or `status: disabled` (nothing on a machine without cloud-init), `x86_64`,
      about 3.7Gi or more of memory, and a disk `Size` of 20G or more. The first command waits for
      a new server's first-boot updates, which otherwise hold apt's lock and break the installs
-     below. As a user other than root, also `sudo -n true && echo sudo ok` → `sudo ok`.
+     below. As a user other than root, also `sudo -n true && echo sudo ok` → `sudo ok`. The ports
+     this setup uses must be free:
+     `ss -ltnH '( sport = :80 or sport = :443 or sport = :3000 or sport = :5000 )'` prints nothing
+     (`private` mode needs only 3000 and 5000). If something listens, stop and ask the user: never
+     stop or change the program that holds the port.
    - Docker Desktop (`local`): `docker version --format '{{.Server.Version}}'` prints the engine's
      version (it fails when Docker Desktop isn't running), and `docker compose version` → 2.24.4
      or later.
@@ -89,10 +96,19 @@ harmless.
    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
    sudo usermod -aG docker $USER
    ```
+   Then cap Docker's logs, which otherwise grow until the disk fills. If `/etc/docker/daemon.json`
+   already exists, or `sudo docker ps -q | wc -l` shows other containers running here (the restart
+   below restarts them), ask first:
+   ```bash
+   [ -e /etc/docker/daemon.json ] || printf '%s\n' '{"log-driver": "json-file", "log-opts": {"max-size": "50m", "max-file": "5"}}' | sudo tee /etc/docker/daemon.json > /dev/null
+   sudo systemctl restart docker
+   ```
    Over SSH, apt may warn `debconf: unable to initialize frontend`: harmless. Check:
    `docker compose version` → 2.24.4 or later (the Caddy overlay needs it; Docker's
-   repository gives v5, which counts). As a user other than root, the docker group applies at the
-   next login: log out and in, or run `newgrp docker`, before step 6.
+   repository gives v5, which counts), `sudo docker info --format '{{.LoggingDriver}}'` →
+   `json-file`, and `grep -c max-size /etc/docker/daemon.json` → `1` (not tested). As a user other
+   than root, the docker group applies at the next login: log out and in, or run `newgrp docker`,
+   before step 6.
 4. **The bundle**, at the commit the image was built from so the two match. It goes in the home
    directory unless the user wants another folder; then use that folder wherever this file says
    `~`. For a local test, keep it somewhere permanent, not under `/tmp` (`/private/tmp` on a
@@ -122,10 +138,14 @@ harmless.
    `64`, and the image is the one SKILL.md section 2 names:
    `docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/block/buzz:$TAG` →
    `ghcr.io/block/buzz@$DIGEST`, the digest SKILL.md section 2 sets (skip this when the user chose
-   the newest image). Then tell the user to copy the key into a password manager two maintainers can open, by
-   running this in their own terminal, not in the conversation (through `ssh` for a server):
+   the newest image). Then tell the user to copy the key into a password manager two maintainers
+   can open, by running this in a terminal window of its own, not in the conversation or a terminal
+   inside the agent's app, which some agents can read (through `ssh` for a server):
    `ssh <server> "grep '^BUZZ_RELAY_PRIVATE_KEY=' ~/buzz/deploy/compose/.env | cut -d= -f2"`.
-   Backups of `.env` hold it too. A local test can skip the copy.
+   Backups of `.env` hold it too. A local test can skip the copy. The key is the relay's identity:
+   never replace it, not even when someone who could read it leaves. A new key splits every
+   channel's records today (block/buzz#7357), and Block's chart says not to rotate it. If it leaked,
+   treat the server as exposed, and ask in block/buzz before changing it.
 7. **Owner.**
    ```bash
    sed -i.bak "s/^RELAY_OWNER_PUBKEY=.*/RELAY_OWNER_PUBKEY=$OWNER_HEX/" .env && rm .env.bak
@@ -276,9 +296,19 @@ authority. The user removes the trust in their own terminal, on a Mac:
 `sudo security delete-certificate -Z "$(openssl x509 -in local-ca.crt -noout -fingerprint -sha1 | cut -d= -f2 | tr -d :)" /Library/Keychains/System.keychain`.
 A new local test makes a new authority, to trust again.
 
-**For a server that runs for months.** Docker keeps each container's log without limit; ask the
-user about capping it (`log-opts` in `/etc/docker/daemon.json`, which applies to containers created
-afterwards). Nothing schedules backups: ask how often to run operations.md's backup.
+**For a server that runs for months.** A server set up before step 3 capped Docker's logs keeps
+uncapped ones: add the file the same way, then `BUZZ_COMPOSE_TLS=true ./run.sh stop` and
+`BUZZ_COMPOSE_TLS=true ./run.sh start` (without the flag in `private` mode; members lose the
+connection for about half a minute), since only new containers pick it up. Nothing schedules backups: offer a nightly one, at an hour the
+user picks, since members lose the connection for about half a minute each time (ask first; not
+tested). Save operations.md's backup block as `~/buzz-backup.sh`, with `cd ~/buzz/deploy/compose`
+as its first line and, as its last, a line that keeps the newest seven folders once the night's
+backup is whole:
+`[ -s "$BACKUP/postgres.dump" ] && [ -s "$BACKUP/env" ] && ls -d ~/buzz-backup/20*/ | head -n -7 | xargs -r rm -rf`.
+Then `chmod 700 ~/buzz-backup.sh` and, for 03:30 server time,
+`(crontab -l 2>/dev/null; echo '30 3 * * * bash ~/buzz-backup.sh > ~/buzz-backup/last.log 2>&1') | crontab -`.
+Check: `crontab -l` shows the line, and the next day `ls ~/buzz-backup` shows a new folder. Copies
+off the server stay the user's to make.
 
 **Moderation console (`server`; optional, ask first).** Offer it for a community that strangers
 can join (not tested). Without it, members can report a message, but nobody sees reports in Buzz,
@@ -319,3 +349,12 @@ back in.
 **Optional hardening (`server`; ask first: a wrong SSH rule locks the user out).** Docker
 publishes 80 and 443 around `ufw`, so a host firewall mainly guards SSH and anything else on the
 machine: `sudo ufw allow from <admin IP> to any port 22 proto tcp`, then `sudo ufw enable`.
+
+**Shutting a server down (`server` and `private`; ask first: it ends the community).** Back up
+first (operations.md), with a copy off the server. Then `BUZZ_COMPOSE_TLS=true ./run.sh stop`
+(`./run.sh stop` in `private` mode). Before the server goes, delete the domain's A record, and
+`admin.$DOMAIN`'s if there is one, or point them at a server the user controls: once the provider
+hands the address to someone else, a record left behind lets them get a certificate for the
+community's address and answer as the relay. In `private` mode, remove the machine from the tailnet
+instead (admin console, Machines). Then destroy the server, with its volumes and the provider's
+backups of it (not tested).

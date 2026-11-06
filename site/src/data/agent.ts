@@ -368,6 +368,8 @@ const UPGRADE_WHY =
   "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup, which loses anything posted after it.";
 const agent = (t: string): OpStep => ({ who: "agent", icon: "agent", t });
 const asks = (t: string): OpStep => ({ who: "you", icon: "ask", t });
+/** Migration 0083 (block/buzz#8787) refuses duplicate public channel names; operations.md checks first, on Compose and Kubernetes. */
+const RENAME = asks("Asks you to rename public channels that share a name, if any: the new image won't start with them");
 
 /**
  * Backing up and restoring, as numbered steps for a person to run. `code` picks a command block from
@@ -390,19 +392,20 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
         d: "It holds every secret. Encrypt it, for example with <code>gpg --symmetric</code>, keep a copy off the server, and keep the relay key where two people can open it.",
       },
     ],
+    // operations.md: the backup is checked before anything is deleted, the empty volume after
     restore: [
+      {
+        t: "Check the backup",
+        d: "Before you change anything: its four files are there and none is empty, and its <code>env</code> shows this community's address. A backup from another install would swap your relay's identity and owner.",
+      },
       {
         t: "Clear the way",
         d: "On this server, stop Buzz and delete the data the backup replaces; if you upgraded since the backup, first move the bundle back to the backup's version. On a new server, skip this: stop the old one if it still runs, install Docker and get the bundle at the backup's version, with its edits, as the setup does, without starting Buzz, and point your domain at the new server.",
         code: "volume rm",
       },
       {
-        t: "Check first",
-        d: "The backup's four files are there and none is empty, and its <code>env</code> shows this community's address: a backup from another install would swap your relay's identity and owner. And <code>docker volume ls -q --filter name=buzz-prod_buzz-postgres-data</code> must print nothing; if it prints a name, this server still has its data, so stop.",
-      },
-      {
         t: "Put the backup back",
-        d: "From <code>buzz/deploy/compose</code>, with the backup in <code>~/buzz-backup</code>. The block prints <code>restored</code> and starts Buzz only if the database was empty and the backup went in whole.",
+        d: "From <code>buzz/deploy/compose</code>, with the backup in <code>~/buzz-backup</code>. First, <code>docker volume ls -q --filter name=buzz-prod_buzz-postgres-data</code> must print nothing; if it prints a name, this server still has its data, so stop. The block prints <code>restored</code> and starts Buzz only if the database was empty and the backup went in whole.",
         code: "pg_restore",
       },
       { t: "Check it", d: CHECK_BACK },
@@ -429,7 +432,7 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
       why: UPGRADE_WHY,
       steps: [
         asks("Asks before the backup stops the relay"),
-        asks("Asks you to rename public channels that share a name, if any: the new image won't start with them"),
+        RENAME,
         agent("Moves the relay to the image the skill recommends, about 10 seconds offline"),
         agent("Turns on phone notifications, if the relay predates them"),
         agent("Checks the members are still there and the relay answers"),
@@ -446,7 +449,7 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
     },
     upgrade: {
       why: UPGRADE_WHY,
-      steps: [asks("Asks before the backup"), agent("Sets the image the skill recommends in the values file"), agent("Upgrades with Helm and waits until the relay is ready")],
+      steps: [asks("Asks before the backup"), RENAME, agent("Sets the image the skill recommends in the values file"), agent("Upgrades with Helm and waits until the relay is ready")],
     },
   },
 };

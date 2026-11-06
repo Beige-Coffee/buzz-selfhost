@@ -13,7 +13,7 @@
  *   its title carries modes, like **Optional hardening (`server`; …).**, and is skipped otherwise.
  */
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, posix } from "node:path";
 import { Marked } from "marked";
 
 export type Track = "vps" | "vps-private" | "own-public" | "own-private" | "practice" | "k8s" | "k8s-private";
@@ -42,6 +42,10 @@ export interface SkillData {
   steps: SkillStep[];
   fixes: SkillFix[];
   ops: SkillOp[];
+  /** where the step-by-step view has a reader download the skill, so its scripts run by that path */
+  home: string;
+  /** the image the skill recommends, from SKILL.md's metadata: `tested-image` and `tested-digest` */
+  pin: { tag?: string; digest?: string };
 }
 
 const SERVER: Track[] = ["vps", "own-public"];
@@ -67,8 +71,16 @@ const FILES: Record<string, (modes: string[], p: boolean, where: string) => Trac
   "kubernetes.md": (_modes, p) => (p ? ["k8s-private"] : ["k8s"]),
 };
 
+/**
+ * The skill's folder on a reader's computer: its first step on the page downloads it here, and the
+ * skill's `$SKILL` becomes this path, so its scripts run from any shell.
+ */
+const HOME = "~/buzz-skill";
+
 /** The skill's shell variables, as the page's panel fills them in. */
 const VARS: [RegExp, string][] = [
+  [/\$SKILL\b/g, `${HOME}/self-host-buzz`],
+  [/\$DIGEST\b/g, "{{DIGEST}}"],
   [/\$\{TAG#sha-\}/g, "{{COMMIT}}"],
   [/\$TAG\b/g, "{{TAG}}"],
   [/\$DOMAIN\b/g, "{{DOMAIN}}"],
@@ -170,12 +182,34 @@ function current(markdown: string): string {
     .join("");
 }
 
-function toHTML(markdown: string): string {
-  let text = current(untested(markdown));
-  for (const [re, key] of VARS) text = text.replace(re, key);
+/**
+ * A link between the skill's files, as the page has them: operations.md is the Running your relay
+ * section, troubleshooting.md the step view's "If a step fails" list, compose.md and kubernetes.md the
+ * step view itself, and any other file the copy the site serves. `from` is the folder of the file the
+ * link is in. Any other Markdown file has no place on the page, so it fails the build.
+ */
+const PAGE: Record<string, string> = {
+  "references/operations.md": "#operations",
+  "references/troubleshooting.md": "#fixes",
+  "references/compose.md": "#commands",
+  "references/kubernetes.md": "#commands",
+};
+function pageLink(href: string, from: string): string {
+  if (/^([a-z]+:|#)/.test(href)) return href;
+  const path = posix.normalize(posix.join(from, href.replace(/#.*$/, "")));
+  if (path in PAGE) return PAGE[path];
+  if (path.endsWith(".md") || path.startsWith("..")) fail(`a link to ${href} from ${from || "SKILL.md"}: add it to PAGE in build/skill.ts`);
+  return `skills/self-host-buzz/${path}`;
+}
+const links = (html: string, from: string) => html.replace(/<a href="([^"]+)"/g, (_, href: string) => `<a href="${pageLink(href, from)}"`);
+
+const vars = (text: string) => VARS.reduce((t, [re, key]) => t.replace(re, key), text);
+
+function toHTML(markdown: string, from: string): string {
+  let text = vars(current(untested(markdown)));
   // issue references outside code become links
   text = text.replace(/(^|[\s(])block\/buzz#(\d+)/g, "$1[block/buzz#$2](https://github.com/block/buzz/issues/$2)");
-  return (md.parse(text) as string)
+  return links(md.parse(text) as string, from)
     // a check is "Check:" or "Check, on the server:"; "Check the npub first" is an instruction
     .replace(/<p>Check(?=[:,])/g, '<p class="chk">Check')
     .replace(/<a href="http/g, '<a rel="noopener" href="http')
@@ -251,9 +285,9 @@ function fileSteps(dir: string, file: string): SkillStep[] {
     const where = `${file} ${b.num || title}`;
     if (b.kind === "note") {
       if (!modes.length) return [];
-      return [{ id: `${name}-${title.toLowerCase().replace(/\W+/g, "-")}`, title, tracks: rule(modes, false, where), optional: true, html: toHTML(blockMarkdown(b)) }];
+      return [{ id: `${name}-${title.toLowerCase().replace(/\W+/g, "-")}`, title, tracks: rule(modes, false, where), optional: true, html: toHTML(blockMarkdown(b), "references") }];
     }
-    const html = toHTML(blockMarkdown(b));
+    const html = toHTML(blockMarkdown(b), "references");
     if (!title || !html) fail(`${where}: empty title or body`);
     return [{ id: `${name}-${b.num}`, title, tracks: rule(modes, b.num.includes("P"), where), html }];
   });
@@ -264,7 +298,7 @@ function skillSections(dir: string): SkillStep[] {
   const text = readFileSync(join(dir, "SKILL.md"), "utf8");
   return [...text.matchAll(/^## (\d+)\. (.+)\n([\s\S]*?)(?=^## |(?![\s\S]))/gm)]
     .filter((m) => m[1] === "3" || m[1] === "4")
-    .map((m) => ({ id: `skill-${m[1]}`, title: m[2].replace(/, for every setup$/, "").trim(), tracks: [...TRACKS], html: toHTML(m[3]) }));
+    .map((m) => ({ id: `skill-${m[1]}`, title: m[2].replace(/, for every setup$/, "").trim(), tracks: [...TRACKS], html: toHTML(m[3], "") }));
 }
 
 /** troubleshooting.md's table. A row's prefix, like `Kubernetes:`, limits it to that setup. */
@@ -285,7 +319,8 @@ function fixes(dir: string): SkillFix[] {
           : /^Local:/.test(symptom)
             ? LOCAL
             : [...TRACKS];
-    return { tracks, symptom: md.parseInline(current(untested(symptom))) as string, fix: md.parseInline(current(untested(fix))) as string };
+    const inline = (cell: string) => links(md.parseInline(vars(current(untested(cell)))) as string, "references");
+    return { tracks, symptom: inline(symptom), fix: inline(fix) };
   });
 }
 
@@ -306,7 +341,7 @@ function ops(dir: string): SkillOp[] {
       let markdown = joinRest(head[2], item.split("\n").slice(1), true);
       // the skill's own rule: drop the flag in private mode, which the page's {{RUN}} does per setup
       if (name === "Docker Compose") markdown = markdown.replace(/BUZZ_COMPOSE_TLS=true \.\/run\.sh/g, "{{RUN}}");
-      out.push({ tracks, kind, title, html: toHTML(markdown) });
+      out.push({ tracks, kind, title, html: toHTML(markdown, "references") });
     }
     for (const kind of ["people", "backup", "upgrade"] as OpKind[])
       if (!out.some((o) => o.kind === kind && o.tracks === tracks)) fail(`operations.md ${name}: no ${kind} task`);
@@ -326,7 +361,8 @@ export function parseSkill(dir: string): SkillData {
     const n = steps.filter((s) => s.tracks.includes(t)).length;
     if (n < 5) fail(`only ${n} steps for ${t}`);
   }
-  const data = { steps, fixes: fixes(dir), ops: ops(dir) };
+  const meta = (key: string) => readFileSync(join(dir, "SKILL.md"), "utf8").match(new RegExp(`^  ${key}: *"?([^"\\s]+)"?$`, "m"))?.[1];
+  const data = { steps, fixes: fixes(dir), ops: ops(dir), home: HOME, pin: { tag: meta("tested-image"), digest: meta("tested-digest") } };
   for (const text of [...data.steps.map((x) => x.html), ...data.ops.map((x) => x.html), ...data.fixes.flatMap((x) => [x.symptom, x.fix])]) {
     const old = text.match(OLD);
     if (old) fail(`the site would show "${old[0]}": add a rule to CURRENT in build/skill.ts (${text.replace(/<[^>]+>/g, "").slice(0, 80)})`);
@@ -342,5 +378,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(`${t} (${list.length}): ${list.map((s) => `${s.id}${s.optional ? "*" : ""}`).join(" ")}`);
   }
   console.log(`fixes: ${data.fixes.length}`);
+  console.log(`pin: ${data.pin.tag ?? "none"}${data.pin.digest ? `@${data.pin.digest}` : ""}`);
   for (const t of TRACKS) console.log(`ops ${t}: ${data.ops.filter((o) => o.tracks.includes(t)).map((o) => `${o.kind}/${o.title}`).join(", ")}`);
 }

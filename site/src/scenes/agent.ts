@@ -1,7 +1,7 @@
 import { AGENT_TRACKS, type AgentTrack, type Expect, type ExpectIcon } from "../data/agent";
 import { blanksHTML, fillBlanks } from "../lib/blanks";
 import { copyText, enhanceCode } from "../lib/code";
-import { derived, esc, fill, fillRich, getValues, isPrivate, onValues, renderTemplates, trackOf, type Track } from "../lib/values";
+import { esc, fill, fillRich, getValues, isPrivate, npubToHex, onValues, renderTemplates, trackOf, type Track } from "../lib/values";
 
 const AGENT_KEY = "buzz-selfhost-agent-v1";
 type AgentKind = "claude" | "agents";
@@ -36,13 +36,18 @@ const SKILL_REPO = "Beige-Coffee/buzz-selfhost";
 // -g installs for the user, like the download, so the agent finds it from any folder
 const NPX_CMD = `npx skills add ${SKILL_REPO} --skill self-host-buzz -g`;
 
-/** What's missing from the panel for this track's prompt. */
-function missing(track: Track): string[] {
+/**
+ * The line under the prompt: what it still needs from the Running on box. The npub is optional, since
+ * the skill makes the owner's key when there's none, but a mistyped one has to be fixed.
+ */
+function promptHint(track: Track): { text: string; incomplete: boolean } {
   const v = getValues();
-  const out: string[] = [];
-  if (track !== "practice" && !v.domain.trim()) out.push(isPrivate(track) ? "Tailscale name" : "domain");
-  if (!derived().OWNER_HEX.match(/^[0-9a-f]{64}$/)) out.push("npub");
-  return out;
+  const name = isPrivate(track) ? "Tailscale name" : "domain";
+  const npub = v.npub.trim();
+  if (npub && !npubToHex(npub)) return { text: "That npub isn't valid: fix it in the Running on box, or clear it and the skill makes your key.", incomplete: true };
+  if (track !== "practice" && !v.domain.trim()) return { text: `Type your ${name} into the Running on box to fill it in.`, incomplete: true };
+  if (!npub) return { text: "No npub yet: the skill makes your key. Have one? Type it into the Running on box.", incomplete: false };
+  return { text: track === "practice" ? "Your npub comes from the Running on box." : `Your ${name} and npub come from the Running on box.`, incomplete: false };
 }
 
 const icon = (d: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -91,15 +96,10 @@ export function mountAgent(host: HTMLElement): void {
     const prompt = host.querySelector<HTMLElement>(".ag-prompt-text");
     // blanks first: an unset npub fills in as "<your npub>", which is the panel's, not a blank
     if (prompt) prompt.innerHTML = fillRich(blanksHTML(esc(p.prompt)));
-    const miss = missing(track);
+    const h = promptHint(track);
     const hint = host.querySelector<HTMLElement>(".ag-hint");
-    if (hint)
-      hint.textContent = miss.length
-        ? `Type your ${miss.join(" and ")} into the Running on box to fill ${miss.length > 1 ? "them" : "it"} in.`
-        : p.prompt.includes("{{DOMAIN}}")
-          ? `Your ${isPrivate(track) ? "Tailscale name" : "domain"} and npub come from the Running on box.`
-          : "Your npub comes from the Running on box.";
-    host.querySelector(".ag-prompt")?.classList.toggle("incomplete", miss.length > 0);
+    if (hint) hint.textContent = h.text;
+    host.querySelector(".ag-prompt")?.classList.toggle("incomplete", h.incomplete);
     renderTemplates(host);
   };
 

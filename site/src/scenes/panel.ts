@@ -15,7 +15,7 @@ export function mountPanel(host: HTMLElement): void {
         <span>Your npub <i data-npub-state></i></span>
         <input name="npub" placeholder="npub1…" autocomplete="off" spellcheck="false" value="${attr(v.npub)}">
       </label>
-      <label class="vl-field narrow mode-steps" title="The skill recommends ${DEFAULT_TAG}. Not every commit on main has an image.">
+      <label class="vl-field narrow mode-steps" title="The image the skill installs: ${DEFAULT_TAG}. Not every commit on main has an image.">
         <span>Image tag</span>
         <input name="tag" placeholder="${DEFAULT_TAG}" autocomplete="off" spellcheck="false" value="${attr(v.tag)}">
       </label>
@@ -35,7 +35,7 @@ export function mountPanel(host: HTMLElement): void {
     const state = host.querySelector<HTMLElement>("[data-npub-state]")!;
     const input = host.querySelector<HTMLInputElement>('input[name="npub"]')!;
     const ok = npubToHex(cur.npub);
-    state.textContent = !cur.npub.trim() ? "in Buzz: Settings, Identity" : ok ? "✓ valid" : "not a valid npub";
+    state.textContent = !cur.npub.trim() ? "optional: the skill makes one" : ok ? "✓ valid" : "not a valid npub";
     state.className = !cur.npub.trim() ? "" : ok ? "ok" : "bad";
     if (cur.npub.trim() && !ok) input.setAttribute("aria-invalid", "true");
     else input.removeAttribute("aria-invalid");
@@ -53,9 +53,10 @@ const FROM: Record<string, string> = {
   HOST: "domain",
   RELAY_URL: "domain",
   HTTP_ORIGIN: "domain",
-  OWNER_NPUB: "npub",
+  OWNER: "npub",
   OWNER_HEX: "npub",
   TAG: "tag",
+  DIGEST: "tag",
   IMAGE: "tag",
   COMMIT: "tag",
 };
@@ -112,7 +113,7 @@ export const PICK: Record<Track, string> = {
   "vps-private": "A VPS, on a private network",
   "own-public": "Your hardware, on the internet",
   "own-private": "Your hardware, on a private network",
-  practice: "Your laptop, to practice",
+  practice: "A local test, on this computer",
   k8s: "Kubernetes, on the internet",
   "k8s-private": "Kubernetes, on a private network",
 };

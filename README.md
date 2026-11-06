@@ -7,7 +7,7 @@ relay: on a VPS, your own hardware, a private Tailscale network or Kubernetes.
 - **Skill:** [`skills/self-host-buzz`](skills/self-host-buzz), in the open [Agent Skills](https://agentskills.io)
   format. Install it into Claude Code, Codex, Goose or another agent:
   ```bash
-  npx skills add Beige-Coffee/buzz-selfhost --skill self-host-buzz
+  npx skills add Beige-Coffee/buzz-selfhost --skill self-host-buzz -g
   ```
 - **Tests:** [`tests/`](tests) runs the skill's commands on real servers, and
   [`tests/runs/`](tests/runs) keeps every recorded run.

@@ -32,21 +32,32 @@ type Ready = AgentTrack["ready"][number];
 const DESKTOP = "https://github.com/block/buzz-app/releases";
 const ALIASES = "https://github.com/block/buzz/pull/5410";
 
-// the skill's scripts run where the agent runs: python3, bash and curl (SKILL.md compatibility)
+// the skill's scripts run where the agent runs: python3, bash and curl (SKILL.md compatibility: macOS
+// or Linux). The agent works as root on the server, so its approval prompts are the reader's brake.
 const AGENT: Ready = {
-  t: "<b>A coding agent</b> on your Mac or Linux computer: Claude Code, Codex or Goose.",
+  t: "<b>A coding agent</b> on your Mac or Linux computer: Claude Code, Codex or Goose. Windows isn't covered yet.",
   more: {
     label: "What it needs",
-    t: "The skill runs scripts on your computer with <code>python3</code>, <code>bash</code> and <code>curl</code>. Most Linux systems have all three; install any that's missing. On a Mac, if <code>python3</code> asks you to install developer tools, run <code>xcode-select --install</code> first. Use a capable model: small, fast models tend to stop after every step.",
+    t: "The skill runs scripts on your computer with <code>python3</code>, <code>bash</code> and <code>curl</code>. Most Linux systems have all three; install any that's missing. On a Mac, if <code>python3</code> asks you to install developer tools, run <code>xcode-select --install</code> first. Use a capable model: small, fast models tend to stop after every step. Keep your agent's approval prompts on, since it runs commands with admin rights, and keep cloud tokens it doesn't need off this computer.",
   },
 };
-// Buzz 1.0 shows the npub in Settings, Identity (the profile menu opens Settings, with or without a community); Buzz 0.X on its
-// Join a community screen. Buzz 1.0 doesn't back the private key up.
-const NPUB: Ready = {
-  t: "<b>Buzz and your npub</b>, your public ID in Buzz. It starts with <code>npub1</code>.",
+// Buzz 1.0's releases are all previews (v0.7.0-preview.N): signed for macOS 12 or later on Apple Silicon
+// and Intel (Intel from 247.1, block/buzz-app#1825), an unsigned installer for Windows, deb and AppImage for Linux
+const APP: Ready = {
+  t: "<b>Buzz</b> on the computer you'll use it on. You join from it once the relay runs.",
   more: {
-    label: "How to get them",
-    t: `Download Buzz for a Mac with Apple Silicon, Windows or Linux from <a href="${DESKTOP}">Block's releases page</a>: the newest release is at the top. Open it and choose <b>Create a new identity</b>, or keep one you already have. Open <b>Settings</b> from your profile icon at the top right, or press ⌘, (Ctrl+, on Windows and Linux). Choose <b>Identity</b> and copy <b>Nostr address (npub)</b>. The relay makes this npub the community's owner, so copy it from the Buzz you'll keep using. On the same page, choose <b>Copy private key</b> and save it in your password manager: Buzz doesn't back it up, and you need it to use this identity on another computer.`,
+    label: "Where to get it",
+    t: `Download it from <a href="${DESKTOP}">Block's releases page</a>, for a Mac with macOS 12 or later (Apple Silicon or Intel), Windows or Linux. Every release there is a preview, and the newest is at the top. The Windows installer isn't signed yet, so Windows warns before it runs.`,
+  },
+};
+// decision 2: the skill's scripts/new-identity.py makes the owner's key on this computer and prints only
+// its npub. Buzz 1.0 makes a key only with a Builderlab account (block/buzz-app#2579), which can back it
+// up with Block (#2325); Settings opens only once first run ends, so that route quits before a community.
+const OWNER_KEY: Ready = {
+  t: "<b>Your key</b>, your identity in Buzz. The skill makes it and shows its npub, your public ID, which makes you the owner.",
+  more: {
+    label: "How it works",
+    t: "The skill makes the key on this computer, in a file only you can read, and shows only its npub. Save the key in your password manager: you join with it, and need it to use Buzz on another computer. Delete the file once Buzz has the key. Already have a key in Buzz? Type its npub into the Running on box: it's in <b>Settings</b>, <b>Identity</b> (press ⌘, or Ctrl+, on Windows and Linux). The other way to get a key is a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details. For that, choose <b>Create account</b> on Buzz's first screen. When Buzz asks for a community, quit it, open it again, choose <b>Continue without signing in</b> and copy your npub from Settings, Identity.",
   },
 };
 // a first connection asks to trust the fingerprint, which an agent's shell can't answer (SKILL.md, SSH to a server)
@@ -111,14 +122,19 @@ const INSTALL: Expect = {
   d: "Block's Compose bundle. It writes the passwords and the relay key on the server without printing them.",
 };
 const JOIN = (d: string): Expect => ({ who: "you", icon: "join", t: "Join from Buzz", d });
-/** Buzz 1.0's first screen joins the first community; after that, the community button's Join a community does. */
-const JOIN_IN = (what: string) => `Paste ${what} into <b>Join a community</b>: on Buzz's first screen, or from the community button at the top right.`;
+/**
+ * Buzz 1.0's first run (block/buzz-app#2579): Other options finds a community by its address, then a
+ * self-hosted one offers Use an existing key (an nsec, pasted or a dropped file) or Sign in with
+ * Builderlab. Later communities come from the community button's Join a community.
+ */
+const JOIN_IN = (url: string) =>
+  `On Buzz's first screen, choose <b>Other options</b>, paste ${url} and choose <b>Continue</b>. Choose <b>Use an existing key</b>, paste your key or drop its file there, then <b>Continue with this key</b> and <b>Join</b>. With a Builderlab account, choose <b>Sign in with Builderlab</b> instead. Already in a community? It's <b>Join a community</b>, under the community button.`;
 const JOIN_AT = (url: string) => JOIN(JOIN_IN(`<code>${url}</code>`));
-const TS_JOIN = JOIN(`With Tailscale on, paste <code>{{RELAY_URL}}</code> into <b>Join a community</b>: on Buzz's first screen, or from the community button at the top right.`);
+const TS_JOIN = JOIN(`Turn Tailscale on. ${JOIN_IN("<code>{{RELAY_URL}}</code>")}`);
 const PHONE = (d: string): Expect => ({ who: "you", icon: "phone", t: "Pair your phone", d, note: "optional" });
-// Buzz 1.0's Pair mobile asks the phone for a six-digit code; notifications need the phone app 0.25 or later
+// the computer sends the identity only after Codes match (block/buzz-app#1597); notifications need the phone app 0.25 or later
 const PAIR =
-  "On your computer: <b>Settings</b>, <b>Pair mobile</b>. On your phone: <b>Add community</b>, scan the code, and type the six digits. An iPhone with Buzz 0.25 or later then gets notifications for direct messages and mentions, through Block's gateway, which never sees a message. Android gets none yet.";
+  "On your computer: <b>Settings</b>, <b>Pair mobile</b>. On your phone: <b>Add community</b>, then scan the code. Type the six digits if the phone asks, or check that they match, then choose <b>Codes match</b> on your computer. Pairing copies your key to the phone, so pair where nobody else can see your screen. An iPhone with Buzz 0.25 or later then gets notifications for direct messages and mentions through Block's gateway, which sees no message text. Android gets none yet.";
 const QUICKSTART = "Its quickstart profile: Postgres, Redis and file storage inside the cluster.";
 /** kubernetes.md: the quickstart is the chart's evaluation profile, and GitOps tools rotate its generated relay key. */
 const QUICKSTART_NOTE = {
@@ -160,11 +176,12 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       { t: "<b>A server</b>: Ubuntu 24.04, x86, 4 GB of RAM, 20 GB of disk, ports 80 and 443 open.", more: CLOUDS(true) },
       SSH("server", "server IP"),
       { t: "<b>A domain</b> with an A record pointing at the server.", warn: FOREVER("domain"), more: DNS("the server's public IPv4 address") },
-      NPUB,
+      APP,
+      OWNER_KEY,
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to set up a Buzz relay on my server, public on the internet. It's a fresh Ubuntu 24.04 VPS; SSH in as <user>@<server IP>. Domain: {{DOMAIN}}. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
+      "Use the self-host-buzz skill to set up a Buzz relay on my server, public on the internet. It's a fresh Ubuntu 24.04 VPS; SSH in as <user>@<server IP>. Domain: {{DOMAIN}}. {{OWNER}} The skill is at {{SKILL_URL}}.",
     expect: SERVER,
   },
   "own-public": {
@@ -179,16 +196,17 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
         },
       },
       { t: "<b>A domain</b> with an A record pointing at your home's public IP address.", warn: FOREVER("domain"), more: DNS("your home's public IPv4 address") },
-      NPUB,
+      APP,
+      OWNER_KEY,
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to set up a Buzz relay on my own machine, public on the internet. It runs Ubuntu 24.04, and ports 80 and 443 are forwarded to it; SSH in as <user>@<machine address>. Domain: {{DOMAIN}}. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
+      "Use the self-host-buzz skill to set up a Buzz relay on my own machine, public on the internet. It runs Ubuntu 24.04, and ports 80 and 443 are forwarded to it; SSH in as <user>@<machine address>. Domain: {{DOMAIN}}. {{OWNER}} The skill is at {{SKILL_URL}}.",
     expect: SERVER,
   },
   practice: {
-    ready: [{ t: "<b>Docker Desktop</b>, or Docker on Linux, running, with nothing else using ports 80 and 443." }, NPUB, AGENT],
-    prompt: "Use the self-host-buzz skill to set up a local test Buzz relay on this machine. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
+    ready: [{ t: "<b>Docker Desktop</b> on a Mac, or Docker on Linux, running, with nothing else using ports 80 and 443. On Windows, the local test isn't covered yet." }, APP, OWNER_KEY, AGENT],
+    prompt: "Use the self-host-buzz skill to set up a local test Buzz relay on this machine. {{OWNER}} The skill is at {{SKILL_URL}}.",
     // compose.md step 1: old buzz-prod volumes are removed only after asking; local tests skip the key copy.
     // Step 12: Buzz 1.0 joins only https and wss, so the reader trusts Caddy's local authority, with their password.
     expect: [
@@ -217,11 +235,12 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       ...PRIVATE_READY,
       TS_HERE,
       TS_NAME,
-      NPUB,
+      APP,
+      OWNER_KEY,
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to set up a Buzz relay on my server, reachable only on our Tailscale network. It's a fresh Ubuntu 24.04 VPS; SSH in as <user>@<server IP>. Tailscale name: {{DOMAIN}}. A Tailscale auth key is in <key file>. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
+      "Use the self-host-buzz skill to set up a Buzz relay on my server, reachable only on our Tailscale network. It's a fresh Ubuntu 24.04 VPS; SSH in as <user>@<server IP>. Tailscale name: {{DOMAIN}}. A Tailscale auth key is in <key file>. {{OWNER}} The skill is at {{SKILL_URL}}.",
     expect: PRIVATE,
   },
   "own-private": {
@@ -231,11 +250,12 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       ...PRIVATE_READY,
       TS_HERE,
       TS_NAME,
-      NPUB,
+      APP,
+      OWNER_KEY,
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to set up a Buzz relay on my own machine, reachable only on our Tailscale network. It runs Ubuntu 24.04; SSH in as <user>@<machine address>. Tailscale name: {{DOMAIN}}. A Tailscale auth key is in <key file>. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
+      "Use the self-host-buzz skill to set up a Buzz relay on my own machine, reachable only on our Tailscale network. It runs Ubuntu 24.04; SSH in as <user>@<machine address>. Tailscale name: {{DOMAIN}}. A Tailscale auth key is in <key file>. {{OWNER}} The skill is at {{SKILL_URL}}.",
     expect: PRIVATE,
   },
   // kubernetes.md: confirm the URL (SKILL.md rule 4), step 1 (costs), 2 (DNS), 3 and 4 (install), 5 (the key), 6 (checks)
@@ -251,10 +271,11 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
         warn: FOREVER("domain"),
         more: DNS("the load balancer address your agent gives you (on AWS, the load balancer has a name instead: add a CNAME record to it)", "Add it when your agent gives you the address, and don't open the address anywhere before that"),
       },
-      NPUB,
+      APP,
+      OWNER_KEY,
       AGENT,
     ],
-    prompt: "Use the self-host-buzz skill to install Buzz on our Kubernetes cluster with Block's Helm chart, public on the internet. Domain: {{DOMAIN}}. Keep the values file in <folder>. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
+    prompt: "Use the self-host-buzz skill to install Buzz on our Kubernetes cluster with Block's Helm chart, public on the internet. Domain: {{DOMAIN}}. Keep the values file in <folder>. {{OWNER}} The skill is at {{SKILL_URL}}.",
     expect: [
       { who: "you", ask: true, icon: "ask", t: "Confirm the domain", d: "It asks you to confirm <code>{{DOMAIN}}</code>, which can't be changed later." },
       { who: "you", ask: true, icon: "ask", t: "Approve the costs", d: "Four storage volumes, and a load balancer if it installs Traefik and cert-manager." },
@@ -282,15 +303,16 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       },
       { t: "<b>Tailscale on this computer</b>, on the same tailnet and using Tailscale's DNS. Your agent checks the relay from here, and you join from here." },
       TS_NAME,
-      NPUB,
+      APP,
+      OWNER_KEY,
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to install Buzz on our Kubernetes cluster, reachable only on our Tailscale network. Name: {{DOMAIN}}. The OAuth client's ID and secret are in <ID file> and <secret file>. Keep the values file in <folder>. Owner: {{OWNER_NPUB}}, copied from Buzz's Settings, Identity.",
+      "Use the self-host-buzz skill to install Buzz on our Kubernetes cluster, reachable only on our Tailscale network. Name: {{DOMAIN}}. The OAuth client's ID and secret are in <ID file> and <secret file>. Keep the values file in <folder>. {{OWNER}} The skill is at {{SKILL_URL}}.",
     expect: [
       { who: "agent", icon: "agent", t: "Sets up Tailscale's Kubernetes operator", d: "With your OAuth client, without printing its secret." },
       { who: "you", ask: true, icon: "ask", t: "Confirm the name", d: "It asks you to confirm <code>wss://{{DOMAIN}}</code>, which can't be changed later; renaming your tailnet would change it too." },
-      { who: "you", ask: true, icon: "ask", t: "Approve the costs", d: "The quickstart profile's four storage volumes, and a Tailscale seat for each member on paid plans." },
+      { who: "you", ask: true, icon: "ask", t: "Approve the costs", d: "The quickstart profile's four storage volumes. A company also pays Tailscale for each person, from $8 a month." },
       { who: "agent", icon: "agent", t: "Installs Buzz with Block's Helm chart", d: QUICKSTART },
       KUBE_KEY,
       { who: "agent", icon: "agent", t: "Checks it", d: "It checks that no ports are open to the internet, and that you're the owner." },
@@ -309,7 +331,7 @@ export type OpTask = "backup" | "restore" | "upgrade";
 export const OP_TASKS: Record<OpTask, { ask: string }> = {
   backup: { ask: "back it up." },
   restore: { ask: "restore it from its backup." },
-  upgrade: { ask: "back it up, then upgrade it to the newest image." },
+  upgrade: { ask: "back it up, then upgrade it to the image the skill recommends." },
 };
 
 const SSH_VPS = "My Buzz relay is at {{DOMAIN}}. It's a VPS; SSH in as <user>@<server IP>.";
@@ -342,43 +364,56 @@ export interface OpDetail {
 export type OpSetup = "compose" | "k8s";
 export const opSetup = (t: Track): OpSetup => (t === "k8s" || t === "k8s-private" ? "k8s" : "compose");
 
-const UPGRADE_WHY = "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup.";
+const UPGRADE_WHY =
+  "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup, which loses anything posted after it.";
 const agent = (t: string): OpStep => ({ who: "agent", icon: "agent", t });
 const asks = (t: string): OpStep => ({ who: "you", icon: "ask", t });
+/** Migration 0083 (block/buzz#8787) refuses duplicate public channel names; operations.md checks first, on Compose and Kubernetes. */
+const RENAME = asks("Asks you to rename public channels that share a name, if any: the new image won't start with them");
 
 /**
  * Backing up and restoring, as numbered steps for a person to run. `code` picks a command block from
- * the skill's own step (operations.md), so the commands still come from the skill.
+ * the skill's own step (operations.md) by a command it contains, so the commands still come from the
+ * skill, and a block added to the step doesn't shift the others.
  */
 export interface FlowStep {
   t: string;
   d: string;
-  code?: number;
+  code?: string;
 }
 const CHECK_BACK = "The relay check passes, and your messages, files and members are back.";
 export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", FlowStep[]>>> = {
   compose: {
     backup: [
-      { t: "Run it where Buzz runs", d: "From <code>buzz/deploy/compose</code>. Members lose the connection for about half a minute.", code: 0 },
+      { t: "Run it where Buzz runs", d: "From <code>buzz/deploy/compose</code>. Members lose the connection for about half a minute.", code: "pg_dump" },
       { t: "Check it", d: "<code>ls -la ~/buzz-backup</code> shows four files, none of them empty, and Buzz reconnects." },
       {
         t: "Keep it safe",
         d: "It holds every secret. Encrypt it, for example with <code>gpg --symmetric</code>, keep a copy off the server, and keep the relay key where two people can open it.",
       },
     ],
+    // operations.md: the backup is checked before anything is deleted, the empty volume after
     restore: [
       {
-        t: "Clear the way",
-        d: "On this server, stop Buzz and delete the data the backup replaces; if you upgraded since the backup, first move the bundle back to the backup's version. On a new server, skip this: install Docker and get the bundle at the backup's version, with its edits, as the setup does, without starting Buzz.",
-        code: 0,
+        t: "Check the backup",
+        d: "Before you change anything: its four files are there and none is empty, and its <code>env</code> shows this community's address. A backup from another install would swap your relay's identity and owner.",
       },
-      { t: "Put the backup back", d: "From <code>buzz/deploy/compose</code>, with the backup in <code>~/buzz-backup</code>.", code: 1 },
+      {
+        t: "Clear the way",
+        d: "On this server, stop Buzz and delete the data the backup replaces; if you upgraded since the backup, first move the bundle back to the backup's version. On a new server, skip this: stop the old one if it still runs, install Docker and get the bundle at the backup's version, with its edits, as the setup does, without starting Buzz, and point your domain at the new server.",
+        code: "volume rm",
+      },
+      {
+        t: "Put the backup back",
+        d: "From <code>buzz/deploy/compose</code>, with the backup in <code>~/buzz-backup</code>. First, <code>docker volume ls -q --filter name=buzz-prod_buzz-postgres-data</code> must print nothing; if it prints a name, this server still has its data, so stop. The block prints <code>restored</code> and starts Buzz only if the database was empty and the backup went in whole.",
+        code: "pg_restore",
+      },
       { t: "Check it", d: CHECK_BACK },
     ],
   },
   k8s: {
     backup: [
-      { t: "Run it", d: "With <code>kubectl</code> connected to the cluster, in a folder only you can read. The relay keeps running.", code: 0 },
+      { t: "Run it", d: "With <code>kubectl</code> connected to the cluster, in a folder only you can read. The relay keeps running.", code: "pg_dump" },
       { t: "Check it", d: "Four files, none of them empty." },
       { t: "Keep it safe", d: "The Secret file holds the relay key. Encrypt the copies, keep one off this computer, and keep the relay key where two people can open it." },
     ],
@@ -397,7 +432,8 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
       why: UPGRADE_WHY,
       steps: [
         asks("Asks before the backup stops the relay"),
-        agent("Moves the relay to the newest image, about 10 seconds offline"),
+        RENAME,
+        agent("Moves the relay to the image the skill recommends, about 10 seconds offline"),
         agent("Turns on phone notifications, if the relay predates them"),
         agent("Checks the members are still there and the relay answers"),
       ],
@@ -413,7 +449,7 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
     },
     upgrade: {
       why: UPGRADE_WHY,
-      steps: [asks("Asks before the backup"), agent("Sets the new image tag in the values file"), agent("Upgrades with Helm and waits until the relay is ready")],
+      steps: [asks("Asks before the backup"), RENAME, agent("Sets the image the skill recommends in the values file"), agent("Upgrades with Helm and waits until the relay is ready")],
     },
   },
 };

@@ -22,16 +22,17 @@ an `.env` file (the relay key and passwords). This skill installs one, checks ev
 day-two tasks. Every command was run end to end, except where a step says otherwise.
 
 People use the relay from the Buzz desktop app. These steps describe Buzz 1.0
-(github.com/block/buzz-app). Buzz 0.X, the earlier app from block/buzz, still works with the same
-relay and is the one for Intel Macs, which Buzz 1.0 doesn't support; where its screens differ, the
-steps say so.
+(github.com/block/buzz-app), whose own version numbers start at 0.7, such as 0.7.0-preview.248.1.
+Buzz 0.X is the earlier app from block/buzz, versions 0.5 and older, which Block now calls
+deprecated. It still works with the same relay; where its screens differ, the steps say so.
 
 ## Rules
 
 1. **Never print a secret.** Don't `cat`, `echo`, `grep` or paste `BUZZ_RELAY_PRIVATE_KEY`, any
-   secret in `.env`, any Kubernetes value holding a key or password, a Tailscale auth
-   key, or any secret key. These print every secret at once, so their output goes to a file or
-   nowhere, never the screen: `./run.sh config`, `docker compose config`, `docker inspect`,
+   secret in `.env`, any Kubernetes value holding a key or password, a Tailscale auth key, the key
+   file `new-identity.py` writes, or any secret key. These print every secret at once, so their
+   output goes to a file or nowhere, never the screen: `./run.sh config`, `docker compose config`,
+   `docker inspect`,
    `helm get manifest`, `helm get all`,
    `kubectl get secret -o yaml`. Generate keys straight into their file. When a check needs a
    secret, check its length, never its value. Safe to show as is (tested): every check in these
@@ -83,15 +84,27 @@ from wherever the agent runs. They need `python3`, `bash`, `curl` and internet a
 Linux (Windows isn't tested). On a Mac without Apple's developer tools, the first `python3` opens
 an installer instead: ask the user to run `xcode-select --install` first.
 
-- **Owner.** Ask for the owner's public ID (npub) as the Buzz app shows it, on the computer
-  they'll use: an npub from anywhere else may be an old identity. In Buzz 1.0 it's in Settings,
-  Identity, "Nostr address (npub)", with a copy button; before the app has joined a community,
-  ⌘, (Ctrl+, on Windows and Linux) opens Settings. On first launch, "Continue with your Buzz
-  identity" keeps the identity of Buzz 0.X on the same computer, and "Create a new identity" makes
-  a new one. In Buzz 0.X the npub is on the Join screen. If the user gives one without saying where
-  it came from, ask before the step that writes it; the steps before it can run meanwhile.
-  Changing the owner later takes a restart, and the old owner stays on as an admin
-  (operations.md).
+- **Owner.** The owner's public ID, an npub, in one of three ways. Buzz 1.0 itself makes a key only
+  through a Builderlab account, which is Block's, so the first is this skill's own:
+  - **A new key, on the owner's computer** (recommended). There, never on the server, run
+    `python3 $SKILL/scripts/new-identity.py`. It writes the private key to `~/buzz-identity.nsec`,
+    a new file only they can read, and prints the npub, then the file's path. It never prints the
+    private key and never overwrites a file (`--out <full path>` names another). If the agent
+    doesn't run on the computer the owner will use Buzz on, the user runs the script there. Never
+    read, print or copy the file: the user imports it into Buzz in section 4, and then deletes it.
+  - **An identity they already use** in Buzz 1.0: Settings, Identity, "Nostr address (npub)", with
+    a copy button, on the computer they'll use. An npub from anywhere else may be an old identity.
+    In Buzz 0.X the npub is on the Join screen, and on that computer Buzz 1.0's Other options
+    offers to continue with it.
+  - **A Builderlab account**, which is Block's: Create account on Buzz 1.0's first screen. Buzz
+    makes the key and links it to that account, and Block can keep a copy; creating the account
+    asks for their details. When Buzz asks for a community, they quit it, open it again and choose
+    Continue without signing in, then ⌘, (Ctrl+, on Windows and Linux), Identity,
+    "Nostr address (npub)" (not tested).
+
+  If the user gives an npub without saying where it came from, ask before the step that writes it;
+  the steps before it can run meanwhile. Changing the owner later takes a restart, and the old
+  owner stays on as an admin (operations.md).
   `OWNER_HEX=$(python3 $SKILL/scripts/npub-to-hex.py <npub>)`. It checks the npub's checksum, so
   a mistyped or cut-off one fails instead of making a stranger the owner.
 - **Image.** Use the image this skill recommends, for installs and upgrades alike: `tested-image`
@@ -166,19 +179,29 @@ request; the script waits. If this computer still has the domain's old address c
 
 ## 4. Join
 
-Tell the user to open Buzz 1.0 with the owner's identity. On its first screen, Join a community,
-they paste `$RELAY_URL` into "Invite link or community URL" and choose Join. The `https://` form of
-the same address works too; `ws://` and `http://` addresses don't. To join another community later,
-it's the community button at the top right, then Join a community, whose box takes an address but
-not an invite link. In Buzz 0.X, paste the same address into its Join a community screen.
+Tell the user to open Buzz 1.0 on the owner's computer. On its first screen they choose Other
+options, paste `$RELAY_URL` into "Community address or invite link" and choose Continue: Buzz looks
+the community up first, so the relay must be running. Under Connect to your community they choose
+Use an existing key, drop the key file (`~/buzz-identity.nsec`) on the page, check that the
+"Public identity" it shows is the owner's npub, and choose Continue with this key. If the owner's
+key came from a Builderlab account, they choose Sign in with Builderlab instead. The `https://`
+form of the address works too; `ws://` and `http://` addresses don't. In Buzz 0.X, paste the same
+address into its Join a community screen. With the key file, once Buzz has joined, the user saves
+the key in a password manager (Settings, Identity, Copy private key), then deletes the file:
+`rm ~/buzz-identity.nsec`. To join another community later, it's the community button, then Join a
+community, whose box takes an address but not an invite link.
 
-**People.** A member sends the owner their npub (Settings, Identity in Buzz 1.0), and the owner
-adds them ([operations.md](references/operations.md)), or does it in Buzz 1.0: Settings, Community
-admin, Membership, Invite members, then "Add directly" with the npub, or "Invite with a link" and
-Copy link. Anyone with the link can join until it expires: they paste it into the first screen's
-"Invite link or community URL", or open it and choose Accept invite in Buzz. In Buzz 0.X, the same
-things are in Settings, Invites. `Relay request failed (403)` in Buzz 1.0, or `Not a member yet` in
-Buzz 0.X, means the relay works but doesn't know that identity
+**People.** Each member needs a key. They can make one on their own computer with this skill's
+`new-identity.py`, which the guide's page also offers to download, or with a Builderlab account,
+which is Block's: Create account on Buzz's first screen asks for their details, and Block can keep
+a copy of the key. A member sends the owner their npub: the script prints it, and Buzz 1.0 shows it
+on "This community needs an invite" before they've joined, and in Settings, Identity after. The
+owner adds them ([operations.md](references/operations.md)), or does it in Buzz 1.0: Settings,
+Community admin, Membership, Invite members, then "Add directly" with the npub, or "Invite with a
+link" and Copy link. Anyone with the link can join until it expires: they paste it into Other
+options' "Community address or invite link", or open it and choose Accept invite in Buzz. In Buzz
+0.X, the same things are in Settings, Invites. `Relay request failed (403)` in Buzz 1.0, or
+`Not a member yet` in Buzz 0.X, means the relay works but doesn't know that identity
 ([troubleshooting](references/troubleshooting.md)).
 
 New members join any starter channel an owner or admin turns on: Starter channel for new members,
@@ -203,7 +226,9 @@ whoever runs the server, or holds a backup, can read every message and file.
 
 **Phones.** After joining from the desktop app, the user opens Settings, Pair mobile (Buzz 0.X:
 Settings, Mobile). In the Buzz app on the phone they choose Add community, scan the QR code, and
-enter the six-digit code the desktop shows (older phones show a code to compare instead). This
+enter the six-digit code the desktop shows (older phones show a code to compare instead). Then
+they choose Codes match on the desktop, which sends their identity to the phone. Pairing copies
+their private key to the phone: pair where nobody else can see the screen. This
 needs the pairing service, which every setup's steps add (`check-relay.sh` says `PASS` for phone
 pairing) except Kubernetes on a private network, which isn't covered yet, and the local test. On a
 private network the phone needs the Tailscale app on. Every setup's steps turn on phone
@@ -223,11 +248,16 @@ allows (`BUZZ_ALLOW_NIP_OA_AUTH=true`), so no agent needs adding as a member
 and it's awake. Each works in `~/.buzz` unless given its own Workspace, so agents in different
 communities share that folder.
 
-**Keys.** Buzz 1.0 keeps a person's private key in that computer's keychain: tell everyone to keep a
-copy in a password manager (Settings, Identity, Copy private key). On a new computer they use the
-saved key and paste each community's address again; membership stays on the relay, so nobody has to
-add them again. Agents can't be moved; they're made again. A lost owner key is recovered on the
-server by changing the owner ([operations.md](references/operations.md)).
+**Keys.** Buzz 1.0 keeps a person's private key in that computer's keychain. A key made with
+`new-identity.py`, or brought in with Use an existing key without signing in to Builderlab, stays
+only there: tell everyone to keep a copy in a password manager (Settings, Identity, Copy private
+key). If Buzz later asks to sync the key with Builderlab, "I will manage my own key" keeps it off
+Block's servers. With a Builderlab account, Block can keep a copy and gives it back to whoever
+signs in to that account. On a new computer they choose Other options, paste the community's
+address and choose Continue, then Use an existing key with the saved key; membership stays on the
+relay, so nobody has to add them again, and they join each other community again by its address.
+Agents can't be moved; they're made again. A lost owner key is recovered on the server by changing
+the owner ([operations.md](references/operations.md)).
 
 ## When something fails
 

@@ -22,8 +22,11 @@ const OPTIONS: Option[] = [
 
 const PUBLIC = "public URL, members only";
 
-/** What each pick means, for every track: shown in its card, and the reach line under the switch. */
-const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
+/** A card's setups: a local test isn't one, it has its own line under the cards. */
+type CardTrack = Exclude<Track, "practice">;
+
+/** What each pick means, for every card's setup: shown in its card, and the reach line under the switch. */
+const FACTS: Record<CardTrack, { reach: string; facts: [string, string][] }> = {
   vps: {
     reach: `Off: ${PUBLIC}`,
     facts: [
@@ -50,13 +53,6 @@ const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
     facts: [
       ["Relay key", "On your machine"],
       ["Best for", "Teams with the most sensitive data: their own hardware, nothing public"],
-    ],
-  },
-  practice: {
-    reach: "Local test: only this laptop can reach it",
-    facts: [
-      ["Relay key", "On your laptop"],
-      ["Best for", "Trying Buzz before you pick a server"],
     ],
   },
   k8s: {
@@ -122,37 +118,42 @@ export function mountPaths(host: HTMLElement): void {
           ${net(o)}
         </div>`,
       ).join("")}
-    </div>`;
+    </div>
+    <p class="pa-local"><button type="button" class="pa-local-go" data-local aria-pressed="false">Try a local test first</button> on this computer: about 5 minutes with your agent, free, and only you can reach it. Nothing carries over to a server.</p>`;
 
   // Each card keeps its own switch, so a private VPS and a public machine can sit side by side.
-  // The picked card's switch is the page's choice.
-  const start = getValues().reach === "private";
-  const priv: Record<Switchable, boolean> = { vps: start, own: start, k8s: start };
+  // The picked card's switch is the page's choice. Your hardware starts private, as decisions.md's
+  // "Where to run it" says: reaching a home server publicly needs port forwarding, which CGNAT can block.
+  const v0 = getValues();
+  const start = v0.reach === "private";
+  const priv: Record<Switchable, boolean> = { vps: start, own: v0.path === "own" ? start : true, k8s: start };
 
-  /** The track a card shows: its own switch, unless it's the picked card in practice. */
-  const cardTrack = (k: Path, t: Track): Track => {
-    if (k === "own" && t === "practice") return "practice";
-    if (k === "vps") return priv.vps ? "vps-private" : "vps";
+  /** The setup a card shows: its own switch decides. */
+  const cardTrack = (k: Path): CardTrack => {
     if (k === "own") return priv.own ? "own-private" : "own-public";
     if (k === "k8s") return priv.k8s ? "k8s-private" : "k8s";
-    return k;
+    return priv.vps ? "vps-private" : "vps";
   };
 
   const sync = () => {
     const v = getValues();
     const t = trackOf();
     if (t !== "practice" && SWITCHABLE.includes(v.path)) priv[v.path as Switchable] = v.reach === "private";
+    // a local test marks its line, not the Your hardware card
+    const local = t === "practice";
+    host.querySelector(".pa-local")!.classList.toggle("sel", local);
+    host.querySelector("[data-local]")!.setAttribute("aria-pressed", String(local));
     host.querySelectorAll<HTMLElement>(".pa-card").forEach((card) => {
       const k = card.dataset.card as Path;
-      const on = v.path === k;
+      const on = v.path === k && !local;
       card.classList.toggle("sel", on);
       card.querySelector(".pa-pick")!.setAttribute("aria-pressed", String(on));
-      const f = FACTS[cardTrack(k, on ? t : "vps")];
+      const f = FACTS[cardTrack(k)];
       card.querySelector<HTMLElement>("[data-dl]")!.innerHTML = f.facts.map(([dt, dd]) => `<div><dt>${dt}${dt === "Relay key" ? keyTip(k) : ""}</dt><dd>${dd}</dd></div>`).join("");
       card.querySelector<HTMLElement>("[data-net-v]")!.textContent = f.reach;
       const sw = card.querySelector<HTMLButtonElement>(".pa-switch");
       if (!sw) return;
-      const p = priv[k as Switchable] && !(on && t === "practice");
+      const p = priv[k as Switchable];
       card.classList.toggle("is-private", p);
       sw.setAttribute("aria-checked", String(p));
     });
@@ -191,6 +192,11 @@ export function mountPaths(host: HTMLElement): void {
       const k = row.dataset.net as Switchable;
       priv[k] = !priv[k];
       setValues({ path: k, ownMode: "public", reach: priv[k] ? "private" : "public" });
+      remember();
+      return;
+    }
+    if (t.closest("[data-local]")) {
+      setValues({ path: "own", ownMode: "practice" });
       remember();
       return;
     }

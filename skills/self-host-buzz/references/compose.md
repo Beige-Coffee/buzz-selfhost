@@ -153,8 +153,10 @@ harmless.
    ```
    Check: `grep '^BUZZ_PAIRING_RELAY_URL=' .env` → `BUZZ_PAIRING_RELAY_URL=wss://$HOST/pair` (one
    line). Also turn on phone notifications: the relay then wakes the Buzz phone app (0.25 or later)
-   for direct messages and mentions through Block's gateway, `push.buzz.xyz`, which passes Apple
-   only a fixed "reconnect" signal, never a message; the phone fetches messages from this relay:
+   for direct messages and mentions through Block's gateway, `push.buzz.xyz`. No message text
+   passes through it or Apple: the phone fetches messages from this relay. The gateway does see this
+   relay's key, its server's address and when it wakes which phone (SKILL.md section 4 has what to
+   tell the user):
    ```bash
    sed -i.bak "s/^BUZZ_PUSH_ENABLED=.*/BUZZ_PUSH_ENABLED=true/" .env && rm .env.bak
    ```

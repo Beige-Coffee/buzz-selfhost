@@ -168,6 +168,23 @@ things are in Settings, Invites. `Relay request failed (403)` in Buzz 1.0, or `N
 Buzz 0.X, means the relay works but doesn't know that identity
 ([troubleshooting](references/troubleshooting.md)).
 
+New members find open channels in Search, Channels. Opening Invite members makes a link at once,
+valid for 3 days with no use limit, and each change of its expiry or use limit makes another.
+Nothing cancels a link early, so for one person choose 1 use and 1 day.
+
+**Removing people.** Remove someone in Buzz 1.0 (Settings, Community admin, Membership, the … on
+their row, Remove): that also disconnects them and their agents. `./run.sh remove-member` only
+deletes the membership: an open connection keeps reading new messages, private channels included,
+and can post, until the relay restarts. So after a command-line removal, restart the relay
+([operations.md](references/operations.md)). A removed person can rejoin with any invite link that
+hasn't expired.
+
+**What stays private.** Only members can read, post or open files. Files belong to the whole
+community, not to a channel: any member with a file's link can open it, even from a private channel
+or a direct message they aren't in. Removing someone from a channel, or deleting a message, doesn't
+take its files back; removing them from the community does. Nothing is end-to-end encrypted:
+whoever runs the server, or holds a backup, can read every message and file.
+
 **Phones.** After joining from the desktop app, the user opens Settings, Pair mobile (Buzz 0.X:
 Settings, Mobile). In the Buzz app on the phone they choose Add community, scan the QR code, and
 enter the six-digit code the desktop shows (older phones show a code to compare instead). This
@@ -175,14 +192,26 @@ needs the pairing service, which every setup's steps add (`check-relay.sh` says 
 pairing) except Kubernetes on a private network, which isn't covered yet, and the local test. On a
 private network the phone needs the Tailscale app on. Every setup's steps turn on phone
 notifications (`BUZZ_PUSH_ENABLED=true`): the phone app, 0.25 or later, gets them for direct
-messages and mentions, through Block's gateway, `push.buzz.xyz`. Tell the user that the gateway and
-Apple carry only a fixed "reconnect" signal, never a message, and that `BUZZ_PUSH_ENABLED=false`
-turns notifications off. Tested on a public VPS on 2026-10-23; Block calls push experimental.
+messages and mentions (a thread reply notifies only with a mention), through Block's gateway,
+`push.buzz.xyz`. Tell the user what that shares: no message text, sender or channel passes through
+the gateway or Apple, because the phone fetches messages from this relay; but Block's gateway sees
+this relay's key, its server's address and when it wakes which phone, and Apple sees when a phone
+is woken. Every member's iPhone signs up on its own while it's on. Block calls push experimental,
+and delivery is best effort. `BUZZ_PUSH_ENABLED=false` turns it off. Tested on public VPSs on
+2026-10-23 and 2026-10-27.
 
 **Agents.** Buzz 1.0 runs agents on the user's computer, each with its own key that the owner's
 identity vouches for. The relay admits them through the owner's membership, which every setup here
 allows (`BUZZ_ALLOW_NIP_OA_AUTH=true`), so no agent needs adding as a member
-([operations.md](references/operations.md)).
+([operations.md](references/operations.md)). Agents answer only while Buzz is open on that computer
+and it's awake. Each works in `~/.buzz` unless given its own Workspace, so agents in different
+communities share that folder.
+
+**Keys.** Buzz 1.0 keeps a person's private key in that computer's keychain: tell everyone to keep a
+copy in a password manager (Settings, Identity, Copy private key). On a new computer they use the
+saved key and paste each community's address again; membership stays on the relay, so nobody has to
+add them again. Agents can't be moved; they're made again. A lost owner key is recovered on the
+server by changing the owner ([operations.md](references/operations.md)).
 
 ## When something fails
 

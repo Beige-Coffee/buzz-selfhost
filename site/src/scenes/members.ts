@@ -1,56 +1,84 @@
 import leo from "../assets/avatars/leo.svg";
 import maya from "../assets/avatars/maya.svg";
-import { TABLER } from "./tabler";
+import { joinCard } from "./joinmock";
+import { BUZZ_ROBOT, TABLER } from "./tabler";
 
 /**
  * Managing people, as click-throughs of Buzz 1.0's own screens, in light mode: four flows, each
- * starting from the profile menu. Drawn from the owner's screenshots of Buzz 1.0 (2026-10-25) and
- * block/buzz-app at 68ebbfe: the profile menu (src/app/shell/ProfileButton.tsx), Settings
- * (settings-sections.ts), Membership, its row menu, the confirmations and "Add or invite people"
- * (src/bundled/moderation/CommunityAdmin.tsx, api.ts allowedActions), and the first-run Join screen.
- * Icons are Buzz's own, Tabler's outline set. Names are illustrative.
+ * starting from the profile menu. Drawn from block/buzz-app as released in v0.7.0-preview.248.1: the
+ * window with its dock (#2626: src/app/shell/AppShell.tsx, presentation.ts, ProfileButton.tsx and its
+ * .module.css, src/features/communities/CommunityPicker.tsx, src/shared/styles/globals.css), Settings
+ * (src/app/settings-sections.ts), Membership, its row menu, the confirmations and "Add or invite people"
+ * (src/bundled/moderation/CommunityAdmin.tsx, api.ts allowedActions), and first run's Join a community
+ * (joinmock.ts). Icons are Buzz's own: Tabler's outline set, and its robot for agents. Names are
+ * illustrative.
  */
 
 const HOST = "buzz.yourteam.org";
 const LINK = `https://${HOST}/invite/v2.nOvr6DwA6uV77rW3`;
-export const ti = (name: string) => `<svg class="tb-i" viewBox="0 0 24 24" aria-hidden="true">${TABLER[name]}</svg>`;
+export const ti = (name: string) => `<svg class="tb-i" viewBox="0 0 24 24" aria-hidden="true">${name === "robot" ? BUZZ_ROBOT : TABLER[name]}</svg>`;
 const ring = (on: boolean) => (on ? " hot" : "");
 
-/* ── the profile menu, from the top right ── */
+/* ── the app: a header with Search, the dock down the left, one white panel ── */
 export const CURSOR = `<svg class="mb-cursor" viewBox="0 0 16 20" aria-hidden="true"><path d="M1 1v15l4.2-3.9 2.7 6.2 2.6-1.1-2.7-6.1H14z"/></svg>`;
-const open = `<div class="mb-app">
-  <div class="mb-top">
-    <span class="mb-track">${ti("robot")}Agents<span>${ti("bolt")}Workflows</span><span>${ti("search")}</span></span>
-    <span class="mb-comm">Y</span><span class="mb-me"><img src="${maya}" alt=""><i></i></span>
+type Page = "messages" | "agents";
+/** The dock on a new install, in Buzz's order: Activity, Messages, Agents (Reminders and Workflows start off). */
+const DOCK: [string, string][] = [["activity", "bell"], ["messages", "messages"], ["agents", "robot"]];
+/** Messages' sidebar, sketched: the scope tabs and New, Drafts & sent, then the channels. */
+const SIDE = `<div class="mb-side">
+  <p class="mb-seg"><i><b>All</b><b>Solo</b><b class="on">Team</b></i><span>${ti("plus")}</span></p>
+  <p class="mb-srow">${ti("send")}Drafts &amp; sent</p>
+  <p class="mb-side-g">Channels</p>
+  <p class="mb-srow">${ti("hash")}general</p>
+  <p class="mb-srow on">${ti("hash")}release</p>
+  <p class="mb-srow">${ti("hash")}design</p>
+</div>`;
+/** An open channel, sketched: its members and name, as one button (ChannelHeaderIdentity.tsx), then messages. */
+const CHANNEL = `<p class="mb-chan"><span class="mb-stack"><img src="${maya}" alt=""><img src="${leo}" alt=""></span>release</p><span></span><span></span><span class="short"></span>`;
+/**
+ * Buzz's window: back and forward and Search across the top; Activity, Messages and Agents down the
+ * dock, with the community button and your profile picture at its foot; one white panel for the page.
+ */
+export const app = (page: Page, main: string, over = "") => `<div class="mb-app">
+  <div class="mb-hd">
+    <div class="b1-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+    <span class="mb-hd-nav">${page === "messages" ? ti("layout-sidebar") : ""}${ti("arrow-left")}<i>${ti("arrow-right")}</i></span>
+    <span class="mb-find">${ti("search")}Search<kbd>⌘K</kbd></span>
   </div>
-  <div class="mb-app-body"><div class="mb-app-main"><p># release</p><span></span><span></span><span class="short"></span></div></div>
-  <div class="mb-pmenu">
-    <div class="mb-pm-head"><span class="mb-pm-av"><img src="${maya}" alt=""><i></i></span><span><b>Maya</b><em>Online</em></span></div>
-    <p class="mb-pm-status">${ti("mood-smile")}Set a status</p>
-    <hr>
-    <p>${ti("device-desktop")}Appearance<span class="mb-pm-more">${ti("chevron-right")}</span></p>
-    <p>${ti("layout-grid")}Plugins</p>
-    <p class="mb-pm-set">${ti("settings")}Settings</p>
-    <hr>
-    <p>${ti("message-circle")}Send feedback</p>
+  <div class="mb-dock">
+    ${DOCK.map(([p, icon]) => `<span class="mb-dk${p === page ? " on" : ""}">${ti(icon)}</span>`).join("")}
+    <span class="mb-comm">B</span>
+    <span class="mb-me"><img src="${maya}" alt=""><i></i></span>
   </div>
-  ${CURSOR}
+  <div class="mb-panel">${page === "messages" ? SIDE : ""}<div class="mb-main">${main}</div></div>
+  ${over}
 </div>`;
 
-/* ── Settings, over the app, with Membership open ── */
-const NAV: [string, string][][] = [
-  [["user", "Profile"], ["settings", "Local settings"], ["mood-smile", "Custom emoji"], ["device-mobile", "Pair mobile"], ["logout", "Leave or remove"]],
-  [["users", "Membership"]],
-  [["shield", "Identity"], ["palette", "Appearance"], ["bell", "Notifications"], ["keyboard", "Shortcuts"]],
-];
-const GROUPS = ["Community", "Community admin", "Buzz"];
-/** Settings' left column: groups of icon and label, with one item open; a community's Settings start with its host. */
+/* ── the profile menu: it opens beside your profile picture ── */
+const MENU = `<div class="mb-pmenu">
+  <div class="mb-pm-head"><span class="mb-pm-av"><img src="${maya}" alt=""><i></i></span><span><b>Maya</b><em>Online</em></span></div>
+  <p class="mb-pm-status">${ti("mood-smile")}Set a status</p>
+  <hr>
+  <p>${ti("device-desktop")}Appearance<span class="mb-pm-more">${ti("chevron-right")}</span></p>
+  <p>${ti("layout-grid")}Plugins</p>
+  <p class="mb-pm-set">${ti("settings")}Settings</p>
+  <hr>
+  <p>${ti("message-circle")}Send feedback</p>
+</div>`;
+const open = app("messages", CHANNEL, MENU + CURSOR);
+
+/* ── Settings, over the app ── */
+const COMMUNITY: [string, string][] = [["user", "Profile"], ["settings", "Local settings"], ["mood-smile", "Custom emoji"], ["device-mobile", "Pair mobile"], ["logout", "Leave or remove"]];
+const ADMIN: [string, string][] = [["users", "Membership"]];
+const BUZZ: [string, string][] = [["shield", "Identity"], ["lock", "Security"], ["palette", "Appearance"], ["bell", "Notifications"], ["keyboard", "Shortcuts"], ["robot", "Agent setup"]];
+/** Settings' left column: groups of icon and label, with one item open; a community's Settings start with its address. */
 export const settingsNav = (groups: [string, [string, string][]][], open: string, host = "") => `<nav class="mb-nav-col">
-  ${host ? `<p class="mb-nav-host"><span>Y</span>${host}</p>` : ""}
+  ${host ? `<p class="mb-nav-host"><span>${host[0].toUpperCase()}</span>${host}</p>` : ""}
   ${groups.map(([group, items]) => `<p class="mb-nav-g">${group}</p>${items.map(([icon, label]) => `<p class="mb-nav-i${label === open ? " on" : ""}">${ti(icon)}${label}</p>`).join("")}`).join("")}
 </nav>`;
-/** A community's Settings column, opened at one item. */
-export const communityNav = (open: string) => settingsNav(NAV.map((items, g) => [GROUPS[g], items]), open, HOST);
+/** A community's Settings column, opened at one item. Community admin shows for the owner and admins only. */
+export const communityNav = (open: string, admin = true) =>
+  settingsNav([["Community", COMMUNITY], ...(admin ? ([["Community admin", ADMIN]] as [string, [string, string][]][]) : []), ["Buzz", BUZZ]], open, HOST);
 const nav = communityNav("Membership");
 
 type Spot = "invite" | "dots" | "make-admin" | "remove" | "";
@@ -82,6 +110,8 @@ export const settingsModal = (navHTML: string, page: string, over = "") => `<div
 export const settings = (spot: Spot, over = "") => settingsModal(nav, membership(spot), over);
 
 /* ── dialogs over Settings ── */
+/** The use limit as the menu words it: No limit, or 1 use, 5 uses and so on. */
+const usesLabel = (uses: string) => (/^\d+$/.test(uses) ? `${uses} ${uses === "1" ? "use" : "uses"}` : uses);
 export const invite = (spot: "add" | "copy", expiry = "3 days", uses = "No limit") => `<div class="mb-shade on-modal"></div>
 <div class="mb-dlg">
   <div class="mb-dlg-h"><b>Add or invite people</b><span class="mb-x">${ti("x")}</span></div>
@@ -93,7 +123,7 @@ export const invite = (spot: "add" | "copy", expiry = "3 days", uses = "No limit
   <p class="mb-sub">Anyone with this link can use it to join until it expires.</p>
   <div class="mb-line"><span class="mb-in"><span class="mono">${LINK}</span><span class="mb-copy${ring(spot === "copy")}">Copy link</span></span></div>
   <p class="mb-opt">Expires after<span class="mb-choice${expiry === "3 days" ? "" : " set"}">${expiry}${ti("chevron-down")}</span></p>
-  <p class="mb-opt">Limit number of uses<span class="mb-choice${uses === "No limit" ? "" : " set"}">${uses}${ti("chevron-down")}</span></p>
+  <p class="mb-opt">Limit number of uses<span class="mb-choice${uses === "No limit" ? "" : " set"}">${usesLabel(uses)}${ti("chevron-down")}</span></p>
 </div>`;
 /** The confirmation, as CommunityAdmin.tsx words it. */
 export const confirm = (what: "admin" | "remove") => `<div class="mb-shade on-modal"></div>
@@ -103,14 +133,8 @@ export const confirm = (what: "admin" | "remove") => `<div class="mb-shade on-mo
   <div class="mb-alert-b"><span class="mb-btn">Cancel</span><span class="mb-btn hot ${what === "admin" ? "dark" : "red"}">${what === "admin" ? "Make admin" : "Remove"}</span></div>
 </div>`;
 
-/** The new member's first screen, with the invite link pasted. */
-const join = `<div class="mb-join j1-win">
-  <div class="b1-lights" aria-hidden="true"><i></i><i></i><i></i></div>
-  <h4>Join a community</h4>
-  <p class="j1-lab">Invite link or community URL</p>
-  <div class="j1-input">${LINK}…</div>
-  <div class="j1-join hot">Join</div>
-</div>`;
+/** A new member's first run, after Other options, with the invite link pasted. */
+const join = joinCard(`<span class="mono">${LINK}</span>`, true);
 
 export interface Step {
   k: string;
@@ -125,7 +149,7 @@ export interface Flow {
 }
 const OPEN: Step = {
   k: "Open Settings",
-  t: "Click your profile icon at the top right, then <b>Settings</b>. Or press ⌘, (Ctrl+, on Windows and Linux).",
+  t: "Press ⌘, (Ctrl+, on Windows and Linux). Or choose your profile picture, then <b>Settings</b>.",
   frame: open,
   loop: true,
 };
@@ -144,7 +168,7 @@ export const peopleFlows = (expiry = "3 days", uses = "No limit"): Flow[] => [
       MEMBERS("invite", "Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite members</b>. Only the owner and admins see Membership."),
       {
         k: "Add them by their npub",
-        t: "Paste their npub, which they copy from Buzz's <b>Settings</b>, <b>Identity</b>. As the owner you can pick <b>Member</b> or <b>Admin</b>. Then choose <b>Add member</b>.",
+        t: "Paste the npub they send you. As the owner you can pick <b>Member</b> or <b>Admin</b>. Then choose <b>Add member</b>. They're added to each channel with <b>Starter channel for new members</b> on; add them to any other they need.",
         frame: settings("", invite("add")),
       },
     ],
@@ -159,13 +183,13 @@ export const peopleFlows = (expiry = "3 days", uses = "No limit"): Flow[] => [
         k: expiry === "3 days" ? "Copy the link" : "Set it, then copy it",
         t:
           expiry === "3 days"
-            ? "Copy it and send it. Anyone with it can join until it expires: after 3 days unless you pick 1, 7 or 30, and as many times as you allow: no limit, or 1, 5, 10 or 25 uses."
-            : `Set <b>Expires after</b> to <b>${expiry}</b> and the use limit to the number of people you expect, then <b>Copy link</b> and send it.`,
+            ? "Copy it and send it. Anyone with it can join until it expires: after 3 days unless you pick 1, 7 or 30, and as many times as you allow: no limit, or 1, 5, 10 or 25 uses. A link can't be taken back, so for one person pick 1 use."
+            : `Set <b>Expires after</b> to <b>${expiry}</b> and the use limit to the number of people you expect, then <b>Copy link</b> and send it. Links can't be taken back, and opening this dialog already made one valid for 3 days, so don't open it on a shared screen.`,
         frame: settings("", invite("copy", expiry, uses)),
       },
       {
         k: "They join",
-        t: "They paste the link into <b>Join a community</b> on Buzz's first screen. Or they open it and choose <b>Accept invite in Buzz</b>.",
+        t: "On Buzz's first screen they choose <b>Other options</b>, paste the link and choose <b>Continue</b>, then <b>Use an existing key</b> or <b>Sign in with Builderlab</b>. Already in Buzz? They open the link and choose <b>Accept invite in Buzz</b>.",
         frame: join,
       },
     ],
@@ -191,7 +215,7 @@ export const peopleFlows = (expiry = "3 days", uses = "No limit"): Flow[] => [
       OPEN,
       MEMBERS("dots", "Under <b>Community admin</b>, choose <b>Membership</b>, then the <b>…</b> on their row."),
       { k: "Choose Remove", t: "The owner can remove anyone but themselves. Admins can remove members.", frame: settings("remove") },
-      { k: "Confirm", t: "They lose access to this community until they're invited again.", frame: settings("", confirm("remove")) },
+      { k: "Confirm", t: "It disconnects them and their agents. An invite link that hasn't expired still lets them back in.", frame: settings("", confirm("remove")) },
     ],
   },
 ];

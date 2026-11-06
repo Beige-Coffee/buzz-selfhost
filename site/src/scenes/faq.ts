@@ -51,18 +51,53 @@ const CLICK_THROUGHS: Record<string, Flow[]> = {
   agents: agentFlows,
 };
 
-/** Who can do what: the app's own permission rules (block/buzz-app, src/bundled/moderation/api.ts). */
+/**
+ * Buzz 1.0's Moderation screens (relay staff) need the relay to advertise an admin address
+ * (BUZZ_ADMIN_HOST), which the skill offers on a public Compose setup only: the app refuses private and
+ * local addresses (block/buzz-app src-tauri/src/relay_admin/net.rs), and Block's chart has no setting for it.
+ */
+const hasConsole = (t: Track) => t === "vps" || t === "own-public";
+
+/**
+ * Who can do what: the app's own permission rules (block/buzz-app, src/bundled/moderation/api.ts). Any
+ * member can report a message. Banning, timing out and deleting others' messages happen in the Moderation
+ * screens for relay staff (the owner, as the relay's operator, and whoever is added under Staff), or from
+ * the command line for the owner and admins (block/buzz crates/buzz-relay/src/handlers/moderation_authz.rs).
+ */
 const YES = `<span class="fq-y" aria-label="Yes">${icon("check")}</span>`;
 const NO = `<span class="fq-n" aria-label="No">${icon("x")}</span>`;
-const ROLES = `<div class="fq-vis"><table class="fq-roles">
+const IF_STAFF = `<span class="fq-if">If on Staff</span>`;
+const roles = (t: Track) => `<div class="fq-vis"><table class="fq-roles">
   <thead><tr><th></th><th>${icon("crown")}Owner</th><th>${icon("shield")}Admin</th><th>${icon("user")}Member</th></tr></thead>
   <tbody>
     <tr><td>Add members</td><td>${YES}</td><td>${YES}</td><td>${NO}</td></tr>
     <tr><td>Make invite links</td><td>${YES}</td><td>${YES}</td><td>${NO}</td></tr>
     <tr><td>Remove members</td><td>${YES}</td><td>${YES}</td><td>${NO}</td></tr>
     <tr><td>Add, promote or remove admins</td><td>${YES}</td><td>${NO}</td><td>${NO}</td></tr>
+    <tr><td>Report a message</td><td>${YES}</td><td>${YES}</td><td>${YES}</td></tr>
+    <tr><td>Ban, time out, delete others' messages</td><td>${YES}</td>${hasConsole(t) ? `<td>${IF_STAFF}</td><td>${IF_STAFF}</td>` : `<td>${YES}</td><td>${NO}</td>`}</tr>
     <tr><td>Change the owner</td><td colspan="3" class="fq-srv">${icon("server")}On the server, by whoever runs it</td></tr>
   </tbody></table></div>`;
+
+/** Moderating: in Buzz's screens on a public Compose relay, otherwise with the buzz command line. */
+const CLI = "https://github.com/block/buzz/tree/main/crates/buzz-cli";
+const NO_CONSOLE: Partial<Record<Track, string>> = {
+  k8s: "Block's Helm chart has no setting yet for the address Buzz's moderation screens need.",
+  practice: "Buzz's moderation screens can't reach a local test.",
+};
+const moderation = (t: Track) =>
+  hasConsole(t)
+    ? rec("Turn on Buzz's moderation screens, add your moderators under Staff, and ban rather than only remove.") +
+      steps([
+        ["Turn on the moderation screens", "Your agent offers this during setup, or ask it later. It takes one more DNS record, for <code>admin.</code> in front of your domain."],
+        ["Add your moderators under Staff", "In Buzz, <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>: paste their npub and pick <b>moderator</b>. Being an admin isn't enough: Staff is a list of its own, which the owner manages."],
+        ["Work through reports", "Anyone can report a message. Moderators find reports under <b>Settings</b>, <b>Moderation</b>, <b>Reports</b>, where they can delete it, time the person out or ban them."],
+        ["Ban, don't only remove", "A ban keeps them out, even with an invite link, and cuts off their agents. Someone you only remove can come back with any link that hasn't expired."],
+      ])
+    : rec("Ban rather than only remove: a ban keeps someone out and cuts off their agents. Someone you only remove can come back with any invite link that hasn't expired.") +
+      note(
+        `${NO_CONSOLE[t] ?? "On a private network, Buzz's moderation screens can't reach your relay."} So the owner or an admin moderates with <a href="${CLI}">Buzz's command-line tool</a>, signed with their own key: <code>buzz moderation</code> lists the reports members send, and bans or times people out, and <code>buzz messages delete</code> removes a message.`,
+      );
 
 /** A lost device: one question decides everything, whether the key is exposed. */
 const CASES = `<div class="fq-vis fq-cases">
@@ -205,11 +240,17 @@ const GROUPS: [string, Question[]][] = [
         id: "roles",
         icon: "crown",
         q: "How should we set up roles?",
-        a:
+        a: (t) =>
           rec("Make the person who runs Buzz the owner, and name at least two admins, so someone can always add or remove people.") +
-          ROLES +
+          roles(t) +
           ct("role") +
-          note("The owner is set on the server, so whoever runs it changes it. The old owner stays on as an admin."),
+          note(`The owner is set on the server, so whoever runs it changes it. The old owner stays on as an admin. Banning is a separate tool: see <a href="#operations" data-q-link="moderate">How do we moderate?</a>`),
+      },
+      {
+        id: "moderate",
+        icon: "shield",
+        q: "How do we moderate?",
+        a: moderation,
       },
       {
         id: "leave",
@@ -220,6 +261,7 @@ const GROUPS: [string, Question[]][] = [
           checklist([
             ["Remove them in Membership", "As below. Their agents lose access too."],
             ["Remove them from Tailscale", "And their devices.", "private network"],
+            ["Remove them from Staff", "In <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>.", "if they moderated"],
             ["Remove their server and hosting access", "Their SSH key and their account with your hosting provider.", "if they had it"],
             ["Replace the relay key", "A new key in <code>.env</code>, then restart the relay.", "if they could read .env"],
             ["Hand over ownership first", "Make someone else the owner on the server before removing them.", "if they were the owner"],

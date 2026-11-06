@@ -17,7 +17,7 @@
 #                    otherwise it stops the relay, removes its volumes and deletes the folder
 set -uo pipefail
 
-TAG=${1:-sha-e8781ca}
+TAG=${1:-sha-744f394}
 HERE=$(cd "$(dirname "$0")" && pwd)
 source "$HERE/lib/log.sh" && run_logged local "$TAG" "$0" "$@"
 BASE=${BUZZ_BASE:-$HOME/buzz-local-test}
@@ -116,6 +116,13 @@ section "6. Relay key"
 run relay-key 'key=$(docker run --rm --entrypoint /usr/local/bin/buzz-admin ghcr.io/block/buzz:$TAG generate-key | awk '"'"'/^Secret key:/ {print $3}'"'"')
 sed -i.bak "s/^BUZZ_RELAY_PRIVATE_KEY=.*/BUZZ_RELAY_PRIVATE_KEY=${key}/" .env && rm .env.bak && unset key' >/dev/null
 expect "relay key is 64 characters" "64" "$(grep '^BUZZ_RELAY_PRIVATE_KEY=' .env | cut -d= -f2 | tr -d '\n' | wc -c | tr -d ' ')"
+# SKILL.md section 2: the pinned image is checked by its digest once pulled
+PIN_TAG=$(awk '/^  tested-image:/ {print $2}' "$SKILL/SKILL.md")
+PIN_DIGEST=$(awk '/^  tested-digest:/ {print $2}' "$SKILL/SKILL.md")
+run image-digest "docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/block/buzz:$TAG"
+if [[ $TAG == "$PIN_TAG" ]]; then
+  expect "the image is the one the skill recommends" "ghcr.io/block/buzz@$PIN_DIGEST" "$(cat "$OUT/image-digest.out")"
+fi
 
 section "7. Owner"
 run owner 'sed -i.bak "s/^RELAY_OWNER_PUBKEY=.*/RELAY_OWNER_PUBKEY=$OWNER_HEX/" .env && rm .env.bak'

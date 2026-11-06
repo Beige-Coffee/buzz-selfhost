@@ -11,7 +11,7 @@
 set -uo pipefail
 
 DOMAIN=${1:?usage: smoke-k8s.sh <domain> [image-tag]}
-TAG=${2:-sha-83aab8c}
+TAG=${2:-sha-744f394}
 HERE=$(cd "$(dirname "$0")" && pwd)
 BZ=${BUZZ_CLI:-buzz}
 CLASS=${INGRESS_CLASS:-traefik}

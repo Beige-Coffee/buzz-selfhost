@@ -18,7 +18,7 @@ set -uo pipefail
 
 IP=${1:?usage: smoke.sh <server-ip> <domain> [image-tag [upgrade-tag]]}
 DOMAIN=${2:?domain}
-TAG=${3:-sha-e8781ca}
+TAG=${3:-sha-744f394}
 UPGRADE_TAG=${4:-}
 HERE=$(cd "$(dirname "$0")" && pwd)
 source "$HERE/lib/log.sh" && run_logged vps "$TAG" "$0" "$@"
@@ -37,8 +37,11 @@ info() { echo "INFO  $1"; }
 section() { printf '\n===== %s\n' "$*"; }
 
 # server PHASE ARGS...: run a phase of smoke-vps.sh and fold its PASS/FAIL lines into ours.
+# The pinned image (SKILL.md section 2), so the server half checks its digest once pulled.
+PIN_TAG=$(awk '/^  tested-image:/ {print $2}' "$HERE/../skills/self-host-buzz/SKILL.md")
+PIN_DIGEST=$(awk '/^  tested-digest:/ {print $2}' "$HERE/../skills/self-host-buzz/SKILL.md")
 server() {
-  ssh "${SSH_OPTS[@]}" "root@$IP" bash /root/smoke-vps.sh "$@" >"$TMP/phase.log" 2>&1
+  ssh "${SSH_OPTS[@]}" "root@$IP" PIN_TAG="$PIN_TAG" PIN_DIGEST="$PIN_DIGEST" bash /root/smoke-vps.sh "$@" >"$TMP/phase.log" 2>&1
   cat "$TMP/phase.log"
   PASS=$((PASS + $(grep -ac '^PASS' "$TMP/phase.log")))
   FAIL=$((FAIL + $(grep -ac '^FAIL' "$TMP/phase.log")))
@@ -157,7 +160,7 @@ section "Back up, lose the server's data, restore onto a fresh checkout"
 server backup
 server wipe
 curl -fsS -m 5 "https://$DOMAIN/_liveness" >/dev/null 2>&1 && fail "the relay still answers after the wipe" || pass "the relay is gone after the wipe"
-server restore
+server restore "$DOMAIN"
 read_both && pass "messages survived the restore" || fail "messages after the restore: $(cat "$TMP/read.json")"
 fetch_pic && pass "the file survived the restore" || fail "the file is gone after the restore"
 server list-members

@@ -39,7 +39,7 @@ const ct = (name: string) => `<div class="fq-ct" data-ct="${name}"></div>`;
 
 /** On a private network, a new member needs the tailnet too. */
 const PRIVATE_PEOPLE =
-  "Your relay is on a private network, so each person also joins your Tailscale network, with every device they use Buzz on. On Tailscale's paid plans, each person takes a seat.";
+  "Your relay is on a private network, so each person also joins your Tailscale network, with every device they use Buzz on. A company pays Tailscale for each person, from $8 a month.";
 
 const CLICK_THROUGHS: Record<string, Flow[]> = {
   identity: identityFlows,

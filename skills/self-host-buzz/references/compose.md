@@ -101,6 +101,7 @@ harmless.
    `sudo docker ps -q | wc -l` shows other containers running here (the restart below restarts
    them), ask first:
    ```bash
+   sudo mkdir -p /etc/docker
    [ -e /etc/docker/daemon.json ] || printf '%s\n' '{"log-driver": "json-file", "log-opts": {"max-size": "50m", "max-file": "5"}}' | sudo tee /etc/docker/daemon.json > /dev/null
    sudo systemctl restart docker
    ```
@@ -306,7 +307,8 @@ a minute each time, so the user picks the hour. Save operations.md's backup bloc
 keeps the newest seven folders once the night's backup is whole:
 `[ -s "$BACKUP/postgres.dump" ] && [ -s "$BACKUP/env" ] && ls -d ~/buzz-backup/20*/ | head -n -7 | xargs -r rm -rf`.
 Then `chmod 700 ~/buzz-backup.sh` and, for 03:30 server time,
-`(crontab -l 2>/dev/null; echo '30 3 * * * bash ~/buzz-backup.sh > ~/buzz-backup/last.log 2>&1') | crontab -`.
+`(crontab -l 2>/dev/null; echo '30 3 * * * bash ~/buzz-backup.sh > ~/buzz-backup.log 2>&1') | crontab -`
+(the log sits outside `~/buzz-backup`, which may not exist before the first backup).
 Check: `crontab -l` shows the line, and the next day `ls ~/buzz-backup` shows a new folder. Copies
 off the server stay the user's to make.
 

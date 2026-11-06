@@ -55,7 +55,7 @@ const keyScript = `<div class="id-term">
   <p class="id-term-h"><i></i><i></i><i></i><span>your computer</span></p>
   <pre><span class="p">$</span> python3 new-identity.py
 <b>${NPUB}</b>
-~/buzz-identity.nsec</pre>
+/Users/maya/buzz-identity.nsec</pre>
 </div>`;
 
 /** Settings, Identity: the two public keys, the npub's copy button ringed. */
@@ -131,7 +131,7 @@ export const identityFlows: Flow[] = [
       { k: "Choose Other options", t: "On Buzz's first screen, choose <b>Other options</b>. <b>Create account</b> and <b>Sign in</b> are for a Builderlab account, which is Block's.", frame: welcome },
       { k: "Paste your community's address", t: "Paste it, or an invite link an admin sent you, into <b>Community address or invite link</b>, then choose <b>Continue</b>.", frame: joinCard(ADDRESS, true) },
       { k: "Use an existing key", t: "On <b>Connect to your community</b>, choose <b>Use an existing key</b>. <b>Sign in with Builderlab</b> would go through Block's service instead.", frame: connect },
-      { k: "Paste your key", t: "Paste the key from your password manager, choose <b>Continue with this key</b>, then <b>Join</b>. If Buzz says the community needs an invite, an admin hasn't added your npub yet.", frame: keyImport },
+      { k: "Paste your key", t: "Paste the key from your password manager, or drop the key file on the page. Choose <b>Continue with this key</b>, then <b>Join</b>, and delete the key file. If Buzz says the community needs an invite, an admin hasn't added your npub yet.", frame: keyImport },
       { k: "Copy your npub for others", t: "Press ⌘, (Ctrl+, on Windows and Linux), or choose your profile picture, then <b>Settings</b>. Under <b>Buzz</b>, choose <b>Identity</b> and copy your <b>Nostr address (npub)</b>. It's public, so any channel works.", frame: settingsModal(nav("Identity"), identityPage) },
       { k: "Lock your devices", t: "Turn on disk encryption and a screen lock on your computer, and a passcode on your phone.", frame: devices },
     ],

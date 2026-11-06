@@ -102,12 +102,14 @@ an installer instead: ask the user to run `xcode-select --install` first.
 
 - **Owner.** The owner's public ID, an npub, in one of three ways. Buzz 1.0 itself makes a key only
   through a Builderlab account, which is Block's, so the first is this skill's own:
-  - **A new key, on the owner's computer** (recommended). There, never on the server, run
-    `python3 $SKILL/scripts/new-identity.py`. It writes the private key to `~/buzz-identity.nsec`,
-    a new file only they can read, and prints the npub, then the file's path. It never prints the
-    private key and never overwrites a file (`--out <full path>` names another). If the agent
-    doesn't run on the computer the owner will use Buzz on, the user runs the script there. Never
-    read, print or copy the file: the user imports it into Buzz in section 4, and then deletes it.
+  - **A new key, on the owner's computer** (recommended where Buzz isn't set up yet: it holds one
+    key per computer, and only Sign out of Buzz removes the one it has). There, never on the
+    server, run `python3 $SKILL/scripts/new-identity.py`. It writes the private key to
+    `~/buzz-identity.nsec`, a new file only they can read, and prints the npub, then the file's
+    path. It never prints the private key and never overwrites a file (`--out <full path>` names
+    another). If the agent doesn't run on the computer the owner will use Buzz on, the user runs
+    the script there. Never read, print or copy the file: the user imports it into Buzz in
+    section 4, and then deletes it.
   - **An identity they already use** in Buzz 1.0: Settings, Identity, "Nostr address (npub)", with
     a copy button, on the computer they'll use. An npub from anywhere else may be an old identity.
     In Buzz 0.X the npub is on the Join screen, and on that computer Buzz 1.0's Other options
@@ -200,13 +202,17 @@ options, paste `$RELAY_URL` into "Community address or invite link" and choose C
 the community up first, so the relay must be running. Under Connect to your community they choose
 Use an existing key, drop the key file from section 2 (`~/buzz-identity.nsec`) on the page (its
 Browse button looks for `.txt` and `.key` files), check that the "Public identity" it shows is the
-owner's npub, and choose Continue with this key. If the owner's
-key came from a Builderlab account, they choose Sign in with Builderlab instead. The `https://`
-form of the address works too; `ws://` and `http://` addresses don't. In Buzz 0.X, paste the same
-address into its Join a community screen. With the key file, once Buzz has joined, the user saves
-the key in a password manager (Settings, Identity, Copy private key), then deletes the file:
-`rm ~/buzz-identity.nsec`. To join another community later, it's the community button, then Join a
-community, whose box takes an address but not an invite link.
+owner's npub, and choose Continue with this key. A Builderlab owner on a new computer chooses Sign
+in with Builderlab there instead. If Buzz already holds the owner's key, from an identity they use
+or the Builderlab account section 2 made, it opens past that screen (after Continue without
+signing in, if it asks): with no community yet, on Join a community, where they paste the address
+into "Invite link or community URL" and choose Join; otherwise they use the community button, below
+(not tested). The `https://` form of the address works too; `ws://` and `http://` addresses
+don't. In Buzz 0.X, paste the same address into its Join a community screen. With the key file,
+once Buzz has joined, the user saves the key in a password manager (Settings, Identity, Copy
+private key), then deletes the file: `rm ~/buzz-identity.nsec`. To join another community later,
+it's the community button, then Join a community, whose box takes an address but not an invite
+link.
 
 **People.** Each member needs a key. They can make one on their own computer with this skill's
 `new-identity.py`, which the guide's site also serves

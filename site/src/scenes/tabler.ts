@@ -48,8 +48,8 @@ export const TABLER: Record<string, string> = {
 };
 
 /**
- * Buzz 1.0's own agent mark, the one interface icon it doesn't take from Tabler: Agents in the dock and
- * Agent setup in Settings (block/buzz-app, src/shared/design-system/icons/Robot.tsx, Apache 2.0).
+ * Buzz 1.0's own agent mark, drawn for Buzz rather than taken from Tabler: Agents in the dock and Agent
+ * setup in Settings (block/buzz-app, src/shared/design-system/icons/Robot.tsx, Apache 2.0).
  */
 export const BUZZ_ROBOT =
   '<rect x="4.75" y="7" width="14.5" height="13.25" rx="4.5"/><path d="M12 7V2.5M3.25 11.5v4.25M20.75 11.5v4.25"/><g fill="currentColor" stroke="none"><circle cx="9" cy="13.25" r="1.4"/><circle cx="15" cy="13.25" r="1.4"/></g>';

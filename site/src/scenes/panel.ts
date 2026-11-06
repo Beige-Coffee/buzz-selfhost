@@ -112,7 +112,7 @@ export const PICK: Record<Track, string> = {
   "vps-private": "A VPS, on a private network",
   "own-public": "Your hardware, on the internet",
   "own-private": "Your hardware, on a private network",
-  practice: "Your laptop, to practice",
+  practice: "A local test, on this computer",
   k8s: "Kubernetes, on the internet",
   "k8s-private": "Kubernetes, on a private network",
 };

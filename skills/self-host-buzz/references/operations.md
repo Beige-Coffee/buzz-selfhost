@@ -8,7 +8,9 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   "Nostr address (npub)"; in Buzz 0.X, the Join screen. Check it with
   `python3 $SKILL/scripts/npub-to-hex.py <npub>`, then
   `./run.sh add-member <npub-or-hex> --role member`, one at a time with `sleep 1` between adds
-  (adds in the same second collide). `./run.sh list-members` confirms; it prints hex. The owner
+  (adds in the same second collide). `./run.sh list-members` confirms; it prints hex. A member
+  added this way skips the starter channels, so add them to a channel in Buzz too, or tell them
+  about Search, Channels. The owner
   can also do it in Buzz 1.0: Settings, Community admin, Membership, Invite members, then "Add
   directly", or "Invite with a link" for a link anyone can join with until it expires (Buzz 0.X:
   Settings, Invites).
@@ -113,16 +115,25 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
 - **Upgrade.** Back up first. Members lose the connection for about 10 seconds (half a minute
   when the upgrade swaps MinIO for Silo), and the relay migrates its database on start, so going
   back means restoring the backup with the old tag, which loses anything posted after that backup:
-  back up right before upgrading, at a quiet time. Pick the new tag on the agent's machine
-  (`python3 $SKILL/scripts/pick-tag.py`) and set `TAG` to it on the server. If
-  `grep '^BUZZ_IMAGE=' .env` already shows it, there's nothing to do. Otherwise:
+  back up right before upgrading, at a quiet time. Upgrade to the image this skill recommends, not
+  the newest, unless the user asks: set `TAG` and `DIGEST` on the agent's machine as SKILL.md
+  section 2 does, then on the server. If `grep '^BUZZ_IMAGE=' .env` already shows that tag, there's
+  nothing to do. Otherwise:
   ```bash
   OLD=$(grep '^BUZZ_IMAGE=' .env | cut -d: -f2)
   git fetch -q origin
   git merge-base --is-ancestor ${OLD#sha-} ${TAG#sha-} && echo newer
   ```
   Check: `newer`. If it prints nothing, stop: the tag is older than the running one, whose
-  migrations the old code can't read. From a tag before 2026-10-07 to a later one, the upgrade
+  migrations the old code can't read. Then check that no two open channels share a name, ignoring
+  case and counting archived ones: images from 2026-11-05 on don't start on a database where they
+  do (block/buzz#8787). The query works on the database of any image (not tested):
+  ```bash
+  docker compose exec -T postgres psql -U buzz -d buzz -tAc "select lower(name), count(*) from channels c where visibility = 'open' and channel_type in ('stream', 'forum') and deleted_at is null and not coalesce((to_jsonb(c) ->> 'unlisted')::boolean, false) group by community_id, lower(name) having count(*) > 1" < /dev/null
+  ```
+  It must print nothing. If it prints names, stop: ask the user to rename those channels in Buzz
+  first, keeping each name on the open, unarchived channel (unarchive an archived one, rename it,
+  and archive it again), then run it again. From a tag before 2026-10-07 to a later one, the upgrade
   also swaps MinIO for Silo (block/buzz#8023), which takes over MinIO's volume as it is, as Silo's
   [migration guide](https://silo.pgsty.com/compatibility/migration/) describes. Either way, list
   what the file store holds, to compare after (the git self-test's `probe/` objects change at
@@ -153,6 +164,8 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   `docker compose ps --format '{{.Service}} {{.Image}} {{.Status}}' relay minio` shows the new
   relay image, `pgsty/silo:…` for `minio` on a bundle from 2026-10-07 on, and both
   `Up … (healthy)` (the version in check-relay.sh often stays the same between commits);
+  `docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/block/buzz:$TAG` →
+  `ghcr.io/block/buzz@$DIGEST` (skip it for the newest image);
   `./run.sh list-members` still lists the members; `check-relay.sh`, run the way the install ran
   it, passes. Then the relay's partition audit:
   `docker compose exec -T relay /usr/local/bin/buzz-admin partition-audit < /dev/null | grep -m1 '"outcome"'`
@@ -188,5 +201,18 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   ```
   Check: four non-empty files, and `tar tzf minio-data.tgz | grep -c buzz-media` above 0. The
   Secret file holds the relay key: encrypt the copies.
-- **Upgrade.** Change `image.tag` in `buzz-values.yaml`, then
+- **Upgrade.** Back up first, then set `TAG` and `DIGEST` as SKILL.md section 2 does. Upgrade to
+  the image this skill recommends, not the newest, unless the user asks. Images from 2026-11-05 on
+  don't start on a database where two open channels share a name, ignoring case and counting
+  archived ones (block/buzz#8787), and the chart rolls the relay over with the old pod still
+  serving. So first check, on the database of any image (not tested):
+  ```bash
+  echo "select lower(name), count(*) from channels c where visibility = 'open' and channel_type in ('stream', 'forum') and deleted_at is null and not coalesce((to_jsonb(c) ->> 'unlisted')::boolean, false) group by community_id, lower(name) having count(*) > 1" |
+    kubectl -n buzz exec -i buzz-postgresql-0 -- sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U buzz -d buzz -tA'
+  ```
+  It must print nothing. If it prints names, stop: ask the user to rename those channels in Buzz
+  first, keeping each name on the open, unarchived channel, then check again. Then change
+  `image.tag` in `buzz-values.yaml` to `$TAG`, and run
   `helm upgrade buzz oci://ghcr.io/block/buzz/charts/buzz --version 0.1.10 -n buzz -f buzz-values.yaml --wait`.
+  If `helm upgrade` times out, don't run `helm rollback`: the database may already have changed.
+  Stop and ask. Check: kubernetes.md step 6's checks pass again, the relay's digest included.

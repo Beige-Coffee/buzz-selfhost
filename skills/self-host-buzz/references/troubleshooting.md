@@ -12,7 +12,8 @@
 | The first `python3` on a Mac opens an installer | Apple's developer tools aren't installed: `xcode-select --install`, then retry. |
 | `npub-to-hex.py`: `not a valid npub` | The npub was cut off or mistyped. Copy it again from the Buzz app (Buzz 1.0: Settings, Identity). |
 | `pick-tag.py`: GitHub's rate limit | 60 unauthenticated calls an hour. Wait, or use the `tested-image` tag in SKILL.md's header. |
-| `ghcr.io/block/buzz:sha-…: not found` | That commit has no image. Pick the tag with `$SKILL/scripts/pick-tag.py`. |
+| `ghcr.io/block/buzz:sha-…: not found` | That commit has no image. Use the image this skill recommends (SKILL.md section 2), or, if the user asked for the newest, `$SKILL/scripts/pick-tag.py`. |
+| The image's digest isn't `DIGEST` (compose.md step 6, kubernetes.md step 6) | The tag now names another image than the one this skill recommends. Don't start it: stop, and report it (SKILL.md, When something fails). |
 | A script piped over SSH stops partway, with exit 0 | A command in it (`docker compose exec`, `apt-get`) read the rest of the script as its input. Add `< /dev/null` to that line. |
 | `BUZZ_COMPOSE_TLS=true: command not found` | The flag was stored in a variable and expanded. Type it before `./run.sh`, or `export BUZZ_COMPOSE_TLS=true`. |
 | `docker: 'compose' is not a docker command` | Install Docker from Docker's repository (compose.md step 3). |
@@ -24,7 +25,7 @@
 | Pull fails for `quay.io/minio/…` | A bundle from before 2026-10-07: do compose.md step 9. Newer bundles use Silo's images from Docker Hub. |
 | Files that exist answer 404, and uploads fail with 500 | The file store is down: `docker compose ps minio`. The relay logs nothing that names it. Start it (`docker compose start minio`); files read again within seconds. |
 | After a reboot or upgrade the relay never turns healthy, Caddy answers 502, and its log stops at the git storage probe | The file store is slow or down, and the relay waits for it without a time limit (up to five minutes in testing). It recovers by itself about 15 seconds after the store does; restarting the relay while the store is down doesn't help. Check `docker compose ps minio`. |
-| A new member sees no channels | Buzz's Search has a Channels tab that lists the open channels they can join. Or add them to a channel (its member list in Buzz, or the channel's settings). |
+| A new member sees no channels | No starter channel is on, or they were added with `add-member`, which skips starter channels. Buzz's Search has a Channels tab that lists the open channels they can join. Or add them to a channel (its member list in Buzz, or the channel's settings), and turn on Starter channel for new members in a public channel's settings. |
 | A removed member still sees new messages | They were removed with `remove-member`, which doesn't end an open connection, and Buzz's Remove then says "member not found". Restart the relay (operations.md, To remove someone). |
 | Buzz 1.0 says `Secure storage access was denied` | The computer's keychain refused Buzz, often after an update when macOS asks. Choose Retry secure storage access, then Always Allow. |
 | Relay never turns healthy | `docker logs --tail 100 buzz-prod-relay-1` (`./run.sh logs` follows the log and never returns). `RELAY_OWNER_PUBKEY` must be 64 hex characters, not an npub. |
@@ -36,6 +37,7 @@
 | Buzz 1.0: `Community discovery failed` | The app can't reach the relay over HTTPS. On a local test, this computer doesn't trust the local certificate yet (compose.md step 12). Elsewhere, run `check-relay.sh`. |
 | Buzz 1.0: `Relay did not advertise its identity` | The relay has no `BUZZ_RELAY_PRIVATE_KEY`, so its info names no identity (`check-relay.sh` fails its relay identity line). Set it as compose.md step 6 does, before anyone joins. |
 | Buzz 1.0: `This community's relay does not support channel labels or system channels yet.` | New chat needs a relay image from 2026-10-15 or later. Upgrade (operations.md). |
+| After an upgrade the relay never starts, and its log says `Migration 0083 stopped: listed channels with duplicate names remain` | Two open channels share a name, which images from 2026-11-05 on refuse (block/buzz#8787). Go back: restore the backup with the bundle at the old tag (operations.md), rename the channels in Buzz, run the upgrade's name check again, then upgrade. |
 | After an upgrade, the partition audit says `degraded` | Expected when the old image is from before 2026-10-20, and harmless (operations.md, Upgrade). |
 | Buzz 0.X can't join (`Load failed`), or its GIFs, moderation or invites fail | `BUZZ_CORS_ORIGINS` lacks `tauri://localhost,http://tauri.localhost` (compose.md step 8), then restart. Buzz 1.0 doesn't need them. |
 | Pairing a phone: Buzz 1.0 says `Couldn’t connect for pairing`, or Buzz 0.X `WebSocket connection failed: HTTP error: 404 Not Found` | The pairing service isn't running or isn't routed. On Compose: step 9's pairing edit, and 10P on a private network. `check-relay.sh` tests it. A local test has no pairing: the pairing connection trusts only public certificate authorities. |

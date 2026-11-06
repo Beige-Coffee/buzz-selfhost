@@ -10,7 +10,8 @@ license: Apache-2.0
 compatibility: Runs from macOS or Linux (Windows isn't tested) with python3, bash and curl. Then Docker, or kubectl and helm, depending on the setup.
 metadata:
   tested: "2026-10-23"
-  tested-image: sha-e8781ca
+  tested-image: sha-744f394
+  tested-digest: sha256:b67a32b7b2a274cdbd9a685fe996657fa544a3e981284ab3a8c660a128f36a3d
 ---
 
 # Self-host a Buzz relay
@@ -93,11 +94,23 @@ an installer instead: ask the user to run `xcode-select --install` first.
   (operations.md).
   `OWNER_HEX=$(python3 $SKILL/scripts/npub-to-hex.py <npub>)`. It checks the npub's checksum, so
   a mistyped or cut-off one fails instead of making a stranger the owner.
-- **Image tag.** `TAG=$(python3 $SKILL/scripts/pick-tag.py)` prints the newest commit on main that
-  has an image, like `sha-83aab8c`. Not every commit gets one. Tell the user which tag, and that
-  this skill was last tested with `sha-e8781ca` (`tested-image` in its metadata, which some agents
-  don't show), if they'd rather stay on a tested version. Buzz 1.0's New chat needs an image from
-  2026-10-15 or later, which has channel labels; older images, such as `sha-30873ba`, refuse it.
+- **Image.** Use the image this skill recommends, for installs and upgrades alike: `tested-image`
+  and `tested-digest` in this file's metadata, which some agents don't show, so read both from the
+  file. Block's relay releases are older than what Buzz 1.0 needs, so this skill pins one image
+  from main, by its digest.
+  ```bash
+  TAG=$(awk '/^  tested-image:/ {print $2}' "$SKILL/SKILL.md")
+  DIGEST=$(awk '/^  tested-digest:/ {print $2}' "$SKILL/SKILL.md")
+  ```
+  Check: `echo $TAG $DIGEST` prints a tag like `sha-1a2b3c4` and a `sha256:` digest. Tell the user
+  which tag. Once the setup has pulled the image (compose.md step 6, kubernetes.md step 6), its
+  digest must be `DIGEST`; if it isn't, stop: the tag no longer names the image this skill
+  recommends. Only if the user asks for the newest image: `TAG=$(python3 $SKILL/scripts/pick-tag.py)`
+  prints the newest commit on main that has one, and `DIGEST` stays unset. Tell them this skill
+  hasn't run that image, and that the newest has broken upgrades before: images from 2026-10-30 to
+  2026-11-05 looped at start when they upgraded a relay with members (block/buzz#8802). Buzz 1.0's
+  New chat needs an image from 2026-10-15 or later, which has channel labels; older images, such as
+  `sha-30873ba`, refuse it.
 - **Domain.** `server` and Kubernetes need the community's permanent domain, such as
   `buzz.example.org`. `private` uses the machine's Tailscale name, found in its setup, and
   Kubernetes on a private network the name kubernetes.md builds. `local` needs none.
@@ -120,10 +133,10 @@ console, and its user is `ubuntu`. For a server the user created minutes ago,
 
 **One shell per command?** If each command runs in a fresh shell (one SSH call per command),
 nothing carries over: `cd ~/buzz/deploy/compose` in every call once it exists, and set `SKILL`,
-`TAG`, `DOMAIN`, `OWNER_HEX`, `HOST`, `RELAY_URL`, `ORIGIN` and, on Kubernetes, `KUBECONFIG`
-(without it, `kubectl` falls back to another cluster) again in every call that uses them, with
-the values this task started with (`pick-tag.py` can return a newer tag than the checkout
-mid-task). Send a server step as `ssh <server> 'bash -s' <<'EOF' … EOF`, with the
+`TAG`, `DIGEST`, `DOMAIN`, `OWNER_HEX`, `HOST`, `RELAY_URL`, `ORIGIN` and, on Kubernetes,
+`KUBECONFIG` (without it, `kubectl` falls back to another cluster) again in every call that uses
+them, with the values this task started with (`pick-tag.py`, if used, can return a newer tag than
+the checkout mid-task). Send a server step as `ssh <server> 'bash -s' <<'EOF' … EOF`, with the
 variables set at the top: the quotes keep `$(…)` from running on the agent's machine instead. In
 such a script, a command that reads input takes the rest of the script as its input, and the
 script ends early: give `< /dev/null` to `apt-get`, `docker compose exec` and the `./run.sh`
@@ -168,9 +181,12 @@ things are in Settings, Invites. `Relay request failed (403)` in Buzz 1.0, or `N
 Buzz 0.X, means the relay works but doesn't know that identity
 ([troubleshooting](references/troubleshooting.md)).
 
-New members find open channels in Search, Channels. Opening Invite members makes a link at once,
-valid for 3 days with no use limit, and each change of its expiry or use limit makes another.
-Nothing cancels a link early, so for one person choose 1 use and 1 day.
+New members join any starter channel an owner or admin turns on: Starter channel for new members,
+in a public channel's settings. That covers invite links and Add directly; people added with
+`add-member` from the server's command line aren't added to it. Everyone finds open channels in
+Search, Channels. Opening Invite members makes a link at once, valid for 3 days with no use limit,
+and each change of its expiry or use limit makes another. Nothing cancels a link early, so for one
+person choose 1 use and 1 day.
 
 **Removing people.** Remove someone in Buzz 1.0 (Settings, Community admin, Membership, the … on
 their row, Remove): that also disconnects them and their agents. `./run.sh remove-member` only

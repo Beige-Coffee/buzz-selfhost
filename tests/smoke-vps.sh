@@ -107,6 +107,18 @@ docker compose up -d --wait postgres
   docker compose exec -T postgres pg_restore -U buzz -d buzz --exit-on-error --single-transaction < ~/buzz-backup/postgres.dump &&
   echo restored && BUZZ_COMPOSE_TLS=true ./run.sh start
 SNIP
+# operations.md's check before an upgrade, verbatim: no two open channels share a name (block/buzz#8787)
+IFS= read -r -d '' NAME_CHECK <<'SNIP' || true
+docker compose exec -T postgres psql -U buzz -d buzz -tAc "select lower(name), count(*) from channels c where visibility = 'open' and channel_type in ('stream', 'forum') and deleted_at is null and not coalesce((to_jsonb(c) ->> 'unlisted')::boolean, false) group by community_id, lower(name) having count(*) > 1" < /dev/null
+SNIP
+# check_digest TAG: SKILL.md section 2's image check. With PIN_TAG and PIN_DIGEST from the caller
+# (smoke.sh reads them from SKILL.md), the pinned image must have the pinned digest.
+check_digest() {
+  run "digest-$1" "docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/block/buzz:$1"
+  if [[ -n ${PIN_TAG:-} && $1 == "$PIN_TAG" ]]; then
+    expect "the image is the one the skill recommends" "ghcr.io/block/buzz@${PIN_DIGEST:-}" "$(cat "$OUT/digest-$1.out")"
+  fi
+}
 # pairing_edits MODE: the edits for server or private mode, with their checks
 pairing_edits() {
   run pair-service "$PAIR_EDIT"
@@ -149,6 +161,7 @@ sed -i.bak \"s/^BUZZ_RELAY_PRIVATE_KEY=.*/BUZZ_RELAY_PRIVATE_KEY=\${key}/\" .env
   expect "relay key is 64 characters" "64" "$(grep '^BUZZ_RELAY_PRIVATE_KEY=' .env | cut -d= -f2 | tr -d '\n' | wc -c | tr -d ' ')"
   grep -qE '^BUZZ_RELAY_PRIVATE_KEY=[0-9a-f]{64}$' .env && pass "relay key is hex" || fail "relay key is not hex"
   run generate-key-format "docker run --rm --entrypoint /usr/local/bin/buzz-admin $IMAGE generate-key | sed -E 's/[0-9a-f]{64}/<64 hex>/'"
+  check_digest "$TAG"
 
   section "7. Set the owner"
   run owner "sed -i.bak \"s/^RELAY_OWNER_PUBKEY=.*/RELAY_OWNER_PUBKEY=$OWNER_HEX/\" .env && rm .env.bak"
@@ -408,6 +421,8 @@ upgrade)
 git fetch -q origin
 git merge-base --is-ancestor ${OLD#sha-} ${TAG#sha-} && echo newer'
     expect "the new tag is newer" "newer" "$(cat "$OUT/newer.out")"
+    run channel-names "$NAME_CHECK"
+    expect "no two open channels share a name" "" "$(cat "$OUT/channel-names.out")"
     run move-bundle 'git checkout compose.yml Caddyfile
 git checkout -q ${TAG#sha-}' && pass "bundle moved" || fail "bundle moved"
     object_store_edit
@@ -423,6 +438,7 @@ git checkout -q ${TAG#sha-}' && pass "bundle moved" || fail "bundle moved"
   expect "pairing answers after the upgrade" "101" "$(ws_status "https://$(domain)/pair")"
   [[ -n $NEW_TAG ]] && expect "relay runs the new image" "relay ghcr.io/block/buzz:$NEW_TAG healthy" \
     "$(docker compose ps --format '{{.Service}} {{.Image}} {{.Status}}' relay | sed -E 's/ Up .*\((healthy)\)$/ \1/')"
+  [[ -n $NEW_TAG ]] && check_digest "$NEW_TAG"
   STORE_AFTER=$(store_image)
   echo "INFO  object store image: $STORE_BEFORE before, $STORE_AFTER after"
   if grep -q 'image: pgsty/silo' compose.yml; then

@@ -309,7 +309,7 @@ export type OpTask = "backup" | "restore" | "upgrade";
 export const OP_TASKS: Record<OpTask, { ask: string }> = {
   backup: { ask: "back it up." },
   restore: { ask: "restore it from its backup." },
-  upgrade: { ask: "back it up, then upgrade it to the newest image." },
+  upgrade: { ask: "back it up, then upgrade it to the image the skill recommends." },
 };
 
 const SSH_VPS = "My Buzz relay is at {{DOMAIN}}. It's a VPS; SSH in as <user>@<server IP>.";
@@ -403,7 +403,8 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
       why: UPGRADE_WHY,
       steps: [
         asks("Asks before the backup stops the relay"),
-        agent("Moves the relay to the newest image, about 10 seconds offline"),
+        asks("Asks you to rename open channels that share a name, if any: the new image won't start with them"),
+        agent("Moves the relay to the image the skill recommends, about 10 seconds offline"),
         agent("Turns on phone notifications, if the relay predates them"),
         agent("Checks the members are still there and the relay answers"),
       ],
@@ -419,7 +420,7 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
     },
     upgrade: {
       why: UPGRADE_WHY,
-      steps: [asks("Asks before the backup"), agent("Sets the new image tag in the values file"), agent("Upgrades with Helm and waits until the relay is ready")],
+      steps: [asks("Asks before the backup"), agent("Sets the image the skill recommends in the values file"), agent("Upgrades with Helm and waits until the relay is ready")],
     },
   },
 };

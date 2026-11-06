@@ -113,13 +113,16 @@ harmless.
    Check: `grep -c CHANGE_ME_RANDOM .env` → `0`, and each is now 64 hex characters:
    `grep -cE "^($(grep CHANGE_ME_RANDOM .env.example | cut -d= -f1 | paste -sd'|' -))=[0-9a-f]{64}$" .env`
    prints the same number as `grep -c CHANGE_ME_RANDOM .env.example` (5 today).
-6. **Relay key**, written without printing it:
+6. **Relay key**, written without printing it. The first command also pulls the relay's image:
    ```bash
    key=$(docker run --rm --entrypoint /usr/local/bin/buzz-admin ghcr.io/block/buzz:$TAG generate-key | awk '/^Secret key:/ {print $3}')
    sed -i.bak "s/^BUZZ_RELAY_PRIVATE_KEY=.*/BUZZ_RELAY_PRIVATE_KEY=${key}/" .env && rm .env.bak && unset key
    ```
    Check: `grep '^BUZZ_RELAY_PRIVATE_KEY=' .env | cut -d= -f2 | tr -d '\n' | wc -c | tr -d ' '` →
-   `64`. Then tell the user to copy the key into a password manager two maintainers can open, by
+   `64`, and the image is the one SKILL.md section 2 names:
+   `docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/block/buzz:$TAG` →
+   `ghcr.io/block/buzz@$DIGEST`, the digest SKILL.md section 2 sets (skip this when the user chose
+   the newest image). Then tell the user to copy the key into a password manager two maintainers can open, by
    running this in their own terminal, not in the conversation (through `ssh` for a server):
    `ssh <server> "grep '^BUZZ_RELAY_PRIVATE_KEY=' ~/buzz/deploy/compose/.env | cut -d= -f2"`.
    Backups of `.env` hold it too. A local test can skip the copy.

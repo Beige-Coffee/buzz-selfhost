@@ -140,7 +140,10 @@ own terminal with the same `KUBECONFIG` (it prints the key), and carry on meanwh
 **6. Checks.** `kubectl -n buzz get certificate` → `buzz-tls` `True` (if `False`, wait a minute
 and run it again);
 `kubectl -n buzz exec deploy/buzz -c relay -- /usr/local/bin/buzz-admin list-members` shows
-`$OWNER_HEX` with the role `owner`; then SKILL.md section 3. To confirm the relay's own ports
+`$OWNER_HEX` with the role `owner`; the relay runs the image SKILL.md section 2 names (not tested;
+skip it for the newest image):
+`kubectl -n buzz get pods -l app.kubernetes.io/component=relay -o jsonpath='{.items[*].status.containerStatuses[?(@.name=="relay")].imageID}'`
+ends with `@$DIGEST`; then SKILL.md section 3. To confirm the relay's own ports
 aren't exposed, give it a node's public IP (`kubectl get nodes -o wide`, EXTERNAL-IP) and
 `3000 5000 8080`: the load balancer forwards only 80 and 443, so a leak would show on a node. Then
 **join**, as section 4 says.
@@ -250,6 +253,7 @@ joins, by running this in their own terminal with the same `KUBECONFIG` (it prin
   `tailscale.com/funnel` (Funnel would publish the relay to the internet).
 - `kubectl -n buzz exec deploy/buzz -c relay -- /usr/local/bin/buzz-admin list-members` shows
   `$OWNER_HEX` with the role `owner`.
+- The relay's image ends with `@$DIGEST`, as in step 6 (not tested; skip it for the newest image).
 - SKILL.md section 3 from this machine, with a node's public IP (`kubectl get nodes -o wide`,
   EXTERNAL-IP) and `80 443 3000 8080`. The first request makes the certificate; the script waits.
 

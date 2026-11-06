@@ -12,7 +12,7 @@ set -uo pipefail
 
 IP=${1:?usage: smoke-private.sh <server-ip> [machine-name] [image-tag]}
 NAME=${2:-buzz-test}
-TAG=${3:-sha-83aab8c}
+TAG=${3:-sha-744f394}
 HERE=$(cd "$(dirname "$0")" && pwd)
 BZ=${BUZZ_CLI:-buzz}
 KEYFILE=${TS_AUTHKEY_FILE:?set TS_AUTHKEY_FILE to a file holding a Tailscale auth key}

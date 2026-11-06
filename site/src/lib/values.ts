@@ -3,6 +3,7 @@
  * guide the rest of the page shows; the values fill every command.
  * Nothing secret is entered here: keys are generated where the relay runs.
  */
+import skill from "virtual:skill-steps";
 export type Path = "vps" | "own" | "k8s";
 export type OwnMode = "public" | "practice";
 /** Who can reach a server you run: anyone on the internet (members only), or only devices on a private network. */
@@ -22,9 +23,12 @@ export interface Values {
   mode: Mode;
 }
 
-/** The image the Compose setups were last tested on (2026-10-12, with Silo). Not every main commit gets an image. */
-export const DEFAULT_TAG = "sha-e8781ca";
-const OLD_DEFAULT_TAGS = ["sha-53a1210", "sha-83aab8c", "sha-d1b7da4", "sha-30873ba"];
+/**
+ * The relay image every setup installs and upgrades to: the tag of `tested-image` in SKILL.md, which
+ * also gives its digest. Moving the pin is this one line here. Not every main commit gets an image.
+ */
+export const DEFAULT_TAG = "sha-744f394";
+const OLD_DEFAULT_TAGS = ["sha-53a1210", "sha-83aab8c", "sha-d1b7da4", "sha-30873ba", "sha-e8781ca"];
 const KEY = "buzz-selfhost-values-v2";
 const DEFAULTS: Values = { path: "vps", ownMode: "public", reach: "public", domain: "", npub: "", tag: "", mode: "agent" };
 const PATHS: Path[] = ["vps", "own", "k8s"];
@@ -176,24 +180,31 @@ export function derived(v: Values = state): Record<string, string> {
   const fallback = isPrivate(t) ? "buzz.your-tailnet.ts.net" : "buzz.example.org";
   const domain = v.domain.trim().toLowerCase().replace(/^\w+:\/\//, "").replace(/\/.*$/, "") || fallback;
   const tag = v.tag.trim() || DEFAULT_TAG;
-  const hex = npubToHex(v.npub);
+  const npub = v.npub.trim();
+  const hex = npubToHex(npub);
   return {
     DOMAIN: domain,
     HOST: practice ? "localhost" : domain,
     RELAY_URL: practice ? "wss://localhost" : `wss://${domain}`,
     HTTP_ORIGIN: practice ? "https://localhost" : `https://${domain}`,
     OWNER_HEX: hex ?? "CHANGE_ME_OWNER_PUBKEY_HEX",
-    OWNER_NPUB: v.npub.trim() || "<your npub>",
+    // the prompts' owner: the reader's own npub, or a key the skill makes for them (scripts/new-identity.py)
+    OWNER: npub ? `Owner: ${npub}.` : "I have no Buzz key yet: make the owner key with the skill's new-identity.py.",
     TAG: tag,
+    // the skill's checks compare the pulled image with its digest, which SKILL.md gives for its own tag only
+    DIGEST: tag === skill.pin.tag && skill.pin.digest ? skill.pin.digest : "<that image's digest>",
     // sha-<7> tags name the main commit the image was built from; the bundle is checked out there
     COMMIT: /^sha-[0-9a-f]{7,40}$/.test(tag) ? tag.slice(4) : "main",
     IMAGE: `ghcr.io/block/buzz:${tag}`,
     // Caddy serves public servers and the local test (with its own local authority); Tailscale serves the private ones
     RUN: isPrivate(t) ? "./run.sh" : "BUZZ_COMPOSE_TLS=true ./run.sh",
-    SKILL_URL: new URL("skills/self-host-buzz/SKILL.md", document.baseURI).href,
+    SKILL_URL: skillURL("SKILL.md"),
     SKILL_ARCHIVE: new URL("skills/self-host-buzz.tar.gz", document.baseURI).href,
   };
 }
+
+/** A file of the skill, as this site serves it (vite.config.ts serves the whole folder). */
+export const skillURL = (path: string) => new URL(`skills/self-host-buzz/${path}`, document.baseURI).href;
 
 export const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 

@@ -24,14 +24,13 @@ export interface FixDef {
 
 const ALL: Track[] = ["vps", "vps-private", "own-public", "own-private", "practice", "k8s", "k8s-private"];
 
-/** The skill's checks run its scripts; an agent already has them, a reader downloads them here. */
+/** The skill's checks run its scripts; an agent already has them, a reader downloads them here, where the steps run them from. */
 const GET_SKILL: StepDef = {
   id: "get-skill",
   title: "Get the skill",
   tracks: ALL,
-  html: `<p>Written for your agent, so "the user" means you. To run a check yourself, download the skill's scripts once:</p>
-<pre class="cmd">mkdir -p ~/buzz-skill &amp;&amp; curl -fsSL {{SKILL_ARCHIVE}} | tar -xz -C ~/buzz-skill
-SKILL=~/buzz-skill/self-host-buzz</pre>`,
+  html: `<p>Written for your agent, so "the user" means you. The checks run the skill's scripts, so to run them yourself, download the skill once. The steps below run its scripts from there.</p>
+<pre class="cmd">mkdir -p ${skill.home} &amp;&amp; curl -fsSL {{SKILL_ARCHIVE}} | tar -xz -C ${skill.home}</pre>`,
 };
 
 export const STEPS: StepDef[] = [

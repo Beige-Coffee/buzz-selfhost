@@ -40,7 +40,7 @@ body:
     attributes:
       label: Image tag
       description: The relay image the install or upgrade used.
-      placeholder: sha-30873ba
+      placeholder: sha-744f394
     validations:
       required: true
   - type: input

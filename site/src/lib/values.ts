@@ -22,9 +22,12 @@ export interface Values {
   mode: Mode;
 }
 
-/** The image the Compose setups were last tested on (2026-10-12, with Silo). Not every main commit gets an image. */
-export const DEFAULT_TAG = "sha-e8781ca";
-const OLD_DEFAULT_TAGS = ["sha-53a1210", "sha-83aab8c", "sha-d1b7da4", "sha-30873ba"];
+/**
+ * The relay image every setup installs and upgrades to: the tag of `tested-image` in SKILL.md, which
+ * also gives its digest. Moving the pin is this one line here. Not every main commit gets an image.
+ */
+export const DEFAULT_TAG = "sha-744f394";
+const OLD_DEFAULT_TAGS = ["sha-53a1210", "sha-83aab8c", "sha-d1b7da4", "sha-30873ba", "sha-e8781ca"];
 const KEY = "buzz-selfhost-values-v2";
 const DEFAULTS: Values = { path: "vps", ownMode: "public", reach: "public", domain: "", npub: "", tag: "", mode: "agent" };
 const PATHS: Path[] = ["vps", "own", "k8s"];

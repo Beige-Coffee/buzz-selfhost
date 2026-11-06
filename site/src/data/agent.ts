@@ -312,7 +312,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
     expect: [
       { who: "agent", icon: "agent", t: "Sets up Tailscale's Kubernetes operator", d: "With your OAuth client, without printing its secret." },
       { who: "you", ask: true, icon: "ask", t: "Confirm the name", d: "It asks you to confirm <code>wss://{{DOMAIN}}</code>, which can't be changed later; renaming your tailnet would change it too." },
-      { who: "you", ask: true, icon: "ask", t: "Approve the costs", d: "The quickstart profile's four storage volumes, and a Tailscale seat for each member on paid plans." },
+      { who: "you", ask: true, icon: "ask", t: "Approve the costs", d: "The quickstart profile's four storage volumes. A company also pays Tailscale for each person, from $8 a month." },
       { who: "agent", icon: "agent", t: "Installs Buzz with Block's Helm chart", d: QUICKSTART },
       KUBE_KEY,
       { who: "agent", icon: "agent", t: "Checks it", d: "It checks that no ports are open to the internet, and that you're the owner." },

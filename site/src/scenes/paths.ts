@@ -78,12 +78,12 @@ const FACTS: Record<Track, { reach: string; facts: [string, string][] }> = {
 const LOCK = `<svg class="lock" viewBox="0 0 20 20" aria-hidden="true"><path class="shackle" d="M6.5 9V6.6a3.5 3.5 0 0 1 7 0V9" /><rect x="4" y="9" width="12" height="8.5" rx="2.4" /></svg>`;
 const GLOBE = `<svg class="globe" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" /><path d="M3 10h14M10 3c2 2.1 2.9 4.4 2.9 7s-.9 4.9-2.9 7c-2-2.1-2.9-4.4-2.9-7S8 5.1 10 3z" /></svg>`;
 
-/** What a private network is, behind the question mark on every card. Facts tested 2026-09-30; pricing checked 2026-10-01. */
+/** What a private network is, behind the question mark on every card. Tailscale's prices: tailscale.com/pricing, 2026-11-06. */
 const tip = (k: Path) => `<span class="pa-qw">
     <button type="button" class="pa-q" aria-label="What's a private network?" aria-expanded="false" aria-controls="pa-tip-${k}">?</button>
     <span class="pa-tip" id="pa-tip-${k}">
       <b>Private network</b>
-      <span class="pa-tip-row"><i>What it is</i>A VPN for your team. The relay has no public address, so only devices on the VPN can reach it. This guide uses Tailscale, free for up to 6 users.</span>
+      <span class="pa-tip-row"><i>What it is</i>A VPN for your team. The relay has no public address, so only devices on the VPN can reach it. This guide uses Tailscale. It's free for non-commercial use, up to 6 people; a company pays for each person, $8 a month on Standard.</span>
       <span class="pa-tip-row"><i>Why use it</i>No open ports, and no domain to buy.</span>
       <span class="pa-tip-row"><i>Tradeoff</i>Every device that uses Buzz needs Tailscale, including phones and agents.</span>
     </span>

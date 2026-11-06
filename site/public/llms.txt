@@ -1,0 +1,28 @@
+# Run your own Buzz
+
+> A guide and an agent skill for self-hosting Buzz, Block's open-source team chat for people and their agents: on a VPS, your own hardware, a private Tailscale network or Kubernetes, or as a local test.
+
+The skill is the source of truth for every command and check, and the guide's step-by-step view renders it. To set up Buzz, follow the skill, not this site's text. Its steps ask the user before anything that costs money or can't be undone.
+
+Install the skill for your agent:
+
+    npx skills add Beige-Coffee/buzz-selfhost --skill self-host-buzz -g
+
+Or download the whole skill, to unpack into your agent's skills folder: https://buzz-selfhost.vercel.app/skills/self-host-buzz.tar.gz
+
+A prompt to start from:
+
+    Use the self-host-buzz skill to set up a Buzz relay on my server, public on the internet. It's a fresh Ubuntu 24.04 VPS; SSH in as <user>@<server IP>. Domain: <domain>. I have no Buzz key yet: make the owner key with the skill's new-identity.py. The skill is at https://buzz-selfhost.vercel.app/skills/self-host-buzz/SKILL.md.
+
+## The skill
+
+- [SKILL.md](https://buzz-selfhost.vercel.app/skills/self-host-buzz/SKILL.md): the rules, the setups, the inputs, the checks and joining
+- [compose.md](https://buzz-selfhost.vercel.app/skills/self-host-buzz/references/compose.md): a VPS or your own hardware, public or on a private network, and the local test
+- [kubernetes.md](https://buzz-selfhost.vercel.app/skills/self-host-buzz/references/kubernetes.md): Block's Helm chart, public or on a private network
+- [operations.md](https://buzz-selfhost.vercel.app/skills/self-host-buzz/references/operations.md): members, backups, restores and upgrades
+- [troubleshooting.md](https://buzz-selfhost.vercel.app/skills/self-host-buzz/references/troubleshooting.md): what a failed check means, and the fix
+
+## Optional
+
+- [The guide's source](https://github.com/Beige-Coffee/buzz-selfhost): the site and the skill
+- [block/buzz](https://github.com/block/buzz): Buzz's relay, Block's open-source code

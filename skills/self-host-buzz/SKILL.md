@@ -218,11 +218,15 @@ and can post, until the relay restarts. So after a command-line removal, restart
 ([operations.md](references/operations.md)). A removed person can rejoin with any invite link that
 hasn't expired.
 
-**What stays private.** Only members can read, post or open files. Files belong to the whole
-community, not to a channel: any member with a file's link can open it, even from a private channel
-or a direct message they aren't in. Removing someone from a channel, or deleting a message, doesn't
-take its files back; removing them from the community does. Nothing is end-to-end encrypted:
-whoever runs the server, or holds a backup, can read every message and file.
+**What stays private.** Tell the user, plainly: only members can read, post or open files, but
+files are shared with the whole community, not one channel. Any member with a file's link can open
+it, even from a private channel or a direct message they aren't in. Removing someone from a
+channel, or deleting a message, doesn't take its files back; removing them from the community does.
+Buzz is building a setting that limits files to their channels (block/buzz#8444). It starts off
+when it ships, so until a release has it and it's turned on, keep files that not every
+member may see out of Buzz. Nothing is end-to-end encrypted: whoever runs the server, or holds a
+backup, can read every message and file. The relay's log names each member with what they read,
+so treat logs like the data.
 
 **Phones.** After joining from the desktop app, the user opens Settings, Pair mobile (Buzz 0.X:
 Settings, Mobile). In the Buzz app on the phone they choose Add community, scan the QR code, and

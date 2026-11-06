@@ -1409,6 +1409,8 @@ h2 .hl svg { width: 19px; }
 .fq-check b { font-size: 15px; font-weight: 600; }
 .fq-check p { margin: 2px 0 0; font-size: 14px; line-height: 1.45; color: var(--ink-2); }
 .fq-only { margin-left: 6px; padding: 1px 8px; border-radius: 99px; background: #f2f2ee; font: 500 11px var(--mono); color: var(--ink-2); vertical-align: 2px; white-space: nowrap; }
+/* what still depends on Block: the same rows, with an icon where the checklist has its box */
+.fq-dep-i { flex: none; display: grid; place-items: center; width: 24px; height: 24px; padding: 4px; border-radius: 7px; background: #f2f2ee; color: var(--ink-2); }
 /* drawings for the server's questions: cards, with arrows between them */
 .fq-card { padding: 14px 16px; border-radius: 14px; background: #fff; border: 1px solid var(--line-2); box-shadow: 0 1px 2px rgb(24 20 14 / 5%); }
 .fq-card p { margin: 0; font-size: 13.5px; }

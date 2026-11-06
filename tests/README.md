@@ -4,8 +4,9 @@ These run the guide's commands for real and check the result end to end: members
 read, a non-member is refused, files upload and download, and a backup survives losing the
 server's data. Test identities are made on your laptop, so servers only see public keys.
 
-You need the `buzz` CLI, built from block/buzz (about a minute), or the one inside Buzz 0.X's app
-(`/Applications/Buzz.app/Contents/MacOS/buzz` on a Mac):
+You need the `buzz` CLI, built from block/buzz (about a minute), or the one inside Buzz 1.0's app
+(`/Applications/Buzz.app/Contents/Resources/bin/buzz` on a Mac), built from the block/buzz commit
+the app pins:
 
 ```bash
 git clone https://github.com/block/buzz.git && cd buzz
@@ -24,13 +25,18 @@ resolves to it. `<ip>.sslip.io` works without any DNS setup, e.g. `203-0-113-10.
 BUZZ_CLI=path/to/buzz SSH_KEY=path/to/key bash tests/smoke.sh <server-ip> <domain> [image-tag [upgrade-tag]]
 ```
 
+Every script's `image-tag` defaults to the image the skill recommends (`tested-image` in SKILL.md),
+and smoke.sh and smoke-local.sh check that image's digest once pulled (`tested-digest`).
+
 It installs with the guide's steps (`smoke-vps.sh install`), then from your laptop: the owner
 creates a channel and posts, a member added by npub posts, a stranger is refused, a file goes
 up and comes back intact, and an invite link from the owner lets a new identity join. Then it
-backs up, deletes the checkout and the data volumes, restores onto a fresh checkout, and checks
-that messages, the file, members, the relay's identity and the community all came back. Last, it
-upgrades: to `upgrade-tag` if given, after a fresh backup, moving the bundle and the image
-together the way the skill's operations.md says. It checks the same things again, plus that no
+backs up into a dated folder, deletes the checkout and the data volumes, restores onto a fresh
+checkout with operations.md's guarded block, after its checks that the backup is whole and this
+community's, and checks that messages, the file, members, the relay's identity and the community
+all came back. Last, it upgrades: to `upgrade-tag` if given, after a fresh backup and the check
+that no two open channels share a name, moving the bundle and the image together the way the
+skill's operations.md says. It checks the same things again, plus that no
 stored object went missing, that a file from before reads back intact from the store, that a
 new upload works, and the partition audit operations.md describes. From a tag before 2026-10-07
 to a later one, the upgrade moves the files from MinIO to Silo. Last, what Buzz 1.0 does: the

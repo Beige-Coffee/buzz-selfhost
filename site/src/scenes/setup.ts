@@ -62,7 +62,7 @@ export function mountSetup(host: HTMLElement): void {
     host.innerHTML = `
       <div class="tl-progress" aria-live="polite"><i><b></b></i><span></span></div>
       <ol class="tl">${steps.map((s, i) => stepHTML(s, i + 1)).join("")}</ol>
-      <details class="tl-fail tl-fixes">
+      <details class="tl-fail tl-fixes" id="fixes">
         <summary>If a step fails</summary>
         <dl>${fixes.map((f) => `<dt ${slot(f.symptom, true)}></dt><dd ${slot(f.fix, true)}></dd>`).join("")}</dl>
       </details>`;
@@ -95,4 +95,14 @@ export function mountSetup(host: HTMLElement): void {
 
   render();
   onValues(() => (trackOf() !== track ? render() : refill()));
+
+  // the skill's links to its steps and fixes (build/skill.ts) open the folds they're in, then land there
+  document.addEventListener("click", (e) => {
+    const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href="#fixes"], a[href="#commands"]');
+    const to = a && document.getElementById(a.getAttribute("href")!.slice(1));
+    if (!to) return;
+    e.preventDefault();
+    for (let d = to.closest("details"); d; d = d.parentElement?.closest("details") ?? null) d.open = true;
+    scrollTo({ top: to.getBoundingClientRect().top + scrollY - 72, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  });
 }

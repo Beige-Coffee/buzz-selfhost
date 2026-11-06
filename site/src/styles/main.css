@@ -1030,6 +1030,7 @@ h2 .hl svg { width: 19px; }
 .ft-about p { margin-bottom: 0; }
 .ft-act { display: grid; justify-items: end; gap: 14px; padding-top: 2px; }
 .ft-act .ft-links { justify-content: flex-end; margin: 0 !important; }
+.ft-unpack { margin: -8px 0 0; font-size: 13px; color: var(--ink-2); }
 @media (max-width: 640px) {
   .ft-grid { grid-template-columns: minmax(0, 1fr); }
   .ft-act { justify-items: start; }

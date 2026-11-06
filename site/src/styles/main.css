@@ -4,8 +4,9 @@
 :root {
   --line: rgb(35 30 30 / 8%);
   --line-2: rgb(35 30 30 / 14%);
-  --ink-2: rgb(35 30 30 / 66%);
-  --ink-3: rgb(35 30 30 / 46%);
+  /* both grays pass WCAG AA for small text: --ink-3 is 4.98:1 on white and at least 4.7:1 on every tint */
+  --ink-2: rgb(35 30 30 / 75%);
+  --ink-3: rgb(35 30 30 / 64%);
   --canvas: #f6f6f3;
   --code: #171513;
   --accent: var(--chartreuse);

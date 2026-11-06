@@ -1,7 +1,7 @@
 # Decisions
 
 What was decided for the guide and the skill, and why. Facts behind these are in
-[research.md](research.md). Last updated 2026-10-05.
+[research.md](research.md). Last updated 2026-11-06.
 
 ## What the site is
 
@@ -17,6 +17,49 @@ environment variables, and had decrypted some of them
 On Railway, the relay key and every password live in those variables. The owner removed Railway
 from the guide and the skill: its setup, its operations, its troubleshooting rows and the
 picker's "Managed platform" answer. The test records keep its runs as history.
+
+## The launch review (2026-11-06)
+
+A review read the site as a CTO and as an open-source community would, before launch. The owner
+decided:
+
+- **Ownership.** The site is offered to the Buzz team to host as theirs. Until Block answers,
+  nothing changes its name, its marks or who it says made it.
+- **One relay image, by digest.** Every setup installs and upgrades to `sha-744f394`
+  (`sha256:b67a32b7b2a274cdbd9a685fe996657fa544a3e981284ab3a8c660a128f36a3d`, block/buzz
+  744f3946f, after the #8802 fix). SKILL.md's `tested-image` and `tested-digest` hold it, the
+  skill checks the pulled image's digest, and the site reads both. A move is an edit in SKILL.md
+  and the smoke scripts, with the old tag added to `OLD_DEFAULT_TAGS` in `site/src/lib/values.ts`.
+  The newest image runs only when the user asks: images from 2026-10-30 to 2026-11-05 crash-looped
+  on upgrade (#8802). Upgrades past migration 0083 first rename public channels that share a name.
+  This replaces "The tested image moves to sha-e8781ca". `tested` stays 2026-10-23 until the
+  private and Kubernetes suites run on the pin.
+- **Keys.** Buzz 1.0's first screen makes a key only with a Builderlab account, which is Block's.
+  The skill's `scripts/new-identity.py` makes one on the person's computer instead, in
+  `~/buzz-identity.key` (Buzz's Browse button lists `.key` and `.txt` files, not `.nsec`), and the
+  site serves it for members. People join with Other options, the address, Use an existing key and
+  the dropped file. Then they copy the key from Settings, Identity, Copy private key into a password
+  manager and delete the file, so nobody opens it by hand. Builderlab stays the other way, with
+  what Block can keep said plainly.
+- **Moderation.** On public Compose setups the skill offers Buzz's Moderation console, at an
+  `admin.` name. Elsewhere the owner or an admin uses the `buzz` command line that comes with Buzz
+  1.0. "How do we moderate?" says to ban rather than only remove.
+- **Limits.** "What it can't do yet" sits above Where to run: seven one-line cards, dated.
+- **Hero and push.** The four reasons stay, reworded to what holds: the relay keeps running without
+  Block, and messages and files are stored on your own server. Push text says Block's gateway sees
+  the relay's public key, the server's IP address and when it wakes which phone. "What still
+  depends on Block?" lists the apps, push and Builderlab. This replaces the 2026-10-26 wording in
+  Copy and style.
+- **The quiz.** Four questions: what it's for, who will look after it, where it runs and who can
+  reach it. The result is a local test, "Find an owner first" (with buzz.xyz, and #6803 for why it
+  can't move later), one of the six server setups, or "Not covered here" with the closest VPS. Each
+  result says what the setup needs, what you give up and a monthly cost. The skill's first
+  questions are the same four.
+- **Files.** The site and the skill say plainly that any member with a file's link can open it
+  (#8444), and that the relay's log names who read what.
+- **Drawings.** Redrawn from block/buzz-app v0.7.0-preview.248.1: the left dock (#2626), the
+  account-first first run (#2579) and Codes match (#1597).
+- **Reruns.** Before launch, the private and Kubernetes suites run on the pin.
 
 ## The setups, and how to present them
 
@@ -151,7 +194,8 @@ authorities. The old plain test (`ws://127.0.0.1:3000`, Buzz 0.X only) and its s
 ## The tested image moves to sha-e8781ca (2026-10-23)
 
 Buzz 1.0's New chat needs channel labels, in images from 2026-10-15. The site's `DEFAULT_TAG`
-follows `tested-image`, and a reader still on an older default gets the new one.
+follows `tested-image`, and a reader still on an older default gets the new one. Replaced on
+2026-11-06 by the pin in The launch review.
 
 ## Getting the skill
 
@@ -209,7 +253,7 @@ must point at block/buzz instead of Beige-Coffee/buzz-selfhost.
   decisions, free to switch to a fork), yours to customize (build a feature instead of waiting
   for one), private (everything can run on your hardware, behind your firewall). A call with
   Spiral's open-source PMs asked for the why up front; a longer two-by-two version took too much
-  room.
+  room. Reworded on 2026-11-06 (The launch review).
 - The site never talks about testing (2026-10-25): the tests are why its advice can be trusted,
   not part of the advice. The skill and these docs keep their test notes, since agents and
   maintainers use them; `site/build/skill.ts` (`UNTESTED`) strips them from the skill text the

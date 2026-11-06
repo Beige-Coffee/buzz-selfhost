@@ -371,7 +371,7 @@ const GROUPS: [string, Question[]][] = [
             `Files are shared with the whole community, not one channel. Any member with a file's link can open it, even from a private channel or a direct message they're not in. Removing someone from a channel, or deleting the message, doesn't take a file back; removing them from the community does. Buzz is building a setting that limits files to their channels (<a href="https://github.com/block/buzz/pull/8444">block/buzz#8444</a>). It starts off when it ships, so until you turn it on, keep files that not every member may see out of Buzz.`,
           ) +
           // block/buzz#8376's buzz_relay::access lines, at info in the bundle's RUST_LOG
-          note("The relay's log records each member's key with what they read, so treat logs like the data."),
+          note("The relay's log names each member, by their public key, with what they read, so treat logs like the data."),
       },
       {
         id: "audit",

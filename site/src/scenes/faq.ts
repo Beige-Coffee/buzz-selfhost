@@ -233,7 +233,7 @@ const GROUPS: [string, Question[]][] = [
             `Each person needs a key first (<a href="#operations" data-q-link="identity">how to get one</a>) and sends you its npub: the key maker prints it, and Buzz shows it if they try to join before you add them.`,
           ) +
           // starter channels, from block/buzz#8594 (in the pin): invite claims and adds in Buzz, not buzz-admin add-member
-          note("In a channel's settings, turn on <b>Starter channel for new members</b>: everyone who joins by link, or whom you add in Buzz, joins it. People added from the server's command line aren't.") +
+          note("In a public channel's settings, turn on <b>Starter channel for new members</b>: everyone who joins by link, or whom you add in Buzz, joins it. People added from the server's command line aren't.") +
           // links last 30 days at most (block/buzz crates/buzz-core/src/invite.rs); nothing revokes one (#8529 open)
           note(
             `For a public project, once you've set up <a href="#operations" data-q-link="moderate">moderation</a>, post an invite link on your site or README with a use limit, and replace it when it fills or expires. A link lasts 30 days at most, and nothing cancels one early.`,

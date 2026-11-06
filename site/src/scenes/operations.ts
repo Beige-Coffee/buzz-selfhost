@@ -41,6 +41,10 @@ const stepsHTML = (rows: OpStep[]) =>
 const HOST_BACKUPS =
   "Also turn on your provider's automatic backups: DigitalOcean, Hetzner, AWS and Google Cloud all have them. They copy the whole server, so you can roll it back.";
 
+/** On a private network the community's address is the machine's Tailscale name, so it can't move. */
+const PRIVATE_MOVE =
+  "On a private network, restoring onto a new machine isn't covered: the community's address is the old machine's Tailscale name. Restore onto the same machine.";
+
 /** The Running on box: which setup, at which address, the commands below are for. */
 export function runningOnHTML(track: Track): string {
   // a practice relay has a fixed address
@@ -56,7 +60,12 @@ export function taskHTML(task: OpTask, track: Track): string {
   const d = OP_DETAILS[opSetup(track)][task];
   const ops = OPS.filter((o) => o.kind === task && o.tracks.includes(track));
   const commands = ops.map((o) => `${ops.length > 1 ? `<h4 class="opx-h">${o.title}</h4>` : ""}<div class="tl-md op-md">${fillRich(o.html)}</div>`).join("");
-  const note = task === "backup" && (track === "vps" || track === "vps-private") ? `<p class="opx-note">${HOST_BACKUPS}</p>` : "";
+  const note =
+    task === "backup" && (track === "vps" || track === "vps-private")
+      ? `<p class="opx-note">${HOST_BACKUPS}</p>`
+      : task === "restore" && isPrivate(track) && opSetup(track) === "compose"
+        ? `<p class="opx-note">${PRIVATE_MOVE}</p>`
+        : "";
   const why = `<p class="opx-why">${d.why}</p>${note}`;
   const flow = task === "backup" || task === "restore" ? OP_FLOWS[opSetup(track)][task] : undefined;
   if (flow && !d.manual) {

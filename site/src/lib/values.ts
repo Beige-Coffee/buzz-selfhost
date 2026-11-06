@@ -3,6 +3,7 @@
  * guide the rest of the page shows; the values fill every command.
  * Nothing secret is entered here: keys are generated where the relay runs.
  */
+import skill from "virtual:skill-steps";
 export type Path = "vps" | "own" | "k8s";
 export type OwnMode = "public" | "practice";
 /** Who can reach a server you run: anyone on the internet (members only), or only devices on a private network. */
@@ -190,6 +191,8 @@ export function derived(v: Values = state): Record<string, string> {
     // the prompts' owner: the reader's own npub, or a key the skill makes for them (scripts/new-identity.py)
     OWNER: npub ? `Owner: ${npub}.` : "I have no Buzz key yet: make the owner key with the skill's new-identity.py.",
     TAG: tag,
+    // the skill's checks compare the pulled image with its digest, which SKILL.md gives for its own tag only
+    DIGEST: tag === skill.pin.tag && skill.pin.digest ? skill.pin.digest : "<that image's digest>",
     // sha-<7> tags name the main commit the image was built from; the bundle is checked out there
     COMMIT: /^sha-[0-9a-f]{7,40}$/.test(tag) ? tag.slice(4) : "main",
     IMAGE: `ghcr.io/block/buzz:${tag}`,

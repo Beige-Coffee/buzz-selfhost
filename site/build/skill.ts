@@ -44,6 +44,8 @@ export interface SkillData {
   ops: SkillOp[];
   /** where the step-by-step view has a reader download the skill, so its scripts run by that path */
   home: string;
+  /** the image the skill recommends, from SKILL.md's metadata: `tested-image` and `tested-digest` */
+  pin: { tag?: string; digest?: string };
 }
 
 const SERVER: Track[] = ["vps", "own-public"];
@@ -78,6 +80,7 @@ const HOME = "~/buzz-skill";
 /** The skill's shell variables, as the page's panel fills them in. */
 const VARS: [RegExp, string][] = [
   [/\$SKILL\b/g, `${HOME}/self-host-buzz`],
+  [/\$DIGEST\b/g, "{{DIGEST}}"],
   [/\$\{TAG#sha-\}/g, "{{COMMIT}}"],
   [/\$TAG\b/g, "{{TAG}}"],
   [/\$DOMAIN\b/g, "{{DOMAIN}}"],
@@ -358,7 +361,8 @@ export function parseSkill(dir: string): SkillData {
     const n = steps.filter((s) => s.tracks.includes(t)).length;
     if (n < 5) fail(`only ${n} steps for ${t}`);
   }
-  const data = { steps, fixes: fixes(dir), ops: ops(dir), home: HOME };
+  const meta = (key: string) => readFileSync(join(dir, "SKILL.md"), "utf8").match(new RegExp(`^  ${key}: *"?([^"\\s]+)"?$`, "m"))?.[1];
+  const data = { steps, fixes: fixes(dir), ops: ops(dir), home: HOME, pin: { tag: meta("tested-image"), digest: meta("tested-digest") } };
   for (const text of [...data.steps.map((x) => x.html), ...data.ops.map((x) => x.html), ...data.fixes.flatMap((x) => [x.symptom, x.fix])]) {
     const old = text.match(OLD);
     if (old) fail(`the site would show "${old[0]}": add a rule to CURRENT in build/skill.ts (${text.replace(/<[^>]+>/g, "").slice(0, 80)})`);
@@ -374,5 +378,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(`${t} (${list.length}): ${list.map((s) => `${s.id}${s.optional ? "*" : ""}`).join(" ")}`);
   }
   console.log(`fixes: ${data.fixes.length}`);
+  console.log(`pin: ${data.pin.tag ?? "none"}${data.pin.digest ? `@${data.pin.digest}` : ""}`);
   for (const t of TRACKS) console.log(`ops ${t}: ${data.ops.filter((o) => o.tracks.includes(t)).map((o) => `${o.kind}/${o.title}`).join(", ")}`);
 }

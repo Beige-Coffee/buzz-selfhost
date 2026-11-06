@@ -397,8 +397,12 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
         code: "volume rm",
       },
       {
+        t: "Check first",
+        d: "The backup's four files are there and none is empty, and its <code>env</code> shows this community's address: a backup from another install would swap your relay's identity and owner. And <code>docker volume ls -q --filter name=buzz-prod_buzz-postgres-data</code> must print nothing; if it prints a name, this server still has its data, so stop.",
+      },
+      {
         t: "Put the backup back",
-        d: "From <code>buzz/deploy/compose</code>, with the backup in <code>~/buzz-backup</code>. First, <code>docker volume ls -q --filter name=buzz-prod_buzz-postgres-data</code> must print nothing; if it prints a name, this server still has its data, so stop. The block prints <code>restored</code> and starts Buzz only if the database was empty and the backup went in whole.",
+        d: "From <code>buzz/deploy/compose</code>, with the backup in <code>~/buzz-backup</code>. The block prints <code>restored</code> and starts Buzz only if the database was empty and the backup went in whole.",
         code: "pg_restore",
       },
       { t: "Check it", d: CHECK_BACK },
@@ -425,7 +429,7 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
       why: UPGRADE_WHY,
       steps: [
         asks("Asks before the backup stops the relay"),
-        asks("Asks you to rename open channels that share a name, if any: the new image won't start with them"),
+        asks("Asks you to rename public channels that share a name, if any: the new image won't start with them"),
         agent("Moves the relay to the image the skill recommends, about 10 seconds offline"),
         agent("Turns on phone notifications, if the relay predates them"),
         agent("Checks the members are still there and the relay answers"),

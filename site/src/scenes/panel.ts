@@ -56,6 +56,7 @@ const FROM: Record<string, string> = {
   OWNER: "npub",
   OWNER_HEX: "npub",
   TAG: "tag",
+  DIGEST: "tag",
   IMAGE: "tag",
   COMMIT: "tag",
 };

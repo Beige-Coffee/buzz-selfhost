@@ -10,7 +10,8 @@ license: Apache-2.0
 compatibility: Runs from macOS or Linux (Windows isn't tested) with python3, bash and curl. Then Docker, or kubectl and helm, depending on the setup.
 metadata:
   tested: "2026-10-23"
-  tested-image: sha-e8781ca
+  tested-image: sha-744f394
+  tested-digest: sha256:b67a32b7b2a274cdbd9a685fe996657fa544a3e981284ab3a8c660a128f36a3d
 ---
 
 # Self-host a Buzz relay
@@ -21,26 +22,31 @@ an `.env` file (the relay key and passwords). This skill installs one, checks ev
 day-two tasks. Every command was run end to end, except where a step says otherwise.
 
 People use the relay from the Buzz desktop app. These steps describe Buzz 1.0
-(github.com/block/buzz-app). Buzz 0.X, the earlier app from block/buzz, still works with the same
-relay and is the one for Intel Macs, which Buzz 1.0 doesn't support; where its screens differ, the
-steps say so.
+(github.com/block/buzz-app), whose own version numbers start at 0.7, such as 0.7.0-preview.248.1.
+Buzz 0.X is the earlier app from block/buzz, versions 0.5 and older, which Block now calls
+deprecated. It still works with the same relay; where its screens differ, the steps say so.
 
 ## Rules
 
 1. **Never print a secret.** Don't `cat`, `echo`, `grep` or paste `BUZZ_RELAY_PRIVATE_KEY`, any
-   secret in `.env`, any Kubernetes value holding a key or password, a Tailscale auth
-   key, or any secret key. These print every secret at once, so their output goes to a file or
-   nowhere, never the screen: `./run.sh config`, `docker compose config`, `docker inspect`,
-   `helm get manifest`, `helm get all`,
-   `kubectl get secret -o yaml`. Generate keys straight into their file. When a check needs a
-   secret, check its length, never its value. Safe to show as is (tested): every check in these
-   files, `run.sh start`, `status` and `list-members`, `docker compose ps`, the services' logs,
-   `kubectl describe`, `helm get values`, `helm install`'s notes, and
-   `run.sh upgrade` (its reminder names secrets but never prints them). The user copies the relay
-   key into their password manager themselves.
+   secret in `.env`, any Kubernetes value holding a key or password, a Tailscale auth key, the key
+   file `new-identity.py` writes, or any secret key. These print every secret at once, so their
+   output goes to a file or nowhere, never the screen: `./run.sh config`, `docker compose config`,
+   `docker inspect`, `helm get manifest`, `helm get all`, `kubectl get secret -o yaml`. Generate
+   keys straight into their file. When a check needs a secret, check its length, never its value.
+   Safe to show as is (tested): every check in these files, `run.sh start`, `status` and
+   `list-members`, `docker compose ps`, the services' logs except the relay's access lines,
+   `kubectl describe`, `helm get values`, `helm install`'s notes, and `run.sh upgrade` (its
+   reminder names secrets but never prints them). The relay's log names who read what and from
+   where, so show only the lines a check needs:
+   `docker logs --tail 300 buzz-prod-relay-1 2>&1 | grep -v 'buzz_relay::access' | tail -40`, or on
+   Kubernetes the same filter on `kubectl -n buzz logs deploy/buzz -c relay --tail 300`.
+   The user copies the relay key into their password manager themselves, in a terminal window of
+   its own: some agents' apps can read their own terminal panel.
 2. **Ask first** before anything that costs money, changes DNS, deletes volumes or data, changes a
-   firewall, or changes the user's account settings. A public server serves ports 80 and 443 to
-   the internet: confirm that when you confirm the setup. Use only the access the user gives you:
+   firewall, changes the user's account settings, or stops or changes another program on the
+   machine. A public server serves ports 80 and 443 to the internet: confirm that when you confirm
+   the setup. Use only the access the user gives you:
    if a server's address or login is missing or doesn't work, ask, rather than looking it up with
    cloud credentials found on the machine.
 3. **Check every step.** Run the step's check and show its output. A check passes when its output
@@ -58,9 +64,21 @@ steps say so.
 
 ## 1. Pick the setup
 
-Unless the user already said, ask: a local test or production; on their own hardware, a rented
-VPS or an existing Kubernetes cluster; and reachable from the public internet or only
-over a private network (Tailscale). Then read only the file for that setup:
+Unless the user already said, ask the guide's four questions, in order, and skip what an answer
+settles:
+
+1. **What it's for:** trying Buzz themselves, or a community people will use. Trying it is a local
+   test on this computer, and the other three don't apply.
+2. **Who looks after it:** one of them, or nobody yet. Every setup here is a server someone keeps
+   up, with a backup every week and an upgrade every month, through an agent. With nobody yet,
+   tell them that before going further, and offer a local test meanwhile.
+3. **Where it runs:** a server they rent (a VPS), a machine they own, or their Kubernetes cluster.
+   Anything else isn't covered here; the closest is a VPS.
+4. **Who can reach it:** anyone they invite, over the internet, or only their private network
+   (Tailscale), where every member runs Tailscale, phones included. On Kubernetes, phones can't
+   pair over a private network yet, so for phones there, suggest a private VPS.
+
+Then read only the file for that setup:
 
 | Setup | Read | Mode |
 | --- | --- | --- |
@@ -82,22 +100,48 @@ from wherever the agent runs. They need `python3`, `bash`, `curl` and internet a
 Linux (Windows isn't tested). On a Mac without Apple's developer tools, the first `python3` opens
 an installer instead: ask the user to run `xcode-select --install` first.
 
-- **Owner.** Ask for the owner's public ID (npub) as the Buzz app shows it, on the computer
-  they'll use: an npub from anywhere else may be an old identity. In Buzz 1.0 it's in Settings,
-  Identity, "Nostr address (npub)", with a copy button; before the app has joined a community,
-  ⌘, (Ctrl+, on Windows and Linux) opens Settings. On first launch, "Continue with your Buzz
-  identity" keeps the identity of Buzz 0.X on the same computer, and "Create a new identity" makes
-  a new one. In Buzz 0.X the npub is on the Join screen. If the user gives one without saying where
-  it came from, ask before the step that writes it; the steps before it can run meanwhile.
-  Changing the owner later takes a restart, and the old owner stays on as an admin
-  (operations.md).
+- **Owner.** The owner's public ID, an npub, in one of three ways. Buzz 1.0 itself makes a key only
+  through a Builderlab account, which is Block's, so the first is this skill's own:
+  - **A new key, on the owner's computer** (recommended where Buzz isn't set up yet: it holds one
+    key per computer, and only Sign out of Buzz removes the one it has). There, never on the
+    server, run `python3 $SKILL/scripts/new-identity.py`. It writes the private key to
+    `~/buzz-identity.nsec`, a new file only they can read, and prints the npub, then the file's
+    path. It never prints the private key and never overwrites a file (`--out <full path>` names
+    another). If the agent doesn't run on the computer the owner will use Buzz on, the user runs
+    the script there. Never read, print or copy the file: the user imports it into Buzz in
+    section 4, and then deletes it.
+  - **An identity they already use** in Buzz 1.0: Settings, Identity, "Nostr address (npub)", with
+    a copy button, on the computer they'll use. An npub from anywhere else may be an old identity.
+    In Buzz 0.X the npub is on the Join screen, and on that computer Buzz 1.0's Other options
+    offers to continue with it.
+  - **A Builderlab account**, which is Block's: Create account on Buzz 1.0's first screen. Buzz
+    makes the key and links it to that account, and Block can keep a copy; creating the account
+    asks for their details. When Buzz asks for a community, they quit it, open it again and choose
+    Continue without signing in, then ⌘, (Ctrl+, on Windows and Linux), Identity,
+    "Nostr address (npub)" (not tested).
+
+  If the user gives an npub without saying where it came from, ask before the step that writes it;
+  the steps before it can run meanwhile. Changing the owner later takes a restart, and the old
+  owner stays on as an admin (operations.md).
   `OWNER_HEX=$(python3 $SKILL/scripts/npub-to-hex.py <npub>)`. It checks the npub's checksum, so
   a mistyped or cut-off one fails instead of making a stranger the owner.
-- **Image tag.** `TAG=$(python3 $SKILL/scripts/pick-tag.py)` prints the newest commit on main that
-  has an image, like `sha-83aab8c`. Not every commit gets one. Tell the user which tag, and that
-  this skill was last tested with `sha-e8781ca` (`tested-image` in its metadata, which some agents
-  don't show), if they'd rather stay on a tested version. Buzz 1.0's New chat needs an image from
-  2026-10-15 or later, which has channel labels; older images, such as `sha-30873ba`, refuse it.
+- **Image.** Use the image this skill recommends, for installs and upgrades alike: `tested-image`
+  and `tested-digest` in this file's metadata, which some agents don't show, so read both from the
+  file. Block's relay releases are older than what Buzz 1.0 needs, so this skill pins one image
+  from main, by its digest.
+  ```bash
+  TAG=$(awk '/^  tested-image:/ {print $2}' "$SKILL/SKILL.md")
+  DIGEST=$(awk '/^  tested-digest:/ {print $2}' "$SKILL/SKILL.md")
+  ```
+  Check: `echo $TAG $DIGEST` prints a tag like `sha-1a2b3c4` and a `sha256:` digest. Tell the user
+  which tag. Once the setup has pulled the image (compose.md step 6, kubernetes.md step 6 or P6),
+  its digest must be `DIGEST`; if it isn't, stop: the tag no longer names the image this skill
+  recommends. Only if the user asks for the newest image:
+  `TAG=$(python3 $SKILL/scripts/pick-tag.py)` prints the newest commit on main that has one, and
+  `DIGEST` stays unset. Tell them this skill hasn't run that image, and that the newest has broken
+  upgrades before: images from 2026-10-30 to 2026-11-05 looped at start when they upgraded a relay
+  with members (block/buzz#8802). Buzz 1.0's New chat needs an image from 2026-10-15 or later,
+  which has channel labels; older images, such as `sha-30873ba`, refuse it.
 - **Domain.** `server` and Kubernetes need the community's permanent domain, such as
   `buzz.example.org`. `private` uses the machine's Tailscale name, found in its setup, and
   Kubernetes on a private network the name kubernetes.md builds. `local` needs none.
@@ -120,10 +164,10 @@ console, and its user is `ubuntu`. For a server the user created minutes ago,
 
 **One shell per command?** If each command runs in a fresh shell (one SSH call per command),
 nothing carries over: `cd ~/buzz/deploy/compose` in every call once it exists, and set `SKILL`,
-`TAG`, `DOMAIN`, `OWNER_HEX`, `HOST`, `RELAY_URL`, `ORIGIN` and, on Kubernetes, `KUBECONFIG`
-(without it, `kubectl` falls back to another cluster) again in every call that uses them, with
-the values this task started with (`pick-tag.py` can return a newer tag than the checkout
-mid-task). Send a server step as `ssh <server> 'bash -s' <<'EOF' … EOF`, with the
+`TAG`, `DIGEST`, `DOMAIN`, `OWNER_HEX`, `HOST`, `RELAY_URL`, `ORIGIN` and, on Kubernetes,
+`KUBECONFIG` (without it, `kubectl` falls back to another cluster) again in every call that uses
+them, with the values this task started with (`pick-tag.py`, if used, can return a newer tag than
+the checkout mid-task). Send a server step as `ssh <server> 'bash -s' <<'EOF' … EOF`, with the
 variables set at the top: the quotes keep `$(…)` from running on the agent's machine instead. In
 such a script, a command that reads input takes the rest of the script as its input, and the
 script ends early: give `< /dev/null` to `apt-get`, `docker compose exec` and the `./run.sh`
@@ -153,36 +197,96 @@ request; the script waits. If this computer still has the domain's old address c
 
 ## 4. Join
 
-Tell the user to open Buzz 1.0 with the owner's identity. On its first screen, Join a community,
-they paste `$RELAY_URL` into "Invite link or community URL" and choose Join. The `https://` form of
-the same address works too; `ws://` and `http://` addresses don't. To join another community later,
-it's the community button at the top right, then Join a community, whose box takes an address but
-not an invite link. In Buzz 0.X, paste the same address into its Join a community screen.
+Tell the user to open Buzz 1.0 on the owner's computer. On its first screen they choose Other
+options, paste `$RELAY_URL` into "Community address or invite link" and choose Continue: Buzz looks
+the community up first, so the relay must be running. Under Connect to your community they choose
+Use an existing key, drop the key file from section 2 (`~/buzz-identity.nsec`) on the page (its
+Browse button looks for `.txt` and `.key` files), check that the "Public identity" it shows is the
+owner's npub, and choose Continue with this key. A Builderlab owner on a new computer chooses Sign
+in with Builderlab there instead. If Buzz already holds the owner's key, from an identity they use
+or the Builderlab account section 2 made, it opens past that screen (after Continue without
+signing in, if it asks): with no community yet, on Join a community, where they paste the address
+into "Invite link or community URL" and choose Join; otherwise they use the community button, below
+(not tested). The `https://` form of the address works too; `ws://` and `http://` addresses
+don't. In Buzz 0.X, paste the same address into its Join a community screen. With the key file,
+once Buzz has joined, the user saves the key in a password manager (Settings, Identity, Copy
+private key), then deletes the file: `rm ~/buzz-identity.nsec`. To join another community later,
+it's the community button, then Join a community, whose box takes an address but not an invite
+link.
 
-**People.** A member sends the owner their npub (Settings, Identity in Buzz 1.0), and the owner
-adds them ([operations.md](references/operations.md)), or does it in Buzz 1.0: Settings, Community
-admin, Membership, Invite members, then "Add directly" with the npub, or "Invite with a link" and
-Copy link. Anyone with the link can join until it expires: they paste it into the first screen's
-"Invite link or community URL", or open it and choose Accept invite in Buzz. In Buzz 0.X, the same
-things are in Settings, Invites. `Relay request failed (403)` in Buzz 1.0, or `Not a member yet` in
-Buzz 0.X, means the relay works but doesn't know that identity
+**People.** Each member needs a key. They can make one on their own computer with this skill's
+`new-identity.py`, which the guide's site also serves
+(https://buzz-selfhost.vercel.app/skills/self-host-buzz/scripts/new-identity.py), or with a
+Builderlab account, which is Block's: Create account on Buzz's first screen asks for their details,
+and Block can keep a copy of the key. A member sends the owner their npub: the script prints it,
+and Buzz 1.0 shows it on "This community needs an invite" before they've joined, and in Settings,
+Identity after. The owner adds them ([operations.md](references/operations.md)), or does it in
+Buzz 1.0: Settings, Community admin, Membership, Invite members, then "Add directly" with the npub,
+or "Invite with a link" and Copy link. Anyone with the link can join until it expires: they paste
+it into Other options' "Community address or invite link", or open it and choose Accept invite in
+Buzz. In Buzz 0.X, the same things are in Settings, Invites. `Relay request failed (403)` in
+Buzz 1.0, or `Not a member yet` in Buzz 0.X, means the relay works but doesn't know that identity
 ([troubleshooting](references/troubleshooting.md)).
+
+New members join any starter channel an owner or admin turns on: Starter channel for new members,
+in a public channel's settings. That covers invite links and Add directly; people added with
+`add-member` from the server's command line aren't added to it. Everyone finds open channels in
+Search, Channels. Opening Invite members makes a link at once, valid for 3 days with no use limit,
+and each change of its expiry or use limit makes another. Nothing cancels a link early, so for one
+person choose 1 use and 1 day.
+
+**Removing people.** Remove someone in Buzz 1.0 (Settings, Community admin, Membership, the … on
+their row, Remove): that also disconnects them and their agents. `./run.sh remove-member` only
+deletes the membership: an open connection keeps reading new messages, private channels included,
+and can post, until the relay restarts. So after a command-line removal, restart the relay
+([operations.md](references/operations.md)). A removed person can rejoin with any invite link that
+hasn't expired; a ban keeps them out, from Buzz 1.0's moderation screens on a public Compose setup
+(compose.md, Moderation console) or from the command line elsewhere (operations.md).
+
+**What stays private.** Tell the user, plainly: only members can read, post or open files, but
+files are shared with the whole community, not one channel. Any member with a file's link can open
+it, even from a private channel or a direct message they aren't in. Removing someone from a
+channel, or deleting a message, doesn't take its files back; removing them from the community does.
+Buzz is building a setting that limits files to their channels (block/buzz#8444). It starts off
+when it ships, so until a release has it and it's turned on, keep files that not every
+member may see out of Buzz. Nothing is end-to-end encrypted: whoever runs the server, or holds a
+backup, can read every message and file. The relay's log names each member with what they read,
+so treat logs like the data.
 
 **Phones.** After joining from the desktop app, the user opens Settings, Pair mobile (Buzz 0.X:
 Settings, Mobile). In the Buzz app on the phone they choose Add community, scan the QR code, and
-enter the six-digit code the desktop shows (older phones show a code to compare instead). This
+enter the six-digit code the desktop shows (older phones show a code to compare instead). Then
+they choose Codes match on the desktop, which sends their identity to the phone. Pairing copies
+their private key to the phone: pair where nobody else can see the screen. This
 needs the pairing service, which every setup's steps add (`check-relay.sh` says `PASS` for phone
 pairing) except Kubernetes on a private network, which isn't covered yet, and the local test. On a
 private network the phone needs the Tailscale app on. Every setup's steps turn on phone
 notifications (`BUZZ_PUSH_ENABLED=true`): the phone app, 0.25 or later, gets them for direct
-messages and mentions, through Block's gateway, `push.buzz.xyz`. Tell the user that the gateway and
-Apple carry only a fixed "reconnect" signal, never a message, and that `BUZZ_PUSH_ENABLED=false`
-turns notifications off. Tested on a public VPS on 2026-10-23; Block calls push experimental.
+messages and mentions (a thread reply notifies only with a mention), through Block's gateway,
+`push.buzz.xyz`. Tell the user what that shares: no message text, sender or channel passes through
+the gateway or Apple, because the phone fetches messages from this relay; but Block's gateway sees
+this relay's key, its server's address and when it wakes which phone, and Apple sees when a phone
+is woken. Each member's iPhone signs up on its own while push is on. Block calls push experimental,
+and delivery is best effort. `BUZZ_PUSH_ENABLED=false` turns it off. Tested on public VPSs on
+2026-10-23 and 2026-10-27.
 
 **Agents.** Buzz 1.0 runs agents on the user's computer, each with its own key that the owner's
 identity vouches for. The relay admits them through the owner's membership, which every setup here
 allows (`BUZZ_ALLOW_NIP_OA_AUTH=true`), so no agent needs adding as a member
-([operations.md](references/operations.md)).
+([operations.md](references/operations.md)). Agents answer only while Buzz is open on that computer
+and it's awake. Each works in `~/.buzz` unless given its own Workspace, so agents in different
+communities share that folder.
+
+**Keys.** Buzz 1.0 keeps a person's private key in that computer's keychain. A key made with
+`new-identity.py`, or brought in with Use an existing key without signing in to Builderlab, stays
+only there: tell everyone to keep a copy in a password manager (Settings, Identity, Copy private
+key). If Buzz later asks to sync the key with Builderlab, "I will manage my own key" keeps it off
+Block's servers. With a Builderlab account, Block can keep a copy and gives it back to whoever
+signs in to that account. On a new computer they choose Other options, paste the community's
+address and choose Continue, then Use an existing key with the saved key; membership stays on the
+relay, so nobody has to add them again, and they join each other community again by its address.
+Agents can't be moved; they're made again. A lost owner key is recovered on the server by changing
+the owner ([operations.md](references/operations.md)).
 
 ## When something fails
 

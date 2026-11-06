@@ -26,10 +26,17 @@ x86 emulation there (tested): Docker warns that the image's platform doesn't mat
 harmless.
 
 1. **Machine.**
-   - Server: `cloud-init status --wait; uname -m; free -h; df -h /` → `status: done`, `x86_64`,
+   - Server: `. /etc/os-release; echo $ID $VERSION_ID` → `ubuntu 24.04`. On anything else, stop
+     and tell the user this setup expects Ubuntu 24.04. Then
+     `command -v cloud-init > /dev/null && cloud-init status --wait; uname -m; free -h; df -h /` →
+     `status: done` or `status: disabled` (nothing on a machine without cloud-init), `x86_64`,
      about 3.7Gi or more of memory, and a disk `Size` of 20G or more. The first command waits for
      a new server's first-boot updates, which otherwise hold apt's lock and break the installs
-     below. As a user other than root, also `sudo -n true && echo sudo ok` → `sudo ok`.
+     below. As a user other than root, also `sudo -n true && echo sudo ok` → `sudo ok`. The ports
+     this setup uses must be free:
+     `ss -ltnH '( sport = :80 or sport = :443 or sport = :3000 or sport = :5000 )'` prints nothing
+     (`private` mode needs only 3000 and 5000). If something listens, stop and ask the user: never
+     stop or change the program that holds the port.
    - Docker Desktop (`local`): `docker version --format '{{.Server.Version}}'` prints the engine's
      version (it fails when Docker Desktop isn't running), and `docker compose version` → 2.24.4
      or later.
@@ -89,10 +96,20 @@ harmless.
    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
    sudo usermod -aG docker $USER
    ```
-   Over SSH, apt may warn `debconf: unable to initialize frontend`: harmless. Check:
-   `docker compose version` → 2.24.4 or later (the Caddy overlay needs it; Docker's
-   repository gives v5, which counts). As a user other than root, the docker group applies at the
-   next login: log out and in, or run `newgrp docker`, before step 6.
+   Over SSH, apt may warn `debconf: unable to initialize frontend`: harmless. Then cap Docker's
+   logs, which otherwise grow until the disk fills. If `/etc/docker/daemon.json` already exists, or
+   `sudo docker ps -q | wc -l` shows other containers running here (the restart below restarts
+   them), ask first:
+   ```bash
+   sudo mkdir -p /etc/docker
+   [ -e /etc/docker/daemon.json ] || printf '%s\n' '{"log-driver": "json-file", "log-opts": {"max-size": "50m", "max-file": "5"}}' | sudo tee /etc/docker/daemon.json > /dev/null
+   sudo systemctl restart docker
+   ```
+   Check: `docker compose version` → 2.24.4 or later (the Caddy overlay needs it; Docker's
+   repository gives v5, which counts), `sudo docker info --format '{{.LoggingDriver}}'` →
+   `json-file`, and `grep -c max-size /etc/docker/daemon.json` → `1` (the log cap is not tested).
+   As a user other than root, the docker group applies at the next login: log out and in, or run
+   `newgrp docker`, before step 6.
 4. **The bundle**, at the commit the image was built from so the two match. It goes in the home
    directory unless the user wants another folder; then use that folder wherever this file says
    `~`. For a local test, keep it somewhere permanent, not under `/tmp` (`/private/tmp` on a
@@ -113,16 +130,23 @@ harmless.
    Check: `grep -c CHANGE_ME_RANDOM .env` → `0`, and each is now 64 hex characters:
    `grep -cE "^($(grep CHANGE_ME_RANDOM .env.example | cut -d= -f1 | paste -sd'|' -))=[0-9a-f]{64}$" .env`
    prints the same number as `grep -c CHANGE_ME_RANDOM .env.example` (5 today).
-6. **Relay key**, written without printing it:
+6. **Relay key**, written without printing it. The first command also pulls the relay's image:
    ```bash
    key=$(docker run --rm --entrypoint /usr/local/bin/buzz-admin ghcr.io/block/buzz:$TAG generate-key | awk '/^Secret key:/ {print $3}')
    sed -i.bak "s/^BUZZ_RELAY_PRIVATE_KEY=.*/BUZZ_RELAY_PRIVATE_KEY=${key}/" .env && rm .env.bak && unset key
    ```
    Check: `grep '^BUZZ_RELAY_PRIVATE_KEY=' .env | cut -d= -f2 | tr -d '\n' | wc -c | tr -d ' '` →
-   `64`. Then tell the user to copy the key into a password manager two maintainers can open, by
-   running this in their own terminal, not in the conversation (through `ssh` for a server):
+   `64`, and the image is the one SKILL.md section 2 names:
+   `docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/block/buzz:$TAG` →
+   `ghcr.io/block/buzz@$DIGEST`, the digest SKILL.md section 2 sets (skip this when the user chose
+   the newest image). Then tell the user to copy the key into a password manager two maintainers
+   can open, by running this in a terminal window of its own, not in the conversation or a terminal
+   inside the agent's app, which some agents can read (through `ssh` for a server):
    `ssh <server> "grep '^BUZZ_RELAY_PRIVATE_KEY=' ~/buzz/deploy/compose/.env | cut -d= -f2"`.
-   Backups of `.env` hold it too. A local test can skip the copy.
+   Backups of `.env` hold it too. A local test can skip the copy. The key is the relay's identity:
+   never replace it, not even when someone who could read it leaves. A new key splits every
+   channel's records today (block/buzz#7357), and Block's chart says not to rotate it. If it leaked,
+   treat the server as exposed, and ask in block/buzz before changing it.
 7. **Owner.**
    ```bash
    sed -i.bak "s/^RELAY_OWNER_PUBKEY=.*/RELAY_OWNER_PUBKEY=$OWNER_HEX/" .env && rm .env.bak
@@ -153,8 +177,10 @@ harmless.
    ```
    Check: `grep '^BUZZ_PAIRING_RELAY_URL=' .env` → `BUZZ_PAIRING_RELAY_URL=wss://$HOST/pair` (one
    line). Also turn on phone notifications: the relay then wakes the Buzz phone app (0.25 or later)
-   for direct messages and mentions through Block's gateway, `push.buzz.xyz`, which passes Apple
-   only a fixed "reconnect" signal, never a message; the phone fetches messages from this relay:
+   for direct messages and mentions through Block's gateway, `push.buzz.xyz`. No message text
+   passes through it or Apple: the phone fetches messages from this relay. The gateway does see this
+   relay's key, its server's address and when it wakes which phone (SKILL.md section 4 has what to
+   tell the user):
    ```bash
    sed -i.bak "s/^BUZZ_PUSH_ENABLED=.*/BUZZ_PUSH_ENABLED=true/" .env && rm .env.bak
    ```
@@ -271,10 +297,66 @@ authority. The user removes the trust in their own terminal, on a Mac:
 `sudo security delete-certificate -Z "$(openssl x509 -in local-ca.crt -noout -fingerprint -sha1 | cut -d= -f2 | tr -d :)" /Library/Keychains/System.keychain`.
 A new local test makes a new authority, to trust again.
 
-**For a server that runs for months.** Docker keeps each container's log without limit; ask the
-user about capping it (`log-opts` in `/etc/docker/daemon.json`, which applies to containers created
-afterwards). Nothing schedules backups: ask how often to run operations.md's backup.
+**For a server that runs for months.** A server set up before step 3 capped Docker's logs keeps
+uncapped ones: add the file the same way, then `BUZZ_COMPOSE_TLS=true ./run.sh stop` and
+`BUZZ_COMPOSE_TLS=true ./run.sh start` (without the flag in `private` mode; members lose the
+connection for about half a minute), since only new containers pick it up. Nothing schedules
+backups, so offer a nightly one (ask first; not tested). Members lose the connection for about half
+a minute each time, so the user picks the hour. Save operations.md's backup block as
+`~/buzz-backup.sh`, with `cd ~/buzz/deploy/compose` as its first line and, as its last, a line that
+keeps the newest seven folders once the night's backup is whole:
+`[ -s "$BACKUP/postgres.dump" ] && [ -s "$BACKUP/env" ] && ls -d ~/buzz-backup/20*/ | head -n -7 | xargs -r rm -rf`.
+Then `chmod 700 ~/buzz-backup.sh` and, for 03:30 server time,
+`(crontab -l 2>/dev/null; echo '30 3 * * * bash ~/buzz-backup.sh > ~/buzz-backup.log 2>&1') | crontab -`
+(the log sits outside `~/buzz-backup`, which may not exist before the first backup).
+Check: `crontab -l` shows the line, and the next day `ls ~/buzz-backup` shows a new folder. Copies
+off the server stay the user's to make.
+
+**Moderation console (`server`; optional, ask first).** Offer it for a community that strangers
+can join (not tested). Without it, members can report a message, but nobody sees reports in Buzz,
+and nobody can ban someone, time them out or delete their messages. Remove isn't a ban: a removed
+person comes back with any invite link that hasn't expired. Buzz 1.0's Moderation screens do all of
+that once the relay serves its admin API at a second name, `admin.$DOMAIN`, which Buzz finds in the
+relay's info. Every request to it must be signed by the owner or by staff the owner adds. Buzz
+connects to it only at a public address, so a private network moderates with the command line
+instead (operations.md). With the user's OK:
+- An A record for `admin.$DOMAIN` at the same address as `$DOMAIN` (it changes DNS). Check it on
+  the server as step 2 does:
+  `python3 -c "import socket; print(sorted({a[4][0] for a in socket.getaddrinfo('admin.$DOMAIN', 443)}))"`
+  prints only the machine's public IP.
+- The admin name in `.env`, with `BUZZ_ADMIN_AUTH` left unset, which means signed requests, and
+  Caddy's route for it. Upgrades and restores reset the Caddyfile, so they add the route again,
+  after step 9's edits:
+  ```bash
+  grep -q '^BUZZ_ADMIN_HOST=' .env || echo "BUZZ_ADMIN_HOST=admin.$HOST" >> .env
+  grep -q '^admin\.' Caddyfile || printf '\nadmin.{$BUZZ_DOMAIN} {\n    reverse_proxy relay:3000\n}\n' >> Caddyfile
+  ```
+  Check: `grep -E '^BUZZ_ADMIN_(HOST|AUTH)=' .env` prints only `BUZZ_ADMIN_HOST=admin.$HOST`, and
+  `grep -c '^admin\.' Caddyfile` → `1`.
+- Stop and start everything, so the relay reads `.env` and Caddy its file (members lose the
+  connection for about half a minute): `BUZZ_COMPOSE_TLS=true ./run.sh stop`, then
+  `BUZZ_COMPOSE_TLS=true ./run.sh start`. Check:
+  `curl -s -H 'Accept: application/nostr+json' $ORIGIN/ | python3 -c 'import json,sys; print(json.load(sys.stdin).get("admin_api"))'`
+  → `https://admin.$HOST`, and
+  `curl -s -o /dev/null -w '%{http_code}\n' https://admin.$HOST/api/admin/v1/probe` → `401`: the
+  name answers, and asks for a signature. Caddy can take a minute to get its certificate.
+
+Then tell the user: in Buzz 1.0 the owner opens Settings, where Moderation shows Reports, Feedback,
+Communities and Staff (Check again refreshes it). Moderators are people the owner adds under Staff,
+Add staff, with their npub and the role Moderator: being a community admin isn't enough. From
+those screens, staff ban people, time them out and delete messages. A ban disconnects the person
+and their agents, and refuses them at any invite link; after Remove, any live link still lets them
+back in.
 
 **Optional hardening (`server`; ask first: a wrong SSH rule locks the user out).** Docker
 publishes 80 and 443 around `ufw`, so a host firewall mainly guards SSH and anything else on the
 machine: `sudo ufw allow from <admin IP> to any port 22 proto tcp`, then `sudo ufw enable`.
+
+**Shutting a server down (`server` and `private`; ask first: it ends the community).** Back up
+first (operations.md), with a copy off the server. Then `BUZZ_COMPOSE_TLS=true ./run.sh stop`
+(`./run.sh stop` in `private` mode). Before the server goes, delete the domain's A record, and
+`admin.$DOMAIN`'s if there is one, or point them at a server the user controls: once the provider
+hands the address to someone else, a record left behind lets them get a certificate for the
+community's address and answer as the relay. In `private` mode, remove the machine from the tailnet
+instead (admin console, Machines). Then destroy the server, with its volumes and the provider's
+backups of it (not tested).

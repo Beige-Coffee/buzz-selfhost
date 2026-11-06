@@ -7,13 +7,19 @@ S3), which isn't tested here. Tell the user which one they're getting. Tested on
 Kubernetes 1.36 with Traefik (chart 41.6.1, Traefik 3.7) and cert-manager 1.21. Needs `kubectl`
 and `helm` pointed at the cluster, with `kubectl` within one minor version of it: keep the same
 `KUBECONFIG` or context for every command, including the ones the user runs. The quickstart's
-file store image, `ghcr.io/block/buzz-minio`, is built for x86 only, so the cluster needs x86 nodes. `RELAY_URL=wss://$DOMAIN`, `ORIGIN=https://$DOMAIN`. Ask before
+file store image, `ghcr.io/block/buzz-minio`, is built for x86 only and the chart doesn't keep it
+off ARM nodes, so every node must be x86. `RELAY_URL=wss://$DOMAIN`, `ORIGIN=https://$DOMAIN`. Ask before
 anything that costs money or creates DNS records: Traefik's load balancer, and the quickstart's
 four volumes (34 GiB on DigitalOcean). Run the heredocs below as shown, unindented.
 For a relay reachable only over a private network (Tailscale), read **Private network** below
 first: it replaces steps 1, 2 and 6.
 
-**1. Cluster.** `helm list -n buzz` must not show an existing `buzz` release. Then
+**1. Cluster.** `helm list -n buzz` must not show an existing `buzz` release.
+`kubectl get storageclass` must show one class marked `(default)`: without one, the quickstart's
+four volumes wait forever. If there's none, ask the user which to use (on EKS, gp3 with the EBS CSI
+driver; on bare metal, a provisioner such as local-path). `kubectl get nodes -L kubernetes.io/arch`
+must show `amd64` for every node: the quickstart's file store image is x86 only, and nothing keeps
+it off an ARM node. Then
 `kubectl get ingressclass; kubectl get clusterissuer` should show an ingress class and a ready
 issuer. On a fresh cluster the second command errors (`doesn't have a resource type`): there's no
 cert-manager yet. If the cluster has its own, use their names wherever this file says `traefik`
@@ -46,7 +52,11 @@ shows `READY True` (it takes a few seconds).
 
 **2. DNS.** Ask the user for an A record for `$DOMAIN` at the ingress's load balancer:
 `kubectl -n traefik get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}'` (if it
-prints nothing, the load balancer is still being made: wait a minute and run it again). Where
+prints nothing, the load balancer is still being made: wait a minute and run it again). With the
+cluster's own ingress controller, find its Service in any namespace with
+`kubectl get svc -A | grep -iE 'traefik|ingress'` (k3s keeps Traefik in `kube-system`). An
+EXTERNAL-IP still `<pending>` after five minutes means the cluster has no load balancer: ask the
+user (MetalLB on bare metal; on k3s, ServiceLB shows the node's address). Where
 the load balancer has a hostname instead (AWS), read `.hostname` and ask for a CNAME. For a test
 without a domain, `<the IP with dashes>.sslip.io` resolves to that IP with no record; like any
 name from an IP, it only lives as long as the load balancer keeps it. Check:
@@ -133,14 +143,20 @@ Check: `kubectl -n buzz get pods` shows the relay (`buzz-…`), the pairing serv
 
 **5. Relay key.** The chart generated it into the `buzz-relay` Secret. Check, without printing
 it: `kubectl -n buzz describe secret buzz-relay | grep BUZZ_RELAY_PRIVATE_KEY` → `64 bytes`. Ask
-the user to copy it into a password manager two maintainers can open, by running this in their
-own terminal with the same `KUBECONFIG` (it prints the key), and carry on meanwhile:
+the user to copy it into a password manager two maintainers can open, by running this in a
+terminal window of its own, not one inside the agent's app, with the same `KUBECONFIG` (it prints
+the key), and carry on meanwhile:
 `kubectl -n buzz get secret buzz-relay -o jsonpath='{.data.BUZZ_RELAY_PRIVATE_KEY}' | base64 -d`.
+The key is the relay's identity: never replace it, as compose.md step 6 says ("do NOT rotate" in
+Block's chart).
 
 **6. Checks.** `kubectl -n buzz get certificate` → `buzz-tls` `True` (if `False`, wait a minute
 and run it again);
 `kubectl -n buzz exec deploy/buzz -c relay -- /usr/local/bin/buzz-admin list-members` shows
-`$OWNER_HEX` with the role `owner`; then SKILL.md section 3. To confirm the relay's own ports
+`$OWNER_HEX` with the role `owner`; the relay runs the image SKILL.md section 2 names (not tested;
+skip it for the newest image):
+`kubectl -n buzz get pods -l app.kubernetes.io/component=relay -o jsonpath='{.items[*].status.containerStatuses[?(@.name=="relay")].imageID}'`
+ends with `@$DIGEST`; then SKILL.md section 3. To confirm the relay's own ports
 aren't exposed, give it a node's public IP (`kubectl get nodes -o wide`, EXTERNAL-IP) and
 `3000 5000 8080`: the load balancer forwards only 80 and 443, so a leak would show on a node. Then
 **join**, as section 4 says.
@@ -167,7 +183,8 @@ so ask):
 Check: `wc -l < <file>` → `0` for each file (no newline; it prints nothing secret, and macOS pads
 the number with spaces), and `ls -l` shows `-rw-------` for both.
 
-**P2. Operator.** `helm list -n buzz` must not show an existing `buzz` release. The Secret keeps
+**P2. Operator.** `helm list -n buzz` must not show an existing `buzz` release, and step 1's
+StorageClass and node checks apply here too. The Secret keeps
 the OAuth secret out of Helm's values, which `helm get values` shows:
 ```bash
 kubectl create namespace tailscale
@@ -239,8 +256,10 @@ Check: `kubectl -n buzz get pods` shows the relay (`buzz-…`), MinIO, Postgres 
 **P5. Relay key.** The chart generated it into the `buzz-relay` Secret. Check, without printing
 it: `kubectl -n buzz describe secret buzz-relay | grep BUZZ_RELAY_PRIVATE_KEY` → `64 bytes`. Ask
 the user to copy it into a password manager two maintainers can open, any time before anyone
-joins, by running this in their own terminal with the same `KUBECONFIG` (it prints the key):
+joins, by running this in a terminal window of its own, not one inside the agent's app, with the
+same `KUBECONFIG` (it prints the key):
 `kubectl -n buzz get secret buzz-relay -o jsonpath='{.data.BUZZ_RELAY_PRIVATE_KEY}' | base64 -d`.
+Never replace it, as step 5 says.
 
 **P6. Checks.**
 - `kubectl -n buzz get ingress buzz` shows `$DOMAIN` under ADDRESS within a minute or so. If it
@@ -250,6 +269,7 @@ joins, by running this in their own terminal with the same `KUBECONFIG` (it prin
   `tailscale.com/funnel` (Funnel would publish the relay to the internet).
 - `kubectl -n buzz exec deploy/buzz -c relay -- /usr/local/bin/buzz-admin list-members` shows
   `$OWNER_HEX` with the role `owner`.
+- The relay's image ends with `@$DIGEST`, as in step 6 (not tested; skip it for the newest image).
 - SKILL.md section 3 from this machine, with a node's public IP (`kubectl get nodes -o wide`,
   EXTERNAL-IP) and `80 443 3000 8080`. The first request makes the certificate; the script waits.
 

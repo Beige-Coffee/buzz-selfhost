@@ -8,7 +8,8 @@
 #   bash smoke-vps.sh install <domain> <image-tag> <owner-hex>
 #   bash smoke-vps.sh private <image-tag> <owner-hex> <tailnet machine name>   (needs /root/.ts-authkey)
 #   bash smoke-vps.sh add-member <hex>
-#   bash smoke-vps.sh list-members | backup | wipe | restore
+#   bash smoke-vps.sh list-members | backup | wipe
+#   bash smoke-vps.sh restore <domain>   (the community's domain, to check the backup's address)
 #   bash smoke-vps.sh upgrade [new-image-tag]   (no tag: run.sh upgrade on the same tag)
 set -uo pipefail
 
@@ -92,6 +93,32 @@ IFS= read -r -d '' FETCH_FILE <<'SNIP' || true
 key=$(grep -E '^[0-9a-f]{64}\.[a-z0-9]+$' ~/buzz-files-before.txt | head -1)
 [ "$(docker compose run --rm --no-deps -T --entrypoint sh -e KEY="$key" minio-init -c 'mc alias set local http://minio:9000 "$BUZZ_S3_ACCESS_KEY" "$BUZZ_S3_SECRET_KEY" >/dev/null && mc cat "local/$BUZZ_S3_BUCKET/$KEY"' < /dev/null | sha256sum | cut -c1-64)" = "${key%%.*}" ] && echo intact
 SNIP
+# operations.md's restore block, verbatim: it restores only into an empty database, stops at the
+# first pg_restore error, and starts the relay only after `restored`.
+IFS= read -r -d '' RESTORE <<'SNIP' || true
+cp "$BACKUP/env" .env
+docker compose create
+for v in minio-data git-data; do
+  docker run --rm -v buzz-prod_buzz-$v:/data -v "$BACKUP":/backup alpine \
+    tar xzf /backup/$v.tgz -C /data
+done
+docker compose up -d --wait postgres
+[ "$(docker compose exec -T postgres psql -U buzz -d buzz -tAc "select count(*) from pg_tables where schemaname = 'public'" < /dev/null)" = 0 ] &&
+  docker compose exec -T postgres pg_restore -U buzz -d buzz --exit-on-error --single-transaction < "$BACKUP/postgres.dump" &&
+  echo restored && BUZZ_COMPOSE_TLS=true ./run.sh start
+SNIP
+# operations.md's check before an upgrade, verbatim: no two open channels share a name (block/buzz#8787)
+IFS= read -r -d '' NAME_CHECK <<'SNIP' || true
+docker compose exec -T postgres psql -U buzz -d buzz -tAc "select lower(name), count(*) from channels c where visibility = 'open' and channel_type in ('stream', 'forum') and deleted_at is null and not coalesce((to_jsonb(c) ->> 'unlisted')::boolean, false) group by community_id, lower(name) having count(*) > 1" < /dev/null
+SNIP
+# check_digest TAG: SKILL.md section 2's image check. With PIN_TAG and PIN_DIGEST from the caller
+# (smoke.sh reads them from SKILL.md), the pinned image must have the pinned digest.
+check_digest() {
+  run "digest-$1" "docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/block/buzz:$1"
+  if [[ -n ${PIN_TAG:-} && $1 == "$PIN_TAG" ]]; then
+    expect "the image is the one the skill recommends" "ghcr.io/block/buzz@${PIN_DIGEST:-}" "$(cat "$OUT/digest-$1.out")"
+  fi
+}
 # pairing_edits MODE: the edits for server or private mode, with their checks
 pairing_edits() {
   run pair-service "$PAIR_EDIT"
@@ -134,6 +161,7 @@ sed -i.bak \"s/^BUZZ_RELAY_PRIVATE_KEY=.*/BUZZ_RELAY_PRIVATE_KEY=\${key}/\" .env
   expect "relay key is 64 characters" "64" "$(grep '^BUZZ_RELAY_PRIVATE_KEY=' .env | cut -d= -f2 | tr -d '\n' | wc -c | tr -d ' ')"
   grep -qE '^BUZZ_RELAY_PRIVATE_KEY=[0-9a-f]{64}$' .env && pass "relay key is hex" || fail "relay key is not hex"
   run generate-key-format "docker run --rm --entrypoint /usr/local/bin/buzz-admin $IMAGE generate-key | sed -E 's/[0-9a-f]{64}/<64 hex>/'"
+  check_digest "$TAG"
 
   section "7. Set the owner"
   run owner "sed -i.bak \"s/^RELAY_OWNER_PUBKEY=.*/RELAY_OWNER_PUBKEY=$OWNER_HEX/\" .env && rm .env.bak"
@@ -317,23 +345,25 @@ list-members)
 # ══ Day two: back up (the page's commands) ════════════════════════════
 backup)
   cd "$COMPOSE_DIR" || exit 1
-  run backup 'mkdir -p ~/buzz-backup && chmod 700 ~/buzz-backup
+  run backup 'BACKUP=~/buzz-backup/$(date +%F)
+mkdir -p "$BACKUP" && chmod 700 ~/buzz-backup "$BACKUP"
 docker compose stop relay
-docker compose exec -T postgres pg_dump -U buzz -Fc buzz > ~/buzz-backup/postgres.dump < /dev/null
+docker compose exec -T postgres pg_dump -U buzz -Fc buzz > "$BACKUP/postgres.dump" < /dev/null
 for v in minio-data git-data; do
-  docker run --rm -v buzz-prod_buzz-$v:/data:ro -v ~/buzz-backup:/backup alpine \
+  docker run --rm -v buzz-prod_buzz-$v:/data:ro -v "$BACKUP":/backup alpine \
     tar czf /backup/$v.tgz -C /data .
 done
-cp .env ~/buzz-backup/env
+cp .env "$BACKUP/env"
 docker compose start relay' && pass "backup" || fail "backup"
-  run backup-files 'ls -la ~/buzz-backup'
+  run backup-files 'ls -la "$BACKUP"'
   for f in postgres.dump minio-data.tgz git-data.tgz env; do
-    [[ -s ~/buzz-backup/$f ]] && pass "backup has $f" || fail "backup missing $f"
+    [[ -s $BACKUP/$f ]] && pass "backup has $f" || fail "backup missing $f"
   done
-  run backup-bucket 'tar tzf ~/buzz-backup/minio-data.tgz | grep -c buzz-media'
+  expect "the backup folder is private" "700" "$(stat -c %a "$BACKUP")"
+  run backup-bucket 'tar tzf "$BACKUP/minio-data.tgz" | grep -c buzz-media'
   N=$(tail -1 "$OUT/backup-bucket.out")
   [[ $N =~ ^[0-9]+$ && $N -gt 0 ]] && pass "the object store's archive holds the bucket ($N entries)" || fail "no buzz-media in minio-data.tgz"
-  run backup-dump 'docker compose exec -T postgres pg_restore -l < ~/buzz-backup/postgres.dump | wc -l'
+  run backup-dump 'docker compose exec -T postgres pg_restore -l < "$BACKUP/postgres.dump" | wc -l'
   N=$(tail -1 "$OUT/backup-dump.out" | tr -d ' ')
   [[ $N =~ ^[0-9]+$ && $N -ge 100 ]] && pass "the dump reads back ($N lines)" || fail "the dump doesn't read back"
   wait_alive && pass "relay back up after the backup" || fail "relay down after the backup"
@@ -352,24 +382,29 @@ cd /root && rm -rf buzz' && pass "wipe" || fail "wipe"
 
 # ══ Day two: restore onto a fresh checkout (the page's commands) ══════
 restore)
+  RESTORE_DOMAIN="${2:?domain}"
+  # operations.md: BACKUP names the folder to restore; here, the newest
+  BACKUP=$(ls -d ~/buzz-backup/20*/ | tail -1)
+  BACKUP=${BACKUP%/}
   cd /root
-  run reclone 'TAG=$(grep '"'"'^BUZZ_IMAGE='"'"' ~/buzz-backup/env | cut -d: -f2)
+  run reclone 'TAG=$(grep '"'"'^BUZZ_IMAGE='"'"' "$BACKUP/env" | cut -d: -f2)
 git clone https://github.com/block/buzz.git
 cd buzz && git checkout -q ${TAG#sha-} && cd deploy/compose
 cp .env.example .env && chmod 600 .env' >/dev/null && pass "fresh checkout" || fail "fresh checkout"
   cd "$COMPOSE_DIR" || exit 1
   object_store_edit
   pairing_edits server
-  expect "fresh checkout at the backup's commit" "$(grep '^BUZZ_IMAGE=' ~/buzz-backup/env | cut -d: -f2 | sed 's/^sha-//')" "$(git rev-parse HEAD | cut -c1-7)"
-  run restore 'cp ~/buzz-backup/env .env
-docker compose create
-for v in minio-data git-data; do
-  docker run --rm -v buzz-prod_buzz-$v:/data -v ~/buzz-backup:/backup alpine \
-    tar xzf /backup/$v.tgz -C /data
-done
-docker compose up -d --wait postgres
-docker compose exec -T postgres pg_restore -U buzz -d buzz < ~/buzz-backup/postgres.dump
-BUZZ_COMPOSE_TLS=true ./run.sh start' && pass "restore" || fail "restore"
+  expect "fresh checkout at the backup's commit" "$(grep '^BUZZ_IMAGE=' "$BACKUP/env" | cut -d: -f2 | sed 's/^sha-//')" "$(git rev-parse HEAD | cut -c1-7)"
+  # operations.md's checks before the block: the four files, this community's address, no database left
+  run backup-complete 'for f in postgres.dump minio-data.tgz git-data.tgz env; do [ -s "$BACKUP/$f" ] || echo missing $f; done'
+  expect "the backup has all four files" "" "$(cat "$OUT/backup-complete.out")"
+  run backup-address 'grep '"'"'^RELAY_URL='"'"' "$BACKUP/env"'
+  expect "the backup is this community's" "RELAY_URL=wss://$RESTORE_DOMAIN" "$(cat "$OUT/backup-address.out")"
+  run db-volume 'docker volume ls -q --filter name=buzz-prod_buzz-postgres-data'
+  expect "no database volume before the restore" "" "$(cat "$OUT/db-volume.out")"
+  [[ -s $OUT/db-volume.out ]] && finish
+  run restore "$RESTORE" && pass "restore" || fail "restore"
+  grep -qx restored "$OUT/restore.out" && pass "the restore printed restored" || fail "the restore didn't print restored"
   grep -q "not created by Docker Compose" "$OUT/restore.out" && fail "compose warns about volumes it didn't create" || pass "no volume warnings"
   wait_alive && pass "relay answers after the restore" || fail "relay down after the restore"
   expect "pairing answers after the restore" "101" "$(ws_status "https://$(domain)/pair")"
@@ -391,6 +426,8 @@ upgrade)
 git fetch -q origin
 git merge-base --is-ancestor ${OLD#sha-} ${TAG#sha-} && echo newer'
     expect "the new tag is newer" "newer" "$(cat "$OUT/newer.out")"
+    run channel-names "$NAME_CHECK"
+    expect "no two open channels share a name" "" "$(cat "$OUT/channel-names.out")"
     run move-bundle 'git checkout compose.yml Caddyfile
 git checkout -q ${TAG#sha-}' && pass "bundle moved" || fail "bundle moved"
     object_store_edit
@@ -406,6 +443,7 @@ git checkout -q ${TAG#sha-}' && pass "bundle moved" || fail "bundle moved"
   expect "pairing answers after the upgrade" "101" "$(ws_status "https://$(domain)/pair")"
   [[ -n $NEW_TAG ]] && expect "relay runs the new image" "relay ghcr.io/block/buzz:$NEW_TAG healthy" \
     "$(docker compose ps --format '{{.Service}} {{.Image}} {{.Status}}' relay | sed -E 's/ Up .*\((healthy)\)$/ \1/')"
+  [[ -n $NEW_TAG ]] && check_digest "$NEW_TAG"
   STORE_AFTER=$(store_image)
   echo "INFO  object store image: $STORE_BEFORE before, $STORE_AFTER after"
   if grep -q 'image: pgsty/silo' compose.yml; then

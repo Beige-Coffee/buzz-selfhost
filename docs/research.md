@@ -143,6 +143,28 @@ and [#7869](https://github.com/block/buzz/pull/7869) with [#7870](https://github
   admin, who `remove-member` can then remove. The current owner can't be removed. Tested on Compose
   only.
 
+## Buzz 1.0, checked on 2026-11-06
+
+Checked in block/buzz-app's source at v0.7.0-preview.248.1, and block/buzz at 744f3946f (the pin).
+
+- **First run is account-first** (#2579, first in 248.1): Create account and Sign in are for a
+  Builderlab account. Other options takes a community's address, then Connect to your community
+  offers Sign in with Builderlab or Use an existing key. Buzz makes a new key only through an
+  account.
+- **Key import** (KeyImport.tsx, key-import.ts): paste the nsec, or drop or browse to a small
+  file whose first line is one. Browse lists `.txt`, `.key` and plain-text files only.
+- **One key per computer.** Only Sign out of Buzz removes it. Settings, Identity, Copy private key
+  copies it without revealing it (PrivateKey.tsx). A computer with a key and no community opens on
+  Join a community; one set up through Builderlab first asks Sign in or Continue without signing
+  in.
+- **The dock** (#2626, from 246.1): Activity, Messages and Agents down the left, the community
+  button and the profile picture at its foot, Search across the top.
+- **Pairing** ends with Codes match on the computer (#1597).
+- **The `buzz` command line** comes with the app (`Contents/Resources/bin/buzz` on a Mac, built from
+  block/buzz e3a0f3d59). The app's own key provider refuses moderation and deletion kinds, so
+  moderating from it needs `BUZZ_PRIVATE_KEY`.
+- **Intel Macs** are supported from 247.1 (#1825).
+
 ## Buzz 1.0, checked on 2026-10-23
 
 Buzz 1.0 (github.com/block/buzz-app, beta; releases are prereleases named `0.0.0-preview.N.1`, so

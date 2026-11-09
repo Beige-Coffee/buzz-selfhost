@@ -15,7 +15,7 @@ loader.exec_module(m)
 
 port, scenario = int(sys.argv[1]), sys.argv[2]
 d = tempfile.mkdtemp(prefix="buzz-preview-")
-m.SETTINGS_DIR = d
+m.SETTINGS_DIR = m.TAILSCALE_DIR = m.CLOUDFLARE_DIR = d
 m.RELAY_ENV, m.SETUP_JSON = d + "/relay.env", d + "/setup.json"
 m.TAILSCALE_ON, m.TAILSCALE_STATUS, m.TAILSCALE_SERVE = d + "/tailscale-enabled", d + "/tailscale-status.json", d + "/tailscale-serve.txt"
 m.CLOUDFLARE_ON, m.CLOUDFLARE_STATE, m.CLOUDFLARE_LOGIN, m.CLOUDFLARE_SETUP, m.CLOUDFLARE_RESET = (

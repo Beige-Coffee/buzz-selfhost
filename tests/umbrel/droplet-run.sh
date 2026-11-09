@@ -37,15 +37,15 @@ ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}
 J=/tmp/ts-check-jar; rm -f $J
 docker exec buzz_web_1 printenv APP_PASSWORD | tr -d '\n' | curl -s -o /dev/null -c $J --data-urlencode password@- http://$ip:8080/login
 wait_for() { for i in $(seq 1 40); do eval "$1" && return 0; sleep 3; done; return 1; }
-wait_for 'docker exec buzz_web_1 grep -q "argotunnel" /settings/cloudflare-login.log 2> /dev/null' &&
+wait_for 'docker exec buzz_web_1 grep -q "argotunnel" /cloudflare/cloudflare-login.log 2> /dev/null' &&
   pass "your own domain: the app's Cloudflare tunnel waits for a sign-in, with Cloudflare's link" ||
   fail "no Cloudflare sign-in link"
 cur=$(docker exec buzz_web_1 sed -n 's/^BUZZ_DOMAIN=//p' /settings/relay.env)
 code=$(curl -s -o /dev/null -w '%{http_code}' -b $J -c $J --data "mode=funnel&confirm=$cur" http://$ip:8080/address)
 [ "$code" = 303 ] && pass "switching to the free Tailscale address is accepted" || fail "switching to funnel got HTTP $code"
-wait_for 'docker exec buzz_web_1 grep -q "login.tailscale.com/a/" /settings/tailscale-status.json 2> /dev/null' &&
+wait_for 'docker exec buzz_web_1 grep -q "login.tailscale.com/a/" /tailscale/tailscale-status.json 2> /dev/null' &&
   pass "Tailscale waits for a sign-in, with a link (funnel)" || fail "no Tailscale sign-in link (funnel)"
-wait_for '! docker exec buzz_web_1 test -e /settings/cloudflare-state' &&
+wait_for '! docker exec buzz_web_1 test -e /cloudflare/cloudflare-state' &&
   pass "the Cloudflare tunnel turns off and waits" || fail "the Cloudflare tunnel didn't turn off"
 code=$(curl -s -o /dev/null -w '%{http_code}' -b $J -c $J --data "mode=private&ack=yes" http://$ip:8080/address)
 [ "$code" = 303 ] && pass "switching to the private network is accepted" || fail "switching to private got HTTP $code"

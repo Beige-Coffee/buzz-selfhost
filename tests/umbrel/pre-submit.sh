@@ -94,7 +94,16 @@ docker exec buzz_web_1 test -e /settings/cloudflare && echo "SHARED settings/clo
 for c in $(docker ps --format '{{.Names}}' | grep '^buzz_'); do
   docker inspect -f '{{range .Mounts}}{{.Source}} {{end}}' $c | grep -q '/data/cloudflare ' && echo "MOUNTS $c"
 done
-for c in buzz_web_1 buzz_relay_1 buzz_pair_1 buzz_tailscale_1; do
+for c in $(docker ps --format '{{.Names}}' | grep '^buzz_'); do
+  for m in $(docker inspect -f '{{range .Mounts}}{{.Source}}={{.RW}} {{end}}' $c); do
+    case "$m" in
+      */data/settings=*) echo "SETTINGS $c ${m##*=}" ;;
+      */data/tailscale-control=*) echo "TSCONTROL $c" ;;
+      */data/cloudflare-control=*) echo "CFCONTROL $c" ;;
+    esac
+  done
+done
+for c in buzz_web_1 buzz_relay_1 buzz_pair_1 buzz_tailscale_1 buzz_gateway_1; do
   [ "$(docker inspect -f '{{.HostConfig.Init}}' $c)" = true ] || echo "NOINIT $c"
 done
 s=$(date +%s); docker stop buzz_web_1 > /dev/null; echo "STOPPED $(( $(date +%s) - s ))"
@@ -105,10 +114,105 @@ grep -q '^OWN cloudflared' $TMP/reach.txt && ! grep -q '^SHARED' $TMP/reach.txt 
   [ "$(grep '^MOUNTS' $TMP/reach.txt)" = "MOUNTS buzz_cloudflared_1" ] &&
   pass "Cloudflare's sign-in and tunnel files are in a folder only its own service mounts" ||
   fail "Cloudflare's sign-in folder is shared or missing"
+[ "$(grep '^SETTINGS' $TMP/reach.txt | sort | tr '\n' ' ')" = "SETTINGS buzz_gateway_1 false SETTINGS buzz_relay_1 false SETTINGS buzz_web_1 true " ] &&
+  [ "$(grep '^TSCONTROL' $TMP/reach.txt | sort | tr '\n' ' ')" = "TSCONTROL buzz_tailscale_1 TSCONTROL buzz_web_1 " ] &&
+  [ "$(grep '^CFCONTROL' $TMP/reach.txt | sort | tr '\n' ' ')" = "CFCONTROL buzz_cloudflared_1 CFCONTROL buzz_web_1 " ] &&
+  pass "only the page writes the relay's settings, and each helper shares only its own folder with the page" ||
+  fail "a settings folder is shared more widely: $(grep -E '^(SETTINGS|TSCONTROL|CFCONTROL)' $TMP/reach.txt | tr '\n' ' ')"
 grep -q '^NOINIT' $TMP/reach.txt && fail "a service runs without an init process" ||
-  pass "the page, relay, pairing and Tailscale services run under an init process"
+  pass "the page, relay, pairing, Tailscale and gateway services run under an init process"
 [ "$(sed -n 's/^STOPPED //p' $TMP/reach.txt)" -lt 5 ] 2> /dev/null && pass "the setup page stops in under 5 s" ||
   fail "the setup page took $(sed -n 's/^STOPPED //p' $TMP/reach.txt) s to stop"
+
+echo "== Another app on this Umbrel, trying the app's services directly"
+# A throwaway container on Umbrel's shared network, as any other app's would be, with no password or key
+OWNER_HEX=$(awk '{print $2}' $TMP/owner.keys)
+host "docker exec -i -e DOMAIN=$DOMAIN -e OWNER_HEX=$OWNER_HEX $C sh -s" > $TMP/hostile.txt <<'HOSTILE'
+net=$(docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' buzz_web_1 | cut -d' ' -f1)
+img() { docker inspect -f '{{.Config.Image}}' "$1"; }
+docker run --rm --network "$net" -e DOMAIN -e OWNER_HEX --entrypoint python3 "$(img buzz_web_1)" -c '
+import http.client, json, os, socket, time
+D, O = os.environ["DOMAIN"], os.environ["OWNER_HEX"]
+def req(host, port, method, path, headers=None, body=None):
+    try:
+        c = http.client.HTTPConnection(host, port, timeout=8)
+        c.request(method, path, body=body, headers=headers or {})
+        r = c.getresponse(); r.read(4096); c.close()
+        return r.status, r
+    except Exception:
+        return None, None
+def dropped(s):
+    try:
+        return s.recv(10) == b""
+    except OSError:
+        return False
+print("PAGE_GET", req("buzz_web_1", 8080, "GET", "/")[0])
+print("PAGE_SAVE", req("buzz_web_1", 8080, "POST", "/save", {"Content-Type": "application/x-www-form-urlencoded"}, "owner=x")[0])
+start = time.time()
+s = socket.create_connection(("buzz_web_1", 8080), timeout=8)
+s.sendall(b"POST /login HTTP/1.1\r\nHost: x\r\nContent-Length: -1\r\n\r\n")
+first = s.recv(12); s.close()
+print("PAGE_NEGLEN", first.decode(errors="replace").split(" ")[-1] if first else "none", int(time.time() - start))
+st, r = req("buzz_web_1", 8080, "GET", "/login")
+print("PAGE_FRAME", r.getheader("X-Frame-Options") if r else None)
+idle = [socket.create_connection(("buzz_web_1", 8080), timeout=30) for _ in range(20)]
+for s in idle:
+    s.sendall(b"GET / HTTP/1.1\r\nHost: x\r\n")
+time.sleep(23)
+for s in idle:
+    s.settimeout(2)
+print("PAGE_IDLE", sum(dropped(s) for s in idle), req("buzz_web_1", 8080, "GET", "/login")[0])
+print("RELAY_XPUBKEY", req("buzz_relay_1", 3000, "POST", "/query", {"Host": D, "X-Pubkey": O, "Content-Type": "application/json"},
+                           json.dumps({"filters": [{"limit": 1}]}))[0])
+print("GATEWAY_OTHER", req("buzz-gateway", 80, "GET", "/", {"Host": "old.example.com", "Accept": "application/nostr+json"})[0])
+print("GATEWAY_OWN", req("buzz-gateway", 80, "GET", "/", {"Host": D, "Accept": "application/nostr+json"})[0])
+print("SILO_ANON", req("buzz-silo", 9000, "GET", "/buzz-media/")[0])
+print("METRICS", req("buzz_relay_1", 9102, "GET", "/metrics")[0])
+'
+docker run --rm --network "$net" -e PGPASSWORD=buzz --entrypoint psql "$(img buzz_postgres_1)" -h buzz_postgres_1 -U buzz -d buzz -c "select 1" > /dev/null 2>&1 &&
+  echo "PG open" || echo "PG refused"
+echo "REDIS $(docker run --rm --network "$net" --entrypoint redis-cli "$(img buzz_redis_1)" -h buzz_redis_1 ping 2>&1 | head -n 1)"
+HOSTILE
+cat $TMP/hostile.txt
+v() { sed -n "s/^$1 //p" $TMP/hostile.txt; }
+[ "$(v PAGE_GET)" = 303 ] && [ "$(v PAGE_SAVE)" = 401 ] && pass "another app can't use the setup page without its password" ||
+  fail "the setup page answered another app: GET $(v PAGE_GET), POST $(v PAGE_SAVE)"
+case "$(v PAGE_NEGLEN)" in "413 0"|"413 1") pass "a request with a bad length is refused at once, not read" ;;
+  *) fail "a request with a bad length: $(v PAGE_NEGLEN)" ;; esac
+[ "$(v PAGE_FRAME)" = DENY ] && pass "the setup page refuses to be shown inside another app's page" || fail "the page can be framed: $(v PAGE_FRAME)"
+[ "$(v PAGE_IDLE)" = "20 200" ] && pass "20 half-sent requests are dropped after the time limit, and the page still answers" ||
+  fail "half-sent requests: $(v PAGE_IDLE)"
+[ "$(v RELAY_XPUBKEY)" = 401 ] && pass "the relay refuses a request that only claims to be the owner in a header" ||
+  fail "a request claiming the owner's key in X-Pubkey got HTTP $(v RELAY_XPUBKEY)"
+[ "$(v GATEWAY_OTHER)" = 404 ] && [ "$(v GATEWAY_OWN)" = 200 ] && pass "the gateway answers the community's address and no other" ||
+  fail "the gateway: another name got $(v GATEWAY_OTHER), the community's $(v GATEWAY_OWN)"
+case "$(v SILO_ANON)" in 401|403) pass "file storage refuses requests without its keys" ;; *) fail "file storage answered HTTP $(v SILO_ANON)" ;; esac
+grep -q '^PG refused' $TMP/hostile.txt && pass "the database refuses a guessed password" || fail "the database took a guessed password"
+grep -q '^REDIS .*NOAUTH' $TMP/hostile.txt && pass "Redis refuses commands without its password" || fail "Redis: $(v REDIS)"
+echo "INFO  the relay's metrics port answers other apps with HTTP $(v METRICS): counts only, no keys or messages (block/buzz#7989, fix open in #8004)"
+
+echo "== The relay's settings, written to by something other than the page"
+# Lines a compromised writer might add: a command, and a setting that would turn membership checks off
+host "docker exec -i $C sh -s" > $TMP/tamper.txt <<'TAMPER'
+started() { docker inspect -f '{{.State.StartedAt}}' buzz_relay_1; }
+ready() { docker exec buzz_relay_1 bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080; printf "GET /_readiness HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n" >&3; head -n 1 <&3' 2> /dev/null | grep -q ' 200 '; }
+restarted() { for i in $(seq 1 60); do sleep 3; [ "$(started)" != "$1" ] && ready && return 0; done; return 1; }
+before=$(started)
+docker exec buzz_web_1 sh -c 'cp /settings/relay.env /tmp/relay.env.good && printf "%s\n" "BUZZ_REQUIRE_RELAY_MEMBERSHIP=false" "BUZZ_INJECTED=\$(touch /tmp/ran)" "\`touch /tmp/ran\`" >> /settings/relay.env'
+restarted "$before" && echo "READY tampered"
+docker exec buzz_relay_1 test -e /tmp/ran && echo "RAN"
+docker exec buzz_relay_1 bash -c 'for p in /proc/[0-9]*; do [ "$(cat $p/comm 2> /dev/null)" = buzz-relay ] && tr "\0" "\n" < $p/environ | grep -E "^(BUZZ_REQUIRE_RELAY_MEMBERSHIP|BUZZ_INJECTED)="; done' | sed 's/^/ENV /'
+before=$(started)
+docker exec buzz_web_1 sh -c 'cp /tmp/relay.env.good /settings/relay.env.new && mv /settings/relay.env.new /settings/relay.env'
+restarted "$before" && echo "READY again"
+TAMPER
+cat $TMP/tamper.txt
+grep -q '^READY tampered' $TMP/tamper.txt && ! grep -q '^RAN' $TMP/tamper.txt &&
+  grep -q '^ENV BUZZ_REQUIRE_RELAY_MEMBERSHIP=true' $TMP/tamper.txt && ! grep -q '^ENV BUZZ_INJECTED' $TMP/tamper.txt &&
+  pass "lines added to the relay's settings run nothing and can't turn off its checks" ||
+  fail "the relay ran or took lines added to its settings"
+grep -q '^READY again' $TMP/tamper.txt && pass "the relay starts again with the page's own settings" ||
+  fail "the relay didn't come back after its settings were restored"
 
 echo "== Memory with a community"
 footprint
@@ -307,6 +411,39 @@ RESTORE
   echo "INFO  memory on the second Umbrel:"; footprint $B
   host "docker rm -f $B > /dev/null; docker volume rm $B > /dev/null"
 fi
+
+echo "== Cloudflare and Tailscale, up to their sign-in links, and what each can see"
+# Last, since leaving the domain ends this community's address
+host "docker exec -i $C sh -s" > $TMP/signin.txt <<'CHECKS'
+pass() { echo "PASS  $1"; }
+fail() { echo "FAIL  $1"; }
+ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' buzz_web_1)
+J=/tmp/ts-check-jar; rm -f $J
+docker exec buzz_web_1 printenv APP_PASSWORD | tr -d '\n' | curl -s -o /dev/null -c $J --data-urlencode password@- http://$ip:8080/login
+wait_for() { for i in $(seq 1 40); do eval "$1" && return 0; sleep 3; done; return 1; }
+wait_for 'docker exec buzz_web_1 grep -q "argotunnel" /cloudflare/cloudflare-login.log 2> /dev/null' &&
+  pass "your own domain: the app's Cloudflare tunnel waits for a sign-in, with Cloudflare's link" ||
+  fail "no Cloudflare sign-in link"
+cur=$(docker exec buzz_web_1 sed -n 's/^BUZZ_DOMAIN=//p' /settings/relay.env)
+code=$(curl -s -o /dev/null -w '%{http_code}' -b $J -c $J --data "mode=funnel&confirm=$cur" http://$ip:8080/address)
+[ "$code" = 303 ] && pass "switching to the free Tailscale address is accepted" || fail "switching to funnel got HTTP $code"
+wait_for 'docker exec buzz_web_1 grep -q "login.tailscale.com/a/" /tailscale/tailscale-status.json 2> /dev/null' &&
+  pass "Tailscale waits for a sign-in, with a link (funnel)" || fail "no Tailscale sign-in link (funnel)"
+wait_for '! docker exec buzz_web_1 test -e /cloudflare/cloudflare-state' &&
+  pass "the Cloudflare tunnel turns off and waits" || fail "the Cloudflare tunnel didn't turn off"
+code=$(curl -s -o /dev/null -w '%{http_code}' -b $J -c $J --data "mode=private&ack=yes" http://$ip:8080/address)
+[ "$code" = 303 ] && pass "switching to the private network is accepted" || fail "switching to private got HTTP $code"
+page=$(curl -s -b $J http://$ip:8080/)
+echo "$page" | grep -q "Connect your private network" && echo "$page" | grep -q "Sign in to Tailscale" &&
+  pass "the page shows the private network's sign-in" || fail "the private network's sign-in isn't on the page"
+! docker exec buzz_relay_1 test -e /data/settings/tailscale-status.json && ! docker exec buzz_tailscale_1 test -e /settings/relay.env &&
+  ! docker exec buzz_cloudflared_1 test -e /settings/relay.env &&
+  pass "the relay can't see Tailscale's status, and neither helper can see the relay's settings" ||
+  fail "a service can see another's files"
+rm -f $J
+CHECKS
+cat $TMP/signin.txt
+PASS=$((PASS + $(grep -c '^PASS' $TMP/signin.txt))) FAIL=$((FAIL + $(grep -c '^FAIL' $TMP/signin.txt)))
 
 echo "== Uninstall, then install again"
 umbrel 'docker rm -f buzz-test-tunnel > /dev/null 2>&1; umbreld client apps.uninstall.mutate --appId buzz > /dev/null 2>&1'

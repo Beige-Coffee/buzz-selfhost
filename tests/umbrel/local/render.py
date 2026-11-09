@@ -14,7 +14,8 @@ for mode in ("domain", "funnel", "private"):
             states = ("",) if mode == "domain" else ("NeedsLogin", "NeedsMachineAuth", "Running", "")
             for state, push, cf in itertools.product(states, (True, False), CLOUDFLARE if mode == "domain" else ("",)):
                 d = tempfile.mkdtemp()
-                m.SETTINGS_DIR, m.RELAY_ENV, m.SETUP_JSON = d, d + "/relay.env", d + "/setup.json"
+                m.SETTINGS_DIR = m.TAILSCALE_DIR = m.CLOUDFLARE_DIR = d
+                m.RELAY_ENV, m.SETUP_JSON = d + "/relay.env", d + "/setup.json"
                 m.TAILSCALE_ON, m.TAILSCALE_STATUS, m.TAILSCALE_SERVE = d + "/ts-on", d + "/ts.json", d + "/ts.txt"
                 m.CLOUDFLARE_ON, m.CLOUDFLARE_STATE, m.CLOUDFLARE_LOGIN, m.CLOUDFLARE_SETUP, m.CLOUDFLARE_RESET = (
                     d + "/cf-on", d + "/cf-state", d + "/cf-login.log", d + "/cf-setup.log", d + "/cf-reset")

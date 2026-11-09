@@ -46,7 +46,9 @@ def call(path, data=None, opener=browser, headers=None):
 
 
 def settings(name):
-    return sh("docker", "exec", "buzz_web_1", "cat", "/settings/" + name)
+    # Tailscale's and Cloudflare's files are in folders the page shares with each helper alone
+    folder = "/tailscale/" if name.startswith("tailscale-") else "/cloudflare/" if name.startswith("cloudflare-") else "/settings/"
+    return sh("docker", "exec", "buzz_web_1", "cat", folder + name)
 
 
 def members():

@@ -12,7 +12,10 @@ longer unattended run on Intel and ARM: a load, a reboot, Umbrel's own backup re
 Umbrel, and a reinstall. On 2026-11-01, for Umbrel's reviewers, Cloudflare's sign-in moved to a
 folder of its own, four services got an init process, and the port moved to 3025; `pre-submit.sh`
 then passed 96 of 96 on an Intel droplet. Submitted to Umbrel on 2026-11-01 as
-[getumbrel/umbrel-apps#6291](https://github.com/getumbrel/umbrel-apps/pull/6291). It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
+[getumbrel/umbrel-apps#6291](https://github.com/getumbrel/umbrel-apps/pull/6291). On 2026-11-09,
+after a red-team review (below), its fixes, Buzz 1.0's sign-in on the owner step and relay
+`sha-744f394` went in, and `pre-submit.sh`, now attacking the app as another app on the Umbrel
+would, passed 115 of 115 on an Intel droplet. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package
 
@@ -81,7 +84,9 @@ Credit #5928 when we submit.
   restored onto another Umbrel did that (tested on 2026-10-30, below); the page offers no move of its
   own. The page explains this before setup and needs a tick to create; changing
   the address later needs the current address typed exactly, or a tick when there's none yet. The
-  Tailscale name is taken once, so a renamed machine never moves the community.
+  Tailscale name is taken once, so a renamed machine never moves the community. On a domain, the
+  gateway answers only the current address, so an old address that still points at the tunnel
+  reaches nothing until the owner switches back to it.
 - **Its own sign-in.** The page asks for the app's password, which Umbrel shows the owner
   (`deterministicPassword`). Umbrel's login guards the page in a browser, but every app on an Umbrel
   shares one Docker network, and Umbrel's proxy passes on no identity the page could check, so
@@ -90,7 +95,9 @@ Credit #5928 when we submit.
   keeps the owner signed in. Ten wrong passwords in ten minutes from one address pause sign-in;
   behind Umbrel's proxy all browsers share that address. Browsers count another port on the same
   host as the same site and send it the cookie, so forms from another app's page are refused by
-  their `Sec-Fetch-Site`, which doesn't depend on the Host Umbrel's proxy forwards. Anyone Umbrel
+  their `Sec-Fetch-Site`, which doesn't depend on the Host Umbrel's proxy forwards, and no response
+  can be shown inside another page. Forms over 20 KB are refused before they're read, an idle
+  connection is dropped after 20 seconds, and without a password no session is valid. Anyone Umbrel
   shows the password to (its users, and agents given the app) can sign in.
 - **Its own Tailscale machine, not Umbrel's Tailscale app.** Umbrel's Tailscale app offers other
   apps no interface: using it means `docker exec` into another app, which Umbrel's rules forbid
@@ -120,7 +127,11 @@ Credit #5928 when we submit.
   page doesn't use them: it checks readiness on the relay's main port and the community's NIP-11.
 - **Setup page** (`setup.py.template`, Python's standard library in the official image), styled
   after the guide site: three steps (the owner, how members reach it, the acknowledgement), with
-  the npub's checksum checked and a private key refused. Then a status list that refreshes every
+  the npub's checksum checked and a private key refused. Buzz 1.0 on a computer makes a key only
+  with a Builderlab account (Block's, which backs the key up where Block can decrypt it), so the
+  owner step also offers a key of the owner's own, made with an open-source tool such as nak and
+  brought into Buzz with Use an existing key. Either way the page takes only the public ID, and
+  Change the owner is the way back from a lost key. Then a status list that refreshes every
   five seconds, and the steps for the chosen option: the Cloudflare values, or Tailscale's sign-in,
   machine approval and consent links. Once live: the join address, with an Open in Buzz button
   (`buzz://connect?relay=wss://…`, Buzz 1.0's link that opens its join screen with the address filled
@@ -132,14 +143,27 @@ Credit #5928 when we submit.
 - **Relay:** waits for the settings, makes its own key on first start, and restarts itself when the
   settings change (it compares the file's content: two saves within a second share a modification
   time). The key is random, not derived from Umbrel's seed: Umbrel's rules forbid derived private
-  keys.
-- **Gateway:** Caddy at `buzz-gateway:80` is what Cloudflare Tunnel points at. `/pair` goes to the
-  pairing service, everything else to the relay.
+  keys. It reads its settings as plain KEY=value lines, and only the names the page writes, never
+  as a script, so nothing in the file can run a command or turn off the relay's checks. Routine
+  access lines name members on every request, so they're logged at `warn` only: refusals, errors
+  and aborted requests.
+- **Gateway:** Caddy at `buzz-gateway:80` is what Cloudflare Tunnel and Tailscale point at. `/pair`
+  goes to the pairing service, everything else to the relay. On a domain it answers only the
+  community's current address, read from the relay's settings, and starts again when they change,
+  since Caddy's admin API stays off; on a Tailscale address it answers every request. Request
+  headers must arrive within 10 seconds.
+- **Settings folders:** `data/settings` holds the relay's settings and the page's own; only the page
+  writes it, and the relay and the gateway read it. The page shares `data/tailscale-control` with the
+  Tailscale service and `data/cloudflare-control` with the Cloudflare service, one each, for the
+  option chosen and what each reports back. So neither can change the relay's settings, and the
+  relay doesn't see Tailscale's list of the tailnet's devices. `data/cloudflare` (Cloudflare's
+  sign-in), `data/tailscale` (Tailscale's state) and `data/secrets` (the relay's key) belong to one
+  service each.
 - **Storage:** Silo, as in Block's bundle. Every image is pinned by digest and runs on Intel and ARM.
 - **Names:** services reach each other by names without underscores (`buzz-silo`,
   `buzz-gateway`). Silo refuses a hostname with an underscore, like a container name, and a
   Cloudflare dashboard may too.
-- **Stopping:** the page, relay, pairing and Tailscale services run with `init: true`. Python and
+- **Stopping:** the page, gateway, relay, pairing and Tailscale services run with `init: true`. Python and
   the pairing service ignore Docker's stop signal as a container's first process, so without it
   each stop waited out Docker's 10 seconds.
 - **Uninstalling** removes the app's data from the Umbrel, but not what it made in the owner's
@@ -148,6 +172,35 @@ Credit #5928 when we submit.
   says to remove them first.
 - **Support** in the listing points at this repo's issues, since we maintain the package; Buzz's
   own bugs go on to Block.
+
+## Security review
+
+On 2026-11-09 three reviewers attacked the package as it was: the setup page, the settings files and
+containers, and what the internet can reach. No stranger could read or post anything. Fixed then:
+
+- The relay read its settings by running the file as a script, and the Tailscale and Cloudflare
+  services could write it. A compromised helper, or a crafted Tailscale machine name, could have run
+  commands in the relay or turned its checks off. Now the relay reads plain values from a list of
+  names, each helper has its own folder, and the page checks Tailscale's name and links.
+- An old domain kept serving its community to its members after an address change, while the page
+  said the community was parked. Now the gateway answers only the current address.
+- The page read a request of any size, kept idle connections open, could be shown inside another
+  app's page (where a few clicks could have switched a private community to a public address), and
+  would have accepted a forged session had its password ever been unset.
+- A free Tailscale address still waiting for the owner to allow Funnel could turn Funnel on after
+  the owner switched to the private network. Now the switch drops the waiting request and its link.
+- The relay's routine access logs, at our log level, named members on every request.
+
+Left, with the reason:
+
+- The Tailscale service still runs as root in its container. It has no extra privileges and sees
+  only its own folders; running it as another user needs a real Tailscale sign-in to test.
+- The relay uses Silo's root credentials; a user limited to its bucket can come later.
+- Signing out doesn't end other copies of the same session; sessions expire after 30 days.
+- A member can fill the Umbrel's disk with uploads: Buzz has no per-member storage limit yet.
+
+`tests/umbrel/local/security.py` checks the fixes on a Mac without Docker, and `pre-submit.sh` tries
+the app's services as another app on the Umbrel would.
 
 ## Tested
 
@@ -321,6 +374,27 @@ folder, `init: true`, port 3025): `pre-submit.sh` on a fresh DigitalOcean drople
   stored files the same.
 - ARM wasn't run again: none of the three changes depends on the chip, and every image is the one
   that passed 85 of 85 on ARM on 2026-10-30.
+
+2026-11-09, unattended, after the red-team review's fixes, Buzz 1.0's sign-in on the owner step, and
+relay `sha-744f394`: `pre-submit.sh` on a fresh DigitalOcean droplet (Intel) passed 115 of 115
+([log](../tests/runs/2026-11-09-0954-umbrel-pre-submit-intel-droplet.log)).
+
+- Another app's container on Umbrel's network, with no password or key: the setup page answered
+  only its sign-in, refused a bad-length request at once and 20 half-sent ones after its time limit;
+  the relay refused a request claiming the owner's key in a header; the gateway answered nothing
+  for another name; file storage, the database and Redis refused it. The relay's metrics port
+  answered, with counts only (block/buzz#8004).
+- Lines added to the relay's settings, a command and a setting that would turn off membership
+  checks, ran nothing and changed nothing; the relay came back with the page's own settings.
+- Each settings folder is mounted where it should be and nowhere else, and the relay can't see
+  Tailscale's status. Cloudflare's and Tailscale's sign-in links, and the switch to the private
+  network, still work.
+- `e2e.sh` 36 of 36 before and after a reinstall. Memory: 128 MiB before setup, 295 MiB with a
+  community, 366 MiB while 20 members sent 200 messages in 24 s. A 96 MB video went up in 14 s.
+  Restarting the whole Umbrel: back in 28 s. Umbrel's backup took 15 s, and the second Umbrel ran
+  Buzz from it after 87 s with every table, the setup and the stored files the same.
+- Not run again on ARM: the changes are in scripts, the page and the gateway's config, none of them
+  chip-specific, and the new relay image is built for both.
 
 ## Not yet tested
 

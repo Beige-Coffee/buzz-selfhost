@@ -1,7 +1,93 @@
 # Research
 
 What the tests, the agent runs and the upstream research found. Decisions that follow from it are
-in [decisions.md](decisions.md). Last updated 2026-10-05.
+in [decisions.md](decisions.md). Last updated 2026-11-11.
+
+## Launch review, checked on 2026-11-11
+
+This section supersedes current-status statements in the dated notes below. Those notes preserve
+what was checked at the time; they do not establish coverage of today's relay pin.
+
+- **Stable app.** [Buzz v1.0.0](https://github.com/block/buzz-app/releases/tag/v1.0.0), published
+  2026-11-10, is not a prerelease. Its source is `4fb386b0be5966f5ad9e930a33d1c75b432625fb`.
+  It offers signed/notarized Apple Silicon and Intel macOS builds, an unsigned Windows x64
+  installer, and Linux x64 deb/AppImage builds. The guide now links to the stable latest release.
+  Source comparison covered every drawn screen. Identity is a Buzz ID card: Copy Buzz ID copies
+  the npub; More options, the masked private-key field, Copy backs up the private key. Activity
+  moved into Messages' sidebar. First-agent and invite drawings also changed. Key import still
+  accepts `.txt`, `.key` and plain-text files, at most 1024 bytes, with an nsec on the first
+  nonblank line. Importing a file, the Builderlab route, Staff and Codes match still need a real
+  app walkthrough. Source inspection is not a runtime pass.
+- **Relay.** The pin remains `sha-744f394` at its recorded digest. Its public image still matches.
+  There is no launch semantic relay release; `relay-v0.2.1` remains the August release. The
+  proposed replacement is `sha-e5dee91` at
+  `sha256:d4777e9163de0861c3f02ea9e67632b0afadc6d6ebac2cf4c09c00f1317f4a6d`.
+  Its GHCR digest, build provenance and deployment eligibility were verified, including source
+  `e5dee91c90fdc5f81f04fd609b7c99e31fa7570f` and compatible chart 0.1.11. It includes
+  [hickory security fixes](https://github.com/block/buzz/pull/9351), the
+  [MCP dependency update](https://github.com/block/buzz/pull/9287), subscription fixes and
+  migrations 0084-0086. [Migration 0086](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/docs/private-media-index-deployment.md)
+  needs a preflight/index-build procedure on existing databases. No pin or tested date was changed.
+- **File privacy.** [#9077](https://github.com/block/buzz/pull/9077) merged after the pin, even
+  though #8444 remains open. `BUZZ_MEDIA_READ_MODE` supports off, shadow and enforce, default off.
+  The guide now distinguishes the shipped feature from its older pin. Do not enable it without
+  [Block's rollout and client compatibility checks](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/docs/operator-private-media.md).
+- **Bundles.** Compose is unchanged between pin and candidate. Paths, variables, Silo names,
+  Caddy overlay and the need for a pairing sidecar still match. Published Helm 0.1.10 and 0.1.11
+  artifacts exist. The skill still uses 0.1.10, whose values match its commands; 0.1.11 switches
+  storage images to Silo and is the candidate's declared compatible chart. Moving the chart needs
+  a backup-tool check and real rerun, not a version-only edit.
+- **Test evidence.** No committed `tests/runs` record mentions 744f394. In particular, the private
+  and Kubernetes reruns requested on November 6 remain open. No infrastructure tests ran in this
+  review. `tested` intentionally stays 2026-10-23. The parser, key-script self-test and syntax
+  checks are local checks, not substitutes for those suites.
+- **Launch documentation.** [buzz.xyz/support](https://buzz.xyz/support#open-source) now
+  explains open-source versus hosted operation, identity recovery, phones and hosted community
+  limits. It is not an end-to-end Compose/Helm operator runbook. The upstream README still
+  promotes Railway under hosted relay, but also links the production Compose bundle under
+  Quick start ([README](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/README.md#L182)).
+  Saying Block only documents Railway is too broad. The guide's decision to omit Railway stays.
+- **Builderlab and hosted pricing.** The launched [identity guide](https://buzz.xyz/support#identity)
+  confirms automatic encrypted backup after signed-in identity setup/import, and no automatic
+  Builderlab backup for independent import. The [pricing page](https://buzz.xyz/pricing) lists
+  100 GB of shared data usage each month, no payment method to start, $0.15 per GB-month stored
+  or GB delivered above the allowance, $0.65 per vCPU-hour for remote agents, and model-specific
+  inference. Paid remote agents/inference are US-only. Hosted communities have 365-day retention
+  and a 50-community account limit ([hosted guide](https://buzz.xyz/support#hosted-community)).
+  The hosted [terms](https://buzz.xyz/terms-of-service), dated October 30, say they exclude
+  independently self-hosted instances; connected hosted services retain their own terms.
+  These are reported policy statements, not an interpretation of anyone's legal obligations.
+- **Mobile.** The launch site's Get the app menu and [phone guide](https://buzz.xyz/support#mobile)
+  link both the iPhone App Store and Android Google Play. Android app availability is separate
+  from Android push support: #6092 and #3229 remain open. The guide's existing iPhone push
+  evidence does not establish Android push or every private-network configuration.
+- **Links and prices.** Every Block issue/PR used by the site or skill was read. Other than the
+  shipped media replacement, open limitations remain open. All 32 collected external links and
+  three changed destinations returned HTTP 200; the GitHub issue form redirects to sign-in.
+  DigitalOcean still lists 4 GiB at $24/month, weekly backups at 20% extra, load balancers from
+  $12/month and volumes at $0.10/GiB/month. Tailscale Personal allows six users for noncommercial
+  use; Standard is $8/user/month. The guide now identifies the backup rate as weekly.
+- **Repository security.** Read-only GitHub checks found main unprotected, no rulesets or tagged
+  releases, and secret scanning/push protection disabled. The alerts endpoint cannot establish a
+  zero-alert count when scanning is disabled. Gitleaks 8.30.1 (official archive checksum checked)
+  scanned public history and all local refs with full redaction. Its 17 generic-key findings were
+  16 WebSocket handshake nonces and one public NIP-42 challenge, not confirmed credentials.
+  A supplemental tracked-file token/nsec/private-key scan returned zero matches. This does not
+  prove absence. All 105 commits on the published main history use non-noreply author addresses;
+  new review commits use GitHub noreply addresses. No history or GitHub settings were changed.
+- **Browser and local checks.** The final build, parser, all 13 identity self-tests, seven shell
+  syntax checks and dependency audit passed (Vite 7.3.8, zero audit vulnerabilities). Chromium at
+  desktop and phone widths exercised all ten quiz outcomes, seven setup tracks, all 17 FAQs and
+  every click-through step. Final checks found no console errors, missing ordinary anchors,
+  horizontal page overflow or axe violations in the checked states. Fixed the phone home-link
+  name, mobile FAQ semantics, scrollable code focus and story contrast. The new 1200 by 630 OG
+  image is local until deployment. `skills-ref` was not installed, so no validator pass is claimed.
+- **Domain.** The existing Vercel production deployment serves `https://self-host.buzz`. Both
+  `www.self-host.buzz` and the old Vercel domain redirect with 308 and preserve path/query.
+  HTTPS returned 200 for `/`, `/llms.txt`, `/skills/self-host-buzz.tar.gz`,
+  `/skills/self-host-buzz/scripts/new-identity.py` and `/_vercel/insights/script.js`.
+  The reviewed source changes await permission to push and deploy; connecting the domain did not
+  publish them.
 
 ## Contents
 

@@ -1,0 +1,60 @@
+.sec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.sec-card { min-width: 0; padding: 28px; border: 1px solid var(--line); border-radius: 20px; background: #fff; }
+.sec-card-0, .sec-card-1, .sec-card-2 { grid-column: 1 / -1; }
+.sec-card-1 { background: #f8f8ee; border-color: #caca80; }
+.sec-number { display: block; margin-bottom: 12px; font: .75rem var(--mono); color: #66661c; }
+.sec-card h3 { margin: 0 0 18px; font-size: 1.35rem; letter-spacing: -.025em; }
+.sec-copy { color: var(--ink); font-size: .95rem; line-height: 1.65; }
+.sec-copy p + p, .sec-copy ul + p, .sec-copy p + ul { margin-top: 14px; }
+.sec-copy ul { padding-left: 1.25em; }
+.sec-copy li + li { margin-top: 8px; }
+.sec-copy a, .sec-evidence a { text-decoration: underline; text-underline-offset: .15em; }
+.sec-card-0 ul { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; padding: 0; list-style: none; }
+.sec-card-0 li + li { margin-top: 0; }
+.sec-card-0 li strong { display: block; margin-bottom: 4px; }
+.sec-boundary { margin: 0 0 22px; padding: 20px; background: white; border: 1px solid var(--line); border-radius: 14px; }
+.sec-boundary figcaption { font: .72rem var(--mono); margin-bottom: 18px; }
+.sec-flow { display: grid; grid-template-columns: 1fr auto 1.3fr; align-items: center; gap: 18px; }
+.sec-flow > div { padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
+.sec-flow small, .sec-flow b, .sec-flow span { display: block; }
+.sec-flow small { font: .68rem var(--mono); text-transform: uppercase; margin-bottom: 6px; }
+.sec-flow b { font-size: .95rem; }
+.sec-flow span, .sec-boundary > p { font-size: .85rem; line-height: 1.5; margin-top: 5px; }
+.sec-flow .sec-isolated { background: #f0f5e5; border: 2px solid #727246; }
+.sec-boundary > p { margin-top: 16px; max-width: 65em; }
+.sec-table { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 18px; }
+.sec-table table { border-collapse: collapse; width: 100%; min-width: 520px; }
+.sec-table th, .sec-table td { padding: 12px 15px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.sec-table th { background: #f5f5f0; font-size: .8rem; }
+.sec-evidence { font-size: .8rem; color: #59594e; margin-top: 20px; line-height: 1.65; }
+.setup-choice { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 12px; }
+.setup-choice button { border: 1px solid var(--line-2); border-radius: 999px; background: white; padding: 11px 16px; font: 500 .9rem var(--sans); cursor: pointer; }
+.setup-choice button[aria-pressed="true"] { background: var(--ink); color: white; }
+.setup-trust, .setup-context { font-size: .85rem; line-height: 1.55; color: #56564c; max-width: 62em; }
+.setup-context { margin: 12px 0 24px; }
+#commands { scroll-margin-top: 90px; }
+.phone-map { margin: 20px 0; display: grid; gap: 10px; }
+.phone-lane { padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #fafaf5; }
+.phone-lane small { display: block; font: .68rem var(--mono); text-transform: uppercase; margin-bottom: 8px; }
+.phone-lane b { display: block; font-size: .9rem; }
+.phone-lane p { margin-top: 7px; font-size: .82rem; line-height: 1.5; }
+.phone-lane code, .fq-mobile code { overflow-wrap: anywhere; }
+.fq-mobile h4 { margin-top: 24px; margin-bottom: 10px; font-size: 1rem; }
+.fq-mobile p, .fq-mobile li { line-height: 1.65; }
+.fq-mobile p + p { margin-top: 12px; }
+.fq-mobile ol { padding-left: 1.4em; }
+.fq-mobile li + li { margin-top: 8px; }
+.fq-mobile a { text-decoration: underline; }
+.launch-check { padding: 20px 24px; margin-bottom: 24px; border-radius: 14px; background: #f5f5ed; }
+.launch-check h3 { font-size: 1.05rem; margin-bottom: 10px; }
+.launch-check ul { padding-left: 1.2em; font-size: .9rem; line-height: 1.6; }
+.launch-check li + li { margin-top: 5px; }
+@media (max-width: 700px) {
+ .sec-grid { grid-template-columns: 1fr; }
+ .sec-card { padding: 20px; }
+ .sec-card-0 ul { grid-template-columns: 1fr; gap: 14px; }
+ .sec-flow { grid-template-columns: 1fr; gap: 8px; }
+ .sec-flow i { transform: rotate(90deg); justify-self: center; }
+ .sec-boundary { padding: 14px; }
+ .setup-choice { flex-direction: column; align-items: stretch; }
+}

@@ -1,3 +1,5 @@
+import skill from "virtual:skill-steps";
+import { linkButton } from "../lib/permalink";
 import { agentFlows } from "./agentflow";
 import { identityFlows, lostFlows } from "./identity";
 import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members";
@@ -103,11 +105,11 @@ const CASES = `<div class="fq-vis fq-cases">
   <p class="fq-cases-q">${icon("device-mobile")}<span><b>Could someone get into the lost device?</b>It was unlocked, had no disk encryption, or someone knows its password.</span></p>
   <div class="fq-case bad">
     <p class="fq-case-h"><span class="fq-tag no">Yes, or not sure</span><b>The key is exposed: retire it</b></p>
-    <ol><li>Remove the old key in Membership, now. Ban it too if you moderate: an invite link that hasn't expired would let it back in.</li><li>Make a new key on the new device. Not the saved copy: whoever has the device has that key too.</li><li>An admin adds the new npub.</li><li>Pair the phone, start their agents again, and tell any other community they joined.</li></ol>
+    <ol><li>Ask an owner or moderator to ban and retire the exposed identity. If it was the owner, arrange an ownership handover first. Removing alone can let it return through another valid invite.</li><li>Make a new key on the new device. Not the saved copy: whoever has the device has that key too.</li><li>An admin adds the new npub.</li><li>Pair the phone, start their agents again, and tell any other community they joined.</li></ol>
   </div>
   <div class="fq-case good">
     <p class="fq-case-h"><span class="fq-tag yes">No</span><b>The key is safe: bring it back</b></p>
-    <ol><li>Sign in on the new device with the saved copy: <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>.</li><li>No copy? Then it's a new identity, added again.</li><li>Pair the phone again.</li></ol>
+    <ol><li>Sign in on the new device with the saved copy: <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>.</li><li>No local copy? If a Builderlab backup completed, sign in to that account to recover it. With neither backup, make a new identity and have it added again.</li><li>Pair the phone again.</li></ol>
   </div>
 </div>`;
 
@@ -123,7 +125,7 @@ const KEYS =
   ) +
   `<pre class="cmd">curl -fsSLO ${KEYMAKER} &amp;&amp; python3 new-identity.py</pre>` +
   note(
-    "With the script's key, join with <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>, and drop the key file on the page. Then save the key in your password manager from <b>Settings</b>, <b>Identity</b>, the Buzz ID card’s <b>More options</b> (…), the masked private-key field, then <b>Copy</b>, and delete the file. Builderlab can keep a copy of a key made or imported after you sign in to it, and gives it back to whoever signs in to that account: keep work identities in your password manager instead.",
+    "With the script's key, join with <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>, and drop the key file on the page. Then save the key in your password manager from <b>Settings</b>, <b>Identity</b>, the Buzz ID card’s <b>More options</b> (…), the masked private-key field, then <b>Copy</b>, and confirm the saved entry is recoverable before deleting the temporary file. Clear the copied key from the clipboard when finished; avoid shared clipboard/history tools. Builderlab can keep a copy of a key made or imported after you sign in to it, and gives it back to whoever signs in to that account: keep work identities in your own private vault in a team-approved password manager instead.",
   );
 
 /** Single sign-on today: two locks in a row, your company's login and Buzz's member list. */
@@ -138,7 +140,7 @@ const LOCKS = `<div class="fq-vis fq-locks">
 const lane = (head: string, cls: string, chips: string[]) =>
   `<div class="fq-lane${cls}"><span class="fq-lane-k">${head}</span>${chips.map((c) => `<span class="fq-chip">${c}</span>`).join("")}</div>`;
 const LANES = `<div class="fq-vis fq-lanes">
-  ${lane(`${icon("key")}A person's key`, "", ["Remove or ban it", "Add their new identity"])}
+  ${lane(`${icon("key")}A person's key`, "", ["Ban and retire it", "Add their new identity"])}
   ${lane(`${icon("server")}The relay key`, "", ["Treat the server as exposed", "Ask before a new key"])}
   ${lane(`${icon("alert")}The server itself`, " hot", ["Change its logins", "Assume every message was read"])}
 </div>`;
@@ -177,7 +179,7 @@ const READ = `<div class="fq-vis fq-read">
     <p class="fq-msg"><i># general</i>Release is Friday</p>
     <p class="fq-msg dm"><i>direct message</i>Here are the Q4 numbers.</p>
     <p class="fq-msg"><i>file</i>plan.pdf</p>
-    <p class="fq-eye">${icon("eye")}Readable by anyone who can log in</p>
+    <p class="fq-eye">${icon("eye")}Readable with server, database or backup access</p>
   </div>
 </div>`;
 
@@ -209,6 +211,16 @@ const DEPS = `<div class="fq-vis"><ul class="fq-check">${[
   dep("user", "Builderlab accounts", "Signing in to Builderlab, Block's service, can give Block a copy of your key, and tells it which communities you join. A key from this guide's key script needs no account."),
 ].join("")}</ul></div>`;
 
+const PHONE_MAP = `<figure class="phone-map" aria-label="Pairing, notifications and message delivery use different services">
+  <div class="phone-lane"><small>1 · Join and read</small><b>Desktop or phone ↔ Your relay</b><p>Your community address, such as <code>https://chat.example.org</code>. Message content comes from this server.</p></div>
+  <div class="phone-lane"><small>2 · Pair a phone</small><b>Desktop ↔ Your pairing service ↔ Phone</b><p><code>wss://chat.example.org/pair</code> transfers the identity during setup. It is not a push gateway.</p></div>
+  <div class="phone-lane"><small>3 · Wake a locked iPhone</small><b>Your relay → Block's gateway → Apple APNs → iPhone</b><p><code>https://push.buzz.xyz</code> carries the wake-up. The phone then connects to your relay to fetch message content.</p></div>
+</figure>`;
+const mobile = (t: Track) =>
+  rec("Use Block's push gateway with the official iPhone app. You do not need your own gateway or Apple developer credentials for this path.") +
+  (t === "practice" ? note("This local test cannot pair phones. Use a server setup for the phone workflow.") : t === "k8s-private" ? note("Phone pairing on private Kubernetes is not covered by this guide. The private VPS path has a recorded phone workflow.") : "") +
+  PHONE_MAP + `<div class="fq-mobile">${skill.mobile.map((s) => `<h4>${s.title}</h4>${s.html}`).join("")}</div>`;
+
 interface Question {
   id: string;
   icon: string;
@@ -221,6 +233,7 @@ const GROUPS: [string, Question[]][] = [
   [
     "People",
     [
+      { id: "notifications", icon: "device-mobile", q: "How do phones and notifications work?", a: mobile },
       {
         id: "add",
         icon: "users",
@@ -235,7 +248,7 @@ const GROUPS: [string, Question[]][] = [
           note("In a public channel's settings, turn on <b>Starter channel for new members</b>: everyone who joins by link, or whom you add in Buzz, joins it. People added from the server's command line aren't.") +
           // links last 30 days at most (block/buzz crates/buzz-core/src/invite.rs); nothing revokes one (#8529 open)
           note(
-            `For a public project, once you've set up <a href="#operations" data-q-link="moderate">moderation</a>, post an invite link on your site or README with a use limit, and replace it when it fills or expires. A link lasts 30 days at most, and nothing cancels one early.`,
+            `For a public project, once you've set up <a href="#operations" data-q-link="moderate">moderation</a>, post an invite link on your site or README with a use limit, and replace it when it fills or expires. A new link lasts 30 days at most. This guide has no single-link cancellation procedure. Banning an issuer revokes its v2 invitations; legacy links have different rules.`,
           ) +
           (isPrivate(t) ? note(PRIVATE_PEOPLE) : ""),
       },
@@ -265,7 +278,7 @@ const GROUPS: [string, Question[]][] = [
             ["Remove them in Membership", "As below. It disconnects them and their agents. An invite link that hasn't expired still lets them back in."],
             ["Remove them from Tailscale", "And their devices.", "private network"],
             ["Remove them from Staff", "In <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>.", "if they were on Staff"],
-            ["Wait out live invite links, or ban them", "Buzz can't cancel a link: anyone holding one that hasn't expired can still join, even someone you removed. A ban keeps them out."],
+            ["Close the route back in", "A ban keeps the departed identity out even with a valid invite. Banning an issuer also revokes its durable v2 links; legacy links have different rules. This guide has no per-link cancellation procedure. Use short expiries and limited uses."],
             ["Remove their server and hosting access", "Their SSH key and their account with your hosting provider. Any copy of <code>.env</code> or a backup they kept still holds the server's passwords.", "if they had it"],
             ["Remove them from the shared vault", "It holds <code>.env</code>, with the relay key and the passwords.", "if they had it"],
             ["Hand over ownership first", "Make someone else the owner on the server before removing them.", "if they were the owner"],
@@ -278,12 +291,13 @@ const GROUPS: [string, Question[]][] = [
         icon: "robot",
         q: "How should we run agents?",
         a:
-          rec("Run each agent from the Buzz app of the person responsible for it. It gets in through that person's membership, and loses access when they leave.") +
+          rec("Choose the agent's environment before connecting it. For a community anyone can join, use an isolated device or virtual machine with only that project's files and scoped credentials.") +
+          note(`<a href="#security">Read the agent security guidance first</a>. A Workspace folder is not a sandbox. Keep personal accounts, private repositories and production credentials outside a public-community agent's environment.`) +
           ct("agents") +
           note("A shared bot with only a key of its own, such as one on the buzz command-line tool, is added like a member; keep its key in the shared vault. The relay's settings limit how fast agents post, apart from people.") +
           // block/buzz-app README (agents run while Buzz is open), the harnesses' owner check, builderlab/README
           note(
-            "Agents answer only while their person's Buzz is open; for a bot that's always on, run it on a server with a key of its own, added as a member. An agent sends what it reads to its model's provider, such as Anthropic for Claude or OpenAI for Codex: use one your team has approved, or a local model through Goose. It takes requests only from its owner, but it runs commands as that person on their computer, and text it reads in a channel can steer it. Keep agents out of channels whose content shouldn't leave your team. Agents hosted by Builderlab, Block's service, run on Block's machines.",
+            "Agents answer only while their person's Buzz is open; for a bot that's always on, run it on a server with a key of its own, added as a member. An agent sends what it reads to its model's provider, such as Anthropic for Claude or OpenAI for Codex: use one your team has approved, or a local model through Goose. Trigger checks do not make the text it reads trustworthy: messages, attachments and links can try to redirect it. Ordinary local launches can run with broad permissions and without per-action approval. Keep public and private sessions separate, and keep agents out of channels whose content should not reach their runtime or model provider. Agents hosted by Builderlab, Block's service, run on Block's machines.",
           ),
       },
     ],
@@ -296,10 +310,10 @@ const GROUPS: [string, Question[]][] = [
         icon: "key",
         q: "How should each person set up their identity?",
         a:
-          rec("One work identity per person, with a copy of its private key in your company's password manager. Make the key with this guide's key script, so no copy goes to Block.") +
+          rec("One work identity per person, with its private key in that person's private vault in a team-approved password manager. Make the key with this guide's key script, so no copy goes to Block.") +
           ct("identity") +
           KEYS +
-          note("Nobody can reset a Buzz key. Without the saved copy, a lost key means a new identity."),
+          note("A saved key or completed Builderlab backup can restore the same identity. Without a recovery copy, create a new identity; changing community ownership does not recover the old key."),
       },
       {
         id: "lost",
@@ -317,7 +331,7 @@ const GROUPS: [string, Question[]][] = [
         q: "What if a key leaks?",
         a:
           rec(
-            `Remove a leaked person's key right away. If the relay key leaked, treat the server as exposed, and ask in block/buzz before replacing it: a new key splits your channels' records today (<a href="https://github.com/block/buzz/issues/7357">block/buzz#7357</a>).`,
+            `Ban and retire an exposed identity in every affected community. Arrange an owner handover first if needed. If the relay key leaked, treat the server as exposed, and ask in block/buzz before replacing it: a new key splits your channels' records today (<a href="https://github.com/block/buzz/issues/7357">block/buzz#7357</a>).`,
           ) +
           LANES +
           note("The old key still works in any other community that person joined, since a Buzz identity isn't tied to one community."),
@@ -352,7 +366,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "restore",
         q: "How do we restore a backup?",
         a: (t) =>
-          rec("Restore the newest backup and keep the relay's address: members' apps then reconnect by themselves. Anything from after the backup is lost.") +
+          rec("Restore the newest verified complete backup and keep the relay's address: members' apps then reconnect by themselves. Anything from after the backup is lost.") +
           taskHTML("restore", t),
       },
       {
@@ -389,10 +403,40 @@ const GROUPS: [string, Question[]][] = [
     "Server",
     [
       {
+        id: "capacity", icon: "server", q: "What hardware and hosting do we need?",
+        a: rec("Start from a supported deployment family, then size storage and recovery for your actual use. A provider name alone does not change the Compose procedure.") +
+          steps([
+            ["VPS", "The guide's starting configuration is Ubuntu 24.04, x86, 4 GB RAM and at least 20 GB disk. This is a test baseline, not a user-count or throughput promise. Allow space for uploads, git, database growth, logs and backups. Budget for the domain, backups and egress too."],
+            ["Your own hardware", "Allow for power failures, sleep, home upload bandwidth, off-site backups and network changes. Public access needs router control and reachable addressing; CGNAT can block it. Tailscale avoids inbound forwarding, but every device needs access to the network."],
+            ["Kubernetes", "This guide's single-replica quickstart is for evaluation. Backups alone do not make it a production or high-availability deployment. Managed Postgres, Redis and S3, stable supplied secrets, availability and full restore design belong to the advanced production profile."],
+            ["Agents and ARM", "The relay does not need a GPU merely to host conversations. Agent runtimes and model inference have separate compute, credentials and costs. Upstream offers ARM relay images, but this guide's server path is tested on x86; the older Helm storage override is also x86-only."],
+          ]) + note(`<a href="https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/deploy/charts/buzz/README.md">Upstream production and GitOps options</a> are available with externally managed secrets. They are outside this guide's validated quickstart; no new provider-specific support is implied.`),
+      },
+      {
+        id: "monitor", icon: "eye", q: "What should we monitor and maintain?",
+        a: rec("Name a primary and backup operator. Decide how much data you can lose and how long the community can be unavailable.") +
+          checklist([
+            ["Availability and capacity", "Check external reachability, database readiness, free disk and growth, resource saturation and certificate expiry. Keep internal metrics and administration ports private."],
+            ["Recovery evidence", "Track the age of the last complete off-server backup and the last successful restore rehearsal. A filename or successful liveness check is not recovery evidence."],
+            ["Security and access", "Assess security updates promptly. Review members, Staff, plugins, bots, model providers, network and operator access when responsibilities change."],
+            ["Phone delivery", "If the team relies on it, repeat a real locked-phone DM and mention test after relay or app changes."],
+          ]) + note("Store logs with restricted access and retention: they can name people and the data they read. Set an alert destination and make sure a second operator can act when the primary is unavailable."),
+      },
+      {
+        id: "move", icon: "restore", q: "Can we move or retire the community?",
+        a: rec("Choose the permanent address before your first real install. Moving the machine and changing the community address are different operations.") +
+          steps([
+            ["Move a public server", "Preserve the community URL and relay key, restore all stores and configuration together, and move DNS as the recovery procedure describes. Rehearse before relying on this."],
+            ["Change the address or leave hosted Buzz", "Do not edit RELAY_URL as a migration shortcut: this guide's relay identifies the community from that URL. A new URL creates a different community. This guide does not provide a validated hosted-to-self-hosted history migration, or a private-network move to a new machine name."],
+            ["Retain or delete data deliberately", "Define retention for messages, uploaded files, logs and backups. A deleted message does not necessarily revoke its file, and copies on other people's devices remain. This guide does not claim a complete retention, export or compliance-erasure workflow."],
+            ["Stop paying", "After preserving any required recovery copy, follow the selected setup's shutdown steps and check the provider for remaining disks, load balancers, backups and DNS records. Removing an app or cluster does not prove every billed resource is gone."],
+          ]),
+      },
+      {
         id: "upgrade",
         icon: "upgrade",
         q: "How should we upgrade the relay?",
-        a: (t) => rec("About once a month, at a quiet time: new features in the Buzz app can need a recent relay.") + taskHTML("upgrade", t),
+        a: (t) => rec("Review routine upgrades about monthly, and assess security fixes promptly. Back up and verify app, relay and chart compatibility before changing versions.") + taskHTML("upgrade", t),
       },
       {
         id: "server",
@@ -444,7 +488,8 @@ export function mountFaq(host: HTMLElement): void {
   const pane = host.querySelector<HTMLElement>(".fq-pane")!;
   // on a phone the answer opens under its question, like an accordion
   const narrow = matchMedia("(max-width: 640px)");
-  let open = all[0].id;
+  const hashQuestion = () => new URLSearchParams(location.hash.slice(1)).get("q");
+  let open = all.some((x) => x.id === hashQuestion()) ? hashQuestion()! : all[0].id;
   // each click-through's flow and step, from the start again with each new question
   let state: Record<string, [number, number]> = {};
   const draw = (slot: HTMLElement) => {
@@ -476,7 +521,7 @@ export function mountFaq(host: HTMLElement): void {
       if (on && focus) b.focus();
     });
     pane.setAttribute("aria-labelledby", `fq-tab-${x.id}`);
-    pane.innerHTML = `<h3 class="fq-h">${x.q}</h3>${typeof x.a === "string" ? x.a : x.a(trackOf())}`;
+    pane.innerHTML = `<h3 class="fq-h">${x.q}${linkButton(`#${trackHash(trackOf())}&to=fq-tab-${x.id}&q=${x.id}`, "Copy a link to this answer")}</h3>${typeof x.a === "string" ? x.a : x.a(trackOf())}`;
     if (narrow.matches) list.querySelector(`[data-q="${x.id}"]`)!.after(pane);
     else box.appendChild(pane);
     enhanceCode(pane);
@@ -546,11 +591,19 @@ export function mountFaq(host: HTMLElement): void {
     const q = list.querySelector<HTMLElement>(`[data-q="${open}"]`)!;
     scrollTo({ top: q.getBoundingClientRect().top + scrollY - 72, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   });
+  window.addEventListener("hashchange", () => {
+    const q = hashQuestion();
+    if (!q || !all.some((x) => x.id === q)) return;
+    show(q);
+    const target = list.querySelector<HTMLElement>(`[data-q="${q}"]`);
+    if (target) scrollTo({ top: target.getBoundingClientRect().top + scrollY - 80, behavior: "instant" });
+  });
   narrow.addEventListener("change", () => show(open));
   show(open);
   // the Running on box changed: redraw it, and the answer if it depends on the setup
   onValues(() => {
     host.querySelector(".opx-ctx")!.outerHTML = runningOnHTML(trackOf());
     if (typeof all.find((x) => x.id === open)!.a !== "string") show(open);
+    else pane.querySelector<HTMLAnchorElement>(".fq-h .hl")?.setAttribute("href", `#${trackHash(trackOf())}&to=fq-tab-${open}&q=${open}`);
   });
 }

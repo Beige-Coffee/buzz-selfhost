@@ -2,7 +2,7 @@
 
 > A guide and an agent skill for self-hosting Buzz, Block's open-source team chat for people and their agents: on a VPS, your own hardware, a private Tailscale network or Kubernetes, or as a local test.
 
-The skill is the source of truth for every command and check, and the guide's step-by-step view renders it. To set up Buzz, follow the skill, not this site's text. Its steps ask the user before anything that costs money or can't be undone.
+The skill is the source of truth for every command and check, and the guide's step-by-step view renders it. To set up Buzz, follow the skill, not this site's text. Its steps ask the user before anything that costs money or can't be undone. The skill is instructions, not a security sandbox; keep secrets out of agent conversations and grant access only to the intended environment. People can also choose the manual route, which renders the same runbook.
 
 Install the skill for your agent:
 
@@ -21,6 +21,10 @@ A prompt to start from:
 - [kubernetes.md](https://self-host.buzz/skills/self-host-buzz/references/kubernetes.md): Block's Helm chart, public or on a private network
 - [operations.md](https://self-host.buzz/skills/self-host-buzz/references/operations.md): members, backups, restores and upgrades
 - [troubleshooting.md](https://self-host.buzz/skills/self-host-buzz/references/troubleshooting.md): what a failed check means, and the fix
+
+- [security.md](https://self-host.buzz/skills/self-host-buzz/references/security.md): community access, agent isolation, personal and relay key recovery
+- [mobile.md](https://self-host.buzz/skills/self-host-buzz/references/mobile.md): Block's push gateway, pairing, official-app requirements and a real notification test
+- [manual.md](https://self-host.buzz/skills/self-host-buzz/references/manual.md): preparation for people following the steps themselves
 
 ## Optional
 

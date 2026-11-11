@@ -52,7 +52,7 @@ const FACTS: Record<CardTrack, { reach: string; facts: [string, string][] }> = {
     reach: "On: only devices on your Tailscale network",
     facts: [
       ["Relay key", "On your machine"],
-      ["Best for", "Teams with the most sensitive data: their own hardware, nothing public"],
+      ["Best for", "Teams that want hardware in their own custody and private network access: their own hardware, nothing public"],
     ],
   },
   k8s: {
@@ -119,7 +119,7 @@ export function mountPaths(host: HTMLElement): void {
         </div>`,
       ).join("")}
     </div>
-    <p class="pa-local"><button type="button" class="pa-local-go" data-local aria-pressed="false">Try a local test first</button> on this computer, with your agent: it's free, and only you can reach it. Nothing carries over to a server.</p>`;
+    <p class="pa-local"><button type="button" class="pa-local-go" data-local aria-pressed="false">Try a local test first</button> on this computer, with your agent: it's free, and only you can reach it. A server starts a new community; you can reuse your identity.</p>`;
 
   // Each card keeps its own switch, so a private VPS and a public machine can sit side by side.
   // The picked card's switch is the page's choice. Your hardware starts private, as decisions.md's

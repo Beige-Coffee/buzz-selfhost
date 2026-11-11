@@ -4,6 +4,7 @@ import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/700.css";
 import "./styles/tokens.css";
 import "./styles/main.css";
+import "./styles/overhaul.css";
 import { inject } from "@vercel/analytics";
 import { SVG_DEFS } from "./defs";
 import { mountFooter, mountHeader, mountReveal, mountWidgets } from "./lib/mount";

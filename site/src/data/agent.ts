@@ -57,7 +57,7 @@ const OWNER_KEY: Ready = {
   t: "<b>Your key</b>, your identity in Buzz. The skill makes it and shows its npub, your public ID, which makes you the owner.",
   more: {
     label: "How it works",
-    t: "The skill makes the key on this computer, in a file only you can read, and shows only its npub. You join by dropping that file into Buzz. Then copy the key from <b>Settings</b>, <b>Identity</b>, the Buzz ID card’s <b>More options</b> (…), the masked private-key field, then <b>Copy</b> into your password manager, and delete the file: you need the key to use Buzz on another computer. Already have a key in Buzz? Type its npub into the Running on box: choose <b>Copy Buzz ID</b> on the card in <b>Settings</b>, <b>Identity</b> (press ⌘, or Ctrl+, on Windows and Linux). The other way to get a key is a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details. For that, choose <b>Create account</b> on Buzz's first screen. When Buzz asks for a community, quit it, open it again, choose <b>Continue without signing in</b> and choose Copy Buzz ID in Settings, Identity to copy your npub.",
+    t: "The skill makes the key on this computer, in a file only you can read, and shows only its npub. You join by dropping that file into Buzz. Then copy the key from <b>Settings</b>, <b>Identity</b>, the Buzz ID card’s <b>More options</b> (…), the masked private-key field, then <b>Copy</b> into your private password-manager vault. Verify that the saved entry is recoverable before deleting the file, and clear the copied key from the clipboard. Avoid shared clipboard/history tools. You need the key to use Buzz on another computer. Already have a key in Buzz? Type its npub into the Running on box: choose <b>Copy Buzz ID</b> on the card in <b>Settings</b>, <b>Identity</b> (press ⌘, or Ctrl+, on Windows and Linux). The other way to get a key is a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details. For that, choose <b>Create account</b> on Buzz's first screen. When Buzz asks for a community, quit it, open it again, choose <b>Continue without signing in</b> and choose Copy Buzz ID in Settings, Identity to copy your npub.",
   },
 };
 // a first connection asks to trust the fingerprint, which an agent's shell can't answer (SKILL.md, SSH to a server)
@@ -139,7 +139,7 @@ const QUICKSTART = "Its quickstart profile: Postgres, Redis and file storage ins
 /** kubernetes.md: the quickstart is the chart's evaluation profile, and GitOps tools rotate its generated relay key. */
 const QUICKSTART_NOTE = {
   label: "Before a team relies on it",
-  t: "Your agent installs the chart's quickstart profile, which Block calls an evaluation profile: Postgres, Redis and file storage run in the cluster, one of each. For a team, back it up, or use managed Postgres, Redis and S3 with the chart's production profile. Don't manage the release with Argo CD or Flux: they rotate the generated relay key, which changes your community's identity.",
+  t: "Your agent installs the chart's quickstart profile, which Block calls an evaluation profile: Postgres, Redis and file storage run in the cluster, one of each. Backups do not make this production-ready or highly available. The advanced production profile needs managed Postgres, Redis and S3 plus recovery design. Argo CD and Flux are supported upstream with stable, externally managed secrets; do not use this generated-secret quickstart unchanged.",
 };
 
 // compose.md, server mode: confirm the URL and ports (SKILL.md rules 2 and 4), steps 1 to 5, the key (6), then 7 to 11
@@ -413,8 +413,8 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
   },
   k8s: {
     backup: [
-      { t: "Run it", d: "With <code>kubectl</code> connected to the cluster, in a folder only you can read. The relay keeps running.", code: "pg_dump" },
-      { t: "Check it", d: "Four files, none of them empty." },
+      { t: "Run it", d: "With <code>kubectl</code> connected to the intended cluster. The command creates a private dated directory and refuses to overwrite it. The relay keeps running, so these separate copies are not an atomic snapshot.", code: "pg_dump" },
+      { t: "Check it", d: "Every command must succeed and all four files must be nonempty. If an export fails, stop: the directory may contain partial files and must not be used for restore. Existing files alone do not prove recovery works." },
       { t: "Keep it safe", d: "The Secret file holds the relay key. Encrypt the copies, keep one off this computer, and keep the relay key where two people can open it." },
     ],
   },
@@ -433,7 +433,7 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
       steps: [
         asks("Asks before the backup stops the relay"),
         RENAME,
-        agent("Moves the relay to the image the skill recommends, about 10 seconds offline"),
+        agent("Moves the relay to the image the skill recommends, with downtime that depends on the upgrade"),
         agent("Turns on phone notifications, if the relay predates them"),
         agent("Checks the members are still there and the relay answers"),
       ],
@@ -441,10 +441,10 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
   },
   k8s: {
     backup: {
-      why: "With the quickstart profile, saves the database, the file bucket, the git volume and the relay's Secret, which holds the relay key. In production, use your managed database's and bucket's own backups.",
+      why: "The evaluation quickstart exports the database, file bucket, git volume and relay Secret separately. This is not a consistent disaster-recovery snapshot or a complete recovery procedure. For production, plan coordinated backups with your managed services and rehearse restoration.",
     },
     restore: {
-      why: "Restore the four files the backup saves with your own tools: the database dump, the bucket, the git volume and the relay's Secret.",
+      why: "This guide does not provide a complete Kubernetes restore procedure. Plan and rehearse recovery of the database, bucket, git volume and relay Secret together before using the cluster for a team.",
       manual: true,
     },
     upgrade: {

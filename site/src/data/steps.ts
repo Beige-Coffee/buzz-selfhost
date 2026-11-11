@@ -27,10 +27,10 @@ const ALL: Track[] = ["vps", "vps-private", "own-public", "own-private", "practi
 /** The skill's checks run its scripts; an agent already has them, a reader downloads them here, where the steps run them from. */
 const GET_SKILL: StepDef = {
   id: "get-skill",
-  title: "Get the skill",
+  title: "Get the runbook and prepare your identity",
   tracks: ALL,
-  html: `<p>Written for your agent, so "the user" means you. The checks run the skill's scripts, so to run them yourself, download the skill once. The steps below run its scripts from there.</p>
-<pre class="cmd">mkdir -p ${skill.home} &amp;&amp; curl -fsSL {{SKILL_ARCHIVE}} | tar -xz -C ${skill.home}</pre>`,
+  html: `<p>Download the shared runbook and its checks. The steps below use this local copy. Inspect it before granting server access.</p>
+<pre class="cmd">mkdir -p ${skill.home} &amp;&amp; curl -fsSL {{SKILL_ARCHIVE}} | tar -xz -C ${skill.home}</pre>${skill.preparation}`,
 };
 
 export const STEPS: StepDef[] = [

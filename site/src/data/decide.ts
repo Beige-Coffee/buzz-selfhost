@@ -39,7 +39,7 @@ export const QUESTIONS: Question[] = [
         id: "try",
         label: "Trying it myself",
         hint: "A local test: Docker on this computer, with no server or domain.",
-        when: "Pick this to try Buzz before you choose a server. Nothing carries over.",
+        when: "Pick this to try Buzz before you choose a server. A server starts a new community.",
       },
       {
         id: "team",
@@ -144,7 +144,7 @@ export const SETUPS: Record<Track, Setup> = {
     set: { path: "own", ownMode: "practice" },
     why: "Try Buzz on this computer before you choose a server.",
     need: "Docker on this Mac or Linux computer, with ports 80 and 443 free.",
-    give: "Only this computer can reach it, so phones can't pair. Nothing carries over: a server starts a new community.",
+    give: "Only this computer can reach it, so phones can't pair. A server starts a new community; you can reuse your identity.",
     cost: "Free.",
   },
   vps: {
@@ -185,7 +185,7 @@ export const SETUPS: Record<Track, Setup> = {
     set: { path: "k8s", reach: "public" },
     why: "Runs beside your other services, on a cluster you already operate. The guide installs one relay, with Postgres, Redis and files in the cluster.",
     need: "x86 nodes, <code>kubectl</code> and <code>helm</code>, a default StorageClass, an ingress and cert-manager or your OK to add them, and a domain pointed at the load balancer.",
-    give: `${CHART} Install with Helm, not Argo CD or Flux: they replace the relay key.`,
+    give: `${CHART} Use Helm for this generated-secret quickstart. Argo CD and Flux need stable, externally managed secrets; the upstream chart supports that advanced path.`,
     cost: `${VOLUMES} Add $12 for a load balancer if your agent adds an ingress.`,
   },
   "k8s-private": {

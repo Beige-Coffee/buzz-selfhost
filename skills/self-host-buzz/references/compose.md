@@ -176,8 +176,8 @@ harmless.
    grep -q '^BUZZ_PAIRING_RELAY_URL=' .env || echo "BUZZ_PAIRING_RELAY_URL=wss://$HOST/pair" >> .env
    ```
    Check: `grep '^BUZZ_PAIRING_RELAY_URL=' .env` → `BUZZ_PAIRING_RELAY_URL=wss://$HOST/pair` (one
-   line). Also turn on phone notifications: the relay then wakes the Buzz phone app (0.25 or later)
-   for direct messages and mentions through Block's gateway, `push.buzz.xyz`. No message text
+   line). In `server` and `private` modes, turn on iPhone notifications and test a DM and an
+   explicit mention with the official app. The relay sends wake-ups through Block's gateway, `push.buzz.xyz`. No message text
    passes through it or Apple: the phone fetches messages from this relay. The gateway does see this
    relay's public key, its server's address and when it wakes which phone (SKILL.md section 4 has
    what to tell the user):
@@ -301,16 +301,13 @@ A new local test makes a new authority, to trust again.
 uncapped ones: add the file the same way, then `BUZZ_COMPOSE_TLS=true ./run.sh stop` and
 `BUZZ_COMPOSE_TLS=true ./run.sh start` (without the flag in `private` mode; members lose the
 connection for about half a minute), since only new containers pick it up. Nothing schedules
-backups, so offer a nightly one (ask first; not tested). Members lose the connection for about half
-a minute each time, so the user picks the hour. Save operations.md's backup block as
-`~/buzz-backup.sh`, with `cd ~/buzz/deploy/compose` as its first line and, as its last, a line that
-keeps the newest seven folders once the night's backup is whole:
-`[ -s "$BACKUP/postgres.dump" ] && [ -s "$BACKUP/env" ] && ls -d ~/buzz-backup/20*/ | head -n -7 | xargs -r rm -rf`.
-Then `chmod 700 ~/buzz-backup.sh` and, for 03:30 server time,
-`(crontab -l 2>/dev/null; echo '30 3 * * * bash ~/buzz-backup.sh > ~/buzz-backup.log 2>&1') | crontab -`
-(the log sits outside `~/buzz-backup`, which may not exist before the first backup).
-Check: `crontab -l` shows the line, and the next day `ls ~/buzz-backup` shows a new folder. Copies
-off the server stay the user's to make.
+backups. Agree a backup frequency from the amount of data the user can afford to lose, then
+validate a complete backup and restore before scheduling it. Use operations.md for the current
+manual procedure. An unattended job needs failure alerts, recovery of the stopped relay, checks
+for every database/file/git/config export, and an encrypted off-machine copy. A non-empty dump or
+folder alone does not establish a good backup. Automatic pruning must run only after all checks
+and the off-machine copy succeed; do not delete the last known-good backup. This guide has not
+validated that unattended workflow yet.
 
 **Moderation console (`server`; optional, ask first).** Offer it for a community that strangers
 can join (not tested). Without it, members can report a message, but nobody sees reports in Buzz,

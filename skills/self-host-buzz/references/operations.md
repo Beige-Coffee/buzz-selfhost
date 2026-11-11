@@ -29,7 +29,8 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   afterwards (it answers "member not found"). So after a `remove-member`, restart the relay:
   `BUZZ_COMPOSE_TLS=true ./run.sh restart` (everyone else reconnects within about 20 seconds).
   Check: `./run.sh list-members` no longer lists them. A removed person can rejoin with an invite
-  link that hasn't expired, and nothing cancels a link early: wait them out, or keep links to 1 use
+  link that hasn't expired. There is no single-link cancellation procedure here; an issuer ban
+  revokes its v2 invites, while legacy links differ. Keep links to 1 use
   and 1 day. Their channel memberships stay, so adding them back restores every private channel
   they were in. Tested on 2026-10-27.
   **To ban someone or time them out**, use Buzz 1.0's Settings, Moderation, on a public setup with
@@ -45,7 +46,7 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   `buzz moderation restricted` lists both, and `unban` and `untimeout` lift them. The `<hex>` is
   the person's key as `npub-to-hex.py` prints it. `buzz messages delete --event <id>` deletes a
   message in a channel they own or administer (not tested).
-- **Agents.** Buzz 1.0 runs agents on the owner's computer, each with its own key and the
+- **Local agents.** Buzz 1.0 can run agents on the owner's computer, each with its own key and the
   owner's signed attestation (NIP-OA). The relay admits them through the owner's membership,
   because `.env` has `BUZZ_ALLOW_NIP_OA_AUTH=true` (the bundle's default, as in the chart):
   don't add them as members. They lose access if the owner leaves or is removed (in Buzz, or with
@@ -248,13 +249,25 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
 - **Back up** the quickstart's four stores (ask first; the relay keeps running), into a folder
   only the user can read:
   ```bash
-  kubectl -n buzz exec buzz-postgresql-0 -- sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -U buzz -Fc buzz' > buzz.dump
-  kubectl -n buzz exec deploy/buzz-minio -- tar czf - -C /data . > minio-data.tgz
-  kubectl -n buzz exec deploy/buzz -c relay -- tar czf - -C /var/lib/buzz/git . > git-data.tgz
-  kubectl -n buzz get secret buzz-relay -o yaml > buzz-relay-secret.yaml
+  BACKUP=~/buzz-backup/$(date +%Y-%m-%d-%H%M%S)
+  (
+    set -e
+    umask 077
+    mkdir -p ~/buzz-backup
+    mkdir "$BACKUP"
+    chmod 700 "$BACKUP"
+    kubectl -n buzz exec buzz-postgresql-0 -- sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -U buzz -Fc buzz' > "$BACKUP/buzz.dump"
+    kubectl -n buzz exec deploy/buzz-minio -- tar czf - -C /data . > "$BACKUP/minio-data.tgz"
+    kubectl -n buzz exec deploy/buzz -c relay -- tar czf - -C /var/lib/buzz/git . > "$BACKUP/git-data.tgz"
+    kubectl -n buzz get secret buzz-relay -o yaml > "$BACKUP/buzz-relay-secret.yaml"
+  )
   ```
-  Check: four non-empty files, and `tar tzf minio-data.tgz | grep -c buzz-media` above 0. The
-  Secret file holds the relay key: encrypt the copies.
+  Check: the block exits successfully, four non-empty files in `$BACKUP`, and
+  `tar tzf "$BACKUP/minio-data.tgz" | grep -c buzz-media` above 0. A failure leaves a partial
+  backup; do not use it for a restore or delete an earlier good backup. The
+  Secret file holds the relay key: encrypt the copies and keep them off the cluster. These live
+  exports are not an atomic snapshot or a validated full-cluster restore procedure; choose a
+  coordinated backup and restore process before relying on this for production recovery.
 - **Upgrade.** Back up first, then set `TAG` and `DIGEST` as SKILL.md section 2 does. Upgrade to
   the image this skill recommends, not the newest, unless the user asks. Images from 2026-11-05 on
   don't start on a database where two open channels share a name, ignoring case and counting

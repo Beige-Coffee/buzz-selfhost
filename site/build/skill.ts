@@ -42,8 +42,11 @@ export interface SkillData {
   steps: SkillStep[];
   fixes: SkillFix[];
   ops: SkillOp[];
+  security: { title: string; html: string }[];
+  mobile: { title: string; html: string }[];
   /** where the step-by-step view has a reader download the skill, so its scripts run by that path */
   home: string;
+  preparation: string;
   /** the image the skill recommends, from SKILL.md's metadata: `tested-image` and `tested-digest` */
   pin: { tag: string; digest: string };
 }
@@ -102,31 +105,9 @@ const md = new Marked({
   },
 });
 
-/**
- * The site doesn't talk about how the skill was tested: the skill's notes on that are for the agent,
- * so they come out of the prose here, never out of a command. Each rule names what it removes.
- */
-const UNTESTED: [RegExp, string][] = [
-  [/x86 is what's tested\.\s*/g, ""],
-  [/That's the tested install\.\s*/g, ""],
-  [/,?\s*which isn't tested here/g, ""],
-  [/In testing, deleting a DigitalOcean cluster didn't always/g, "Deleting a DigitalOcean cluster doesn't always"],
-  [/\s+in testing\b/g, ""],
-  [/\bon the tested account\b/g, "on one account"],
-  [/the `tested-image` tag in SKILL\.md's header/g, "the image the skill recommends"],
-  [/;\s*tested as written:/g, ":"],
-  // a parenthesis about testing, such as "(not tested)" or "(tested from sha-30873ba)"
-  [/\s*\([^()]*\b(?:tested|untested|testing)\b[^()]*\)/g, ""],
-  [/\s*\(seen\)/g, ""],
-  // a sentence that reports a test, such as "Tested: messages ... came back."
-  [/(^|\s)Tested\b[\s\S]*?\.(?=\s+[A-Z`*[]|\s*$)/g, "$1"],
-];
-function untested(markdown: string): string {
-  // code fences alternate with prose; only the prose changes
-  return markdown
-    .split(/(```[\s\S]*?```)/)
-    .map((part, i) => (i % 2 ? part : UNTESTED.reduce((t, [re, to]) => t.replace(re, to), part)))
-    .join("");
+/** Keep coverage limits visible; translate internal metadata wording for readers. */
+function presentation(markdown: string): string {
+  return markdown.replace(/the `tested-image` tag in SKILL\.md's header/g, "the image the skill recommends");
 }
 
 /**
@@ -190,6 +171,9 @@ function current(markdown: string): string {
  */
 const PAGE: Record<string, string> = {
   "references/operations.md": "#operations",
+  "references/security.md": "#security",
+  "references/manual.md": "#commands",
+  "references/mobile.md": "#to=fq-tab-notifications&q=notifications",
   "references/troubleshooting.md": "#fixes",
   "references/compose.md": "#commands",
   "references/kubernetes.md": "#commands",
@@ -206,7 +190,7 @@ const links = (html: string, from: string) => html.replace(/<a href="([^"]+)"/g,
 const vars = (text: string) => VARS.reduce((t, [re, key]) => t.replace(re, key), text);
 
 function toHTML(markdown: string, from: string): string {
-  let text = vars(current(untested(markdown)));
+  let text = vars(current(presentation(markdown)));
   // issue references outside code become links
   text = text.replace(/(^|[\s(])block\/buzz#(\d+)/g, "$1[block/buzz#$2](https://github.com/block/buzz/issues/$2)");
   return links(md.parse(text) as string, from)
@@ -321,14 +305,14 @@ function fixes(dir: string): SkillFix[] {
             : /^Own hardware, public:/.test(symptom)
               ? (["own-public"] as Track[])
               : [...TRACKS];
-    const inline = (cell: string) => links(md.parseInline(vars(current(untested(cell)))) as string, "references");
+    const inline = (cell: string) => links(md.parseInline(vars(current(presentation(cell)))) as string, "references");
     return { tracks, symptom: inline(symptom), fix: inline(fix) };
   });
 }
 
 /** operations.md: a section per setup, a bold-titled bullet per task. */
 const OP_SECTIONS: Record<string, Track[]> = { "Docker Compose": COMPOSE, Kubernetes: K8S };
-const OP_KINDS: Record<string, OpKind> = { "add a member": "people", agents: "people", "back up": "backup", restore: "restore", upgrade: "upgrade" };
+const OP_KINDS: Record<string, OpKind> = { "add a member": "people", "local agents": "people", "back up": "backup", restore: "restore", upgrade: "upgrade" };
 
 function ops(dir: string): SkillOp[] {
   const text = readFileSync(join(dir, "references", "operations.md"), "utf8");
@@ -351,6 +335,15 @@ function ops(dir: string): SkillOp[] {
   return out;
 }
 
+/** Reader-facing reference sections share their source with the installed skill. */
+function referenceSections(dir: string, file: string): { title: string; html: string }[] {
+  const text = readFileSync(join(dir, "references", file), "utf8");
+  const sections = [...text.matchAll(/^## (.+)\n([\s\S]*?)(?=^## |(?![\s\S]))/gm)]
+    .map((s) => ({ title: s[1].trim(), html: toHTML(s[2], "references") }));
+  if (!sections.length) fail(`${file}: missing reference sections`);
+  return sections;
+}
+
 export function parseSkill(dir: string): SkillData {
   const steps = [...Object.keys(FILES).flatMap((f) => fileSteps(dir, f)), ...skillSections(dir)];
   const ids = new Set<string>();
@@ -367,7 +360,7 @@ export function parseSkill(dir: string): SkillData {
   const tag = meta("tested-image");
   const digest = meta("tested-digest");
   if (!tag || !digest) fail("SKILL.md's metadata needs tested-image and tested-digest: every setup installs that image");
-  const data = { steps, fixes: fixes(dir), ops: ops(dir), home: HOME, pin: { tag: tag!, digest: digest! } };
+  const data = { steps, fixes: fixes(dir), ops: ops(dir), security: referenceSections(dir, "security.md"), mobile: referenceSections(dir, "mobile.md"), home: HOME, preparation: toHTML(readFileSync(join(dir, "references", "manual.md"), "utf8").replace(/^# .*\n/, ""), "references"), pin: { tag: tag!, digest: digest! } };
   for (const text of [...data.steps.map((x) => x.html), ...data.ops.map((x) => x.html), ...data.fixes.flatMap((x) => [x.symptom, x.fix])]) {
     const old = text.match(OLD);
     if (old) fail(`the site would show "${old[0]}": add a rule to CURRENT in build/skill.ts (${text.replace(/<[^>]+>/g, "").slice(0, 80)})`);

@@ -54,10 +54,10 @@ const DIFF = `<div class="b1-diff" aria-label="A code change">
 
 /**
  * A small Buzz 1.0 window in light mode, the way block/buzz-app draws it as released in
- * v0.7.0-preview.248.1 (#2626): across the top, the sidebar toggle, back and forward, and Search
- * (AppShell.tsx, PageSearch.tsx); down the dock, Activity, Messages and Agents, with the community button
+ * v1.0.0: across the top, the sidebar toggle, back and forward, and Search
+ * (AppShell.tsx, PageSearch.tsx); down the dock, Messages and Agents, with the community button
  * and the profile picture at its foot (presentation.ts, CommunityPicker.tsx, ProfileButton.tsx); then one
- * white panel, the sidebar joined to the open channel: All, Solo and Team with New, Drafts & sent, and the
+ * white panel, the sidebar joined to the open channel: Activity, All, Solo and Team with New, and the
  * channels (PrimarySidebar.tsx); the channel's members and name, then its huddle, terminal and menu
  * (ChannelHeaderIdentity.tsx); each message as a gray bubble under its author, agents marked with the
  * robot; and the composer's tools under its text. People get round avatars, agents square ones.
@@ -75,7 +75,6 @@ export function buzzAppHTML(): string {
   </div>
   <div class="b1-body">
     <div class="b1-dock">
-      <span class="b1-dk">${IC.activity}</span>
       <span class="b1-dk on">${IC.msgs}</span>
       <span class="b1-dk">${IC.agents}</span>
       <span class="b1-comm">B</span>
@@ -83,8 +82,8 @@ export function buzzAppHTML(): string {
     </div>
     <div class="b1-panel">
       <aside class="b1-side">
+        <div class="b1-row">${IC.activity}Activity</div>
         <div class="b1-side-top"><div class="b1-seg"><b>All</b><b>Solo</b><b class="on">Team</b></div><span class="b1-new">${IC.plus}</span></div>
-        <div class="b1-row">${IC.drafts}Drafts &amp; sent</div>
         <div class="b1-sub">Channels</div>
         <div class="b1-row">${IC.hash}general</div>
         <div class="b1-row on">${IC.hash}release</div>

@@ -134,7 +134,7 @@ export interface Setup {
 }
 
 const TAILSCALE = "Tailscale is free for non-commercial use, up to 6 people. A company pays from $8 a person.";
-const DROPLET = "About $24 for 4 GB on DigitalOcean, with 20% more for its backups";
+const DROPLET = "About $24 for 4 GB on DigitalOcean, with 20% more for weekly backups";
 const VOLUMES = "About $3.40 for the four storage volumes on DigitalOcean.";
 const CHART = "It's the chart's evaluation profile, and you restore backups with your own tools.";
 

@@ -1,6 +1,7 @@
 /** Copy buttons for every <pre class="cmd">. Copies the rendered text, so filled-in values come along. */
 export function enhanceCode(root: ParentNode = document): void {
   root.querySelectorAll<HTMLPreElement>("pre.cmd").forEach((pre) => {
+    pre.tabIndex = 0;
     if (pre.parentElement?.classList.contains("cmd-wrap")) return;
     const wrap = document.createElement("div");
     wrap.className = "cmd-wrap";

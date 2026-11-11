@@ -4,10 +4,10 @@ import { app, ti, type Flow } from "./members";
 
 /**
  * Starting an agent in Buzz 1.0, as a click-through of its own screens, in light mode. Drawn from
- * block/buzz-app as released in v0.7.0-preview.248.1: the window with Agents open in its dock (#2626,
+ * block/buzz-app as released in v1.0.0: the window with Agents open in its dock (#2626,
  * members.ts), the Agents page and its New agent menu (src/bundled/agents/AgentsPage.tsx), and Create
  * agent (src/bundled/agents/AgentCreateDialog.tsx with the Claude harness's model, thinking and
- * instructions; its menu's Import an agent shows only when there's one to import, so it's left out).
+ * instructions; its first-agent tile and the existing-agent toolbar menu).
  * The agent's picture is one of Buzz's own avatar packs; names and messages are illustrative.
  */
 
@@ -17,9 +17,9 @@ const agentsPage = (menu: boolean) =>
     "agents",
     `<div class="ax-page">
     <p class="ax-h">${ti("robot")}Agents</p>
-    <div class="ax-tabs"><b>Your agents</b><span>Your teams</span><span>Marketplace</span><em class="${menu ? "" : "hot"}">New agent${ti("chevron-down")}</em></div>
-    <div class="ax-empty"><span class="ax-tile">${ti("plus")}</span><span class="ax-tile ghost"></span><span class="ax-tile ghost"></span></div>
-    ${menu ? `<div class="ax-menu"><p class="hot">${ti("plus")}Create a new agent</p></div>` : ""}
+    <div class="ax-tabs"><b>Your agents</b><span>Your teams</span><span>Marketplace</span>${menu ? `<em>New agent${ti("chevron-down")}</em>` : ""}</div>
+    <div class="ax-empty"><span class="ax-tile ax-start hot">${ti("plus")}<b>Create your first agent</b></span><span class="ax-tile ax-start">${ti("robot")}<b>Explore the marketplace</b></span></div>
+    ${menu ? `<div class="ax-menu"><p class="hot">${ti("plus")}Create a new agent</p><p>${ti("download")}Import an agent</p></div>` : ""}
   </div>`,
   );
 
@@ -54,8 +54,7 @@ export const agentFlows: Flow[] = [
     id: "agents",
     label: "Start an agent",
     steps: [
-      { k: "Open Agents", t: "Choose <b>Agents</b>, the robot in the dock, then <b>New agent</b>.", frame: agentsPage(false) },
-      { k: "Create a new agent", t: "Choose <b>Create a new agent</b> in the menu.", frame: agentsPage(true) },
+      { k: "Open Agents", t: "Choose <b>Agents</b>, the robot in the dock, then <b>Create your first agent</b>. If you already have agents, choose <b>New agent</b>, then <b>Create a new agent</b>.", frame: agentsPage(false) },
       { k: "Pick its harness and model", t: "Name it, pick the harness, such as Claude, Codex or Goose, and the model, then <b>Create agent</b>. It gets its own key, vouched for by you.", frame: create },
       { k: "Use it in a channel", t: "Mention it where you need it. The relay lets it in through your membership, so nobody adds it as a member.", frame: channel },
     ],

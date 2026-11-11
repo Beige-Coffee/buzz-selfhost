@@ -5,7 +5,7 @@ import { BUZZ_ROBOT, TABLER } from "./tabler";
 
 /**
  * Managing people, as click-throughs of Buzz 1.0's own screens, in light mode: four flows, each
- * starting from the profile menu. Drawn from block/buzz-app as released in v0.7.0-preview.248.1: the
+ * starting from the profile menu. Drawn from block/buzz-app as released in v1.0.0: the
  * window with its dock (#2626: src/app/shell/AppShell.tsx, presentation.ts, ProfileButton.tsx and its
  * .module.css, src/features/communities/CommunityPicker.tsx, src/shared/styles/globals.css), Settings
  * (src/app/settings-sections.ts), Membership, its row menu, the confirmations and "Add or invite people"
@@ -22,12 +22,12 @@ const ring = (on: boolean) => (on ? " hot" : "");
 /* ── the app: a header with Search, the dock down the left, one white panel ── */
 export const CURSOR = `<svg class="mb-cursor" viewBox="0 0 16 20" aria-hidden="true"><path d="M1 1v15l4.2-3.9 2.7 6.2 2.6-1.1-2.7-6.1H14z"/></svg>`;
 type Page = "messages" | "agents";
-/** The dock on a new install, in Buzz's order: Activity, Messages, Agents (Reminders and Workflows start off). */
-const DOCK: [string, string][] = [["activity", "bell"], ["messages", "messages"], ["agents", "robot"]];
-/** Messages' sidebar, sketched: the scope tabs and New, Drafts & sent, then the channels. */
+/** The dock on a new install, in Buzz's order: Messages and Agents (Bestie, Reminders and Workflows start off). */
+const DOCK: [string, string][] = [["messages", "messages"], ["agents", "robot"]];
+/** Messages' sidebar, sketched: Activity, the scope tabs and New, then the channels. */
 const SIDE = `<div class="mb-side">
+  <p class="mb-srow">${ti("bell")}Activity</p>
   <p class="mb-seg"><i><b>All</b><b>Solo</b><b class="on">Team</b></i><span>${ti("plus")}</span></p>
-  <p class="mb-srow">${ti("send")}Drafts &amp; sent</p>
   <p class="mb-side-g">Channels</p>
   <p class="mb-srow">${ti("hash")}general</p>
   <p class="mb-srow on">${ti("hash")}release</p>
@@ -36,7 +36,7 @@ const SIDE = `<div class="mb-side">
 /** An open channel, sketched: its members and name, as one button (ChannelHeaderIdentity.tsx), then messages. */
 const CHANNEL = `<p class="mb-chan"><span class="mb-stack"><img src="${maya}" alt=""><img src="${leo}" alt=""></span>release</p><span></span><span></span><span class="short"></span>`;
 /**
- * Buzz's window: back and forward and Search across the top; Activity, Messages and Agents down the
+ * Buzz's window: back and forward and Search across the top; Messages and Agents down the
  * dock, with the community button and your profile picture at its foot; one white panel for the page.
  */
 export const app = (page: Page, main: string, over = "") => `<div class="mb-app">
@@ -115,15 +115,15 @@ const usesLabel = (uses: string) => (/^\d+$/.test(uses) ? `${uses} ${uses === "1
 export const invite = (spot: "add" | "copy", expiry = "3 days", uses = "No limit") => `<div class="mb-shade on-modal"></div>
 <div class="mb-dlg">
   <div class="mb-dlg-h"><b>Add or invite people</b><span class="mb-x">${ti("x")}</span></div>
-  <p class="mb-sub">Add someone by their exact identity, or share a link they can use to join.</p>
-  <h6>Add directly</h6>
-  <p class="mb-sub">Paste the person's npub or 64-character public key.</p>
-  <div class="mb-line"><span class="mb-in">${spot === "add" ? `<span class="typed">npub1qk3f8w…7x2a</span>` : `<span class="ph">npub1… or public key</span>`}<span class="mb-choice">Member${ti("chevron-down")}</span></span><span class="mb-btn${spot === "add" ? " dark hot" : " off"}">Add member</span></div>
+  <p class="mb-sub">Share a link someone can use to join, or add them by their exact identity.</p>
   <h6>Invite with a link</h6>
   <p class="mb-sub">Anyone with this link can use it to join until it expires.</p>
   <div class="mb-line"><span class="mb-in"><span class="mono">${LINK}</span><span class="mb-copy${ring(spot === "copy")}">Copy link</span></span></div>
   <p class="mb-opt">Expires after<span class="mb-choice${expiry === "3 days" ? "" : " set"}">${expiry}${ti("chevron-down")}</span></p>
-  <p class="mb-opt">Limit number of uses<span class="mb-choice${uses === "No limit" ? "" : " set"}">${usesLabel(uses)}${ti("chevron-down")}</span></p>
+  <p class="mb-opt">Max uses<span class="mb-choice${uses === "No limit" ? "" : " set"}">${usesLabel(uses)}${ti("chevron-down")}</span></p>
+  <h6>Add directly</h6>
+  <p class="mb-sub">Paste the person's npub or 64-character public key.</p>
+  <div class="mb-line"><span class="mb-in">${spot === "add" ? `<span class="typed">npub1qk3f8w…7x2a</span>` : `<span class="ph">npub1… or public key</span>`}<span class="mb-choice">Member${ti("chevron-down")}</span></span><span class="mb-btn${spot === "add" ? " dark hot" : " off"}">Add member</span></div>
 </div>`;
 /** The confirmation, as CommunityAdmin.tsx words it. */
 export const confirm = (what: "admin" | "remove") => `<div class="mb-shade on-modal"></div>

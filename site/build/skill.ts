@@ -154,7 +154,7 @@ const CURRENT: [RegExp, string][] = [
   [phrase(" (older phones show a code to compare instead)"), ""],
   // operations.md
   [phrase("from the Buzz app: in Buzz 1.0, Settings, Identity,"), "from the Buzz app: Settings, Identity,"],
-  [phrase('"Nostr address (npub)"; in Buzz 0.X, the Join screen.'), '"Nostr address (npub)".'],
+  [phrase('; in Buzz 0.X, the Join screen.'), '.'],
   [phrase(" (Buzz 0.X: Settings, Invites)"), ""],
   [phrase(" or one of Buzz 0.X's"), ""],
   [phrase(" The file store's volume keeps MinIO's name with Silo too, so the commands are the same for every tag."), ""],

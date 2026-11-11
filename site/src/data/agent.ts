@@ -28,8 +28,8 @@ export interface AgentTrack {
 }
 
 type Ready = AgentTrack["ready"][number];
-// Buzz 1.0 publishes only prereleases, so its /releases/latest is a 404
-const DESKTOP = "https://github.com/block/buzz-app/releases";
+// The stable launch release is v1.0.0; /releases/latest excludes newer previews.
+const DESKTOP = "https://github.com/block/buzz-app/releases/latest";
 const ALIASES = "https://github.com/block/buzz/pull/5410";
 
 // the skill's scripts run where the agent runs: python3, bash and curl (SKILL.md compatibility: macOS
@@ -41,13 +41,13 @@ const AGENT: Ready = {
     t: "The skill runs scripts on your computer with <code>python3</code>, <code>bash</code> and <code>curl</code>. Most Linux systems have all three; install any that's missing. On a Mac, if <code>python3</code> asks you to install developer tools, run <code>xcode-select --install</code> first. Use a capable model: small, fast models tend to stop after every step. Keep your agent's approval prompts on, since it runs commands with admin rights, and keep cloud tokens it doesn't need off this computer.",
   },
 };
-// Buzz 1.0's releases are all previews (v0.7.0-preview.N): signed for macOS 12 or later on Apple Silicon
-// and Intel (Intel from 247.1, block/buzz-app#1825), an unsigned installer for Windows, deb and AppImage for Linux
+// Stable v1.0.0 offers signed macOS builds for Apple Silicon and Intel, an unsigned Windows
+// installer, and Linux x64 deb and AppImage builds (Ubuntu 24.04).
 const APP: Ready = {
   t: "<b>Buzz</b> on the computer you'll use it on. You join from it once the relay runs.",
   more: {
     label: "Where to get it",
-    t: `Download it from <a href="${DESKTOP}">Block's releases page</a>, for a Mac with macOS 12 or later (Apple Silicon or Intel), Windows or Linux. Every release there is a preview, and the newest is at the top. The Windows installer isn't signed yet, so Windows warns before it runs.`,
+    t: `Download it from <a href="${DESKTOP}">Block's latest stable release</a>. Buzz 1.0 launched on 10 November 2026, with builds for a Mac with macOS 12 or later (Apple Silicon or Intel), Windows x64 and Linux x64 (Ubuntu 24.04 deb or AppImage). The Windows installer isn't signed yet, so Windows warns before it runs.`,
   },
 };
 // decision 2: the skill's scripts/new-identity.py makes the owner's key on this computer and prints only
@@ -57,7 +57,7 @@ const OWNER_KEY: Ready = {
   t: "<b>Your key</b>, your identity in Buzz. The skill makes it and shows its npub, your public ID, which makes you the owner.",
   more: {
     label: "How it works",
-    t: "The skill makes the key on this computer, in a file only you can read, and shows only its npub. You join by dropping that file into Buzz. Then copy the key from <b>Settings</b>, <b>Identity</b>, <b>Copy private key</b> into your password manager, and delete the file: you need the key to use Buzz on another computer. Already have a key in Buzz? Type its npub into the Running on box: it's in <b>Settings</b>, <b>Identity</b> (press ⌘, or Ctrl+, on Windows and Linux). The other way to get a key is a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details. For that, choose <b>Create account</b> on Buzz's first screen. When Buzz asks for a community, quit it, open it again, choose <b>Continue without signing in</b> and copy your npub from Settings, Identity.",
+    t: "The skill makes the key on this computer, in a file only you can read, and shows only its npub. You join by dropping that file into Buzz. Then copy the key from <b>Settings</b>, <b>Identity</b>, the Buzz ID card’s <b>More options</b> (…), the masked private-key field, then <b>Copy</b> into your password manager, and delete the file: you need the key to use Buzz on another computer. Already have a key in Buzz? Type its npub into the Running on box: choose <b>Copy Buzz ID</b> on the card in <b>Settings</b>, <b>Identity</b> (press ⌘, or Ctrl+, on Windows and Linux). The other way to get a key is a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details. For that, choose <b>Create account</b> on Buzz's first screen. When Buzz asks for a community, quit it, open it again, choose <b>Continue without signing in</b> and choose Copy Buzz ID in Settings, Identity to copy your npub.",
   },
 };
 // a first connection asks to trust the fingerprint, which an agent's shell can't answer (SKILL.md, SSH to a server)

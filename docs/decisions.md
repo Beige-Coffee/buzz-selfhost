@@ -1,7 +1,17 @@
 # Decisions
 
 What was decided for the guide and the skill, and why. Facts behind these are in
-[research.md](research.md). Last updated 2026-11-06.
+[research.md](research.md). Last updated 2026-11-11.
+
+## The public domain moves (2026-11-11)
+
+The owner bought `self-host.buzz` through Vercel and approved connecting it to the existing
+`buzz-selfhost` project. It is the production address. Both `www.self-host.buzz` and
+`buzz-selfhost.vercel.app` redirect to it with HTTP 308, preserving paths and queries. HTTPS and
+the guide, llms.txt, skill archive, key-maker script and Web Analytics script returned 200.
+The existing deployment serves the new domain; the reviewed source changes still need approval
+to push and deploy. This replaces the earlier Vercel address, not the pending decision about
+Block's ownership, name or marks. The owner has not yet received an answer from Block.
 
 ## What the site is
 

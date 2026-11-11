@@ -7,7 +7,7 @@ A guide site, an agent skill and end-to-end tests for self-hosting Buzz
 
 - `skills/self-host-buzz/`: the skill, in the open [Agent Skills](https://agentskills.io) format.
   It's the source of truth for every command and check.
-- `site/`: the guide at https://buzz-selfhost.vercel.app (Vite and vanilla TypeScript).
+- `site/`: the guide at https://self-host.buzz (Vite and vanilla TypeScript).
   `site/build/skill.ts` parses the skill's Markdown at build time, so the site's step-by-step view
   is the skill itself: change commands in the skill, never in the site.
 - `tests/`: smoke tests that run the skill's commands on real servers. `tests/runs/` keeps every
@@ -20,7 +20,7 @@ A guide site, an agent skill and end-to-end tests for self-hosting Buzz
 
 - Site: `cd site && npm install && npm run build`. Preview with the `buzz-selfhost` launch
   configuration (port 5186).
-- Skill: `node site/build/skill.ts` (from `site/`) confirms the site can still parse it and prints
+- Skill: `node build/skill.ts` (from `site/`) confirms the site can still parse it and prints
   the steps per setup; the build fails if the skill's shape breaks. Validate the skill against the
   standard with `skills-ref validate skills/self-host-buzz`.
 - Deploy: `cd site && npm run deploy` builds locally and uploads to Vercel (Vercel's own build

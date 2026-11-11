@@ -1,5 +1,5 @@
 import { FIXES, STEPS, type StepDef } from "../data/steps";
-import { fill, fillRich, onValues, renderTemplates, stepHash, trackOf, type Track } from "../lib/values";
+import { fill, fillRich, getValues, setValues, onValues, renderTemplates, stepHash, trackOf, type Track } from "../lib/values";
 import { linkButton } from "../lib/permalink";
 import { enhanceCode } from "../lib/code";
 import { joinMockHTML } from "./joinmock";
@@ -93,6 +93,17 @@ export function mountSetup(host: HTMLElement): void {
     progress();
   });
 
+  const guide = document.getElementById("guide")!;
+  const updateMode = () => {
+    guide.dataset.mode = getValues().mode;
+    guide.querySelectorAll<HTMLButtonElement>("[data-setup-mode]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.setupMode === getValues().mode)));
+  };
+  guide.addEventListener("click", (e) => {
+    const button = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-setup-mode]");
+    if (button) setValues({ mode: button.dataset.setupMode === "steps" ? "steps" : "agent" });
+  });
+  updateMode();
+  onValues(updateMode);
   render();
   onValues(() => (trackOf() !== track ? render() : refill()));
 
@@ -102,6 +113,7 @@ export function mountSetup(host: HTMLElement): void {
     const to = a && document.getElementById(a.getAttribute("href")!.slice(1));
     if (!to) return;
     e.preventDefault();
+    setValues({ mode: "steps" });
     for (let d = to.closest("details"); d; d = d.parentElement?.closest("details") ?? null) d.open = true;
     scrollTo({ top: to.getBoundingClientRect().top + scrollY - 72, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   });

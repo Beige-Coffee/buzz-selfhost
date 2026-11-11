@@ -19,7 +19,9 @@ metadata:
 A Buzz community lives on a relay: a Rust server, plus Postgres (messages, channels, members), an
 S3 store for uploaded files (Silo or MinIO), a git folder (repositories), Redis (who's online) and
 an `.env` file (the relay key and passwords). This skill installs one, checks every step, and runs
-day-two tasks. Every command was run end to end, except where a step says otherwise.
+day-two tasks. Test records name the versions and setups exercised; source review and syntax
+checks do not establish a successful install or restore on a newer image. Read the
+[security guidance](references/security.md) before opening invitations or connecting an agent.
 
 People use the relay from the Buzz desktop app. These steps describe Buzz 1.0
 ([block/buzz-app](https://github.com/block/buzz-app/releases/latest)), released as stable v1.0.0 on
@@ -35,10 +37,11 @@ deprecated. It still works with the same relay; where its screens differ, the st
    output goes to a file or nowhere, never the screen: `./run.sh config`, `docker compose config`,
    `docker inspect`, `helm get manifest`, `helm get all`, `kubectl get secret -o yaml`. Generate
    keys straight into their file. When a check needs a secret, check its length, never its value.
-   Safe to show as is (tested): every check in these files, `run.sh start`, `status` and
-   `list-members`, `docker compose ps`, the services' logs except the relay's access lines,
-   `kubectl describe`, `helm get values`, `helm install`'s notes, and `run.sh upgrade` (its
-   reminder names secrets but never prints them). The relay's log names who read what and from
+   Reviewed checks in these files select nonsecret output. `run.sh start`, `status` and
+   `list-members` and `docker compose ps` are useful status checks for this configuration.
+   Do not assume `kubectl describe`, `helm get values`, install notes or logs are safe: inline
+   environment values and custom settings can contain credentials. Select only the fields needed.
+   The relay's log names who read what and from
    where, so show only the lines a check needs:
    `docker logs --tail 300 buzz-prod-relay-1 2>&1 | grep -v 'buzz_relay::access' | tail -40`, or on
    Kubernetes the same filter on `kubectl -n buzz logs deploy/buzz -c relay --tail 300`.
@@ -50,8 +53,9 @@ deprecated. It still works with the same relay; where its screens differ, the st
    the setup. Use only the access the user gives you:
    if a server's address or login is missing or doesn't work, ask, rather than looking it up with
    cloud credentials found on the machine.
-3. **Check every step.** Run the step's check and show its output. A check passes when its output
-   matches, whatever the exit status (`grep -c` exits 1 when it counts 0). At the first failing
+3. **Check every step.** Run the step's check and show only its nonsecret output. Require the
+   expected output and a successful command. Handle a documented exception explicitly, such as
+   `grep -c` returning 1 when the expected count is 0; never accept a failed query as empty success. At the first failing
    check, stop and look it up in [troubleshooting](references/troubleshooting.md); if it isn't
    there, see [When something fails](#when-something-fails). Run the steps one at a time, in
    order, and each check only after its step has finished: a check run alongside its step fails
@@ -129,8 +133,8 @@ an installer instead: ask the user to run `xcode-select --install` first.
   a mistyped or cut-off one fails instead of making a stranger the owner.
 - **Image.** Use the image this skill recommends, for installs and upgrades alike: `tested-image`
   and `tested-digest` in this file's metadata, which some agents don't show, so read both from the
-  file. Block's relay releases are older than what Buzz 1.0 needs, so this skill pins one image
-  from main, by its digest.
+  file. This guide pins a source image by digest. Newer releases, including the published 0.3.0
+  container, need compatibility and runtime validation before replacing that pin.
   ```bash
   TAG=$(awk '/^  tested-image:/ {print $2}' "$SKILL/SKILL.md")
   DIGEST=$(awk '/^  tested-digest:/ {print $2}' "$SKILL/SKILL.md")
@@ -193,7 +197,9 @@ and ports kubernetes.md gives. A local test's certificate comes from compose.md 
 line must say `PASS`: the relay answers, reports its version, names its own identity and has
 channel labels (what Buzz 1.0 needs to join and to start chats), takes WebSocket connections
 (what Buzz joins over), lets Buzz 0.X in (CORS), phones can reach its pairing service, and it offers
-phone notifications. A setup without pairing or notifications prints `SKIP` for that line. A new certificate can take a minute or two on the first
+push capability. That advertisement does not test notification delivery: use the locked-phone
+check in [phones and notifications](references/mobile.md). A setup without an advertised pairing
+or push capability prints `SKIP` for that line. A new certificate can take a minute or two on the first
 request; the script waits. If this computer still has the domain's old address cached, put
 `RESOLVE_IP=<server IP>` before the command to check the server directly.
 
@@ -211,8 +217,9 @@ yet, on Join a community, where they paste the address into "Invite link or comm
 choose Join; otherwise they use the community button, below (not tested). The `https://` form of the
 address works too; `ws://` and `http://` addresses don't. In Buzz 0.X, paste the same address into
 its Join a community screen. With the key file, once Buzz has joined, the user saves the key in a
-password manager (Settings, Identity, More options on the Buzz ID card,
-then the masked private-key field and Copy), then deletes the file:
+private vault in a team-approved password manager (Settings, Identity, More options on the Buzz ID
+card, then the masked private-key field and Copy). They confirm the saved entry is recoverable and
+clear the copied value from the clipboard before deleting the temporary file:
 `rm ~/buzz-identity.key`. To join another community later, it's the community button, then Join a
 community, whose box takes an address but not an invite link.
 
@@ -234,7 +241,8 @@ New members join any starter channel an owner or admin turns on: Starter channel
 in a public channel's settings. That covers invite links and Add directly; people added with
 `add-member` from the server's command line aren't added to it. Everyone finds open channels in
 Search, Channels. Opening Invite members makes a link at once, valid for 3 days with no use limit,
-and each change of its expiry or use limit makes another. Nothing cancels a link early, so for one
+and each change of its expiry or use limit makes another. This guide has no single-link cancellation
+procedure; banning an issuer revokes its v2 links, while legacy links differ. For one
 person choose 1 use and 1 day.
 
 **Removing people.** Remove someone in Buzz 1.0 (Settings, Community admin, Membership, the … on
@@ -253,20 +261,23 @@ Newer relay images include channel-scoped file reads (block/buzz#9077), controll
 `BUZZ_MEDIA_READ_MODE`, which defaults to `off`. This skill's pinned image predates that change.
 Before enabling it, follow [Block's rollout guide](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/docs/operator-private-media.md),
 including its app, mobile and editing compatibility checks. Until then, keep files that not every
-member may see out of Buzz. Nothing is end-to-end encrypted: whoever runs the server, or holds a
-backup, can read every message and file. The relay's log names each member with what they read,
+member may see out of Buzz. Ordinary conversations, DMs and uploaded files are not end-to-end
+encrypted: whoever runs the server, or holds a backup, can read that content. The relay's log names each member with what they read,
 so treat logs like the data.
 
-**Phones.** After joining from the desktop app, the user opens Settings, Pair mobile (Buzz 0.X:
+**Phones.** Read [phones and notifications](references/mobile.md) for the gateway settings,
+platform limits and a real delivery check. After joining from the desktop app, the user opens Settings, Pair mobile (Buzz 0.X:
 Settings, Mobile). In the Buzz app on the phone they choose Add community, scan the QR code, and
 enter the six-digit code the desktop shows (older phones show a code to compare instead). Then
-they choose Codes match on the desktop, which sends their identity to the phone. Pairing copies
+they compare the confirmation on both devices and choose Codes match on the desktop only if
+they agree. If they differ, cancel and restart pairing. Pairing copies
 their private key to the phone: pair where nobody else can see the screen. This
 needs the pairing service, which every setup's steps add (`check-relay.sh` says `PASS` for phone
 pairing) except Kubernetes on a private network, which isn't covered yet, and the local test. On a
-private network the phone needs the Tailscale app on. Every setup's steps turn on phone
-notifications (`BUZZ_PUSH_ENABLED=true`): the phone app, 0.25 or later, gets them for direct
-messages and mentions (a thread reply notifies only with a mention), through Block's gateway,
+private network the phone needs the Tailscale app on. The supported server and private-network
+setups turn on iPhone notifications (`BUZZ_PUSH_ENABLED=true`). Test a DM and an explicit mention
+with the official iPhone app; other eligibility depends on client preferences and subscriptions.
+Wake-ups pass through Block's gateway,
 `push.buzz.xyz`. Tell the user what that shares: no message text, sender or channel passes through
 the gateway or Apple, because the phone fetches messages from this relay; but Block's gateway sees
 this relay's public key, its server's address and when it wakes which phone, and Apple sees when a
@@ -274,10 +285,10 @@ phone is woken. Each member's iPhone signs up on its own while push is on. Block
 experimental, and delivery is best effort. `BUZZ_PUSH_ENABLED=false` turns it off. Tested on public
 VPSs on 2026-10-23 and 2026-10-27.
 
-**Agents.** Buzz 1.0 runs agents on the user's computer, each with its own key that the owner's
+**Local agents.** Buzz 1.0 can run agents on the user's computer, each with its own key that the owner's
 identity vouches for. The relay admits them through the owner's membership, which every setup here
 allows (`BUZZ_ALLOW_NIP_OA_AUTH=true`), so no agent needs adding as a member
-([operations.md](references/operations.md)). Agents answer only while Buzz is open on that computer
+([operations.md](references/operations.md)). These local agents answer only while Buzz is open on that computer
 and it's awake. Each works in `~/.buzz` unless given its own Workspace, so agents in different
 communities share that folder.
 
@@ -290,8 +301,11 @@ Block's servers. With a Builderlab account, Block can keep a copy and gives it b
 signs in to that account. On a new computer they choose Other options, paste the community's
 address and choose Continue, then Use an existing key with the saved key; membership stays on the
 relay, so nobody has to add them again, and they join each other community again by its address.
-Agents can't be moved; they're made again. A lost owner key is recovered on the server by changing
-the owner ([operations.md](references/operations.md)).
+Local agent runtimes, credentials and workspace files need separate recovery. Where Buzz offers
+Import an agent or Connect for an existing identity, stop the old runtime and check what settings
+transfer; a human-key backup alone does not back up those files. An operator can transfer community
+ownership to a new identity ([operations.md](references/operations.md)); that does not recover the
+lost private key.
 
 ## When something fails
 

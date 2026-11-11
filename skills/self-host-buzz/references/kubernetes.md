@@ -1,9 +1,10 @@
 # Kubernetes, with Block's Helm chart
 
 Chart `0.1.10`, quickstart profile: Postgres, Redis and MinIO run in the cluster, with one relay
-replica. That's the tested install. The chart calls it an evaluation profile (one MinIO replica):
-for a team, back it up (operations.md) or use the production profile (managed Postgres, Redis and
-S3), which isn't tested here. Tell the user which one they're getting. Tested on DigitalOcean
+replica. The chart calls this an evaluation profile, not a production or high-availability
+deployment. Backing it up does not change that. The advanced production profile uses managed
+Postgres, Redis and S3 and needs separate recovery and availability design; it is not tested here.
+Tell the user which profile they are getting. Tested on DigitalOcean
 Kubernetes 1.36 with Traefik (chart 41.6.1, Traefik 3.7) and cert-manager 1.21. Needs `kubectl`
 and `helm` pointed at the cluster, with `kubectl` within one minor version of it: keep the same
 `KUBECONFIG` or context for every command, including the ones the user runs. The quickstart's

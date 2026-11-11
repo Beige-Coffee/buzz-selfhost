@@ -32,6 +32,7 @@
     <div class="hd-links">
       <span class="hd-thumb" aria-hidden="true"></span>
       <a href="#how" data-sec="how">How it works</a>
+      <a href="#security" data-sec="security">Security</a>
       <a href="#where" data-sec="where">Where to run</a>
       <a href="#guide" data-sec="guide">Setup</a>
       <a href="#operations" data-sec="operations">Operations</a>
@@ -42,16 +43,17 @@
 </header>
 <div class="hd-sheet" id="hd-sheet" hidden>
   <a href="#how" data-sec="how"><span>01</span>How it works</a>
-  <a href="#where" data-sec="where"><span>02</span>Where to run</a>
-  <a href="#guide" data-sec="guide"><span>03</span>Setup</a>
-  <a href="#operations" data-sec="operations"><span>04</span>Operations</a>
+  <a href="#security" data-sec="security"><span>02</span>Security</a>
+  <a href="#where" data-sec="where"><span>03</span>Where to run</a>
+  <a href="#guide" data-sec="guide"><span>04</span>Setup</a>
+  <a href="#operations" data-sec="operations"><span>05</span>Operations</a>
 </div>
 
 <main id="top">
 
   <section class="hero">
     <h1>Run Buzz on <mark>your own</mark> server</h1>
-    <p class="lede">Buzz is open-source team chat for people and their agents. This guide sets it up on a VPS, your own hardware or Kubernetes, with an agent skill that does the work.</p>
+    <p class="lede">Buzz is open-source team chat for people and their agents. This guide sets it up on a VPS, your own hardware or Kubernetes. Use the shared runbook with an agent or follow its steps yourself.</p>
     <div class="hero-cta">
       <a class="btn" href="#where">Set it up<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9.5M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       <a class="btn ghost" href="#how">How it works</a>
@@ -60,7 +62,7 @@
       <li><b>Independent of Block</b><span>Your relay keeps running without Block, even if Block moves on</span></li>
       <li><b>No lock-in</b><span>Your data, your decisions, free to switch to a fork</span></li>
       <li><b>Yours to customize</b><span>Need a feature? Build it yourself instead of waiting</span></li>
-      <li><b>Private</b><span>Your messages and files are stored on your own server, behind your firewall</span></li>
+      <li><b>Control your data</b><span>You choose the server, membership and access rules</span></li>
     </ul>
   </section>
 
@@ -92,6 +94,11 @@
     </div>
   </section>
 
+  <section class="block reveal" id="security">
+    <div class="text"><h2>Security before your first invite</h2><p class="sub">Choose what belongs in your community, who can join and what an agent can access.</p></div>
+    <div class="wide" data-widget="security"></div>
+  </section>
+
   <section class="block reveal" id="where">
     <div class="text">
       <h2>Pick where your relay runs</h2>
@@ -113,24 +120,26 @@
         <h2 data-tracks="practice">Try a local test</h2>
         <p class="sub" data-tracks="own-public">Run Buzz on a Linux machine you own, reachable from the internet through your router.</p>
         <p class="sub" data-tracks="own-private">Run Buzz on a Linux machine you own, on your Tailscale network, with no router changes.</p>
-        <p class="sub" data-tracks="practice">Try Buzz on this computer with Docker. Nothing here carries over to a server, and phones can't pair with it.</p>
+        <p class="sub" data-tracks="practice">Try Buzz on this computer with Docker. A server starts a new community; your identity can be reused. Phones cannot pair with this local test.</p>
       </div>
       <div data-tracks="k8s k8s-private">
         <h2>Self-host on Kubernetes</h2>
         <p class="sub" data-tracks="k8s">Install Buzz with Block's Helm chart on a cluster you already run.</p>
         <p class="sub" data-tracks="k8s-private">Install Buzz with Block's Helm chart on a cluster you already run, reachable only on your Tailscale network.</p>
       </div>
-      <p class="mode-note">Your agent follows the skill's steps and asks you before anything that costs money or can't be undone.</p>
+      <div class="setup-choice" role="group" aria-label="How to follow the guide">
+        <button type="button" data-setup-mode="agent" aria-pressed="true">Use an agent</button>
+        <button type="button" data-setup-mode="steps" aria-pressed="false">Follow the steps yourself</button>
+      </div>
+      <p class="setup-trust">Both routes use the same runbook. Review its source before granting server access. Give an agent access only to the intended host, keep secrets out of chat, and review cost or deletion requests.</p>
+      <p class="setup-context">The skill is instructions, not a sandbox or a guarantee of safe execution. <a href="#security">Choose the access boundaries first</a>.</p>
     </div>
 
     <div class="guide-grid" data-tracks="vps vps-private own-public own-private practice k8s k8s-private">
       <aside class="guide-side"><div data-widget="panel"></div></aside>
       <div class="guide-steps">
-        <div data-widget="agent"></div>
-        <details class="ref" id="commands">
-          <summary><span class="ref-t">See every command your agent runs</span><span class="ref-s">The skill's own steps, with your values filled in</span></summary>
-          <div data-widget="setup"></div>
-        </details>
+        <div class="mode-agent"><div data-widget="agent"></div><p class="setup-context"><a href="#commands">Inspect and follow the commands yourself</a>.</p></div>
+        <div class="mode-steps" id="commands"><div data-widget="setup"></div></div>
       </div>
     </div>
   </section>
@@ -140,6 +149,13 @@
       <h2>Running your relay</h2>
       <p class="sub">What we recommend for people, keys, data and the server, and how to set it up.</p>
     </div>
+    <div class="wide launch-check"><h3>Before inviting your team</h3><ul>
+      <li>Name the primary operator and backup operator, and save recovery access.</li>
+      <li>Check a second member can join and a non-member is refused.</li>
+      <li>Save both kinds of keys, make an encrypted off-server backup, and rehearse restoration.</li>
+      <li>Test phones and a real locked-phone notification if your team relies on them.</li>
+      <li>For an open community, prepare moderators and isolate any agent that reads its content.</li>
+    </ul></div>
     <div class="wide" data-widget="faq"></div>
   </section>
 

@@ -57,7 +57,7 @@ function load(): Values {
   if (v.reach !== "private") v.reach = "public";
   if (v.mode !== "steps") v.mode = "agent";
   // a link to a step opens the step-by-step guide
-  if (/[#&]to=step-/.test(location.hash)) v.mode = "steps";
+  if (/[#&]to=(?:step-|commands|fixes)/.test(location.hash) || /^#(?:commands|fixes)$/.test(location.hash)) v.mode = "steps";
   return v;
 }
 
@@ -233,6 +233,10 @@ export function renderTemplates(root: ParentNode = document): void {
 }
 
 export function initValues(): void {
+  addEventListener("hashchange", () => {
+    const linked = load();
+    setValues({ path: linked.path, ownMode: linked.ownMode, reach: linked.reach, mode: linked.mode });
+  });
   setValues({});
   renderTemplates();
   onValues(() => renderTemplates());

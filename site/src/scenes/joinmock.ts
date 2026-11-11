@@ -2,7 +2,7 @@ import { TABLER } from "./tabler";
 
 /**
  * Buzz 1.0's first-run pages after its first screen, recreated in light mode from block/buzz-app as
- * released in v0.7.0-preview.248.1 (#2579): a white card on Buzz's chartreuse, with the bee in the
+ * released in v1.0.0: a white card on Buzz's chartreuse, with the bee in the
  * corner (src/features/identity/OnboardingScreen.tsx, IdentitySetup.module.css). The guide's join step
  * shows Join a community, which Other options opens (Welcome.tsx, CommunityUrlField.tsx); the
  * click-throughs use the same card for the pages after it.

@@ -89,7 +89,7 @@ const moderation = (t: Track) =>
     ? rec("Turn on Buzz's moderation screens, add your moderators under Staff, and ban rather than only remove.") +
       steps([
         ["Turn on the moderation screens", "Your agent offers this during setup, or ask it later. It takes one more DNS record, for <code>admin.</code> in front of your domain."],
-        ["Add your moderators under Staff", "In Buzz, <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>: paste their npub and pick <b>moderator</b>. Being an admin isn't enough: Staff is a list of its own, which the owner manages."],
+        ["Add your moderators under Staff", "In Buzz, <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>: paste their npub, pick <b>moderator</b>, then choose <b>Add</b>. Being an admin isn't enough: Staff is a list of its own, which the owner manages."],
         ["Work through reports", "Anyone can report a message. Moderators find reports under <b>Settings</b>, <b>Moderation</b>, <b>Reports</b>, where they can delete it, time the person out or ban them."],
         ["Ban, don't only remove", "A ban keeps them out, even with an invite link, and cuts off their agents. Someone you only remove can come back with any link that hasn't expired."],
       ])
@@ -123,7 +123,7 @@ const KEYS =
   ) +
   `<pre class="cmd">curl -fsSLO ${KEYMAKER} &amp;&amp; python3 new-identity.py</pre>` +
   note(
-    "With the script's key, join with <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>, and drop the key file on the page. Then save the key in your password manager from <b>Settings</b>, <b>Identity</b>, <b>Copy private key</b>, and delete the file. Builderlab can keep a copy of a key made or imported after you sign in to it, and gives it back to whoever signs in to that account: keep work identities in your password manager instead.",
+    "With the script's key, join with <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>, and drop the key file on the page. Then save the key in your password manager from <b>Settings</b>, <b>Identity</b>, the Buzz ID card’s <b>More options</b> (…), the masked private-key field, then <b>Copy</b>, and delete the file. Builderlab can keep a copy of a key made or imported after you sign in to it, and gives it back to whoever signs in to that account: keep work identities in your password manager instead.",
   );
 
 /** Single sign-on today: two locks in a row, your company's login and Buzz's member list. */
@@ -367,7 +367,7 @@ const GROUPS: [string, Question[]][] = [
           ) +
           // reads check community membership only (block/buzz crates/buzz-relay/src/api/media.rs); #8444 and #9077 start off
           note(
-            `Files are shared with the whole community, not one channel. Any member with a file's link can open it, even from a private channel or a direct message they're not in. Removing someone from a channel, or deleting the message, doesn't take a file back; removing them from the community does. Buzz is building a setting that limits files to their channels (<a href="https://github.com/block/buzz/pull/8444">block/buzz#8444</a>). It starts off when it ships, so until you turn it on, keep files that not every member may see out of Buzz.`,
+            `Files are shared with the whole community, not one channel. Any member with a file's link can open it, even from a private channel or a direct message they're not in. Removing someone from a channel, or deleting the message, doesn't take a file back; removing them from the community does. Newer relay images include a setting that limits files to their channels (<a href="https://github.com/block/buzz/pull/9077">block/buzz#9077</a>), but this guide’s pinned image predates it. The setting defaults to off. Keep files that not every member may see out of Buzz until you upgrade, enable it and verify access.`,
           ) +
           // block/buzz#8376's buzz_relay::access lines, at info in the bundle's RUST_LOG
           note("The relay's log names each member, by their public key, with what they read, so treat logs like the data."),
@@ -457,10 +457,22 @@ export function mountFaq(host: HTMLElement): void {
     const x = all.find((y) => y.id === id) ?? all[0];
     if (x.id !== open) state = {};
     open = x.id;
+    list.setAttribute("role", narrow.matches ? "group" : "tablist");
+    if (narrow.matches) list.removeAttribute("aria-orientation");
+    else list.setAttribute("aria-orientation", "vertical");
+    pane.setAttribute("role", narrow.matches ? "region" : "tabpanel");
     list.querySelectorAll<HTMLButtonElement>("[data-q]").forEach((b) => {
       const on = b.dataset.q === x.id;
-      b.setAttribute("aria-selected", String(on));
-      b.tabIndex = on ? 0 : -1;
+      b.setAttribute("role", narrow.matches ? "button" : "tab");
+      b.setAttribute("data-selected", String(on));
+      if (narrow.matches) {
+        b.removeAttribute("aria-selected");
+        b.setAttribute("aria-expanded", String(on));
+      } else {
+        b.removeAttribute("aria-expanded");
+        b.setAttribute("aria-selected", String(on));
+      }
+      b.tabIndex = narrow.matches || on ? 0 : -1;
       if (on && focus) b.focus();
     });
     pane.setAttribute("aria-labelledby", `fq-tab-${x.id}`);

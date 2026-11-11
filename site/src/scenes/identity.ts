@@ -3,7 +3,7 @@ import { communityNav, CURSOR, invite, settings, settingsModal, ti, type Flow } 
 
 /**
  * A person's identity in Buzz 1.0, as click-throughs of its own screens, in light mode. Drawn from
- * block/buzz-app as released in v0.7.0-preview.248.1: the account-first first run (#2579:
+ * block/buzz-app as released in v1.0.0: the account-first first run (#2579:
  * src/features/identity/Welcome.tsx, OnboardingBees.tsx, IdentitySetup.module.css, ConnectChoice.tsx,
  * KeyImport.tsx, and CommunityUrlField.tsx through joinmock.ts), Settings (src/app/settings-sections.ts),
  * Identity (src/app/IdentitySettings.tsx) and Pair mobile with Codes match (#1597:
@@ -60,26 +60,23 @@ const keyScript = (npub = NPUB) => `<div class="id-term">
 /Users/maya/buzz-identity.key</pre>
 </div>`;
 
-/**
- * Settings, Identity: the two public keys, then the private key. Either the npub's copy button is
- * ringed, with its toast, or Copy private key, with the line PrivateKey.tsx shows under it.
- */
+/** Settings, Identity in v1.0.0: the Buzz ID card, or its private-key menu on the back. */
 const nav = (open: string) => communityNav(open, false);
 const identityPage = (copy: "npub" | "nsec") => `<section class="mb-page id-page">
   <h5>Identity</h5>
-  <p class="mb-sub">Your identity is shared across communities. Public keys are safe to share.</p>
-  <div class="id-group">
-    <div class="id-row"><span><b>Public key (hex)</b><code>3f9c0a52…07e81b</code></span><span class="id-ic">${ti("copy")}</span></div>
-    <div class="id-row"><span><b>Nostr address (npub)</b><code>${NPUB}</code></span><span class="id-ic${copy === "npub" ? " hot" : ""}">${ti("copy")}</span></div>
+  <p class="mb-sub">Your identity is shared across communities.</p>
+  <div class="id-badge${copy === "nsec" ? " back" : ""}">
+    <span class="id-badge-more">${ti(copy === "nsec" ? "arrow-left" : "dots")}</span>
+    ${copy === "npub" ? `<div class="id-badge-art"><b>M</b><strong>Buzz ID</strong></div>
+    <p class="id-badge-label">PUBLIC KEY</p><div class="id-barcode" aria-hidden="true"></div>
+    <div class="id-badge-pub"><code>${NPUB}</code><span class="id-ic hot" aria-label="Copy Buzz ID">${ti("copy")}</span></div>`
+    : `<p class="id-badge-label">Your private key</p>
+    <span class="id-input">nsec •••••••••••••••• ${ti("chevron-down")}</span>
+    <div class="id-key-menu"><small>Private key</small><b class="hot">Copy</b><span>Reveal</span></div>
+    <p class="mb-sub">This key is stored securely on this device.</p>
+    <p class="mb-sub">Anyone with this key can act as you. Never share it.</p>`}
   </div>
-  <div class="id-group id-form">
-    <b>Private key (nsec)</b>
-    <p class="mb-sub">Anyone with this key can act as you. Never share it.</p>
-    <span class="id-input">••••••••••••••••</span>
-    <div class="id-btns"><span class="mb-btn">Reveal private key</span><span class="mb-btn${copy === "nsec" ? " hot" : ""}">Copy private key</span></div>
-    ${copy === "nsec" ? `<p class="id-msg">Private key copied. Keep it somewhere safe; your clipboard now contains it.</p>` : ""}
-  </div>
-  ${copy === "npub" ? `<div class="id-toast">${ti("check")}Nostr address copied.</div>` : ""}
+  ${copy === "npub" ? `<div class="id-toast">${ti("check")}Buzz ID copied.</div>` : ""}
 </section>`;
 
 /** Settings, Pair mobile, once the phone has scanned: the six digits and Codes match, beside Buzz's three steps. */
@@ -137,9 +134,9 @@ export const identityFlows: Flow[] = [
       { k: "Paste your community's address", t: "Paste it, or an invite link an admin sent you, into <b>Community address or invite link</b>, then choose <b>Continue</b>.", frame: joinCard(ADDRESS, true) },
       { k: "Use an existing key", t: "On <b>Connect to your community</b>, choose <b>Use an existing key</b>. <b>Sign in with Builderlab</b> would go through Block's service instead.", frame: connect },
       { k: "Drop in your key file", t: "Drop the key file on the page, or choose <b>Browse</b> and pick it. Check that <b>Public identity</b> is your npub, choose <b>Continue with this key</b>, then <b>Join</b>, and enter your name under <b>Set up your profile</b>. If Buzz says the community needs an invite, an admin hasn't added your npub yet.", frame: keyImport },
-      { k: "Copy your private key", t: "Press ⌘, (Ctrl+, on Windows and Linux), or choose your profile picture, then <b>Settings</b>. Under <b>Buzz</b>, choose <b>Identity</b>, then <b>Copy private key</b>.", frame: settingsModal(nav("Identity"), identityPage("nsec")) },
+      { k: "Copy your private key", t: "Press ⌘, (Ctrl+, on Windows and Linux), or choose your profile picture, then <b>Settings</b>. Under <b>Buzz</b>, choose <b>Identity</b>. Open <b>More options</b> (the … on the Buzz ID card), choose the masked private-key field, then <b>Copy</b>.", frame: settingsModal(nav("Identity"), identityPage("nsec")) },
       { k: "Save it in your password manager", t: "Paste it into your own item, then copy something else so it leaves your clipboard. Then delete the key file: <code>rm ~/buzz-identity.key</code>. Anyone with this key can act as you.", frame: vault },
-      { k: "Copy your npub for others", t: "On the same Identity page, copy your <b>Nostr address (npub)</b>. It's public, so any channel works.", frame: settingsModal(nav("Identity"), identityPage("npub")) },
+      { k: "Copy your npub for others", t: "On the front of the Buzz ID card, choose its copy icon, <b>Copy Buzz ID</b>. This copies your npub. It's public, so any channel works.", frame: settingsModal(nav("Identity"), identityPage("npub")) },
       { k: "Lock your devices", t: "Turn on disk encryption and a screen lock on your computer, and a passcode on your phone.", frame: devices },
     ],
   },

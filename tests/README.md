@@ -25,8 +25,15 @@ resolves to it. `<ip>.sslip.io` works without any DNS setup, e.g. `203-0-113-10.
 BUZZ_CLI=path/to/buzz SSH_KEY=path/to/key bash tests/smoke.sh <server-ip> <domain> [image-tag [upgrade-tag]]
 ```
 
-Every script's `image-tag` defaults to the image the skill recommends (`tested-image` in SKILL.md),
-and smoke.sh and smoke-local.sh check that image's digest once pulled (`tested-digest`).
+Every script's `image-tag` defaults to the image the skill recommends (`tested-image` in SKILL.md).
+The expected digest comes from `tested-digest`. Local, VPS and private runs verify the pulled
+image; Kubernetes pins the workload to that digest through the chart's `image.digest` value.
+A different tag requires `EXPECTED_DIGEST=sha256:...`; a different `upgrade-tag` requires
+`UPGRADE_EXPECTED_DIGEST=sha256:...`. Missing or malformed digests stop the driver before it
+contacts a server. An override cannot change the recommended tag's digest.
+
+A failed server phase stops the driver. In particular, a failed backup cannot continue into
+wipe, and a failed ancestry or duplicate-name check cannot continue into an upgrade.
 
 It installs with the guide's steps (`smoke-vps.sh install`), then from your laptop: the owner
 creates a channel and posts, a member added by npub posts, a stranger is refused, a file goes
@@ -82,6 +89,36 @@ adds Traefik and cert-manager), and a domain at the ingress; `<ip>.sslip.io` wor
 
 ```bash
 KUBECONFIG=path/to/kubeconfig BUZZ_CLI=path/to/buzz bash tests/smoke-k8s.sh <domain> [image-tag]
+```
+
+## Candidate validation, 2026-11-11
+
+Prepared, not run. The recommended tag and tested date remain unchanged. The candidate is
+`sha-e5dee91`, with digest
+`sha256:d4777e9163de0861c3f02ea9e67632b0afadc6d6ebac2cf4c09c00f1317f4a6d`.
+Set that value as `EXPECTED_DIGEST` for a fresh candidate install, or as
+`UPGRADE_EXPECTED_DIGEST` when starting on the recommended tag and passing the candidate as
+`upgrade-tag`. Get approval for servers and costs before starting these runs.
+
+| Run | Evidence it can provide | Remaining manual coverage |
+| --- | --- | --- |
+| Local candidate | TLS, NIP-42, uploads, invites and pairing-service reachability | Launched desktop joins using the trusted certificate |
+| Public VPS candidate | Fresh install, backup, destructive restore, membership, files and pairing route | Desktop import by file, Staff and phone Codes match |
+| VPS old pin to candidate | Real migrations 0084-0086 on the small, seeded test database; preserved messages, files and identity | Busy or populated database rollout, concurrent index prebuild and exact verification |
+| Private candidate | Tailnet reachability, access controls, uploads and pairing route | Phone workflow with Tailscale enabled |
+| Kubernetes candidate | Fresh install and same-image Helm upgrade, backup dump, auth and file checks | Old-pin migration, complete restore and phone workflow |
+
+The VPS upgrade exercises the inline 0086 index build on a tiny database. It does not run the
+concurrent prebuild or prove that migration's startup timeouts are safe for an existing large
+community. Follow the upstream `docs/private-media-index-deployment.md` from the candidate
+commit and the skill's upgrade stop gate for that separate rehearsal. Kubernetes's same-image
+Helm upgrade is not migration evidence. Chart 0.1.10 stays the default pending a separate review
+and test of 0.1.11's object-store and backup behavior.
+
+Offline harness safety checks need no server, keys or Docker:
+
+```bash
+python3 tests/test_smoke_preflight.py
 ```
 
 ## Logs

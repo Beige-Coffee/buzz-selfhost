@@ -13,6 +13,8 @@ set -uo pipefail
 DOMAIN=${1:?usage: smoke-k8s.sh <domain> [image-tag]}
 TAG=${2:-sha-744f394}
 HERE=$(cd "$(dirname "$0")" && pwd)
+source "$HERE/lib/image.sh"
+EXPECTED_DIGEST=$(expected_image_digest "$TAG" "${EXPECTED_DIGEST:-}" "$HERE/../skills/self-host-buzz/SKILL.md") || exit 2
 BZ=${BUZZ_CLI:-buzz}
 CLASS=${INGRESS_CLASS:-traefik}
 ISSUER=${ISSUER:-letsencrypt}
@@ -47,6 +49,7 @@ section "1. The values file (the guide's buzz-values.yaml)"
 cat >"$TMP/buzz-values.yaml" <<YAML
 image:
   tag: $TAG
+  digest: $EXPECTED_DIGEST
 relayUrl: wss://$DOMAIN
 ownerPubkey: $OWNER_HEX
 quickstart: true
@@ -109,7 +112,7 @@ NOT_READY=$(kubectl -n buzz get pods --no-headers 2>/dev/null | awk '$3 != "Comp
 DEPLOY=$(kubectl -n buzz get deploy -o name | grep -v -E 'redis|postgres|minio|pair' | head -1)
 info "relay deployment: $DEPLOY"
 IMG=$(kubectl -n buzz get "$DEPLOY" -o jsonpath='{.spec.template.spec.containers[0].image}')
-[[ $IMG == "ghcr.io/block/buzz:$TAG" ]] && pass "relay runs $TAG" || fail "relay runs $IMG"
+[[ $IMG == "ghcr.io/block/buzz@$EXPECTED_DIGEST" ]] && pass "relay is pinned to the expected digest for $TAG" || { fail "relay image is not the expected digest"; exit 1; }
 
 section "3. Certificate and liveness"
 for _ in $(seq 1 30); do kubectl -n buzz get certificate buzz-tls -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -q True && break; sleep 6; done

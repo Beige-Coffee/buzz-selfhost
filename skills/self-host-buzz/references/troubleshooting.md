@@ -2,7 +2,7 @@
 
 | Symptom | Fix |
 | --- | --- |
-| `Host key verification failed` | The server's host key isn't saved, and an agent's shell can't confirm it. The user connects once from their own terminal (`ssh <user>@<server> true`); for a server they just made, `-o StrictHostKeyChecking=accept-new` also works (ask first). |
+| `Host key verification failed` | The server's host key isn't saved, and an agent's shell can't confirm it. The user connects once from their own terminal (`ssh <user>@<server> true`); for a newly created server, `-o StrictHostKeyChecking=accept-new` also works (ask first). |
 | `Permission denied (publickey)`, or ssh waits for a passphrase | The key has a passphrase or isn't the default one. The user adds it to their SSH agent in their own terminal (`ssh-add <key file>`), or pass `-i <key file>`. An AWS key is the `.pem` file from the console (`chmod 400` it), and the user is `ubuntu`, not `root`. |
 | `sudo: a password is required` or `a terminal is required` | The user's sudo asks for a password, which an agent can't type. Use root, or the user allows this account sudo without a password (their call). |
 | Step 2's check shows a Cloudflare address (`104.x`, `172.64.x` to `172.71.x`, `2606:4700:…`) | The record is proxied. Set it to DNS only (the grey cloud) in Cloudflare. |

@@ -22,7 +22,8 @@ an `.env` file (the relay key and passwords). This skill installs one, checks ev
 day-two tasks. Every command was run end to end, except where a step says otherwise.
 
 People use the relay from the Buzz desktop app. These steps describe Buzz 1.0
-(github.com/block/buzz-app), whose own version numbers start at 0.7, such as 0.7.0-preview.248.1.
+([block/buzz-app](https://github.com/block/buzz-app/releases/latest)), released as stable v1.0.0 on
+2026-11-10.
 Buzz 0.X is the earlier app from block/buzz, versions 0.5 and older, which Block now calls
 deprecated. It still works with the same relay; where its screens differ, the steps say so.
 
@@ -110,15 +111,16 @@ an installer instead: ask the user to run `xcode-select --install` first.
     another). If the agent doesn't run on the computer the owner will use Buzz on, the user runs
     the script there. Never read, print or copy the file: the user imports it into Buzz in
     section 4, and then deletes it.
-  - **An identity they already use** in Buzz 1.0: Settings, Identity, "Nostr address (npub)", with
-    a copy button, on the computer they'll use. An npub from anywhere else may be an old identity.
+  - **An identity they already use** in Buzz 1.0: Settings, Identity, Copy Buzz ID on
+    the Buzz ID card (it copies the npub), on the computer they'll use. An npub from anywhere else
+    may be an old identity.
     In Buzz 0.X the npub is on the Join screen, and on that computer Buzz 1.0's Other options
     offers to continue with it.
   - **A Builderlab account**, which is Block's: Create account on Buzz 1.0's first screen. Buzz
     makes the key and links it to that account, and Block can keep a copy; creating the account
     asks for their details. When Buzz asks for a community, they quit it, open it again and choose
     Continue without signing in, then ⌘, (Ctrl+, on Windows and Linux), Identity,
-    "Nostr address (npub)" (not tested).
+    Copy Buzz ID on the Buzz ID card (not tested).
 
   If the user gives an npub without saying where it came from, ask before the step that writes it;
   the steps before it can run meanwhile. Changing the owner later takes a restart, and the old
@@ -209,13 +211,14 @@ yet, on Join a community, where they paste the address into "Invite link or comm
 choose Join; otherwise they use the community button, below (not tested). The `https://` form of the
 address works too; `ws://` and `http://` addresses don't. In Buzz 0.X, paste the same address into
 its Join a community screen. With the key file, once Buzz has joined, the user saves the key in a
-password manager (Settings, Identity, Copy private key), then deletes the file:
+password manager (Settings, Identity, More options on the Buzz ID card,
+then the masked private-key field and Copy), then deletes the file:
 `rm ~/buzz-identity.key`. To join another community later, it's the community button, then Join a
 community, whose box takes an address but not an invite link.
 
 **People.** Each member needs a key. They can make one on their own computer with this skill's
 `new-identity.py`, which the guide's site also serves
-(https://buzz-selfhost.vercel.app/skills/self-host-buzz/scripts/new-identity.py), or with a
+(https://self-host.buzz/skills/self-host-buzz/scripts/new-identity.py), or with a
 Builderlab account, which is Block's: Create account on Buzz's first screen asks for their details,
 and Block can keep a copy of the key. A member sends the owner their npub: the script prints it,
 and Buzz 1.0 shows it on "This community needs an invite" before they've joined, and in Settings,
@@ -246,8 +249,10 @@ hasn't expired; a ban keeps them out, from Buzz 1.0's moderation screens on a pu
 files are shared with the whole community, not one channel. Any member with a file's link can open
 it, even from a private channel or a direct message they aren't in. Removing someone from a
 channel, or deleting a message, doesn't take its files back; removing them from the community does.
-Buzz is building a setting that limits files to their channels (block/buzz#8444). It starts off
-when it ships, so until a release has it and it's turned on, keep files that not every
+Newer relay images include channel-scoped file reads (block/buzz#9077), controlled by
+`BUZZ_MEDIA_READ_MODE`, which defaults to `off`. This skill's pinned image predates that change.
+Before enabling it, follow [Block's rollout guide](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/docs/operator-private-media.md),
+including its app, mobile and editing compatibility checks. Until then, keep files that not every
 member may see out of Buzz. Nothing is end-to-end encrypted: whoever runs the server, or holds a
 backup, can read every message and file. The relay's log names each member with what they read,
 so treat logs like the data.
@@ -278,8 +283,9 @@ communities share that folder.
 
 **Keys.** Buzz 1.0 keeps a person's private key in that computer's keychain. A key made with
 `new-identity.py`, or brought in with Use an existing key without signing in to Builderlab, stays
-only there: tell everyone to keep a copy in a password manager (Settings, Identity, Copy private
-key). If Buzz later asks to sync the key with Builderlab, "I will manage my own key" keeps it off
+only there: tell everyone to keep a copy in a password manager (Settings, Identity, More options
+on the Buzz ID card, then the masked private-key field and Copy). If Buzz later asks to sync the
+key with Builderlab, "I will manage my own key" keeps it off
 Block's servers. With a Builderlab account, Block can keep a copy and gives it back to whoever
 signs in to that account. On a new computer they choose Other options, paste the community's
 address and choose Continue, then Use an existing key with the saved key; membership stays on the

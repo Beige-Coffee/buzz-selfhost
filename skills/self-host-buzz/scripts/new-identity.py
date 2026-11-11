@@ -10,7 +10,8 @@ and the file's path, and never the private key.
 
 In Buzz 1.0, choose Other options, paste the community's address and choose Continue, then Use an
 existing key, and drop this file on the page or pick it with Browse. Once Buzz has joined, save the
-key in your password manager (Settings, Identity, Copy private key) and delete the file.
+key in your password manager (Settings, Identity, More options on the Buzz ID card,
+the masked private-key field, Copy) and delete the file.
 
 Pure Python 3, with nothing to install. The key comes from the operating system's secure random
 source. --selftest checks the encoding against NIP-19's published examples and the key math against

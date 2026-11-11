@@ -28,6 +28,13 @@ what was checked at the time; they do not establish coverage of today's relay pi
   [MCP dependency update](https://github.com/block/buzz/pull/9287), subscription fixes and
   migrations 0084-0086. [Migration 0086](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/docs/private-media-index-deployment.md)
   needs a preflight/index-build procedure on existing databases. No pin or tested date was changed.
+- **Upgrade gate follow-up.** Operations now stop populated-database upgrades into 0086 until
+  the target's concurrent index prebuild and exact verification complete. Both upstream SQL
+  files must stay together because the prebuild includes the verifier by relative path. The
+  verifier can build a missing index, so it is not a read-only preflight. An 0086 failure can
+  follow committed 0084/0085 migrations; rollback still means the complete backup and matching
+  old image. The fixed downtime estimate was removed. These are source-reviewed safeguards,
+  not evidence that the database procedure or candidate upgrade ran successfully.
 - **File privacy.** [#9077](https://github.com/block/buzz/pull/9077) merged after the pin, even
   though #8444 remains open. `BUZZ_MEDIA_READ_MODE` supports off, shadow and enforce, default off.
   The guide now distinguishes the shipped feature from its older pin. Do not enable it without

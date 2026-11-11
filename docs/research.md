@@ -19,11 +19,14 @@ what was checked at the time; they do not establish coverage of today's relay pi
   nonblank line. Importing a file, the Builderlab route, Staff and Codes match still need a real
   app walkthrough. Source inspection is not a runtime pass.
 - **Relay.** The pin remains `sha-744f394` at its recorded digest. Its public image still matches.
-  There is no launch semantic relay release; `relay-v0.2.1` remains the August release. The
-  proposed replacement is `sha-e5dee91` at
-  `sha256:d4777e9163de0861c3f02ea9e67632b0afadc6d6ebac2cf4c09c00f1317f4a6d`.
-  Its GHCR digest, build provenance and deployment eligibility were verified, including source
-  `e5dee91c90fdc5f81f04fd609b7c99e31fa7570f` and compatible chart 0.1.11. It includes
+  A later check found the published Git tag `relay-v0.3.0`, source
+  `75d38b6c2d5f357348288ded8c15aba15f765ea5`, and `ghcr.io/block/buzz:0.3.0` at
+  `sha256:84f34c5b801192665b1a05939518d746f25184babf4d6e927d0de7e12e9c5674`.
+  This supersedes the earlier e5dee91 candidate. The registry manifest, amd64/arm64 entries,
+  signed provenance and deployment eligibility were verified; the compatible chart is 0.1.11.
+  The [release build](https://github.com/block/buzz/actions/runs/43114277737) succeeded, but
+  there is no GitHub Releases object for this tag. The separately built `sha-75d38b6` image has
+  a different digest; do not interchange the builds. The new candidate includes
   [hickory security fixes](https://github.com/block/buzz/pull/9351), the
   [MCP dependency update](https://github.com/block/buzz/pull/9287), subscription fixes and
   migrations 0084-0086. [Migration 0086](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/docs/private-media-index-deployment.md)
@@ -82,9 +85,9 @@ what was checked at the time; they do not establish coverage of today's relay pi
   A supplemental tracked-file token/nsec/private-key scan returned zero matches. This does not
   prove absence. All 105 commits on the published main history use non-noreply author addresses;
   new review commits use GitHub noreply addresses. No history or GitHub settings were changed.
-- **Browser and local checks.** The final build, parser, all 13 identity self-tests, seven shell
+- **Browser and local checks.** The build, parser, all 13 identity self-tests, eight shell
   syntax checks and dependency audit passed (Vite 7.3.8, zero audit vulnerabilities). Chromium at
-  desktop and phone widths exercised all ten quiz outcomes, seven setup tracks, all 17 FAQs and
+  desktop and phone widths exercised all ten quiz outcomes, seven setup tracks, all 21 FAQs and
   every click-through step. Final checks found no console errors, missing ordinary anchors,
   horizontal page overflow or axe violations in the checked states. Fixed the phone home-link
   name, mobile FAQ semantics, scrollable code focus and story contrast. The new 1200 by 630 OG
@@ -95,6 +98,61 @@ what was checked at the time; they do not establish coverage of today's relay pi
   `/skills/self-host-buzz/scripts/new-identity.py` and `/_vercel/insights/script.js`.
   The reviewed source changes await permission to push and deploy; connecting the domain did not
   publish them.
+
+## Full-guide overhaul, checked on 2026-11-11
+
+The owner requested a full content, security and usability review after launch, including a real
+question about whether self-hosters need an Apple developer account for phone notifications.
+These changes are local; the production guide still serves the prior deployment.
+
+- **Approach.** Keep one command source in the skill and expose a visible manual route beside the
+  agent route. The skill is a distribution format, not a sandbox or proof of safe execution.
+  Security and mobile prose now also render from shared references. No new deployment family was
+  added: provider-neutral VPS, own hardware, local evaluation and existing Kubernetes cover the
+  main choices. The guide explains capacity assumptions, GPU/model separation, home-server
+  availability, managed services, GitOps secrets and evaluation versus production Kubernetes.
+- **Agent security.** Stable app source launches ordinary Codex with broad access and Claude
+  with bypassed per-action approvals. A Workspace folder does not isolate files or accounts.
+  The new Security section recommends a separate device/VM for public-community agents, only
+  intended files and scoped credentials, separate public/private context, and human review for
+  consequential actions. It distinguishes internet reach, membership and channel access.
+  [Codex runtime](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/codex/runtime.ts#L2529),
+  [Claude launch](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/claude-code/claude.ts#L298),
+  [experimental protection](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/agent-protection.md).
+- **Keys.** Separate personal identity recovery in a private vault from relay recovery in a
+  restricted shared operations vault. Verify the saved identity entry before deleting its
+  temporary file; avoid shared clipboard history. Builderlab recovery requires a completed
+  backup and access to that account. Exposed identities need ban/retirement, not only removal.
+  The pin already revokes durable v2 invitations when their issuer is banned; per-link
+  cancellation is not documented here and legacy links differ. Restoring a relay's original
+  key is not rotation; old signatures remain verifiable under the original public key.
+- **Phones.** The official iPhone app can use Block's gateway; self-hosters do not need their own
+  Apple credentials for that route. Both `BUZZ_PUSH_ENABLED` and `BUZZ_PUSH_GATEWAY_DELIVERY_URL`
+  must reach the relay process. The bundle supplies the latter; the relay parser has no fallback.
+  The phone selects its gateway at build time, with no Settings URL field. An operator-owned
+  gateway requires a matching custom app/Apple identity. Pairing, wake-ups and content retrieval
+  are drawn separately. A capability advertisement is now labelled as such, not delivery proof.
+  The recorded October 23 iPhone 0.25 test is historical evidence; fresh physical-phone testing
+  remains open. Test a DM and explicit mention; other notification eligibility depends on client
+  subscriptions/preferences. Android messaging availability does not establish Android push.
+  [Bundle](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/deploy/compose/.env.example#L23),
+  [phone gateway selection](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/mobile/lib/shared/relay/relay_provider.dart#L68),
+  [custom gateway](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/docs/push-gateway-deployment.md).
+- **Recovery.** Removed the unvalidated nightly backup/pruning example. The Kubernetes export
+  block now stops on failure, uses a new private directory and refuses overwrite. Three offline
+  tests cover command failure, permissions and working-directory preservation. Separate live
+  exports are not an atomic snapshot; a complete Kubernetes restore procedure remains open.
+  The human flow says so explicitly. Backup files alone are not evidence of successful recovery.
+- **Browser.** The expanded pass covers 21 FAQs across seven tracks at desktop and phone widths
+  (294 FAQ states), all ten quiz outcomes and 476 diagram frames. Targeted desktop/tablet/phone
+  checks cover manual deep links, preserved setup context and shareable FAQ links. No page errors,
+  horizontal overflow or axe findings appeared in the checked states. Build and offline checks
+  do not validate deployment or native app behavior.
+- **Presentation decision.** The owner approved a concise public version/coverage note, replacing
+  the prior no-test-label rule. The site names the reviewed stable app, retained relay pin and
+  chart, and distinguishes source/browser checks from pending deployment/recovery/device work.
+  Relevant validation limits remain in the rendered steps. No test date or support claim was
+  advanced by this presentation change.
 
 ## Contents
 

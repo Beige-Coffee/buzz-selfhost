@@ -13,6 +13,27 @@ The existing deployment serves the new domain; the reviewed source changes still
 to push and deploy. This replaces the earlier Vercel address, not the pending decision about
 Block's ownership, name or marks. The owner has not yet received an answer from Block.
 
+## Full-guide overhaul draft (2026-11-11)
+
+The owner requested a complete launch review, better answers to self-hosting questions and a
+prominent Security section. The local draft adds that section before setup, separates network
+reach from community openness, recommends isolated public-community agents, and distinguishes
+personal identity keys from the relay key. It explains official iPhone push through Block's
+gateway separately from a custom Apple app/gateway, without promising Android push.
+
+The proposed presentation gives manual setup a visible choice beside the agent route, with the
+agent still selected by default. Both read the same commands from the skill. This expands the
+older description of the manual route as only a transparency view. It does not replace the skill
+with another installer or add support claims for new hosting platforms.
+
+The owner approved concise public versions and coverage limits on 2026-11-11. This explicitly
+replaces the October 5 no-test-label decision: the draft shows the review date, stable app,
+current relay pin and chart, with a short distinction between source/browser checks and pending
+deployment, recovery and real-device evidence. The parser preserves relevant validation notes
+beside the affected steps, and links the detailed records. No tested date was advanced. Nothing
+in this presentation approval authorizes a pin/chart change, real infrastructure tests, push or
+deployment. Those remain separate gates.
+
 ## What the site is
 
 The guide is for people and teams who want their own Buzz relay instead of Block's hosting. It's

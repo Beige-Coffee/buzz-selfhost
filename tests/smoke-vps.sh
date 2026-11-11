@@ -14,6 +14,19 @@
 set -uo pipefail
 
 PHASE="${1:?usage: smoke-vps.sh <phase> ...}"
+# Refuse unchecked image phases before touching the server.
+case $PHASE in
+  install) CHECK_TAG=${3:-} ;;
+  private) CHECK_TAG=${2:-} ;;
+  upgrade) CHECK_TAG=${2:-${EXPECTED_TAG:-}} ;;
+  *) CHECK_TAG= ;;
+esac
+if [[ $PHASE == install || $PHASE == private || $PHASE == upgrade ]]; then
+  [[ $CHECK_TAG =~ ^sha-[0-9a-f]{7}$ && $CHECK_TAG == "${EXPECTED_TAG:-}" && ${EXPECTED_DIGEST:-} =~ ^sha256:[0-9a-f]{64}$ ]] || {
+    echo 'FAIL  supply the exact EXPECTED_TAG and EXPECTED_DIGEST before an image phase' >&2
+    exit 2
+  }
+fi
 OUT=/root/smoke
 COMPOSE_DIR=/root/buzz/deploy/compose
 mkdir -p "$OUT"
@@ -111,12 +124,21 @@ SNIP
 IFS= read -r -d '' NAME_CHECK <<'SNIP' || true
 docker compose exec -T postgres psql -U buzz -d buzz -tAc "select lower(name), count(*) from channels c where visibility = 'open' and channel_type in ('stream', 'forum') and deleted_at is null and not coalesce((to_jsonb(c) ->> 'unlisted')::boolean, false) group by community_id, lower(name) having count(*) > 1" < /dev/null
 SNIP
-# check_digest TAG: SKILL.md section 2's image check. With PIN_TAG and PIN_DIGEST from the caller
-# (smoke.sh reads them from SKILL.md), the pinned image must have the pinned digest.
+# check_digest TAG: the caller supplies the exact expected tag/digest pair.
 check_digest() {
-  run "digest-$1" "docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/block/buzz:$1"
-  if [[ -n ${PIN_TAG:-} && $1 == "$PIN_TAG" ]]; then
-    expect "the image is the one the skill recommends" "ghcr.io/block/buzz@${PIN_DIGEST:-}" "$(cat "$OUT/digest-$1.out")"
+  [[ $1 == "${EXPECTED_TAG:-}" && ${EXPECTED_DIGEST:-} =~ ^sha256:[0-9a-f]{64}$ ]] || {
+    fail "no exact expected digest was supplied for this image"
+    finish
+  }
+  run "digest-$1" "docker image inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' ghcr.io/block/buzz:$1" || {
+    fail "could not inspect the pulled image digest"
+    finish
+  }
+  if grep -Fxq "ghcr.io/block/buzz@$EXPECTED_DIGEST" "$OUT/digest-$1.out"; then
+    pass "the image has the expected digest"
+  else
+    fail "the image does not have the expected digest"
+    finish
   fi
 }
 # pairing_edits MODE: the edits for server or private mode, with their checks
@@ -423,13 +445,18 @@ upgrade)
   if [[ -n $NEW_TAG ]]; then
     TAG=$NEW_TAG
     run newer 'OLD=$(grep '"'"'^BUZZ_IMAGE='"'"' .env | cut -d: -f2)
-git fetch -q origin
-git merge-base --is-ancestor ${OLD#sha-} ${TAG#sha-} && echo newer'
-    expect "the new tag is newer" "newer" "$(cat "$OUT/newer.out")"
-    run channel-names "$NAME_CHECK"
-    expect "no two open channels share a name" "" "$(cat "$OUT/channel-names.out")"
-    run move-bundle 'git checkout compose.yml Caddyfile
-git checkout -q ${TAG#sha-}' && pass "bundle moved" || fail "bundle moved"
+git fetch -q origin &&
+git merge-base --is-ancestor ${OLD#sha-} ${TAG#sha-} && echo newer' || {
+      fail "could not prove the target descends from the installed image; stopping"
+      finish
+    }
+    [[ $(cat "$OUT/newer.out") == newer ]] || { fail "ancestry check did not confirm the target; stopping"; finish; }
+    pass "the new tag descends from the installed image"
+    run channel-names "$NAME_CHECK" || { fail "channel-name query failed; stopping"; finish; }
+    [[ ! -s $OUT/channel-names.out ]] || { fail "two open channels share a name; stopping"; finish; }
+    pass "no two open channels share a name"
+    run move-bundle 'git checkout compose.yml Caddyfile &&
+git checkout -q ${TAG#sha-}' && pass "bundle moved" || { fail "bundle move failed; stopping"; finish; }
     object_store_edit
     pairing_edits server
     expect "bundle at the new tag's commit" "${TAG#sha-}" "$(git rev-parse HEAD | cut -c1-7)"

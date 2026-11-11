@@ -14,6 +14,8 @@ IP=${1:?usage: smoke-private.sh <server-ip> [machine-name] [image-tag]}
 NAME=${2:-buzz-test}
 TAG=${3:-sha-744f394}
 HERE=$(cd "$(dirname "$0")" && pwd)
+source "$HERE/lib/image.sh"
+EXPECTED_DIGEST=$(expected_image_digest "$TAG" "${EXPECTED_DIGEST:-}" "$HERE/../skills/self-host-buzz/SKILL.md") || exit 2
 BZ=${BUZZ_CLI:-buzz}
 KEYFILE=${TS_AUTHKEY_FILE:?set TS_AUTHKEY_FILE to a file holding a Tailscale auth key}
 source "$HERE/lib/log.sh" && run_logged private "$TAG" "$0" "$@"
@@ -30,10 +32,15 @@ fail() { echo "FAIL  $1"; FAIL=$((FAIL + 1)); }
 info() { echo "INFO  $1"; }
 section() { printf '\n===== %s\n' "$*"; }
 server() {
-  ssh "${SSH_OPTS[@]}" "root@$IP" bash /root/smoke-vps.sh "$@" >"$TMP/phase.log" 2>&1
+  local rc=0 check_tag=$TAG check_digest=$EXPECTED_DIGEST
+  ssh "${SSH_OPTS[@]}" "root@$IP" EXPECTED_TAG="$check_tag" EXPECTED_DIGEST="$check_digest" bash /root/smoke-vps.sh "$@" >"$TMP/phase.log" 2>&1 || rc=$?
   cat "$TMP/phase.log"
   PASS=$((PASS + $(grep -ac '^PASS' "$TMP/phase.log")))
   FAIL=$((FAIL + $(grep -ac '^FAIL' "$TMP/phase.log")))
+  if [[ $rc -ne 0 ]]; then
+    echo "FAIL  server phase $1 stopped (exit $rc); no later phases will run"
+    exit "$rc"
+  fi
 }
 as() {
   local sk=$1

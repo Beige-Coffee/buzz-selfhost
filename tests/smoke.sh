@@ -21,6 +21,11 @@ DOMAIN=${2:?domain}
 TAG=${3:-sha-744f394}
 UPGRADE_TAG=${4:-}
 HERE=$(cd "$(dirname "$0")" && pwd)
+source "$HERE/lib/image.sh"
+EXPECTED_DIGEST=$(expected_image_digest "$TAG" "${EXPECTED_DIGEST:-}" "$HERE/../skills/self-host-buzz/SKILL.md") || exit 2
+if [[ -n $UPGRADE_TAG ]]; then
+  UPGRADE_EXPECTED_DIGEST=$(expected_image_digest "$UPGRADE_TAG" "${UPGRADE_EXPECTED_DIGEST:-}" "$HERE/../skills/self-host-buzz/SKILL.md") || exit 2
+fi
 source "$HERE/lib/log.sh" && run_logged vps "$TAG" "$0" "$@"
 BZ=${BUZZ_CLI:-buzz}
 SSH_OPTS=(-o BatchMode=yes -o ServerAliveInterval=30 -o StrictHostKeyChecking=accept-new)
@@ -37,14 +42,20 @@ info() { echo "INFO  $1"; }
 section() { printf '\n===== %s\n' "$*"; }
 
 # server PHASE ARGS...: run a phase of smoke-vps.sh and fold its PASS/FAIL lines into ours.
-# The pinned image (SKILL.md section 2), so the server half checks its digest once pulled.
-PIN_TAG=$(awk '/^  tested-image:/ {print $2}' "$HERE/../skills/self-host-buzz/SKILL.md")
-PIN_DIGEST=$(awk '/^  tested-digest:/ {print $2}' "$HERE/../skills/self-host-buzz/SKILL.md")
 server() {
-  ssh "${SSH_OPTS[@]}" "root@$IP" PIN_TAG="$PIN_TAG" PIN_DIGEST="$PIN_DIGEST" bash /root/smoke-vps.sh "$@" >"$TMP/phase.log" 2>&1
+  local rc=0 check_tag=$TAG check_digest=$EXPECTED_DIGEST
+  if [[ $1 == upgrade && -n $UPGRADE_TAG ]]; then
+    check_tag=$UPGRADE_TAG
+    check_digest=$UPGRADE_EXPECTED_DIGEST
+  fi
+  ssh "${SSH_OPTS[@]}" "root@$IP" EXPECTED_TAG="$check_tag" EXPECTED_DIGEST="$check_digest" bash /root/smoke-vps.sh "$@" >"$TMP/phase.log" 2>&1 || rc=$?
   cat "$TMP/phase.log"
   PASS=$((PASS + $(grep -ac '^PASS' "$TMP/phase.log")))
   FAIL=$((FAIL + $(grep -ac '^FAIL' "$TMP/phase.log")))
+  if [[ $rc -ne 0 ]]; then
+    echo "FAIL  server phase $1 stopped (exit $rc); no later phases will run"
+    exit "$rc"
+  fi
 }
 # as SECRET ARGS...: run the buzz CLI as one identity.
 as() {

@@ -93,12 +93,22 @@ KUBECONFIG=path/to/kubeconfig BUZZ_CLI=path/to/buzz bash tests/smoke-k8s.sh <dom
 
 ## Candidate validation, 2026-11-11
 
-Prepared, not run. The recommended tag and tested date remain unchanged. The candidate is
-`sha-e5dee91`, with digest
-`sha256:d4777e9163de0861c3f02ea9e67632b0afadc6d6ebac2cf4c09c00f1317f4a6d`.
-Set that value as `EXPECTED_DIGEST` for a fresh candidate install, or as
-`UPGRADE_EXPECTED_DIGEST` when starting on the recommended tag and passing the candidate as
-`upgrade-tag`. Get approval for servers and costs before starting these runs.
+Prepared, not run. The recommended tag and tested date remain unchanged. The current candidate
+is the published `ghcr.io/block/buzz:0.3.0`, source
+`75d38b6c2d5f357348288ded8c15aba15f765ea5`, with digest
+`sha256:84f34c5b801192665b1a05939518d746f25184babf4d6e927d0de7e12e9c5674`.
+Its manifest, provenance and deployment eligibility were verified. It replaces the earlier
+`sha-e5dee91` proposal; neither candidate has run this matrix.
+
+**Do not pass `0.3.0` to the current harness yet.** Its preflight accepts seven-character SHA
+tags, and the skill derives the bundle checkout from those tags. Before adopting a semantic
+image, explicitly map it to the verified source commit in the skill/site and harness, and test
+that resolution. The separately built `sha-75d38b6` image has digest
+`sha256:2a8078b6f588b34dfd17687a442a1a52d8cb90e3bb06fa894eb4e01a6e03e18f`;
+using it would validate that artifact, not the `0.3.0` artifact above.
+
+After that preparation, use the exact candidate digest as `EXPECTED_DIGEST` for a fresh install
+or `UPGRADE_EXPECTED_DIGEST` for an old-pin upgrade. Get approval for servers and costs first.
 
 | Run | Evidence it can provide | Remaining manual coverage |
 | --- | --- | --- |
@@ -119,7 +129,12 @@ Offline harness safety checks need no server, keys or Docker:
 
 ```bash
 python3 tests/test_smoke_preflight.py
+python3 tests/test_backup_commands.py
 ```
+
+The backup checks execute the documented Kubernetes export block with stubbed commands. They
+cover failure handling, private output permissions and refusal to overwrite an existing directory.
+They do not validate Kubernetes, archive contents or an actual restore.
 
 ## Logs
 

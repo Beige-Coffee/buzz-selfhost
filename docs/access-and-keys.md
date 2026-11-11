@@ -1,4 +1,11 @@
-# Access and keys: what the site's answers rest on (2026-10-27)
+# Access and keys: historical research (2026-10-27)
+
+**Historical snapshot, marked 2026-11-11.** The UI, key-management and single-sign-on
+statements below describe the October 27 review, not the launched app. In particular, the old
+identity-creation and backup screens, open status of buzz-app#1424, and advice to replace the
+relay key during offboarding are superseded. Use the [current research](research.md#launch-review-checked-on-2026-11-11),
+[decisions](decisions.md) and [skill](../skills/self-host-buzz/SKILL.md) for current guidance.
+This file is retained as dated evidence, not as setup instructions.
 
 The site's Running your relay section (`site/src/scenes/faq.ts`) gives best practices and how to
 set them up; this file covers its answers on people, identity and keys, and the server. Each answer

@@ -5,15 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Run Your Own Buzz</title>
   <meta name="description" content="You're a grown-up. Run your own Buzz server.">
-  <link rel="canonical" href="https://buzz-selfhost.vercel.app/">
+  <link rel="canonical" href="https://self-host.buzz/">
   <meta name="theme-color" content="#ffffff">
   <meta name="color-scheme" content="light">
-  <!-- link previews; og:image, a 1200 by 630 PNG, is still to come -->
+  <!-- Link preview rendered from build/og.html at 1200 by 630. -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Run your own Buzz">
   <meta property="og:title" content="Run your own Buzz">
   <meta property="og:description" content="Set up Buzz, open-source team chat for people and their agents, on your own server, with an agent skill that does the work.">
-  <meta property="og:url" content="https://buzz-selfhost.vercel.app/">
+  <meta property="og:url" content="https://self-host.buzz/">
+  <meta property="og:image" content="https://self-host.buzz/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Run Buzz on your own server. A guide and an agent skill for VPS, your hardware and Kubernetes.">
+  <meta name="twitter:image" content="https://self-host.buzz/og.png">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -22,7 +27,7 @@
 <body>
 
 <header class="hd">
-  <a class="hd-brand" href="#top"><svg viewBox="0 0 466 309" aria-hidden="true"><use href="#bee"/></svg><span>Run your own Buzz</span></a>
+  <a class="hd-brand" href="#top" aria-label="Run your own Buzz home"><svg viewBox="0 0 466 309" aria-hidden="true"><use href="#bee"/></svg><span>Run your own Buzz</span></a>
   <nav class="hd-nav" aria-label="Sections">
     <div class="hd-links">
       <span class="hd-thumb" aria-hidden="true"></span>
@@ -62,7 +67,7 @@
   <noscript>
     <section class="block">
       <div class="text">
-        <p>This page draws its setup steps with JavaScript. Without it, install the agent skill: <code>npx skills add Beige-Coffee/buzz-selfhost --skill self-host-buzz -g</code>, or read it at <a href="https://buzz-selfhost.vercel.app/skills/self-host-buzz/SKILL.md">buzz-selfhost.vercel.app/skills/self-host-buzz/SKILL.md</a>. Then ask your agent, for example: "Use the self-host-buzz skill to set up a Buzz relay on my server, public on the internet. It's a fresh Ubuntu 24.04 VPS; SSH in as &lt;user&gt;@&lt;server IP&gt;. Domain: &lt;domain&gt;. I have no Buzz key yet: make the owner key with the skill's new-identity.py. The skill is at https://buzz-selfhost.vercel.app/skills/self-host-buzz/SKILL.md."</p>
+        <p>This page draws its setup steps with JavaScript. Without it, install the agent skill: <code>npx skills add Beige-Coffee/buzz-selfhost --skill self-host-buzz -g</code>, or read it at <a href="https://self-host.buzz/skills/self-host-buzz/SKILL.md">self-host.buzz/skills/self-host-buzz/SKILL.md</a>. Then ask your agent, for example: "Use the self-host-buzz skill to set up a Buzz relay on my server, public on the internet. It's a fresh Ubuntu 24.04 VPS; SSH in as &lt;user&gt;@&lt;server IP&gt;. Domain: &lt;domain&gt;. I have no Buzz key yet: make the owner key with the skill's new-identity.py. The skill is at https://self-host.buzz/skills/self-host-buzz/SKILL.md."</p>
       </div>
     </section>
   </noscript>

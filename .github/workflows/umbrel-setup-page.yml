@@ -112,4 +112,5 @@ jobs:
         env:
           VERSION: ${{ steps.v.outputs.version }}
           DIGEST: ${{ steps.build.outputs.digest }}
-        run: echo "image: ${IMAGE}:${VERSION}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "image: ${IMAGE}:${VERSION}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"

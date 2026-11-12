@@ -9,6 +9,7 @@ import sys, tempfile, threading, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PKG = os.path.normpath(os.path.join(HERE, "../../../umbrel/buzz"))
+PAGE = os.path.normpath(os.path.join(HERE, "../../../umbrel/setup-page/setup.py"))
 OWNER = "npub1464m3lr8zsjm79l073tcrptr8ekddatt30p8q4f25zcc7dq0zc7sc9a4yn"
 PASSED = FAILED = 0
 
@@ -20,7 +21,7 @@ def ok(condition, text):
 
 
 def page():
-    loader = importlib.machinery.SourceFileLoader("page", os.path.join(PKG, "setup.py.template"))
+    loader = importlib.machinery.SourceFileLoader("page", PAGE)
     m = importlib.util.module_from_spec(importlib.util.spec_from_loader("page", loader))
     loader.exec_module(m)
     d = tempfile.mkdtemp(prefix="buzz-security-")

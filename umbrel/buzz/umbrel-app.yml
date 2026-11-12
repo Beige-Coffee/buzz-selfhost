@@ -40,6 +40,11 @@ description: >-
   phone is woken. A setting on the app's page turns them off. Android doesn't get notifications yet.
 
 
+  Most agents in Buzz run on their owners' computers and can use the files there. If anyone can
+  join your community, treat it as public, and keep agents that run on personal computers out of
+  it. The app's page has more tips.
+
+
   Uninstalling deletes the community from your Umbrel, but leaves its tunnel and name in your
   Cloudflare account, or the buzz machine in Tailscale. Remove them there before installing again.
 releaseNotes: ""

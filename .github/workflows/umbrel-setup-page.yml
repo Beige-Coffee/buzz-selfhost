@@ -1,0 +1,115 @@
+# The Umbrel app's setup page (umbrel/setup-page). Every push and pull request runs its tests and
+# builds the image for both chips without publishing it. A tag umbrel-setup-vX.Y.Z publishes
+# ghcr.io/beige-coffee/buzz-umbrel-setup:X.Y.Z with build provenance; the Umbrel package pins that
+# tag by digest.
+name: Umbrel setup page
+
+on:
+  push:
+    branches: [umbrel]
+    tags: ["umbrel-setup-v*"]
+    paths:
+      - umbrel/**
+      - tests/umbrel/local/**
+      - .github/workflows/umbrel-setup-page.yml
+  pull_request:
+    paths:
+      - umbrel/**
+      - tests/umbrel/local/**
+      - .github/workflows/umbrel-setup-page.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/beige-coffee/buzz-umbrel-setup
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Every state of the page renders
+        run: python3 tests/umbrel/local/render.py
+      - name: The page's checks and limits, and the package's scripts
+        run: python3 tests/umbrel/local/security.py
+      - name: Cloudflare's sign-in, with a stand-in cloudflared
+        run: python3 tests/umbrel/local/cloudflare.py
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: The image builds for both chips
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: umbrel/setup-page
+          platforms: linux/amd64,linux/arm64
+          push: false
+
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/umbrel-setup-v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: The version, from the tag
+        id: v
+        run: |
+          version="${GITHUB_REF_NAME#umbrel-setup-v}"
+          case "$version" in
+            *[!0-9.]*|.*|*.|*..*|"") echo "not a version: $version" >&2; exit 1 ;;
+          esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: umbrel/setup-page
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ steps.v.outputs.version }}
+          labels: |
+            org.opencontainers.image.title=Buzz Relay setup page for Umbrel
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.v.outputs.version }}
+            org.opencontainers.image.licenses=Apache-2.0
+          provenance: mode=max
+          sbom: true
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+      - name: The pin for the Umbrel package
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: echo "image: ${IMAGE}:${VERSION}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"

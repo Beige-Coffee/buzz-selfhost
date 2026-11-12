@@ -129,8 +129,14 @@ class Box:
             f.write(account + " " + zone)
 
 
+def page_file(pkg):
+    """The page beside a package: a template inside packages before 2026-11-11, its own folder since."""
+    old = os.path.join(pkg, "setup.py.template")
+    return old if os.path.exists(old) else os.path.normpath(os.path.join(pkg, "..", "setup-page", "setup.py"))
+
+
 def page_module(pkg, d, control):
-    loader = importlib.machinery.SourceFileLoader("page", os.path.join(pkg, "setup.py.template"))
+    loader = importlib.machinery.SourceFileLoader("page", page_file(pkg))
     m = importlib.util.module_from_spec(importlib.util.spec_from_loader("page", loader))
     loader.exec_module(m)
     os.makedirs(d + "/settings", exist_ok=True)

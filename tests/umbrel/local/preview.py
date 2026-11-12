@@ -7,7 +7,7 @@ Everything except "login" skips the sign-in. Mocked: relay and public checks, Ta
 """
 import http.server, importlib.machinery, importlib.util, json, os, sys, tempfile
 
-PKG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../umbrel/buzz/setup.py.template")
+PKG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../umbrel/setup-page/setup.py")
 loader = importlib.machinery.SourceFileLoader("setup_page", PKG)
 spec = importlib.util.spec_from_loader("setup_page", loader)
 m = importlib.util.module_from_spec(spec)

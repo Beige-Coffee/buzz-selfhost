@@ -5,8 +5,8 @@ address. Then it connects that address, checks it, and shows how to join, invite
 
 It has its own sign-in, with the password Umbrel shows for this app. Umbrel's login guards
 browsers, but every app on an Umbrel shares one Docker network, so other apps could reach this
-page directly; the password keeps them out. Umbrel renders this file from a template, so it must
-not contain a dollar sign.
+page directly; the password keeps them out. It ships as its own image, built from this folder by
+GitHub Actions (see README.md here).
 """
 import concurrent.futures
 import hashlib

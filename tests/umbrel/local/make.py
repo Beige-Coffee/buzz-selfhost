@@ -14,8 +14,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 pkg = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "../../../umbrel/buzz")
 out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, "run")
 os.makedirs(out, exist_ok=True)
-for name in ("setup.py.template", "Caddyfile.template"):
-    shutil.copy(os.path.join(pkg, name), os.path.join(out, name.removesuffix(".template")))
+shutil.copy(os.path.join(pkg, "Caddyfile.template"), os.path.join(out, "Caddyfile"))
+# The page from this checkout, on the image's own base, so a local run tests local edits before any
+# image is published. The droplet runs use the published image.
+shutil.copy(os.path.join(pkg, "..", "setup-page", "setup.py"), os.path.join(out, "setup.py"))
 
 
 def derive(label):  # a stand-in for umbrelOS's derive_entropy: stable per label, test-only
@@ -62,6 +64,9 @@ for name, svc in services.items():
             fixed.append(v)
     if fixed:
         svc["volumes"] = fixed
+services["web"]["image"] = "python:3.13.16-alpine3.24@sha256:2d9aefe2fef018a7eb2c13064c89c71929800fd2e5dccdbf52ea5da5bb8d929a"
+services["web"]["command"] = ["python3", "-u", "/app/setup.py"]
+services["web"]["volumes"] = ["${APP_DATA_DIR}/setup.py:/app/setup.py:ro"] + services["web"].get("volumes", [])
 # the setup page on this machine only, as Umbrel's proxy would publish it
 services["web"]["ports"] = ["127.0.0.1:8090:8080"]
 compose["volumes"] = volumes

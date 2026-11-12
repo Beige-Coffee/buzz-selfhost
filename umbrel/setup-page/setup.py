@@ -43,7 +43,9 @@ CLOUDFLARE_SETUP = os.path.join(CLOUDFLARE_DIR, "cloudflare-setup.log")
 CLOUDFLARE_RESET = os.path.join(CLOUDFLARE_DIR, "cloudflare-reset")
 GATEWAY_URL = "buzz-gateway:80"
 RELAY_HOST = "buzz_relay_1"
-BUZZ_APP = "https://github.com/block/buzz-app"
+BUZZ_APP = "https://github.com/block/buzz-app/releases/latest"
+APP_STORE = "https://apps.apple.com/app/id6779728271"
+GOOGLE_PLAY = "https://play.google.com/store/apps/details?id=xyz.block.buzz.mobile"
 NAK = "https://github.com/fiatjaf/nak"
 TUNNEL_GUIDE = "https://github.com/Radiokot/umbrel-cloudflared/wiki/How-to-set-up-Cloudflare-Tunnel-on-your-Umbrel"
 TAILSCALE_ADMIN = "https://login.tailscale.com/admin/machines"
@@ -87,7 +89,7 @@ def owner_hex(text):
     if value.startswith("nsec"):
         raise ValueError("That's a private key. Keep it secret and don't paste it anywhere. Your public ID starts with npub1.")
     if not value.startswith("npub1") or len(value) != 63:
-        raise ValueError("Paste your public ID from Buzz. It's under Settings, then Identity, then Nostr address. It starts with npub1 and is 63 characters long.")
+        raise ValueError("Paste your public ID. In Buzz, it's under Settings, then Identity, on your Buzz ID card. It starts with npub1 and is 63 characters long.")
     data = []
     for char in value[5:]:
         if char not in BECH32:
@@ -1191,31 +1193,45 @@ def how_to(summary, steps, intro=""):
 
 
 def join_steps(domain):
+    # Buzz 1.0.0: the community button sits at the foot of the left dock; with no community saved, Buzz opens
+    # on a full-page Join a community instead. The join dialog asks Continue twice, then publishes the profile.
     return [
         ("Open Join a community", drawn_switcher(),
-         "In Buzz, open the community menu at the top right, then <b>Join a community</b>."),
+         "In Buzz, click the community button at the bottom left, above your profile picture, then <b>Join a "
+         "community</b>. Don't choose <b>Create community</b>: it makes a new community that Block hosts. If Buzz "
+         "opens on a <b>Join a community</b> page instead, paste the address there and choose <b>Join</b>."),
         ("Paste the address", drawn_join("https://" + domain),
-         "Paste the address into <b>Community URL</b> and choose <b>Continue</b>. Leave the invite code blank, "
-         "because you're already the owner. Then set how you appear and open the community."),
+         "Paste the address into <b>Community URL</b> and choose <b>Continue</b>. Buzz shows your community: "
+         "choose <b>Continue</b> again. Then set how you appear and choose <b>Publish profile &amp; open</b>."),
     ]
 
 
 def member_steps(domain):
     return [
         ("Open Membership", drawn_membership(domain),
-         "In Buzz, open <b>Settings</b>. Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite "
-         "members</b>."),
-        ("Add someone, or send a link", drawn_membership(domain, inviting=True),
-         "Paste their public ID and choose <b>Add member</b>. Or copy the invite link and send it. Anyone with the "
-         "link can join until it expires. They open it and choose <b>Accept invite in Buzz</b>."),
+         "In Buzz, open <b>Settings</b>. Under <b>Community admin</b>, choose <b>Membership</b>. Then choose "
+         "<b>Invite members</b>, or the <b>Invite</b> tab in newer versions of Buzz."),
+        ("Send an invite link", drawn_membership(domain, inviting=True),
+         "Copy the invite link and send it. Anyone with the link can join until it expires or runs out of uses. "
+         "To invite one person, set <b>Max uses</b> to 1 before you copy it. They open it and choose <b>Accept "
+         "invite in Buzz</b>, or paste it into Buzz. Buzz 1.0.0 can also add someone by their public ID: paste it "
+         "under <b>Add directly</b> and choose <b>Add member</b>."),
     ]
 
 
 def phone_steps(domain):
     return [
         ("Pair a phone", drawn_pair(domain),
-         "In Buzz on your computer, open <b>Settings</b>, then <b>Pair mobile</b>. On the phone, open Buzz, choose "
-         "<b>Add community</b>, scan the code, and type the six digits shown on your computer."),
+         "In Buzz on your computer, open <b>Settings</b>, then <b>Mobile app</b>. On the phone, open Buzz and choose "
+         "<b>Scan a QR code</b>. If it already has a community, open its community switcher and choose <b>Add "
+         "Community</b> first. Scan the code and type the six digits your computer shows. Then choose <b>Codes "
+         "match</b> on your computer."
+         # Signed in to Builderlab, the computer shows Get Buzz on your phone in place of the code, and the phone
+         # restores only communities Block hosts
+         "</p><p>Signed in with Builderlab? Your computer may show <b>Get Buzz on your phone</b> instead of a code. "
+         "Then open Buzz on the phone and choose <b>or sign in with email</b>, with the same account. Your community "
+         "won't appear there by itself: choose <b>Enter a community link</b>, paste <code>https://" + esc(domain)
+         + "</code>, choose <b>Continue</b>, then your saved identity."),
     ]
 
 
@@ -1265,31 +1281,34 @@ def drawn_paste():
 
 
 def how_to_find_npub():
+    # The shortcut first: Buzz 1.0.0 with no community opens a full-page Join a community, with no dock and no
+    # profile picture, and the shortcut still opens Settings there
     return how_to("Where to find your public ID", [
         ("Open Settings", drawn_profile_menu(),
-         "In Buzz, click your profile icon at the top right, then <b>Settings</b>. You can also press \u2318, on a "
-         "Mac, or Ctrl+, on Windows and Linux."),
+         "In Buzz, press <code>\u2318,</code> on a Mac or <code>Ctrl+,</code> on Windows and Linux. Or click your "
+         "profile picture at the bottom left, then <b>Settings</b>."),
         ("Copy your public ID", drawn_identity_settings(),
-         "Under <b>Buzz</b>, choose <b>Identity</b>. Click the copy button next to <b>Nostr address (npub)</b>. "
-         "That's your public ID."),
+         "Under <b>Buzz</b>, choose <b>Identity</b>. On your <b>Buzz ID</b> card, click the copy button beside the "
+         "key that starts with npub1. That's your public ID."),
         ("Paste it here", drawn_paste(), "Paste it into the box above. It starts with npub1."),
     ], 'You need Buzz on your computer. If you don\'t have it yet, <a href="' + BUZZ_APP + '" target="_blank" '
-       'rel="noopener">install it</a>.')
+       'rel="noopener">install it</a>, then open <b>No Buzz identity yet?</b> below.')
 
 
 def no_identity():
-    """For owners new to Buzz. Buzz 1.0 on a computer makes a key only with a Builderlab account, Block's,
-    so the other way is a key of their own. Either way this page gets only the public ID."""
+    """For owners new to Buzz: a key of their own. Buzz 1.0 on a computer makes a key only with a Builderlab
+    account, Block's, which keeps a backup Block can decrypt. Either way this page gets only the public ID."""
     return (
         '<details class="alt"><summary>No Buzz identity yet?</summary><div class="inner">'
-        "<p><b>Your own key (recommended).</b> Make one on your computer with an open-source tool like "
-        '<a href="' + NAK + '" target="_blank" rel="noopener">nak</a>, or use a Nostr key you already have. Paste '
-        "its public ID (npub) here. When you join in Buzz, choose <b>Use an existing key</b> and paste the "
-        "private key (nsec) there, never here.</p>"
-        "<p><b>Sign in with Builderlab.</b> Block's account, and the quickest way: Buzz makes your key and "
-        "Builderlab keeps a backup, so you can recover it by signing in. Your messages and files stay on your "
-        "Umbrel. Block can decrypt that backup, though. Your key isn't your data, but with it someone could "
-        "sign in to your community as you. Block also sees which communities you join.</p>"
+        "<p>Make your own key. It's yours alone, and nobody else keeps a copy. Use an open-source tool like "
+        '<a href="' + NAK + '" target="_blank" rel="noopener">nak</a>, or a Nostr app you already use. Paste the '
+        "public ID (npub1...) here. Keep the private key (nsec1...) safe, and never paste it on this page.</p>"
+        "<p>Once your community is live, open Buzz and choose <b>Other options</b>. Paste the community's address "
+        "and choose <b>Continue</b>, then <b>Use an existing key</b>, and paste your private key there. Buzz doesn't "
+        "take a password-protected key. If Buzz already has a key on this computer, it doesn't offer <b>Other "
+        "options</b> and joins with that key, so paste its Buzz ID here instead.</p>"
+        "<p>Already use Buzz with a Builderlab account? Your Buzz ID works here too: copy it as shown above. "
+        "Builderlab keeps a backup of your key that Block can decrypt.</p>"
         '<p class="muted small">Lost your key later? Come back to this page and use <b>Change the owner</b> in '
         "Settings.</p></div></details>"
     )
@@ -1485,6 +1504,44 @@ def address_change(setup, values, current):
     )
 
 
+SAFETY_TIPS = [
+    ("Agents work with what's on their computer.",
+     "An agent made in the Buzz app runs on its owner's computer. It can run commands, change files and go online "
+     "there without asking first. That's true in any community."),
+    ("Open communities bring in people you don't know.",
+     "If anyone can join, as with many open-source projects, strangers can post. Members can also bring their own "
+     "agents without asking you. An agent made in Buzz takes requests only from its owner, but it reads what others "
+     "write, and a message can be written to mislead it."),
+    ("Keep agents on personal computers out of open communities.",
+     "If you want an agent there, run it on a separate computer with nothing private on it, signed in to Buzz with a "
+     "separate identity, not the one that owns your community. Don't connect it to your email, drives or code."),
+    ("Treat an open community as public.",
+     "Anyone who joins, and any agent they bring, can read every channel that isn't private, with its full history. "
+     "They can open the files shared there and see who's a member. Keep private work, personal details and "
+     "passwords out of it."),
+    ("Private channels and direct messages are for the people in them.",
+     "Anyone in a private channel can add other people and agents to it, so keep those channels to people you trust. "
+     "Files work differently for now: anyone in the community who has a file's link can open it."),
+    ("Invite links decide which people get in.",
+     "A new link works for 3 days with no limit on uses, unless you change <b>Expires after</b> or <b>Max uses</b>. "
+     "To invite one person, set <b>Max uses</b> to 1 before you copy the link. A link posted in public lets anyone "
+     "join until it expires, 30 days at most. Links can't be canceled yet, and someone you remove can rejoin with a "
+     "link that still works."),
+]
+
+
+def safety_part():
+    """The live page's tips for owners, to share with members, most of all when anyone can join: collapsed,
+    between the next steps and Settings."""
+    return (
+        '<details class="alt"><summary>Keeping your community safe</summary><div class="inner">'
+        "<p class=\"muted small\">Most of this is common sense. It matters more when people you don't know can join. "
+        'Share it with your members.</p><div class="panel"><ul>'
+        + "".join("<li><b>" + lead + "</b> " + text + "</li>" for lead, text in SAFETY_TIPS)
+        + '</ul></div><p class="muted small">Block is working on more protections for agents.</p></div></details>'
+    )
+
+
 def settings_part(setup, error, values):
     current = relay_domain() or setup.get("domain") or ""
     owner = values.get("owner", "") if values.get("form") == "owner" else ""
@@ -1537,8 +1594,8 @@ def main_page(setup, error="", values=None):
              "private": "from devices on your Tailscale network"}[mode]
     body = (
         '<p class="eyebrow">Live &middot; ' + MODE_NAMES[mode] + '</p><h1>Your community is <mark>live</mark></h1>'
-        '<p class="lede">Only people you add by their public ID, or who join with an invite link, can read or '
-        "post. They join in Buzz with this address, " + reach + ".</p>"
+        '<p class="lede">Only people you invite, and the agents they bring, can read or post. They join with your '
+        "invite link, or in Buzz with this address, " + reach + ".</p>"
         '<div class="address"><code><span>https://' + esc(domain) + "</span></code>"
         '<button class="btn" type="button" data-copy="https://' + esc(domain) + '" onclick="copyText(this, this.dataset.copy)">Copy</button></div>'
         + status +
@@ -1550,19 +1607,24 @@ def main_page(setup, error="", values=None):
         + ('<a class="btn" href="buzz://connect?relay=' + esc(urllib.parse.quote("wss://" + domain, safe="")) + '">Open in Buzz</a>'
            '<p class="muted small">Opens Buzz on this computer with the address filled in.</p>' if domain else "")
         + how_to("Show me how", join_steps(domain))
-        + ('<p class="muted small">Just bought the domain? Your computer can take a while to find it. If Buzz '
+        # Buzz's first run with a key of one's own (Other options, then Use an existing key) ends by joining
+        + '<p class="muted small">Made your own key? Setting up Buzz with it joins you too: choose <b>Other '
+        "options</b>, paste this address and choose <b>Continue</b>, then <b>Use an existing key</b>, and paste "
+        "your private key there.</p>"
+        + ('<p class="muted small">Bought the domain recently? Your computer can take a while to find it. If Buzz '
            "can't connect, try again in a few minutes.</p>" if mode == "domain" else "") + "</div></div>"
         '<div class="step on"><span class="num">2</span><div class="step-body"><h2>Add members</h2>'
-        '<p class="muted">Add people by their public ID, then send them this address. Or send them an invite '
-        "link, which lets them join in one step.</p>"
+        '<p class="muted">Send people an invite link, which lets them join in one step. In Buzz 1.0.0 you can also '
+        "add someone by their public ID, then send them this address.</p>"
         + how_to("Show me how", member_steps(domain)) + (private_members_note() if mode == "private" else "")
         + "</div></div>"
         '<div class="step on"><span class="num">3</span><div class="step-body"><h2>Pair your phone</h2>'
-        '<p class="muted">Pair Buzz on your phone with Buzz on your computer.'
-        + (" The phone needs Tailscale too." if mode == "private" else "") + "</p>"
+        '<p class="muted">Pair Buzz on your phone with Buzz on your computer. It\'s on the <a href="' + APP_STORE
+        + '" target="_blank" rel="noopener">App Store</a> and <a href="' + GOOGLE_PLAY + '" target="_blank" '
+        'rel="noopener">Google Play</a>.' + (" The phone needs Tailscale too." if mode == "private" else "") + "</p>"
         + how_to("Show me how", phone_steps(domain)) + notifications_note(setup) + "</div></div></section>"
     )
-    return layout(body + settings_part(setup, error, values))
+    return layout(body + safety_part() + settings_part(setup, error, values))
 
 
 # ---------------------------------------------------------------- the server

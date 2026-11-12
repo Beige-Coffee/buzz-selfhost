@@ -54,6 +54,33 @@ here ran on real infrastructure, a real phone or the released app.
   private key), so Remove from device stays read from source; Moderation, which
   [shows for relay staff only](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/relay-staff/index.tsx#L24);
   and Codes match as a button, which needs a phone.
+- **Block's feedback community, checked 2026-11-12.** The Buzz app's README
+  [publishes its address and a public invite](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/README.md#L58).
+  Its invite page, opened without pressing anything, asks the visitor to confirm they are 18 or
+  older and to agree to Buzz's Terms of Service and Privacy Policy before Accept invite in Buzz
+  works; the relay's public join policy says the same (`age_attestation_required`). The relay
+  reports version 0.3.0 and `requires_nip_fi: false`. That flag is the relay's statement of
+  [whether sign-in evidence is mandatory for admission](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/docs/nips/NIP-FI.md#L908),
+  and Buzz 1.0.0 [follows it](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src-tauri/src/federated_identity/assertion.rs#L208):
+  false means supported, not required. So someone who already has a Buzz identity can join
+  without a Builderlab sign-in. A new install that starts from a Block-hosted address is
+  different: first run [signs in at once](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/identity.md#L114).
+  Read from source and the relay's public info, not tried by joining: the invite asks a person to
+  accept Block's terms. The community is on
+  `*.communities.buzz.xyz`, the host rule the app's own tests give the public Builderlab build
+  ([`bb-public`](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src-tauri/src/federated_identity/access.rs#L616));
+  the real list is compiled into each build and can't be read from the source. If it matches,
+  Block's identity design applies: for someone signed in to Builderlab, membership in a community
+  it hosts [saves automatic key backup with no prompt](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/identity.md#L1044),
+  unless a choice was already saved. A section that sends readers there has to say so.
+- **Join a community takes a whole invite link.** Since
+  [2026-11-09](https://github.com/block/buzz-app/commit/58116b826171d190a7376fc57b0509c32c507dde), which both 1.0.0
+  betas and 1.0.0 include, the community button's box accepts a pasted invite link. The list of
+  fixes said it takes only an address. That row is now about older preview builds, and the page
+  leaves it out.
+- **A build rule clipped "Buzz 1.0.0".** The page says "Buzz" where the skill says "Buzz 1.0".
+  The rule also matched the full version number added on 2026-11-12 and left "Buzz.0" in the
+  page's data. It now leaves a full version alone (`site/build/skill.ts`, `CURRENT` and `OLD`).
 - **The pin and the newer release.** `sha-744f394` still resolves to its recorded digest, for
   amd64 and arm64, with verified provenance; it was built on 2026-11-06, after the skill's
   `tested` date, and no committed run names it. `0.3.0` is the newest relay release and its facts

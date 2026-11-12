@@ -150,12 +150,13 @@ const CURRENT: [RegExp, string][] = [
   [phrase(", or Buzz 0.X: `Not a member yet`"), ""],
   [phrase(" A local test at `ws://127.0.0.1:3000`, from before compose.md's local mode moved to `wss://localhost`, only takes Buzz 0.X."), ""],
   [phrase(", or Buzz 0.X `WebSocket connection failed: HTTP error: 404 Not Found`"), ""],
-  [/Buzz 1\.0/g, "Buzz"],
+  // "Buzz 1.0" is the only Buzz the page covers, so it says "Buzz". A full version, such as 1.0.0, stays.
+  [/Buzz 1\.0(?![.\d])/g, "Buzz"],
 ];
-// troubleshooting.md rows that are only about Buzz 0.X or a bundle from before Silo
-const OLD_ROWS = /^\| (Pull fails for `quay\.io\/minio|Buzz 0\.X can't join|After an upgrade to a Silo bundle|Docker warns `The requested image's platform)/;
+// troubleshooting.md rows that are only about Buzz 0.X, a preview build from before 1.0.0, or a bundle from before Silo
+const OLD_ROWS = /^\| (Pull fails for `quay\.io\/minio|Buzz 0\.X can't join|An older Buzz preview:|After an upgrade to a Silo bundle|Docker warns `The requested image's platform)/;
 // what the site must never show; a new note in the skill like these needs a rule above
-const OLD = /Buzz 0\.X|Buzz 1\.0|older phones|before 2026-10-07|2026-10-07 on|MinIO for Silo|Silo or MinIO|quay\.io\/minio/;
+const OLD = /Buzz 0\.X|Buzz 1\.0(?![.\d])|older phones|before 2026-10-07|2026-10-07 on|MinIO for Silo|Silo or MinIO|quay\.io\/minio/;
 
 function current(markdown: string): string {
   return markdown

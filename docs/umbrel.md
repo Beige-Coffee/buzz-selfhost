@@ -18,8 +18,8 @@ after a red-team review (below), its fixes, Buzz 1.0's sign-in on the owner step
 would, passed 115 of 115 on an Intel droplet. On 2026-11-10 Umbrel's reviewer ran it on umbrelOS 2.0.1
 (arm64), asked to drop `migrate()` and to delete Cloudflare's sign-in once it's set up, and suggested an
 image for the setup page; Buzz 1.0 came out the same day. On 2026-11-11 all three went in, with relay
-0.3.0, Block's first versioned release, the page's steps and drawings for Buzz 1.0, and safety tips on
-the live page. `pre-submit.sh` passed 115 of 115 on an Intel droplet with the relay and the page's
+0.3.0, Block's tagged release, in place of a build of main, the page's steps and drawings for Buzz 1.0,
+and safety tips on the live page. `pre-submit.sh` passed 115 of 115 on an Intel droplet with the relay and the page's
 image. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package

@@ -721,55 +721,78 @@ details.how[open] > summary { background: var(--chip); }
 .mb-nav-host span {display: grid; place-items: center; width: 16px; height: 16px; border-radius: 5px; background: #f0f0f0; font-size: 8.5px; font-weight: 600; }
 .mb-btns {display: flex; justify-content: flex-end; gap: 6px; margin: 6px 0 2px; }
 .mb-btn.dark {background: #0f0f0f; color: #fff; }
+.mb-btn.off {opacity: 0.4; }
 .mb h6 em {font-style: normal; color: #5f5f5f; }
 .mb-box {position: relative; padding: 8px 10px 4px; border: 1px solid #1f1f1f; border-radius: 14px; }
 .mb-canvas .mb-search {display: flex; align-items: center; gap: 6px; margin-bottom: 4px; padding: 5px 10px; border-radius: 999px; background: #f3f3f4; font-size: 10.5px; color: #6b6b6b; }
 .mb-row {display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .mb-who {flex: 1; min-width: 0; }
 .mb-who b {display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 400; white-space: nowrap; }
-.mb-who b em {font-style: normal; }
 .mb-who small {display: block; font-size: 10px; color: #5f5f5f; }
-.mb-who .tb-i {font-size: 11px; }
+.mb-who .tb-i {font-size: 11px; color: #b7791f; }
 .mb-shade.on-modal {z-index: 3; }
 .mb-dlg {position: absolute; top: 50%; left: 50%; z-index: 4; width: 330px; padding: 14px 16px 12px; transform: translate(-50%, -50%); border-radius: 18px; background: #fff; box-shadow: 0 18px 50px rgb(0 0 0 / 25%); }
+.mb-dlg.inv {top: 6px; width: 346px; padding: 11px 16px 12px; transform: translateX(-50%); }
+.mb-dlg.inv h6 {margin-top: 7px; }
 .mb-dlg-h {display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
 .mb-line {display: flex; align-items: center; gap: 6px; margin: 5px 0 2px; }
 .mb-in {flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 11px; border-radius: 999px; background: #f3f3f4; font-size: 10.5px; }
 .mb-in > span:first-child {flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mb-in .mono {font: 10px var(--mono); }
+.mb-in .ph {color: #8a8a8a; }
 .mb-choice {display: inline-flex; align-items: center; gap: 3px; padding: 0 4px; font-size: 10.5px; white-space: nowrap; }
 .mb-copy {padding: 1px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 500; white-space: nowrap; }
-.mb-canvas .mb-opt {display: flex; align-items: center; justify-content: space-between; margin: 4px 2px 0; font-size: 10.5px; }
-.mb .mb-modal:has(.id-pair) {inset: 7px 16px; }
+.mb-canvas .mb-opts {display: flex; justify-content: space-between; margin: 4px 2px 0; font-size: 10.5px; }
+.mb-opts > span {display: inline-flex; align-items: center; gap: 2px; font-weight: 500; }
+.mb-opts .mb-choice {font-weight: 400; }
+.mb-inv-qr {width: 62px; margin: 6px auto 0; padding: 4px; border-radius: 8px; box-shadow: 0 0 0 1px #e6e6e6; }
 .mb .id-pair {padding: 9px 18px; }
 .id-pair-b {display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 14px; align-items: center; margin-top: 10px; }
 .id-pair-code {padding: 8px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #e6e6e6; }
+.id-pair-code + .mb-btn {display: flex; justify-content: center; margin-top: 8px; }
 .id-qr {display: block; width: 100%; fill: #0f0f0f; }
+.id-verify {display: flex; flex-direction: column; gap: 7px; }
+.id-verify > b {font-size: 11px; font-weight: 500; }
+.id-digits {padding: 9px 0; border-radius: 10px; box-shadow: 0 0 0 1px #e3e3e5; font: 600 15px var(--mono); letter-spacing: 0.12em; text-align: center; }
+.id-verify .mb-btn {justify-content: center; }
 .id-pair ol {display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
 .id-pair li {display: flex; gap: 8px; }
 .id-pair li > span {flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #f0f0f1; font-size: 10px; font-weight: 600; }
+.id-pair li > span.done {background: #e2f2e7; color: #2f9e57; }
 .id-pair li b {display: block; font-size: 11px; font-weight: 500; }
 .mb-canvas .id-pair li p {font-size: 9.5px; color: #5f5f5f; }
 .mb-av i {display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #f0f0f1; font: 500 9.5px var(--sans); font-style: normal; color: #2b2b2b; }
-.mb-pmenu.sw-menu {right: 40px; width: 176px; }
+.mb-pmenu.sw-menu {bottom: 44px; }
 .jn-go {display: flex; justify-content: flex-end; margin-top: 10px; }
 .tb-i {width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .mb-stage {--s: 1; position: relative; height: calc(340px * var(--s)); overflow: hidden; border-radius: 16px; background: #ecece8; }
 .mb-canvas {position: absolute; top: 0; left: calc(50% - 280px * var(--s)); width: 560px; height: 340px; overflow: hidden; transform: scale(var(--s)); transform-origin: 0 0; color: #0f0f0f; font-size: 11px; line-height: 1.35; text-align: left; }
 .mb-canvas p {margin: 0; }
-.mb-app {position: absolute; inset: 14px 14px -20px 60px; overflow: hidden; border-radius: 14px 14px 0 0; background: var(--b1-base); box-shadow: 0 0 0 1px #e3e3e5, 0 10px 30px rgb(24 20 14 / 10%); }
-.mb-top {display: flex; align-items: center; gap: 8px; height: 40px; padding-right: 12px; }
-.mb-track, .mb-track span {display: inline-flex; align-items: center; gap: 5px; }
-.mb-track {gap: 5px; margin-right: auto; padding: 5px 12px 5px 14px; border-radius: 0 999px 999px 0; background: var(--b1-line); font-size: 11.5px; color: #404040; }
-.mb-track span {margin-left: 12px; }
-.mb-track .tb-i {font-size: 13px; }
+.mb-app {position: absolute; inset: 14px 18px; overflow: hidden; border-radius: 14px; background: var(--b1-base); box-shadow: 0 0 0 1px #e3e3e5, 0 10px 30px rgb(24 20 14 / 10%); }
+.mb-head {display: flex; align-items: center; justify-content: center; height: 34px; }
+.mb-hist {position: absolute; top: 10px; left: 13px; display: flex; gap: 9px; font-size: 13px; color: #b0b0b0; }
+.mb-hist i {display: flex; color: #5f5f5f; }
+.mb-find {display: flex; align-items: center; gap: 6px; width: 196px; padding: 4px 10px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 1px var(--b1-line); font-size: 10.5px; color: #6b6b6b; }
+.mb-dock {position: absolute; top: 34px; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 46px; padding: 2px 0 10px; }
+.mb-tile {display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; font-size: 15px; color: #5f5f5f; }
+.mb-tile.on {background: #e4e4e6; color: #0f0f0f; }
+.mb-foot {display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: auto; }
+.mb-comm {display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1px var(--b1-line); font-size: 16px; color: #2b2b2b; }
 .mb-me {position: relative; width: 26px; height: 26px; border-radius: 50%; }
-.mb-app-body {position: absolute; inset: 40px 7px 0; }
-.mb-app-main {height: 100%; padding: 12px 16px; border-radius: 12px 12px 0 0; background: #fff; box-shadow: 0 0 0 1px var(--b1-line); }
-.mb-app-main > p {margin-bottom: 14px; font-weight: 500; }
-.mb-app-main > span {display: block; width: 60%; height: 9px; margin-bottom: 12px; border-radius: 5px; background: #f1f1f2; }
-.mb-app-main > span.short {width: 38%; }
-.mb-pmenu {position: absolute; top: 44px; right: 8px; width: 214px; padding: 8px; border-radius: 16px; background: #fff; box-shadow: 0 0 0 1px #e8e8e8, 0 12px 32px rgb(0 0 0 / 14%); font-size: 12px; }
+.mb-panel {position: absolute; inset: 34px 7px 7px 46px; display: flex; overflow: hidden; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px var(--b1-line); }
+.mb-side {flex: none; width: 126px; padding: 10px; border-right: 1px solid #efefef; }
+.mb-seg {display: flex; gap: 2px; margin-bottom: 4px; padding: 2px; border-radius: 999px; background: #f1f1f2; font-size: 9.5px; color: #5f5f5f; }
+.mb-seg i {flex: 1; padding: 2px 0; border-radius: 999px; font-style: normal; text-align: center; }
+.mb-seg i.on {background: #fff; color: #0f0f0f; box-shadow: 0 0 0 1px #e6e6e6; }
+.mb-bar {display: block; width: 190px; height: 8px; border-radius: 4px; background: #f1f1f2; }
+.mb-bar.short {width: 130px; }
+.mb-side .mb-bar {width: 80%; margin-top: 12px; }
+.mb-side .mb-bar.short {width: 55%; }
+.mb-main {flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 0; padding-bottom: 6px; }
+.mb-plug {display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 4px; border-radius: 12px; background: #f3f3f4; font-size: 18px; }
+.mb-main > p {font-size: 13px; font-weight: 500; }
+.mb-main .mb-btn {margin-top: 6px; }
+.mb-pmenu {position: absolute; bottom: 10px; left: 52px; z-index: 2; width: 190px; padding: 8px; border-radius: 16px; background: #fff; box-shadow: 0 0 0 1px #e8e8e8, 0 12px 32px rgb(0 0 0 / 14%); font-size: 12px; }
 .mb-pm-head {display: flex; align-items: center; gap: 10px; padding: 6px 6px 10px; }
 .mb-pm-av {position: relative; width: 34px; height: 34px; }
 .mb-pm-head b {display: block; font-size: 13px; font-weight: 500; }
@@ -777,14 +800,15 @@ details.how[open] > summary { background: var(--chip); }
 .mb-pmenu .tb-i {font-size: 14px; color: #404040; }
 .mb-pm-more {display: flex; margin-left: auto; }
 .mb-pmenu hr {margin: 6px 4px; border: 0; border-top: 1px solid #ececec; }
+.mb-pmenu p.sel {background: #f1f1f2; }
 .mb-pmenu p.on {border-radius: 999px; background: var(--b1-citrus); }
 .mb-shade {position: absolute; inset: 0; background: rgb(15 15 15 / 28%); }
-.mb-modal {position: absolute; inset: 14px 16px; display: flex; flex-direction: column; overflow: hidden; border-radius: 18px; background: #fff; box-shadow: 0 16px 48px rgb(0 0 0 / 22%); }
+.mb-modal {position: absolute; inset: 7px 16px; display: flex; flex-direction: column; overflow: hidden; border-radius: 18px; background: #fff; box-shadow: 0 16px 48px rgb(0 0 0 / 22%); }
 .mb-modal-h {display: flex; align-items: center; justify-content: space-between; padding: 9px 12px 9px 16px; border-bottom: 1px solid #ececec; font-size: 13px; }
 .mb-modal-h b {font-weight: 500; }
 .mb-x {display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #f3f3f4; font-size: 12px; color: #404040; }
 .mb-modal-b {position: relative; flex: 1; display: grid; grid-template-columns: 148px minmax(0, 1fr); min-height: 0; }
-.mb-nav-col {padding: 10px 8px; overflow: hidden; border-right: 1px solid #ececec; }
+.mb-nav-col {padding: 10px 8px; overflow: hidden; border-right: 1px solid #ececec; -webkit-mask-image: linear-gradient(#000 76%, transparent); mask-image: linear-gradient(#000 76%, transparent); }
 .mb-nav-col p {display: flex; align-items: center; gap: 7px; padding: 3px 9px; border-radius: 999px; font-size: 11px; color: #2b2b2b; white-space: nowrap; }
 .mb-nav-col .tb-i {font-size: 12.5px; }
 .mb-nav-col .mb-nav-g {margin-top: 8px; color: #5f5f5f; }
@@ -795,27 +819,25 @@ details.how[open] > summary { background: var(--chip); }
 .mb-btn {display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; background: #f0f0f1; font-size: 11px; font-weight: 500; color: #0f0f0f; white-space: nowrap; }
 .mb h6 {margin: 8px 0 4px; font-size: 12.5px; font-weight: 500; }
 .mb .hot {box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--b1-citrus); }
-.id-comms {display: inline-flex; align-items: center; gap: 3px; padding: 4px 9px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 1px #e3e3e5; font-size: 10.5px; font-weight: 500; }
 .mb .id-me {display: grid; place-items: center; border-radius: 50%; background: #f0f0f1; color: #5f5f5f; }
 .mb .id-me .tb-i {font-size: 13px; }
-.mb .id-empty {display: grid; place-content: center; justify-items: center; text-align: center; }
-.mb .id-empty p {margin: 0 0 12px; font-size: 14px; }
-.mb .id-empty span {width: 220px; }
-.mb .id-empty span.short {width: 150px; }
-.mb .mb-modal:has(.id-page) {inset: 7px 16px; }
 .mb .id-page {padding: 9px 18px; }
 .id-page .mb-sub {margin-bottom: 2px; }
-.id-group {margin-top: 6px; border: 1px solid #e6e6e6; border-radius: 12px; background: #fff; }
-.id-row {display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 10px; }
-.id-row + .id-row {border-top: 1px solid #efefef; }
-.id-row b, .id-form > b {display: block; font-size: 11px; font-weight: 500; }
-.mb .id-row code {display: block; margin-top: 2px; padding: 0; background: none; font: 10px var(--mono); color: #5f5f5f; }
-.id-ic {display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; font-size: 13px; color: #404040; }
-.id-form {padding: 7px 10px 8px; }
-.id-form .mb-btn {padding: 5px 11px; }
-.id-input {display: block; margin-top: 4px; padding: 5px 10px; border-radius: 9px; background: #f3f3f4; font: 10.5px var(--mono); letter-spacing: 0.1em; }
-.id-btns {display: flex; gap: 6px; margin-top: 5px; }
-.id-toast {position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #e8e8e8, 0 10px 28px rgb(0 0 0 / 14%); font-size: 11px; font-weight: 500; }
+.id-badge {position: relative; display: grid; place-items: center; height: 222px; margin-top: 8px; border: 1px solid #ececec; border-radius: 14px; }
+.id-more {position: absolute; top: 8px; left: 8px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #f0f0f1; font-size: 13px; color: #404040; }
+.id-card {position: relative; display: flex; flex-direction: column; width: 176px; height: 208px; overflow: hidden; border: 1px solid #e3e3e5; border-radius: 12px; background: #f6f6f7; }
+.id-slot {position: absolute; top: 7px; left: calc(50% - 13px); z-index: 1; width: 26px; height: 5px; border-radius: 999px; background: #fff; box-shadow: inset 0 0 0 1px #e3e3e5; }
+.id-photo {position: relative; flex: none; height: 108px; overflow: hidden; background: radial-gradient(ellipse at 20% 25%, rgb(190 218 54 / 12%), transparent 70%), radial-gradient(ellipse at 80% 75%, rgb(190 218 54 / 18%), transparent 75%), #efeff0; }
+.id-mono {position: absolute; inset: 0; display: grid; place-items: center; padding-top: 18px; font: 800 84px/1 var(--sans); color: #dcdcde; }
+.id-top {position: relative; display: flex; align-items: center; justify-content: space-between; padding: 20px 10px 0; }
+.id-top b {font-size: 12px; font-weight: 700; }
+.id-key {flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 4px 8px 6px; }
+.id-key small {font-size: 7.5px; letter-spacing: 0.06em; color: #6b6b6b; }
+.id-bar {display: block; width: 100%; height: 30px; border-radius: 5px; background: #1c1c1c; fill: #f3f3f4; }
+.id-npub {display: flex; align-items: center; gap: 5px; }
+.mb .id-npub code {padding: 0; background: none; font: 9.5px var(--mono); color: #0f0f0f; white-space: nowrap; }
+.id-copy {display: grid; place-items: center; width: 16px; height: 16px; border-radius: 5px; background: #fff; font-size: 10px; }
+.id-toast {position: absolute; right: 8px; bottom: 3px; z-index: 1; display: flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #e8e8e8, 0 10px 28px rgb(0 0 0 / 14%); font-size: 11px; font-weight: 500; }
 .id-toast .tb-i {color: #2f9e57; }
 .hw-page { position: absolute; inset: 18px 44px 0; padding: 16px 22px; border-radius: 14px 14px 0 0; background: #fff; box-shadow: 0 0 0 1px #e3e3e5, 0 10px 30px rgb(24 20 14 / 10%); }
 .mb .hw-brand { font-size: 10.5px; font-weight: 600; letter-spacing: -0.01em; }
@@ -1016,13 +1038,11 @@ def address_fields(values, setup):
     )
 
 
-# Where the owner finds their public ID: Buzz's own screens, adapted from the guide site's drawings
-# (site/src/scenes/identity.ts) to Buzz with a community joined. Tabler's outline icons (MIT) are the set
-# Buzz draws its interface with.
+# Buzz's own screens, drawn from Buzz 1.0.0's source (block/buzz-app at v1.0.0) in its light theme, with the
+# thing to click in chartreuse. Tabler's outline icons (MIT) are the set Buzz draws its interface with.
 TABLER = {
     'messages': '<path d="M21 14l-3 -3h-7a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1h9a1 1 0 0 1 1 1v10"/><path d="M14 15v2a1 1 0 0 1 -1 1h-7l-3 3v-10a1 1 0 0 1 1 -1h2"/>',
     'robot': '<path d="M6 6a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2l0 -4"/><path d="M12 2v2"/><path d="M9 12v9"/><path d="M15 12v9"/><path d="M5 16l4 -2"/><path d="M15 14l4 2"/><path d="M9 18h6"/><path d="M10 8v.01"/><path d="M14 8v.01"/>',
-    'bolt': '<path d="M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11"/>',
     'chevron-down': '<path d="M6 9l6 6l6 -6"/>',
     'user': '<path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>',
     'device-desktop': '<path d="M3 5a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-10"/><path d="M7 20h10"/><path d="M9 16v4"/><path d="M15 16v4"/>',
@@ -1046,6 +1066,14 @@ TABLER = {
     'dots': '<path d="M4 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M18 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>',
     'world': '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M3.6 9h16.8"/><path d="M3.6 15h16.8"/><path d="M11.5 3a17 17 0 0 0 0 18"/><path d="M12.5 3a17 17 0 0 1 0 18"/>',
     'users-plus': '<path d="M5 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4c.96 0 1.84 .338 2.53 .901"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M16 19h6"/><path d="M19 16v6"/>',
+    'plus': '<path d="M12 5l0 14"/><path d="M5 12l14 0"/>',
+    'arrow-left': '<path d="M5 12l14 0"/><path d="M5 12l6 6"/><path d="M5 12l6 -6"/>',
+    'arrow-right': '<path d="M5 12l14 0"/><path d="M13 18l6 -6"/><path d="M13 6l6 6"/>',
+    'plug': '<path d="M9.785 6l8.215 8.215l-2.054 2.054a5.81 5.81 0 1 1 -8.215 -8.215l2.054 -2.054"/><path d="M4 20l3.5 -3.5"/><path d="M15 4l-3.5 3.5"/><path d="M20 9l-3.5 3.5"/>',
+    'lock': '<path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6"/><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"/><path d="M8 11v-4a4 4 0 1 1 8 0v4"/>',
+    'brain': '<path d="M15.5 13a3.5 3.5 0 0 0 -3.5 3.5v1a3.5 3.5 0 0 0 7 0v-1.8"/><path d="M8.5 13a3.5 3.5 0 0 1 3.5 3.5v1a3.5 3.5 0 0 1 -7 0v-1.8"/><path d="M17.5 16a3.5 3.5 0 0 0 0 -7h-.5"/><path d="M19 9.3v-2.8a3.5 3.5 0 0 0 -7 0"/><path d="M6.5 16a3.5 3.5 0 0 1 0 -7h.5"/><path d="M5 9.3v-2.8a3.5 3.5 0 0 1 7 0v10"/>',
+    'download': '<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 11l5 5l5 -5"/><path d="M12 4l0 12"/>',
+    'layout-sidebar': '<path d="M4 6a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12"/><path d="M9 4l0 16"/>',
 }
 
 
@@ -1056,11 +1084,14 @@ def ti(name):
 SAMPLE_NPUB = "npub1qm\u20268k3a"
 
 
+# Settings' left column with a community open, in Buzz 1.0.0's order (src/app/settings-sections.ts). Buzz's
+# group runs on past the drawing's edge, which fades out. Mobile app is Pair mobile in builds without Builderlab.
 COMMUNITY_GROUPS = [
     ("Community", [("user", "Profile"), ("settings", "Local settings"), ("mood-smile", "Custom emoji"),
-                   ("device-mobile", "Pair mobile"), ("logout", "Leave or remove")]),
+                   ("device-mobile", "Mobile app"), ("logout", "Leave or remove")]),
     ("Community admin", [("users", "Membership")]),
-    ("Buzz", [("shield", "Identity"), ("palette", "Appearance"), ("bell", "Notifications"), ("keyboard", "Shortcuts")]),
+    ("Buzz", [("shield", "Identity"), ("lock", "Security"), ("palette", "Appearance"), ("bell", "Notifications"),
+              ("keyboard", "Shortcuts")]),
 ]
 
 
@@ -1080,20 +1111,30 @@ def settings_modal(nav, page, over=""):
 
 
 def drawn_app(menu=""):
-    """Buzz's window before any community is open, with a menu open at the top right."""
+    """Buzz's window in Personal space, with no community open (src/app/shell/AppShell.tsx): the sidebar button,
+    back, forward and Search across the top, and the app dock down the left, Messages then Agents as a new install
+    has them. At the dock's foot, the community button shows a globe, above your profile picture. Messages shows
+    its page for no community. A menu opens to the right of the dock's foot."""
     return (
-        '<div class="mb-app"><div class="mb-top"><span class="mb-track">' + ti("messages") + "Messages<span>"
-        + ti("robot") + "Agents</span><span>" + ti("bolt") + 'Workflows</span></span><span class="id-comms">Communities'
-        + ti("chevron-down") + '</span><span class="mb-me id-me">' + ti("user") + "</span></div>"
-        '<div class="mb-app-body"><div class="mb-app-main id-empty"><p>Your channels, one conversation.</p><span></span>'
-        '<span class="short"></span></div></div>' + menu + "</div>"
+        '<div class="mb-app"><div class="mb-head"><span class="mb-hist"><i>' + ti("layout-sidebar") + "</i>"
+        + ti("arrow-left") + ti("arrow-right") + '</span><span class="mb-find">' + ti("search") + "Search</span></div>"
+        '<div class="mb-dock"><span class="mb-tile on">' + ti("messages") + '</span><span class="mb-tile">'
+        + ti("robot") + '</span><span class="mb-foot"><span class="mb-comm">' + ti("world") + "</span>"
+        '<span class="mb-me id-me">' + ti("user") + "</span></span></div>"
+        '<div class="mb-panel"><div class="mb-side"><span class="mb-seg"><i class="on">All</i><i>Solo</i><i>Team</i>'
+        '</span><span class="mb-bar"></span><span class="mb-bar short"></span><span class="mb-bar"></span></div>'
+        '<div class="mb-main"><span class="mb-plug">' + ti("plug") + "</span><p>Your channels, one conversation.</p>"
+        '<span class="mb-bar"></span><span class="mb-bar short"></span><span class="mb-btn dark">Choose a community'
+        "</span></div></div>" + menu + "</div>"
     )
 
 
 def drawn_switcher():
-    """The community menu, open, Join a community highlighted."""
-    return drawn_app('<div class="mb-pmenu sw-menu"><p>' + ti("world") + "Personal space</p>"
-                     '<p class="on">' + ti("users-plus") + "Join a community</p></div>")
+    """The community menu, open beside the community button (src/features/communities/CommunityPicker.tsx):
+    Personal space, then Join a community highlighted, then Create community, which makes a community Block hosts."""
+    return drawn_app('<div class="mb-pmenu sw-menu"><p class="sel">' + ti("world") + "Personal space</p>"
+                     '<p class="on">' + ti("users-plus") + "Join a community</p>"
+                     "<p>" + ti("plus") + "Create community</p></div>")
 
 
 def drawn_join(url):
@@ -1110,30 +1151,36 @@ def drawn_join(url):
 
 
 def drawn_membership(host, inviting=False):
-    """Settings, Membership, in a new community: the owner alone. Inviting opens Add or invite people over it."""
+    """Settings, Membership, in a new community (src/bundled/moderation/CommunityAdmin.tsx): the owner alone,
+    named by the end of their public ID until they set a name. Inviting opens Add or invite people over it, as
+    Buzz 1.0.0 has it: the invite link first, with its expiry, its use limit and its QR code, then adding someone
+    by their public ID."""
     page = (
         '<section class="mb-page"><h5>Membership</h5><p class="mb-sub">Manage members and access to ' + esc(host) + ".</p>"
         '<div class="mb-btns"><span class="mb-btn">Refresh</span><span class="mb-btn dark' + ("" if inviting else " hot")
         + '">Invite members</span></div><h6>Members <em>1</em></h6>'
         '<div class="mb-box"><p class="mb-search">' + ti("search") + "Search members</p>"
-        '<div class="mb-row"><span class="mb-av"><i>Y</i></span><span class="mb-who"><b>You · <em>' + SAMPLE_NPUB
-        + "</em>" + ti("crown") + "</b><small>Owner</small></span></div></div></section>"
+        '<div class="mb-row"><span class="mb-av"><i>N</i></span><span class="mb-who"><b>npub…k3a' + ti("crown")
+        + "</b><small>Owner · You</small></span></div></div></section>"
     )
     over = ""
     if inviting:
         over = (
-            '<div class="mb-shade on-modal"></div><div class="mb-dlg"><div class="mb-dlg-h"><b>Add or invite people</b>'
+            '<div class="mb-shade on-modal"></div><div class="mb-dlg inv"><div class="mb-dlg-h">'
+            "<b>Add or invite people</b>"
             '<span class="mb-x">' + ti("x") + "</span></div>"
-            '<p class="mb-sub">Add someone by their exact identity, or share a link they can use to join.</p>'
-            "<h6>Add directly</h6><p class=\"mb-sub\">Paste the person's npub or 64-character public key.</p>"
-            '<div class="mb-line"><span class="mb-in"><span class="typed">npub1qk3f8w…7x2a</span>'
-            '<span class="mb-choice">Member' + ti("chevron-down") + '</span></span><span class="mb-btn dark hot">Add member'
-            "</span></div><h6>Invite with a link</h6>"
+            '<p class="mb-sub">Share a link someone can use to join, or add them by their exact identity.</p>'
+            "<h6>Invite with a link</h6>"
             '<p class="mb-sub">Anyone with this link can use it to join until it expires.</p>'
             '<div class="mb-line"><span class="mb-in"><span class="mono">https://' + esc(host) + "/invite/v2.nOvr6DwA6u"
             '</span><span class="mb-copy hot">Copy link</span></span></div>'
-            '<p class="mb-opt">Expires after<span class="mb-choice">3 days' + ti("chevron-down") + "</span></p>"
-            '<p class="mb-opt">Limit number of uses<span class="mb-choice">No limit' + ti("chevron-down") + "</span></p></div>"
+            '<p class="mb-opts"><span>Expires after<span class="mb-choice">3 days' + ti("chevron-down")
+            + '</span></span><span>Max uses<span class="mb-choice">No limit' + ti("chevron-down") + "</span></span></p>"
+            '<div class="mb-inv-qr">' + QR + "</div>"
+            "<h6>Add directly</h6><p class=\"mb-sub\">Paste the person’s npub or 64-character public key.</p>"
+            '<div class="mb-line"><span class="mb-in"><span class="ph">npub1… or public key</span>'
+            '<span class="mb-choice">Member' + ti("chevron-down") + '</span></span><span class="mb-btn dark off">'
+            "Add member</span></div></div>"
         )
     return settings_modal(settings_nav(COMMUNITY_GROUPS, "Membership", host), page, over)
 
@@ -1160,20 +1207,30 @@ QR = ('<svg class="id-qr" viewBox="-1 -1 23 23" shape-rendering="crispEdges" ari
       + "</svg>")
 
 
-def drawn_pair(host):
-    """Settings, Pair mobile: the code to scan, beside the three steps Buzz lists."""
+def drawn_pair(host, verifying=False):
+    """Settings, Mobile app (src/bundled/pairing/PairingSettings.tsx): the code to scan, beside the three steps
+    Buzz lists. Verifying, after the phone has scanned it: the six digits, with Codes match highlighted, which
+    sends your identity to the phone."""
+    if verifying:
+        left = ('<div class="id-verify"><b>Verify the code on your phone</b><span class="id-digits">482 913</span>'
+                '<span class="mb-btn dark hot">Codes match</span><span class="mb-btn">Cancel</span></div>')
+        first = '<span class="done">' + ti("check") + "</span>"
+    else:
+        left = '<div class="id-pair-code">' + QR + '</div><span class="mb-btn">Copy pairing code</span>'
+        first = "<span>1</span>"
     page = (
         '<section class="mb-page id-pair"><h5>Pair mobile</h5><p class="mb-sub">Connect the Buzz mobile app to this '
         "community. Pairing is secured with end-to-end encryption and a verification code.</p>"
-        '<div class="id-pair-b"><div class="id-pair-code">' + QR + "</div><ol>"
-        "<li><span>1</span><div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the "
+        '<div class="id-pair-b"><div class="id-pair-left">' + left + "</div><ol>"
+        "<li>" + first + "<div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the "
         "code shown here.</p></div></li>"
-        "<li><span>2</span><div><b>Enter code on your phone</b><p>After scanning, enter the six-digit code shown on "
-        "this desktop into your phone.</p></div></li>"
+        "<li><span>2</span><div><b>Verify the code on your phone</b><p>If your phone asks for a code, enter these "
+        "digits and finish confirming on your phone. If it shows a code, check that the digits match. Then choose "
+        "Codes match here to send your Buzz identity.</p></div></li>"
         "<li><span>3</span><div><b>Pair your mobile app</b><p>Your mobile app will connect after you verify the "
         "code.</p></div></li></ol></div></section>"
     )
-    return settings_modal(settings_nav(COMMUNITY_GROUPS, "Pair mobile", host), page)
+    return settings_modal(settings_nav(COMMUNITY_GROUPS, "Mobile app", host), page)
 
 
 def how_to(summary, steps, intro=""):
@@ -1236,36 +1293,47 @@ def phone_steps(domain):
 
 
 def drawn_profile_menu():
-    """Buzz with the profile menu open, Settings highlighted."""
+    """Buzz with the profile menu open beside your profile picture at the dock's foot, Settings highlighted
+    (src/app/shell/ProfileButton.tsx)."""
     return drawn_app(
         '<div class="mb-pmenu"><div class="mb-pm-head"><span class="mb-pm-av id-me">' + ti("user")
         + "</span><span><b>Your profile</b></span></div><hr>"
         "<p>" + ti("device-desktop") + 'Appearance<span class="mb-pm-more">' + ti("chevron-right") + "</span></p>"
         "<p>" + ti("layout-grid") + "Plugins</p>"
-        '<p class="mb-pm-set on">' + ti("settings") + "Settings</p><hr>"
+        '<p class="on">' + ti("settings") + "Settings</p><hr>"
         "<p>" + ti("message-circle") + "Send feedback</p></div>"
     )
 
 
+def bars():
+    """A made-up barcode, as on the Buzz ID card: light bars on a dark strip. It encodes nothing."""
+    x, out = 4, []
+    for n in range(30):
+        width = 1 + (n * 7 + 3) % 3
+        out.append('<rect x="' + str(x) + '" y="4" width="' + str(width) + '" height="22"/>')
+        x += width + 1 + (n * 5 + 1) % 2
+    return ('<svg class="id-bar" viewBox="0 0 ' + str(x + 3) + ' 30" preserveAspectRatio="none" aria-hidden="true">'
+            + "".join(out) + "</svg>")
+
+
 def drawn_identity_settings():
-    """Settings, Identity, just after copying the Nostr address."""
-    groups = [("Community", [("user", "Profile"), ("device-mobile", "Pair mobile")]),
-              ("Buzz", [("shield", "Identity"), ("palette", "Appearance"), ("bell", "Notifications"),
-                        ("keyboard", "Shortcuts"), ("robot", "Agent setup")]),
+    """Settings, Identity, in Personal space, once you copy the public key on the Buzz ID card
+    (src/app/IdentitySettings.tsx and IdentityBadge.tsx). Buzz shows the key as its first 10 and last 10
+    characters; the copy button copies all of it."""
+    groups = [("Personal space", [("user", "Profile"), ("device-mobile", "Mobile app")]),
+              ("Buzz", [("shield", "Identity"), ("lock", "Security"), ("palette", "Appearance"),
+                        ("bell", "Notifications"), ("keyboard", "Shortcuts"), ("robot", "Agent setup"),
+                        ("brain", "Decisions API"), ("copy", "Channel templates"), ("download", "Software updates")]),
               ("Plugins", [("layout-grid", "Manage plugins")])]
     page = (
         '<section class="mb-page id-page"><h5>Identity</h5>'
-        '<p class="mb-sub">Your identity is shared across communities. Public keys are safe to share.</p>'
-        '<div class="id-group"><div class="id-row"><span><b>Public key (hex)</b><code>3f9c0a52\u202607e81b</code></span>'
-        '<span class="id-ic">' + ti("copy") + "</span></div>"
-        '<div class="id-row"><span><b>Nostr address (npub)</b><code>' + SAMPLE_NPUB + "</code></span>"
-        '<span class="id-ic hot">' + ti("copy") + "</span></div></div>"
-        '<div class="id-group id-form"><b>Private key (nsec)</b>'
-        '<p class="mb-sub">Anyone with this key can act as you. Never share it.</p>'
-        '<span class="id-input">\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022</span>'
-        '<div class="id-btns"><span class="mb-btn">Reveal private key</span><span class="mb-btn">Copy private key</span>'
-        "</div></div>"
-        '<div class="id-toast">' + ti("check") + "Nostr address copied.</div></section>"
+        '<p class="mb-sub">Your identity is shared across communities.</p>'
+        '<div class="id-badge"><span class="id-more">' + ti("dots") + "</span>"
+        '<div class="id-card"><span class="id-slot"></span><div class="id-photo"><span class="id-mono">Y</span>'
+        '<span class="id-top"><span class="mb-av"><i>Y</i></span><b>Buzz ID</b></span></div>'
+        '<div class="id-key"><small>PUBLIC KEY</small>' + bars() + '<span class="id-npub"><code>npub1qmz8w...7xj2d48k3a'
+        '</code><span class="id-copy hot">' + ti("copy") + "</span></span></div></div></div>"
+        '<div class="id-toast">' + ti("check") + "Buzz ID copied.</div></section>"
     )
     return settings_modal(settings_nav(groups, "Identity"), page)
 

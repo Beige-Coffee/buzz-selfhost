@@ -32,9 +32,9 @@
     <div class="hd-links">
       <span class="hd-thumb" aria-hidden="true"></span>
       <a href="#how" data-sec="how">How it works</a>
-      <a href="#security" data-sec="security">Security</a>
       <a href="#where" data-sec="where">Where to run</a>
       <a href="#guide" data-sec="guide">Setup</a>
+      <a href="#security" data-sec="security">Security</a>
       <a href="#operations" data-sec="operations">Operations</a>
     </div>
     <button type="button" class="hd-menu" aria-expanded="false" aria-controls="hd-sheet"><span class="hd-current">How it works</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -43,9 +43,9 @@
 </header>
 <div class="hd-sheet" id="hd-sheet" hidden>
   <a href="#how" data-sec="how"><span>01</span>How it works</a>
-  <a href="#security" data-sec="security"><span>02</span>Security</a>
-  <a href="#where" data-sec="where"><span>03</span>Where to run</a>
-  <a href="#guide" data-sec="guide"><span>04</span>Setup</a>
+  <a href="#where" data-sec="where"><span>02</span>Where to run</a>
+  <a href="#guide" data-sec="guide"><span>03</span>Setup</a>
+  <a href="#security" data-sec="security"><span>04</span>Security</a>
   <a href="#operations" data-sec="operations"><span>05</span>Operations</a>
 </div>
 
@@ -53,7 +53,7 @@
 
   <section class="hero">
     <h1>Run Buzz on <mark>your own</mark> server</h1>
-    <p class="lede">Buzz is open-source team chat for people and their agents. This guide sets it up on a VPS, your own hardware or Kubernetes. Use the shared runbook with an agent or follow its steps yourself.</p>
+    <p class="lede">Buzz is open-source team chat for people and their agents. This guide sets it up on a VPS, your own hardware or Kubernetes. Hand the steps to your coding agent, or run them yourself.</p>
     <div class="hero-cta">
       <a class="btn" href="#where">Set it up<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9.5M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       <a class="btn ghost" href="#how">How it works</a>
@@ -94,11 +94,6 @@
     </div>
   </section>
 
-  <section class="block reveal" id="security">
-    <div class="text"><h2>Security before your first invite</h2><p class="sub">Choose what belongs in your community, who can join and what an agent can access.</p></div>
-    <div class="wide" data-widget="security"></div>
-  </section>
-
   <section class="block reveal" id="where">
     <div class="text">
       <h2>Pick where your relay runs</h2>
@@ -131,17 +126,26 @@
         <button type="button" data-setup-mode="agent" aria-pressed="true">Use an agent</button>
         <button type="button" data-setup-mode="steps" aria-pressed="false">Follow the steps yourself</button>
       </div>
-      <p class="setup-trust">Both routes use the same runbook. Review its source before granting server access. Give an agent access only to the intended host, keep secrets out of chat, and review cost or deletion requests.</p>
-      <p class="setup-context">The skill is instructions, not a sandbox or a guarantee of safe execution. <a href="#security">Choose the access boundaries first</a>.</p>
+      <p class="setup-note mode-agent">The skill tells your agent to ask before anything that costs money or can't be undone. It is a set of instructions, not a sandbox: keep your agent's approval prompts on, and give it this server only.</p>
+      <p class="setup-note mode-steps">The same commands your agent would run, with your values filled in. Read each one before you run it.</p>
+      <p class="setup-checked" data-widget="checked"></p>
     </div>
 
     <div class="guide-grid" data-tracks="vps vps-private own-public own-private practice k8s k8s-private">
       <aside class="guide-side"><div data-widget="panel"></div></aside>
       <div class="guide-steps">
-        <div class="mode-agent"><div data-widget="agent"></div><p class="setup-context"><a href="#commands">Inspect and follow the commands yourself</a>.</p></div>
+        <div class="mode-agent"><div data-widget="agent"></div><p class="setup-see"><a href="#commands">See every command your agent runs</a><span>The skill's own steps, with your values filled in</span></p></div>
         <div class="mode-steps" id="commands"><div data-widget="setup"></div></div>
       </div>
     </div>
+  </section>
+
+  <section class="block reveal" id="security">
+    <div class="text">
+      <h2>Security</h2>
+      <p class="sub">If anyone is free to join your community, here are two things to be aware of. The Buzz team is working on <a href="https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/practical-information-flow-for-buzz-agents.md">more advanced security features</a>, and until those arrive these are the best practices.</p>
+    </div>
+    <div class="wide" data-widget="security"></div>
   </section>
 
   <section class="block reveal" id="operations" data-mode="agent">
@@ -149,13 +153,6 @@
       <h2>Running your relay</h2>
       <p class="sub">What we recommend for people, keys, data and the server, and how to set it up.</p>
     </div>
-    <div class="wide launch-check"><h3>Before inviting your team</h3><ul>
-      <li>Name the primary operator and backup operator, and save recovery access.</li>
-      <li>Check a second member can join and a non-member is refused.</li>
-      <li>Save both kinds of keys, make an encrypted off-server backup, and rehearse restoration.</li>
-      <li>Test phones and a real locked-phone notification if your team relies on them.</li>
-      <li>For an open community, prepare moderators and isolate any agent that reads its content.</li>
-    </ul></div>
     <div class="wide" data-widget="faq"></div>
   </section>
 

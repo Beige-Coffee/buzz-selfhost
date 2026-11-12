@@ -108,7 +108,7 @@ an installer instead: ask the user to run `xcode-select --install` first.
 - **Owner.** The owner's public ID, an npub, in one of three ways. Buzz 1.0 itself makes a key only
   through a Builderlab account, which is Block's, so the first is this skill's own:
   - **A new key, on the owner's computer** (recommended where Buzz isn't set up yet: it holds one
-    key per computer, and only Sign out of Buzz removes the one it has). There, never on the
+    key per computer, and only Settings, Identity, Remove from device removes the one it has). There, never on the
     server, run `python3 $SKILL/scripts/new-identity.py`. It writes the private key to
     `~/buzz-identity.key`, a new file only they can read, and prints the npub, then the file's
     path. It never prints the private key and never overwrites a file (`--out <full path>` names
@@ -266,11 +266,12 @@ encrypted: whoever runs the server, or holds a backup, can read that content. Th
 so treat logs like the data.
 
 **Phones.** Read [phones and notifications](references/mobile.md) for the gateway settings,
-platform limits and a real delivery check. After joining from the desktop app, the user opens Settings, Pair mobile (Buzz 0.X:
-Settings, Mobile). In the Buzz app on the phone they choose Add community, scan the QR code, and
+platform limits and a real delivery check. After joining from the desktop app, the user opens Settings, Mobile app (Buzz 0.X:
+Settings, Mobile), whose page is headed Pair mobile. A build without Builderlab sign-in names the
+entry Pair mobile too. In the Buzz app on the phone they choose Add community, scan the QR code, and
 enter the six-digit code the desktop shows (older phones show a code to compare instead). Then
-they compare the confirmation on both devices and choose Codes match on the desktop only if
-they agree. If they differ, cancel and restart pairing. Pairing copies
+they choose Codes match on the desktop, which sends their identity to the phone; if the digits
+don't match, they cancel and start again. Pairing copies
 their private key to the phone: pair where nobody else can see the screen. This
 needs the pairing service, which every setup's steps add (`check-relay.sh` says `PASS` for phone
 pairing) except Kubernetes on a private network, which isn't covered yet, and the local test. On a

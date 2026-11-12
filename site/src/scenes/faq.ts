@@ -105,7 +105,7 @@ const CASES = `<div class="fq-vis fq-cases">
   <p class="fq-cases-q">${icon("device-mobile")}<span><b>Could someone get into the lost device?</b>It was unlocked, had no disk encryption, or someone knows its password.</span></p>
   <div class="fq-case bad">
     <p class="fq-case-h"><span class="fq-tag no">Yes, or not sure</span><b>The key is exposed: retire it</b></p>
-    <ol><li>Ask an owner or moderator to ban and retire the exposed identity. If it was the owner, arrange an ownership handover first. Removing alone can let it return through another valid invite.</li><li>Make a new key on the new device. Not the saved copy: whoever has the device has that key too.</li><li>An admin adds the new npub.</li><li>Pair the phone, start their agents again, and tell any other community they joined.</li></ol>
+    <ol><li>Have the old identity banned, by the owner or a moderator. Removing it isn't enough: a live invite link lets it back in. If it was the owner's, change the owner on the server first, then remove and ban the old key, which stays an admin until you do.</li><li>Make a new key on the new device. Not the saved copy: whoever has the device has that key too.</li><li>An admin adds the new npub.</li><li>Pair the phone, start their agents again, and tell any other community they joined.</li></ol>
   </div>
   <div class="fq-case good">
     <p class="fq-case-h"><span class="fq-tag yes">No</span><b>The key is safe: bring it back</b></p>
@@ -140,7 +140,7 @@ const LOCKS = `<div class="fq-vis fq-locks">
 const lane = (head: string, cls: string, chips: string[]) =>
   `<div class="fq-lane${cls}"><span class="fq-lane-k">${head}</span>${chips.map((c) => `<span class="fq-chip">${c}</span>`).join("")}</div>`;
 const LANES = `<div class="fq-vis fq-lanes">
-  ${lane(`${icon("key")}A person's key`, "", ["Ban and retire it", "Add their new identity"])}
+  ${lane(`${icon("key")}A person's key`, "", ["Ban it", "Add their new identity"])}
   ${lane(`${icon("server")}The relay key`, "", ["Treat the server as exposed", "Ask before a new key"])}
   ${lane(`${icon("alert")}The server itself`, " hot", ["Change its logins", "Assume every message was read"])}
 </div>`;
@@ -211,15 +211,63 @@ const DEPS = `<div class="fq-vis"><ul class="fq-check">${[
   dep("user", "Builderlab accounts", "Signing in to Builderlab, Block's service, can give Block a copy of your key, and tells it which communities you join. A key from this guide's key script needs no account."),
 ].join("")}</ul></div>`;
 
-const PHONE_MAP = `<figure class="phone-map" aria-label="Pairing, notifications and message delivery use different services">
-  <div class="phone-lane"><small>1 · Join and read</small><b>Desktop or phone ↔ Your relay</b><p>Your community address, such as <code>https://chat.example.org</code>. Message content comes from this server.</p></div>
-  <div class="phone-lane"><small>2 · Pair a phone</small><b>Desktop ↔ Your pairing service ↔ Phone</b><p><code>wss://chat.example.org/pair</code> transfers the identity during setup. It is not a push gateway.</p></div>
-  <div class="phone-lane"><small>3 · Wake a locked iPhone</small><b>Your relay → Block's gateway → Apple APNs → iPhone</b><p><code>https://push.buzz.xyz</code> carries the wake-up. The phone then connects to your relay to fetch message content.</p></div>
-</figure>`;
+/**
+ * A push notification, drawn by who runs each part: the wake-up leaves your relay through Block's
+ * gateway and Apple, and the message itself comes back from your relay once the phone connects
+ * (block/buzz docs/buzz-push.md). The answer to "do we need our own gateway and Apple credentials?":
+ * no, only the first box is yours.
+ */
+const pn = (who: string, i: string, t: string, d: string, cls = "") =>
+  `<div class="fq-pn${cls}">${who ? `<span class="fq-pn-k">${who}</span>` : ""}${icon(i)}<b>${t}</b><span>${d}</span></div>`;
+const PUSH = `<div class="fq-vis fq-push">
+  <div class="fq-push-row">
+    ${pn("You run", "server", "Your relay", "knows a message is waiting", " mine")}
+    ${pn("Block runs", "bell", "Push gateway", "<code>push.buzz.xyz</code>")}
+    ${pn("Apple runs", "bolt", "Apple's push service", "wakes the phone")}
+    ${pn("", "device-mobile", "A member's locked iPhone", "the App Store's Buzz app", " end")}
+  </div>
+  <i class="fq-push-u" aria-hidden="true"></i>
+  <p class="fq-push-way"><i class="out" aria-hidden="true"></i><span><b>The wake-up</b> goes out through Block and Apple. It carries no message text.</span></p>
+  <p class="fq-push-way"><i class="back" aria-hidden="true"></i><span><b>The message</b> comes straight from your relay, once the phone connects.</span></p>
+</div>`;
+/** mobile.md's sections, by title: the ones a setup needs stay open, the rest fold. A missing one fails loudly. */
+const phone = (title: string) => skill.mobile.find((x) => x.title === title)?.html ?? `<p class="fq-missing">mobile.md lost its "${title}" section.</p>`;
+const fold = (title: string, html: string) => `<details class="fq-fold"><summary>${title}</summary><div class="fq-mobile">${html}</div></details>`;
+const PHONE_OPEN = ["Turn notifications on", "Pair a phone", "Test with the phone locked"];
+const PHONE_FOLDED = ["What Block and Apple see", "Android", "Run your own gateway"];
 const mobile = (t: Track) =>
-  rec("Use Block's push gateway with the official iPhone app. You do not need your own gateway or Apple developer credentials for this path.") +
-  (t === "practice" ? note("This local test cannot pair phones. Use a server setup for the phone workflow.") : t === "k8s-private" ? note("Phone pairing on private Kubernetes is not covered by this guide. The private VPS path has a recorded phone workflow.") : "") +
-  PHONE_MAP + `<div class="fq-mobile">${skill.mobile.map((s) => `<h4>${s.title}</h4>${s.html}`).join("")}</div>`;
+  rec("Turn notifications on and use Block's gateway with the App Store's Buzz app. You need no Apple developer account, no Apple push credentials and no gateway of your own.") +
+  (t === "practice"
+    ? note("A local test can't pair phones. Use a server setup to try this.")
+    : t === "k8s-private"
+      ? note("Pairing a phone on private Kubernetes isn't covered by this guide yet. The private VPS setup is.")
+      : "") +
+  PUSH +
+  // docs/research.md: Block's bundle notes name "the public gateway"; block/buzz#5206 is where self-hosters asked for it
+  note(
+    `It worked in this guide's tests on 23 and 27 October 2026. Block calls push experimental and promises no level of service (<a href="https://github.com/block/buzz/issues/5206">block/buzz#5206</a>), so run the locked-phone test below before your team relies on it.`,
+  ) +
+  `<div class="fq-mobile">${PHONE_OPEN.map((x) => `<h4>${x}</h4>${phone(x)}`).join("")}</div>` +
+  PHONE_FOLDED.map((x) => fold(x, phone(x))).join("");
+
+/**
+ * Before the team arrives: five things to have true, each a link to the answer that says how. The
+ * boxes tick, for working down the list, like the leaving checklist.
+ */
+const PRELAUNCH: [id: string, title: string, text: string][] = [
+  ["server", "Two operators", "A primary and a backup, each with their own way in."],
+  ["add", "A working door", "A second member gets in. A stranger does not."],
+  ["backup", "Keys and a backup", "Both keys saved, and a backup off the server that you have restored once."],
+  ["notifications", "Phones", "A locked phone shows a real notification."],
+  ["moderate", "An open community", "Moderators named, and agents on a machine of their own."],
+];
+const prelaunchHTML = () => `<div class="pl" role="group" aria-labelledby="pl-k">
+  <p class="pl-k" id="pl-k">Before the team arrives</p>
+  <ul class="pl-list">${PRELAUNCH.map(
+    ([id, title, text]) =>
+      `<li><button type="button" class="fq-box" aria-pressed="false" aria-label="Done: ${title}">${icon("check")}</button><div><a href="#operations" data-q-link="${id}">${title}</a><p>${text}</p></div></li>`,
+  ).join("")}</ul>
+</div>`;
 
 interface Question {
   id: string;
@@ -233,7 +281,6 @@ const GROUPS: [string, Question[]][] = [
   [
     "People",
     [
-      { id: "notifications", icon: "device-mobile", q: "How do phones and notifications work?", a: mobile },
       {
         id: "add",
         icon: "users",
@@ -248,10 +295,11 @@ const GROUPS: [string, Question[]][] = [
           note("In a public channel's settings, turn on <b>Starter channel for new members</b>: everyone who joins by link, or whom you add in Buzz, joins it. People added from the server's command line aren't.") +
           // links last 30 days at most (block/buzz crates/buzz-core/src/invite.rs); nothing revokes one (#8529 open)
           note(
-            `For a public project, once you've set up <a href="#operations" data-q-link="moderate">moderation</a>, post an invite link on your site or README with a use limit, and replace it when it fills or expires. A new link lasts 30 days at most. This guide has no single-link cancellation procedure. Banning an issuer revokes its v2 invitations; legacy links have different rules.`,
+            `For a public project, once you've set up <a href="#operations" data-q-link="moderate">moderation</a>, post an invite link on your site or README with a use limit, and replace it when it fills or expires. A link lasts 30 days at most, and Buzz can't cancel one early. Banning the person who made a link cancels every link they made.`,
           ) +
           (isPrivate(t) ? note(PRIVATE_PEOPLE) : ""),
       },
+      { id: "notifications", icon: "device-mobile", q: "How do phones and notifications work?", a: mobile },
       {
         id: "roles",
         icon: "crown",
@@ -278,7 +326,7 @@ const GROUPS: [string, Question[]][] = [
             ["Remove them in Membership", "As below. It disconnects them and their agents. An invite link that hasn't expired still lets them back in."],
             ["Remove them from Tailscale", "And their devices.", "private network"],
             ["Remove them from Staff", "In <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>.", "if they were on Staff"],
-            ["Close the route back in", "A ban keeps the departed identity out even with a valid invite. Banning an issuer also revokes its durable v2 links; legacy links have different rules. This guide has no per-link cancellation procedure. Use short expiries and limited uses."],
+            ["Close the way back in", "A ban keeps them out even with a live link, and cancels every link they made. Buzz can't cancel one link by itself, so keep links short-lived and limited to the people you expect."],
             ["Remove their server and hosting access", "Their SSH key and their account with your hosting provider. Any copy of <code>.env</code> or a backup they kept still holds the server's passwords.", "if they had it"],
             ["Remove them from the shared vault", "It holds <code>.env</code>, with the relay key and the passwords.", "if they had it"],
             ["Hand over ownership first", "Make someone else the owner on the server before removing them.", "if they were the owner"],
@@ -292,12 +340,22 @@ const GROUPS: [string, Question[]][] = [
         q: "How should we run agents?",
         a:
           rec("Choose the agent's environment before connecting it. For a community anyone can join, use an isolated device or virtual machine with only that project's files and scoped credentials.") +
-          note(`<a href="#security">Read the agent security guidance first</a>. A Workspace folder is not a sandbox. Keep personal accounts, private repositories and production credentials outside a public-community agent's environment.`) +
+          note(`<a href="#security">See what an agent can touch</a>, drawn in Security. A Workspace folder is not a sandbox. Keep personal accounts, private repositories and production credentials off a machine whose agent reads an open community.`) +
           ct("agents") +
           note("A shared bot with only a key of its own, such as one on the buzz command-line tool, is added like a member; keep its key in the shared vault. The relay's settings limit how fast agents post, apart from people.") +
-          // block/buzz-app README (agents run while Buzz is open), the harnesses' owner check, builderlab/README
+          // block/buzz-app v1.0.0: README (agents run while Buzz is open; Claude and Codex need macOS or Linux), the
+          // owner check (src/features/agents/owner-attestation.ts), the launches (codex/runtime.ts approvalPolicy
+          // "never" and sandbox "danger-full-access", claude-code/claude.ts bypassPermissions), builderlab/README
           note(
-            "Agents answer only while their person's Buzz is open; for a bot that's always on, run it on a server with a key of its own, added as a member. An agent sends what it reads to its model's provider, such as Anthropic for Claude or OpenAI for Codex: use one your team has approved, or a local model through Goose. Trigger checks do not make the text it reads trustworthy: messages, attachments and links can try to redirect it. Ordinary local launches can run with broad permissions and without per-action approval. Keep public and private sessions separate, and keep agents out of channels whose content should not reach their runtime or model provider. Agents hosted by Builderlab, Block's service, run on Block's machines.",
+            "Agents answer only while their person's Buzz is open; for a bot that's always on, run it on a server with a key of its own, added as a member. An agent sends what it reads to its model's provider, such as Anthropic for Claude or OpenAI for Codex: use one your team has approved, or a local model through Goose. On Windows, Buzz runs Goose and Pi agents only.",
+          ) +
+          note(
+            "An agent takes requests from its owner, but it reads what others post, and that text can steer it. Buzz starts every local agent with no sandbox and no approval prompts, and has no setting for either, so the agent can do whatever its person's account can. Keep agents out of channels whose content shouldn't reach that computer or the model's provider.",
+          ) +
+          note("Agents hosted by Builderlab, Block's service, run on Block's machines, where what they read is processed. They can't open your files, and by default one person's hosted agents share a cloud computer.") +
+          // block/buzz-app v1.0.0: docs/plugin-architecture.md ("trusted code... not sandboxed"), docs/agent-protection.md
+          note(
+            `Install only plugins you trust. A plugin is unsandboxed code, and <a href="https://buzz.xyz/support">Block's support page</a> says one can reach your files and your Buzz private key. Buzz's <a href="https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/agent-protection.md">experimental protection feature</a> for macOS limits who can approve an agent's actions. It is not a sandbox.`,
           ),
       },
     ],
@@ -313,6 +371,7 @@ const GROUPS: [string, Question[]][] = [
           rec("One work identity per person, with its private key in that person's private vault in a team-approved password manager. Make the key with this guide's key script, so no copy goes to Block.") +
           ct("identity") +
           KEYS +
+          note("Never put a private key in a chat, an agent prompt, an issue or a screenshot.") +
           note("A saved key or completed Builderlab backup can restore the same identity. Without a recovery copy, create a new identity; changing community ownership does not recover the old key."),
       },
       {
@@ -331,7 +390,7 @@ const GROUPS: [string, Question[]][] = [
         q: "What if a key leaks?",
         a:
           rec(
-            `Ban and retire an exposed identity in every affected community. Arrange an owner handover first if needed. If the relay key leaked, treat the server as exposed, and ask in block/buzz before replacing it: a new key splits your channels' records today (<a href="https://github.com/block/buzz/issues/7357">block/buzz#7357</a>).`,
+            `Have a leaked person's key banned in every community it belongs to, then give them a new identity. If the relay key leaked, treat the server as exposed, and ask in block/buzz before replacing it: a new key orphans your channels today (<a href="https://github.com/block/buzz/issues/7357">block/buzz#7357</a>).`,
           ) +
           LANES +
           note("The old key still works in any other community that person joined, since a Buzz identity isn't tied to one community."),
@@ -381,7 +440,7 @@ const GROUPS: [string, Question[]][] = [
           ) +
           // reads check community membership only (block/buzz crates/buzz-relay/src/api/media.rs); #8444 and #9077 start off
           note(
-            `Files are shared with the whole community, not one channel. Any member with a file's link can open it, even from a private channel or a direct message they're not in. Removing someone from a channel, or deleting the message, doesn't take a file back; removing them from the community does. Newer relay images include a setting that limits files to their channels (<a href="https://github.com/block/buzz/pull/9077">block/buzz#9077</a>), but this guide’s pinned image predates it. The setting defaults to off. Keep files that not every member may see out of Buzz until you upgrade, enable it and verify access.`,
+            `Files are shared with the whole community, not one channel. Any member with a file's link can open it, even from a private channel or a direct message they're not in. A link can't be guessed, but removing someone from a channel, or deleting the message, doesn't take a file back. Removing them from the community stops the relay serving it to them, not the copies they saved. Newer relay images can limit files to their channels (<a href="https://github.com/block/buzz/pull/9077">block/buzz#9077</a>); the image this guide installs is older, and the setting starts off. Until it's on and checked, keep files that not every member may see out of Buzz.`,
           ) +
           // block/buzz#8376's buzz_relay::access lines, at info in the bundle's RUST_LOG
           note("The relay's log names each member, by their public key, with what they read, so treat logs like the data."),
@@ -471,7 +530,7 @@ const GROUPS: [string, Question[]][] = [
 
 export function mountFaq(host: HTMLElement): void {
   const all = GROUPS.flatMap(([, qs]) => qs);
-  host.innerHTML = `${runningOnHTML(trackOf())}<div class="opx fq">
+  host.innerHTML = `${prelaunchHTML()}${runningOnHTML(trackOf())}<div class="opx fq">
     <div class="opx-list fq-list" role="tablist" aria-label="Questions" aria-orientation="vertical">${GROUPS.map(
       ([group, qs]) =>
         `<div class="fq-grp" role="none"><p class="fq-g">${group}</p>${qs

@@ -134,7 +134,7 @@ const TS_JOIN = JOIN(`Turn Tailscale on. ${JOIN_IN("<code>{{RELAY_URL}}</code>")
 const PHONE = (d: string): Expect => ({ who: "you", icon: "phone", t: "Pair your phone", d, note: "optional" });
 // the computer sends the identity only after Codes match (block/buzz-app#1597); notifications need the phone app 0.25 or later
 const PAIR =
-  "On your computer: <b>Settings</b>, <b>Pair mobile</b>. On your phone: <b>Add community</b>, then scan the code. Type the six digits if the phone asks, or check that they match, then choose <b>Codes match</b> on your computer. Pairing copies your key to the phone, so pair where nobody else can see your screen. An iPhone with Buzz 0.25 or later then gets notifications for direct messages and mentions through Block's gateway, which sees no message text. Android gets none yet.";
+  "On your computer: <b>Settings</b>, <b>Mobile app</b>. On your phone: <b>Add community</b>, then scan the code. Type the six digits if the phone asks, or check that they match, then choose <b>Codes match</b> on your computer. Pairing copies your key to the phone, so pair where nobody else can see your screen. An iPhone with Buzz 0.25 or later then gets notifications for direct messages and mentions through Block's gateway, which sees no message text. Android gets none yet.";
 const QUICKSTART = "Its quickstart profile: Postgres, Redis and file storage inside the cluster.";
 /** kubernetes.md: the quickstart is the chart's evaluation profile, and GitOps tools rotate its generated relay key. */
 const QUICKSTART_NOTE = {

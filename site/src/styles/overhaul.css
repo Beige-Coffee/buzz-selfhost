@@ -1,60 +1,231 @@
-.sec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.sec-card { min-width: 0; padding: 28px; border: 1px solid var(--line); border-radius: 20px; background: #fff; }
-.sec-card-0, .sec-card-1, .sec-card-2 { grid-column: 1 / -1; }
-.sec-card-1 { background: #f8f8ee; border-color: #caca80; }
-.sec-number { display: block; margin-bottom: 12px; font: .75rem var(--mono); color: #66661c; }
-.sec-card h3 { margin: 0 0 18px; font-size: 1.35rem; letter-spacing: -.025em; }
-.sec-copy { color: var(--ink); font-size: .95rem; line-height: 1.65; }
-.sec-copy p + p, .sec-copy ul + p, .sec-copy p + ul { margin-top: 14px; }
-.sec-copy ul { padding-left: 1.25em; }
-.sec-copy li + li { margin-top: 8px; }
-.sec-copy a, .sec-evidence a { text-decoration: underline; text-underline-offset: .15em; }
-.sec-card-0 ul { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; padding: 0; list-style: none; }
-.sec-card-0 li + li { margin-top: 0; }
-.sec-card-0 li strong { display: block; margin-bottom: 4px; }
-.sec-boundary { margin: 0 0 22px; padding: 20px; background: white; border: 1px solid var(--line); border-radius: 14px; }
-.sec-boundary figcaption { font: .72rem var(--mono); margin-bottom: 18px; }
-.sec-flow { display: grid; grid-template-columns: 1fr auto 1.3fr; align-items: center; gap: 18px; }
-.sec-flow > div { padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
-.sec-flow small, .sec-flow b, .sec-flow span { display: block; }
-.sec-flow small { font: .68rem var(--mono); text-transform: uppercase; margin-bottom: 6px; }
-.sec-flow b { font-size: .95rem; }
-.sec-flow span, .sec-boundary > p { font-size: .85rem; line-height: 1.5; margin-top: 5px; }
-.sec-flow .sec-isolated { background: #f0f5e5; border: 2px solid #727246; }
-.sec-boundary > p { margin-top: 16px; max-width: 65em; }
-.sec-table { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 18px; }
-.sec-table table { border-collapse: collapse; width: 100%; min-width: 520px; }
-.sec-table th, .sec-table td { padding: 12px 15px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-.sec-table th { background: #f5f5f0; font-size: .8rem; }
-.sec-evidence { font-size: .8rem; color: #59594e; margin-top: 20px; line-height: 1.65; }
-.setup-choice { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 12px; }
-.setup-choice button { border: 1px solid var(--line-2); border-radius: 999px; background: white; padding: 11px 16px; font: 500 .9rem var(--sans); cursor: pointer; }
-.setup-choice button[aria-pressed="true"] { background: var(--ink); color: white; }
-.setup-trust, .setup-context { font-size: .85rem; line-height: 1.55; color: #56564c; max-width: 62em; }
-.setup-context { margin: 12px 0 24px; }
+/* ─────────────────────────────────────────────────────────────
+   Security: two practices for a community anyone can join (scenes/security.ts).
+   Each is one still drawing on the dotted canvas with a few lines under it; nothing is operated.
+   The yellow dashed shape in a drawing is what its label says: what the agent can touch, or what
+   anyone who joins can read. Under both, a row of links to the answers in Running your relay.
+   ───────────────────────────────────────────────────────────── */
+.sq { margin-top: 4px; }
+.sq svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sq ul { margin: 0; padding: 0; list-style: none; }
+.sq-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto auto; gap: 0 30px; }
+/* a rule is a drawing over its words: both rules share the two rows, so the words start level */
+.sq-rule { display: grid; grid-row: span 2; grid-template-rows: subgrid; min-width: 0; }
+
+/* the drawing's frame: a label that says what yellow means, then the drawing */
+.sq-fig { position: relative; display: flex; flex-direction: column; min-width: 0; margin: 0; padding: 16px 16px 18px; border-radius: 22px; background-color: var(--canvas); background-image: radial-gradient(circle, rgb(35 30 30 / 7%) 1px, transparent 1px); background-size: 18px 18px; }
+.sq-k { display: flex; align-items: center; gap: 9px; margin: 0; font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+.sq-fig > .sq-k { margin: 2px 4px 0; }
+.sq-k i { flex: none; width: 20px; height: 11px; border: 1.3px dashed #a9a917; border-radius: 3px; background: rgb(215 215 46 / 30%); transform: skewX(-24deg); }
+.sq-rec { position: absolute; top: 14px; right: 16px; padding: 3px 10px; border-radius: 999px; background: var(--ink); font: 600 9.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.sq-stage { margin: auto 0; }
+
+/* 1 · your computer, the line nothing crosses, the community as a Buzz window, the agent's machine */
+.sq-iso { display: block; width: 100%; height: auto; overflow: visible; }
+.sq-tall { display: none; }
+.sq-b polygon { stroke: rgb(35 30 30 / 38%); stroke-width: 1.5; stroke-linejoin: round; }
+.sq-floor { fill: rgb(35 30 30 / 3.5%); stroke: rgb(35 30 30 / 34%); stroke-width: 1.3; stroke-dasharray: 5 5; }
+.sq-floor.open { fill: rgb(215 215 46 / 22%); stroke: #a9a917; }
+.sq-shadow { fill: rgb(35 30 30 / 13%); stroke: none; }
+.sq-badge rect { fill: #fff; stroke: rgb(35 30 30 / 55%); stroke-width: 1.4; }
+.sq-badge.pub rect { fill: var(--accent); stroke: #8c8c12; }
+.sq-badge g { stroke: var(--ink); stroke-width: 2.1; }
+.sq-led { fill: #a9a917; stroke: none; }
+.sq-slot { stroke: rgb(35 30 30 / 34%); stroke-width: 1.6; }
+.sq-bar { stroke: rgb(35 30 30 / 50%); stroke-width: 1.6; stroke-dasharray: 2 6; }
+.sq-no circle { fill: var(--ink); stroke: var(--canvas); stroke-width: 2.5; }
+.sq-no path { stroke: #fff; stroke-width: 2.2; }
+.sq-wire { stroke: var(--ink); stroke-width: 1.6; }
+.sq-dot { fill: var(--ink); stroke: none; }
+.sq-iso text { stroke: none; }
+.sq-note { fill: var(--ink-2); font: 500 11px var(--mono); letter-spacing: 0.02em; text-anchor: middle; }
+.sq-cap { fill: var(--ink); font: 600 14px var(--sans); letter-spacing: -0.015em; text-anchor: middle; }
+.sq-sub { fill: var(--ink-3); font: 10.5px var(--mono); text-anchor: middle; }
+/* the Buzz window in the drawing, in Buzz 1.0's own greys */
+.sq-win { filter: drop-shadow(0 7px 10px rgb(24 20 14 / 9%)); }
+.sq-w-body { fill: #f1f1f2; stroke: #d6d6d9; stroke-width: 1; }
+.sq-w-light { fill: #d5d5d8; stroke: none; }
+.sq-w-panel { fill: #fff; stroke: #e6e6e8; stroke-width: 1; }
+.sq-w-ring { fill: #fff; stroke: none; }
+.sq-w-pill { fill: #f1f1f2; stroke: none; }
+.sq-w-rule { stroke: #e8e8e8; stroke-width: 1; }
+.sq-w-bub { fill: #f3f3f4; stroke: none; }
+.sq-w-chip { fill: #dadada; stroke: none; }
+.sq-w-tile { fill: #efecf8; stroke: none; }
+.sq-wi { stroke: #0f0f0f; stroke-width: 2.3; }
+.sq-wi.dim { stroke: #404040; }
+.sq-wt { fill: #0f0f0f; font: 400 11px var(--sans); }
+.sq-wt.hd { font-weight: 600; font-size: 11.5px; }
+.sq-wt.nm { font-weight: 500; font-size: 9.5px; }
+.sq-wt.ch { font-weight: 500; }
+.sq-wt.pl { fill: #404040; font-size: 9.5px; }
+.sq-wt .tm { fill: #5f5f5f; font-weight: 400; }
+.sq-caps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 6px; padding-top: 2px; text-align: center; }
+.sq-caps p { margin: 0; }
+.sq-caps b { display: block; font-size: 14px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; }
+.sq-caps span { display: block; margin-top: 3px; font: 10.5px/1.4 var(--mono); color: var(--ink-3); }
+
+/* 2 · two lists over one community: one flows in, the other is struck through and stops short */
+.sq-lists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 34px auto; gap: 0 16px; margin: auto 0; padding-top: 14px; }
+.sq-tray { min-width: 0; padding: 12px 12px 13px; border: 1px solid var(--line-2); border-radius: 16px; background: #fff; box-shadow: 0 1px 2px rgb(24 20 14 / 4%); }
+.sq-h { margin: 0 0 10px; font: 600 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+.sq-tray ul { display: grid; gap: 8px; }
+.sq-tray li { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.25; }
+.sq-b2 { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border: 1.4px solid rgb(35 30 30 / 55%); border-radius: 8px; background: #fff; }
+.sq-b2.pub { border-color: #8c8c12; background: var(--accent); }
+.sq-b2 svg { width: 15px; height: 15px; stroke-width: 2.1; }
+.sq-out { border: 1.3px dashed rgb(35 30 30 / 30%); background: none; box-shadow: none; }
+.sq-out li { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1.6px; text-decoration-color: var(--ink); }
+.sq-out .sq-b2 { border-color: rgb(35 30 30 / 30%); background: none; }
+.sq-flow { position: relative; }
+.sq-flow::before { content: ""; position: absolute; left: 50%; top: 4px; bottom: 5px; margin-left: -0.8px; border-left: 1.6px solid var(--ink); }
+.sq-flow::after { content: ""; position: absolute; left: 50%; bottom: 5px; width: 7px; height: 7px; margin-left: -4.3px; border-right: 1.6px solid var(--ink); border-bottom: 1.6px solid var(--ink); transform: rotate(45deg); }
+.sq-stop::before { bottom: 16px; border-left: 1.6px dotted rgb(35 30 30 / 55%); }
+.sq-stop::after { display: none; }
+.sq-x { position: absolute; left: 50%; bottom: 3px; display: grid; place-items: center; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: var(--ink); color: #fff; box-shadow: 0 0 0 2.5px var(--canvas); }
+.sq-x svg { width: 11px; height: 11px; stroke-width: 2.9; }
+.sq-room { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; margin: 0; padding: 12px 14px; border: 1.3px dashed #a9a917; border-radius: 16px; background: rgb(215 215 46 / 22%); }
+.sq-faces { display: flex; flex: none; padding-right: 5px; }
+.sq-faces img, .sq-new { width: 26px; height: 26px; margin-right: -5px; border-radius: 50%; box-shadow: 0 0 0 2px #fff; }
+.sq-new { display: grid; place-items: center; border: 1.3px dashed rgb(35 30 30 / 50%); background: #fff; color: var(--ink-3); }
+.sq-new svg { width: 13px; height: 13px; }
+.sq-name b { display: block; font-size: 15px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.2; }
+.sq-name i { display: block; margin-top: 2px; font: 10.5px/1.35 var(--mono); font-style: normal; color: var(--ink-3); }
+
+/* the words under a drawing: the practice, why, and the answer that says how */
+.sq-text { padding: 18px 6px 0; }
+.sq-text h3 { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: start; margin: 0 0 8px; font-size: 20px; font-weight: 500; line-height: 1.2; letter-spacing: -0.03em; }
+.sq-text h3 i { display: grid; place-items: center; width: 30px; height: 30px; margin-top: -2px; border-radius: 9px; background: var(--accent); font: 500 11.5px var(--mono); font-style: normal; letter-spacing: 0; }
+.sq-text p { margin: 0 0 0 42px; font-size: 15.5px; line-height: 1.55; color: var(--ink-2); }
+.sq-text .sq-links { margin-top: 12px; font-size: 14.5px; font-weight: 500; }
+.sq-links a::after, .sq-ref::after { content: "\00a0\2192"; }
+.sq-also { margin: 22px 0 0; font-size: 14.5px; color: var(--ink-2); }
+/* the rest of security, as links to answers that already exist */
+.sq-more { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--line-2); font-size: 14px; }
+.sq-more ul { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.sq-more a { font-weight: 500; }
+.sq-ref { margin-left: auto; color: var(--ink-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .setup-note, .fq-fold .fq-mobile { animation: none; }
+}
+@media (max-width: 899px) {
+  /* one rule after the other, each drawing over its words */
+  .sq-grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; gap: 30px 0; }
+  .sq-rule { grid-row: auto; grid-template-rows: auto auto; }
+  .sq-stage, .sq-lists { width: 100%; max-width: 600px; margin-inline: auto; }
+}
+@media (max-width: 520px) {
+  /* the window takes the full width, so its words stay readable, and its labels are drawn in */
+  .sq-wide, .sq-caps { display: none; }
+  .sq-tall { display: block; }
+  .sq-rec { position: static; align-self: flex-end; margin: 8px 4px 0; }
+  .sq-text p { margin-left: 0; }
+  .sq-lists { gap: 0 10px; }
+  .sq-tray { padding: 11px 10px 12px; }
+  .sq-tray li { gap: 8px; font-size: 13px; }
+  .sq-ref { margin-left: 0; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Setup: the two routes as one switch, with a line under it for the route picked, and what the
+   guide was last reviewed with (scenes/checked.ts).
+   ───────────────────────────────────────────────────────────── */
+.setup-choice { display: inline-flex; gap: 2px; margin: 26px 0 0; padding: 4px; border-radius: 999px; background: #f2f2ee; }
+.setup-choice button { padding: 9px 18px; border: 0; border-radius: 999px; background: none; cursor: pointer; font: 500 14.5px var(--sans); letter-spacing: -0.01em; color: var(--ink-2); transition: background 0.25s, color 0.25s, box-shadow 0.25s; }
+.setup-choice button:hover { color: var(--ink); }
+.setup-choice button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgb(24 20 14 / 8%), 0 0 0 1px var(--line); }
+.setup-note { max-width: 37em; margin: 14px 0 0; font-size: 15px; line-height: 1.55; color: var(--ink-2); animation: mode-in 0.4s var(--ease) both; }
+.setup-checked { margin: 10px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--ink-3); }
+.setup-checked code { font-size: 0.92em; }
+.setup-checked a { color: var(--ink-2); white-space: nowrap; }
+.setup-see { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 32px 0 0; padding-top: 20px; border-top: 1px solid var(--line); }
+.setup-see a { font-weight: 500; }
+.setup-see a::after { content: "\00a0\2192"; }
+.setup-see span { font-size: 13.5px; color: var(--ink-3); }
 #commands { scroll-margin-top: 90px; }
-.phone-map { margin: 20px 0; display: grid; gap: 10px; }
-.phone-lane { padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #fafaf5; }
-.phone-lane small { display: block; font: .68rem var(--mono); text-transform: uppercase; margin-bottom: 8px; }
-.phone-lane b { display: block; font-size: .9rem; }
-.phone-lane p { margin-top: 7px; font-size: .82rem; line-height: 1.5; }
-.phone-lane code, .fq-mobile code { overflow-wrap: anywhere; }
-.fq-mobile h4 { margin-top: 24px; margin-bottom: 10px; font-size: 1rem; }
-.fq-mobile p, .fq-mobile li { line-height: 1.65; }
-.fq-mobile p + p { margin-top: 12px; }
-.fq-mobile ol { padding-left: 1.4em; }
-.fq-mobile li + li { margin-top: 8px; }
-.fq-mobile a { text-decoration: underline; }
-.launch-check { padding: 20px 24px; margin-bottom: 24px; border-radius: 14px; background: #f5f5ed; }
-.launch-check h3 { font-size: 1.05rem; margin-bottom: 10px; }
-.launch-check ul { padding-left: 1.2em; font-size: .9rem; line-height: 1.6; }
-.launch-check li + li { margin-top: 5px; }
-@media (max-width: 700px) {
- .sec-grid { grid-template-columns: 1fr; }
- .sec-card { padding: 20px; }
- .sec-card-0 ul { grid-template-columns: 1fr; gap: 14px; }
- .sec-flow { grid-template-columns: 1fr; gap: 8px; }
- .sec-flow i { transform: rotate(90deg); justify-self: center; }
- .sec-boundary { padding: 14px; }
- .setup-choice { flex-direction: column; align-items: stretch; }
+/* The steps fold as one (scenes/setup.ts). While they are open, a small pill floats at the foot of
+   the screen and comes to rest after the last step. It is first for the keyboard and drawn last. */
+.tl-all > summary { display: none; }
+.tl-in { display: flex; flex-direction: column; margin-top: 30px; }
+.tl-foot { order: 9; position: sticky; bottom: 22px; z-index: 6; display: flex; justify-content: center; margin: 22px 0 0; pointer-events: none; }
+.tl-fold {
+  display: inline-flex; align-items: center; gap: 9px; padding: 9px 17px 9px 13px; border: 1px solid var(--line-2); border-radius: 999px;
+  background: #fff; box-shadow: 0 1px 2px rgb(24 20 14 / 6%), 0 10px 28px rgb(24 20 14 / 14%); cursor: pointer; pointer-events: auto;
+  white-space: nowrap; font: 500 14px var(--sans); letter-spacing: -0.01em; color: var(--ink); transition: border-color 0.2s;
+}
+.tl-fold:hover { border-color: var(--ink); }
+.tl-fold svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+/* collapsed: one line where the steps were, like "See every command your agent runs" */
+.tl-shown[hidden] { display: none; }
+.tl-show { padding: 0; border: 0; background: none; cursor: pointer; font: inherit; font-weight: 500; color: inherit; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; transition: text-decoration-color 0.2s; }
+.tl-show:hover { text-decoration-color: var(--ink); }
+.tl-show::after { content: "\00a0\2193"; }
+/* collapsed, the box of values the steps are filled from steps aside with them */
+#guide[data-mode="steps"][data-steps="closed"] .guide-side { display: none; }
+
+/* ─────────────────────────────────────────────────────────────
+   Running your relay: five things to have true before the team arrives. Each links to its answer.
+   ───────────────────────────────────────────────────────────── */
+.pl { margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--line-2); }
+.pl-k { margin: 0 0 14px; font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+.pl-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px 22px; margin: 0; padding: 0; list-style: none; }
+.pl-list li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; align-items: start; }
+.pl-list .fq-box svg { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.pl-list a { font-size: 15px; font-weight: 600; letter-spacing: -0.012em; }
+.pl-list p { margin: 3px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
+.pl-list li:has(.fq-box[aria-pressed="true"]) :is(a, p) { color: var(--ink-3); }
+
+/* ─────────────────────────────────────────────────────────────
+   Phones: a push by who runs each part, then mobile.md's sections, the ones for later folded.
+   ───────────────────────────────────────────────────────────── */
+.fq-push-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
+.fq-pn { position: relative; display: grid; align-content: start; justify-items: center; gap: 5px; padding: 22px 8px 14px; border: 1px solid var(--line-2); border-radius: 14px; background: #fff; text-align: center; }
+.fq-pn + .fq-pn::before { content: ""; position: absolute; left: -17px; top: 50%; width: 12px; height: 2px; background: var(--ink); }
+.fq-pn + .fq-pn::after { content: ""; position: absolute; left: -11px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-top: 2px solid var(--ink); border-right: 2px solid var(--ink); transform: rotate(45deg); }
+.fq-pn > svg { width: 22px; height: 22px; }
+.fq-pn b { font-size: 14px; line-height: 1.25; }
+.fq-pn > span:not(.fq-pn-k) { font-size: 12.5px; line-height: 1.35; color: var(--ink-2); }
+.fq-pn code { font-size: 11.5px; overflow-wrap: anywhere; }
+.fq-pn-k { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); padding: 2px 9px; border-radius: 999px; background: #ecece5; font: 600 10px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; color: var(--ink-2); }
+.fq-pn.mine { border-color: var(--ink); }
+.fq-pn.mine .fq-pn-k { background: var(--accent); color: var(--ink); }
+.fq-pn.end { background: var(--ink); border-color: var(--ink); color: #fff; }
+.fq-pn.end > svg { color: var(--accent); }
+.fq-pn.end > span:not(.fq-pn-k) { color: rgb(255 255 255 / 64%); }
+/* the way back: from the phone, under the row, up into the relay */
+.fq-push-u { position: relative; display: block; height: 18px; margin: 0 12.5%; border: 2px dashed var(--ink); border-top: 0; border-radius: 0 0 14px 14px; }
+.fq-push-u::before { content: ""; position: absolute; left: -5px; top: -1px; width: 6px; height: 6px; border-top: 2px solid var(--ink); border-left: 2px solid var(--ink); transform: rotate(45deg); }
+.fq-vis .fq-push-way { display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: center; gap: 10px; margin: 12px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
+.fq-push-way + .fq-push-way { margin-top: 5px !important; }
+.fq-push-way b { color: var(--ink); }
+.fq-push-way i { height: 0; border-top: 2px solid var(--ink); }
+.fq-push-way i.back { border-top-style: dashed; }
+.fq-mobile h4 { margin: 24px 0 8px; font-size: 16px; font-weight: 600; letter-spacing: -0.015em; }
+.fq-mobile :is(p, li) { font-size: 15px; line-height: 1.6; color: var(--ink-2); }
+.fq-mobile p { margin: 0; }
+.fq-mobile p + p, .fq-mobile :is(ol, ul) + p, .fq-mobile .cmd-wrap + p { margin-top: 10px; }
+.fq-mobile :is(ol, ul) { margin: 8px 0 0; padding-left: 1.3em; }
+.fq-mobile li + li { margin-top: 6px; }
+.fq-mobile :is(.cmd-wrap, pre) { margin: 10px 0 0; }
+.fq-mobile code { overflow-wrap: anywhere; }
+.fq-fold { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.fq-mobile + .fq-fold { margin-top: 26px; }
+.fq-fold > summary { font-size: 15px; font-weight: 500; color: var(--ink); }
+.fq-fold .fq-mobile { margin-top: 10px; animation: mode-in 0.4s var(--ease) both; }
+.fq-missing { color: #9e2f2a; }
+
+@media (max-width: 1000px) {
+  .pl-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .setup-choice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .setup-choice button { padding: 10px 8px; }
+  .pl-list { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .fq-push-row { grid-template-columns: minmax(0, 1fr); gap: 26px; }
+  .fq-pn { grid-template-columns: auto minmax(0, 1fr); justify-items: start; column-gap: 12px; padding: 16px 14px 12px; text-align: left; }
+  .fq-pn > svg { grid-row: span 2; align-self: center; }
+  .fq-pn-k { left: 14px; transform: none; }
+  .fq-pn + .fq-pn::before { left: 50%; top: -20px; width: 2px; height: 12px; }
+  .fq-pn + .fq-pn::after { left: 50%; top: -13px; margin: 0 0 0 -2px; transform: rotate(135deg); }
+  .fq-push-u { display: none; }
 }

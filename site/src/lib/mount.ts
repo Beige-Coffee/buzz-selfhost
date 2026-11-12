@@ -5,11 +5,13 @@ import { mountSetup } from "../scenes/setup";
 import { mountAgent } from "../scenes/agent";
 import { mountRelayKey } from "../scenes/relaykey";
 import { mountSecurity } from "../scenes/security";
+import { mountChecked } from "../scenes/checked";
 import { mountFaq } from "../scenes/faq";
 
 const registry: Record<string, (el: HTMLElement) => void> = {
   story: mountStory,
   security: mountSecurity,
+  checked: mountChecked,
   paths: mountPaths,
   panel: mountPanel,
   setup: mountSetup,

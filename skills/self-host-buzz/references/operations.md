@@ -166,22 +166,15 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   It must print nothing. If it prints names, stop: ask the user to rename those channels in Buzz
   first, keeping each name on the open, unarchived channel (unarchive an archived one, rename it,
   and archive it again), then run it again.
-  **Migration 0086 gate, before changing the bundle or image.** The candidate `sha-e5dee91`
-  contains `migrations/0086_private_media.sql`; the recommended `sha-744f394` does not. For any
-  other target, inspect its fetched source first. If the target or its migration history cannot
-  be read, stop. On an existing database, do not proceed into 0086 until the target's
-  [media-index deployment procedure](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/docs/private-media-index-deployment.md)
-  is complete: pause partition management, run one concurrent prebuild, and keep its successful
-  exact-verification result. Keep `prebuild-media-edit-index.sql` and
-  `verify-media-edit-index.sql` together from that same source revision: the first includes the
-  second by relative path. The verifier can create a missing index; it is not a read-only check.
-  This populated-database procedure has not been exercised by this guide yet. Stop and arrange
-  a maintenance window with the operator before following it. Normal auto-migration still applies
-  0086 when the new relay starts; the prebuild alone does not apply that migration.
-  Fresh empty installs may use the bounded startup build. It has a one-second lock timeout and
-  a five-second statement timeout, so neither database size nor a previous fast restart proves
-  the upgrade will finish quickly. Keep `BUZZ_MEDIA_READ_MODE=off`; turning on file restrictions
-  needs the separate client-compatibility rollout linked in SKILL.md.
+  **A newer image than the recommended one.** The recommended `sha-744f394` has no migration
+  0086. Newer images do, release 0.3.0 among them: it builds an index when the relay starts, with
+  a one-second lock limit and a five-second statement limit.
+  [Block's note on it](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/docs/private-media-index-deployment.md#L3)
+  says small databases may let the relay run it. A build that runs out of time records nothing,
+  so start the relay again at a quieter moment. Only a large or busy database needs the prebuild
+  that note describes: stop and plan that with the user. Keep `BUZZ_MEDIA_READ_MODE=off`; limiting
+  files to their channels is a rollout of its own (SKILL.md). Not tested on a database with real
+  history.
   From a tag before 2026-10-07 to a later one, the upgrade
   also swaps MinIO for Silo (block/buzz#8023), which takes over MinIO's volume as it is, as Silo's
   [migration guide](https://silo.pgsty.com/compatibility/migration/) describes. Either way, list
@@ -233,10 +226,11 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   [ "$(docker compose run --rm --no-deps -T --entrypoint sh -e KEY="$key" minio-init -c 'mc alias set local http://minio:9000 "$BUZZ_S3_ACCESS_KEY" "$BUZZ_S3_SECRET_KEY" >/dev/null && mc cat "local/$BUZZ_S3_BUCKET/$KEY"' < /dev/null | sha256sum | cut -c1-64)" = "${key%%.*}" ] && echo intact
   ```
   Check: `0` (nothing from before is missing), then `intact`. If a check fails, go back: Restore,
-  with the bundle moved back to the old tag. If startup reports an 0086 timeout or invalid index,
-  stop and keep writes paused. Migrations 0084 and 0085 may already have committed before 0086
-  fails, so restarting the old image against that database is not the rollback procedure. Use
-  the complete pre-upgrade backup, or resolve the new migration with the operator before retrying.
+  with the bundle moved back to the old tag. If the relay's log says migration 0086 timed out,
+  nothing of it was recorded: start the relay again at a quieter moment. If it says
+  `idx_events_media_edit_target invalid or wrong definition`, stop and ask. Either way, don't start
+  the old image on this database: 0084 and 0085 are already applied, and an older relay refuses
+  migrations it doesn't know. Going back is Restore, with the bundle at the old tag.
 
 ## Kubernetes
 
@@ -279,21 +273,18 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   ```
   It must print nothing. If it prints names, stop: ask the user to rename those channels in Buzz
   first, keeping each name on the open, unarchived channel, then check again.
-  **Migration 0086 gate, before Helm changes.** `sha-e5dee91` contains 0086; the recommended
-  `sha-744f394` does not. Inspect any other target's exact source and migration history; a failed
-  source lookup means stop. For a target containing 0086, stop until the target's
-  [concurrent media-index prebuild and exact verification](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/docs/private-media-index-deployment.md)
-  succeed on this Postgres database. Keep both upstream SQL files together from the same source
-  revision; the prebuild includes its verifier by relative path, and that verifier can create a
-  missing index. Run only one prebuild at a time. Arrange a maintenance window,
-  pause partition management and prevent community deletion between schema expansion and the
-  deployment of all new writers. Do not rely on Helm's rolling replacement to do this work.
-  Keep normal auto-migration enabled to apply 0086 after prebuild, and keep
-  `BUZZ_MEDIA_READ_MODE=off`. This guide has not validated that upgrade on a real cluster yet.
+  **A newer image than the recommended one.** The recommended `sha-744f394` has no migration
+  0086. Newer images do, release 0.3.0 among them: it builds an index when the new pod starts,
+  with a one-second lock limit and a five-second statement limit.
+  [Block's note on it](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/docs/private-media-index-deployment.md#L3)
+  says small databases may let the relay run it, and that a build that runs out of time records
+  nothing. Only a large or busy database needs the prebuild that note describes: stop and plan
+  that with the user. Keep `BUZZ_MEDIA_READ_MODE=off`. Not tested on a real cluster.
   Then change `image.tag` in `buzz-values.yaml` to `$TAG`, and run
   `helm upgrade buzz oci://ghcr.io/block/buzz/charts/buzz --version 0.1.10 -n buzz -f buzz-values.yaml --wait`.
   If `helm upgrade` times out, don't run `helm rollback`: the database may already have changed.
-  Stop and ask. An 0086 failure can follow successful 0084/0085 migrations; the old image may
-  refuse that database. Restore the complete pre-upgrade backup with its matching old image,
-  or resolve the new migration with the operator before retrying. Check: kubernetes.md step 6's
-  checks pass again, the relay's digest included.
+  Stop and ask. If the new pod's log says migration 0086 timed out, nothing of it was recorded,
+  and the pod tries again when it restarts. Don't go back to the old image on this database: 0084
+  and 0085 are already applied, and an older relay refuses migrations it doesn't know. Going back
+  is the complete backup from before the upgrade, with the old image. Check: kubernetes.md step
+  6's checks pass again, the relay's digest included.

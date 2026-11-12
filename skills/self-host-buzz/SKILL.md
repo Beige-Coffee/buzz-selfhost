@@ -227,23 +227,25 @@ community, whose box takes an address but not an invite link.
 `new-identity.py`, which the guide's site also serves
 (https://self-host.buzz/skills/self-host-buzz/scripts/new-identity.py), or with a
 Builderlab account, which is Block's: Create account on Buzz's first screen asks for their details,
-and Block can keep a copy of the key. A member sends the owner their npub: the script prints it,
-and Buzz 1.0 shows it on "This community needs an invite" before they've joined, and in Settings,
-Identity after. The owner adds them ([operations.md](references/operations.md)), or does it in
-Buzz 1.0: Settings, Community admin, Membership, Invite members, then "Add directly" with the npub,
-or "Invite with a link" and Copy link. Anyone with the link can join until it expires: they paste
-it into Other options' "Community address or invite link", or open it and choose Accept invite in
-Buzz. In Buzz 0.X, the same things are in Settings, Invites. `Relay request failed (403)` in
+and Block can keep a copy of the key. The owner invites them from Buzz 1.0 with a link: Settings,
+Community admin, Membership, Invite members, then "Invite with a link" and Copy link. Anyone with
+the link can join until it expires: they paste it into Other options' "Community address or invite
+link", or open it and choose Accept invite in Buzz. To add someone without a link, they send the
+owner their npub: the script prints it, and Buzz 1.0 shows it on "This community needs an invite"
+before they've joined, and in Settings, Identity after. The owner adds it from the server
+([operations.md](references/operations.md)), or in Buzz 1.0.0 with "Add directly" in the same
+dialog. Preview builds after 1.0.0 show Members and Invite tabs in Membership and offer only the
+link. In Buzz 0.X, the same things are in Settings, Invites. `Relay request failed (403)` in
 Buzz 1.0, or `Not a member yet` in Buzz 0.X, means the relay works but doesn't know that identity
 ([troubleshooting](references/troubleshooting.md)).
 
 New members join any starter channel an owner or admin turns on: Starter channel for new members,
 in a public channel's settings. That covers invite links and Add directly; people added with
 `add-member` from the server's command line aren't added to it. Everyone finds open channels in
-Search, Channels. Opening Invite members makes a link at once, valid for 3 days with no use limit,
-and each change of its expiry or use limit makes another. This guide has no single-link cancellation
-procedure; banning an issuer revokes its v2 links, while legacy links differ. For one
-person choose 1 use and 1 day.
+Search, Channels. Opening Invite members, or the Invite tab in later builds, makes a link at once,
+valid for 3 days with no use limit, and each change of its expiry or use limit makes another. This
+guide has no single-link cancellation procedure; banning an issuer revokes its v2 links, while
+legacy links differ. For one person choose 1 use and 1 day.
 
 **Removing people.** Remove someone in Buzz 1.0 (Settings, Community admin, Membership, the … on
 their row, Remove): that also disconnects them and their agents. `./run.sh remove-member` only

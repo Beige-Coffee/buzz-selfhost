@@ -73,13 +73,6 @@ Buzz has an
 for macOS. It limits who can approve an agent's actions. It is not a file or network sandbox, so
 the limits above still apply. This guide has not tested any isolation product.
 
-Block is working on more. A
-[draft design](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/practical-information-flow-for-buzz-agents.md)
-would stop an agent that has read private information from posting it to a wider audience. Its
-policy code is in Buzz 1.0's source and
-[does not govern agents yet](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/ifc.md),
-so the practices above are today's.
-
 ## Two kinds of keys
 
 - **Your public ID (npub).** Safe to share. It can't restore anything.

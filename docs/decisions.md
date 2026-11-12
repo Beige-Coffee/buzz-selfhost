@@ -34,6 +34,35 @@ beside the affected steps, and links the detailed records. No tested date was ad
 in this presentation approval authorizes a pin/chart change, real infrastructure tests, push or
 deployment. Those remain separate gates.
 
+## Launch decisions (2026-11-12)
+
+The owner answered the review's open questions one at a time. These are decisions, not yet all
+done: the work they call for is listed where it is still owed.
+
+- **Block.** No answer yet on the name, the marks and who hosts the guide. Nothing changes, and
+  publishing waits on it.
+- **Nothing about Block's plans.** The Security section's sentence about more advanced security
+  features is out, as recorded below.
+- **App wording was checked in the running app**, a preview build one day newer than 1.0.0.
+  Pairing, Security and Membership are where the guide says. The Buzz ID card's menu was left
+  shut, since it holds the private key, and Moderation shows for relay staff only. What was seen
+  is in [research.md](research.md).
+- **Invite links first.** The people answer and the skill lead with a link that expires after a
+  day and is limited to the people expected. Adding by npub follows: from the server's command
+  line, which works in every version, or with Add directly, which Buzz 1.0.0 has and preview
+  builds after it hide.
+- **The relay moves to 0.3.0 before launch.** Owed: the test harness takes the release tag, and
+  the five prepared runs in [tests/README.md](../tests/README.md) are run. During the public
+  server run the owner does the checks that need hands: pairing a phone (Codes match), a
+  notification on a locked phone, and the Staff screen. Servers and costs are approved run by run.
+- **Kubernetes pins both images by digest.** Owed, in the same work: the relay and the file-store
+  image, so the steps match the test, proved by the Kubernetes run.
+- **Upgrades into migration 0086 follow Block's note**, as corrected below.
+- **The launch gets a version tag.** Owed: one tag on the tested commit, made when the owner
+  approves publishing.
+- **A place to ask.** Owed: a last section on joining Block's feedback community, picked from
+  mockups. Its channel is named once the channel exists, and nothing is published before then.
+
 ## Security redrawn, and what an independent review corrected (2026-11-11, draft)
 
 A second review, by a different agent, read the overhaul draft below against upstream source and
@@ -63,10 +92,9 @@ them; facts and sources are in [research.md](research.md).
   issue or a screenshot (identity), and install only plugins you trust, with the experimental
   protection feature named as not a sandbox (agents). A public address serving members only is
   already on every card in Where to run.
-- **The section says the Buzz team is working on more advanced security features.** The owner
-  asked for the sentence. It links to Block's public draft design for agents, and
-  `references/security.md` gives that source and says the policy code does not govern agents yet.
-  It promises no date. Whether Block should see the sentence before it is published is open.
+- **The section says nothing about what Block is building.** A draft said the Buzz team is working
+  on more advanced security features, with a link to Block's public draft design for agents. It
+  spoke for Block's plans, and the owner took it out of the page and the reference.
 - **One source for the long version.** `references/security.md` and `references/mobile.md` stay
   the text agents read. The page folds mobile.md's sections by name, and the build fails when one
   is renamed or moved (`site/build/skill.ts`, `SECTIONS`). The Security section is written in its

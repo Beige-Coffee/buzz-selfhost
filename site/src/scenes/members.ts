@@ -157,7 +157,9 @@ const MEMBERS = (spot: Spot, t: string): Step => ({ k: "Open Membership", t, fra
 
 /**
  * Managing people, in four flows: add by npub, an invite link, a role, removing someone. The FAQ
- * sets the invite link the way it recommends (a short expiry and a use limit).
+ * shows the invite link first, set the way it recommends (a short expiry and a use limit). The
+ * screens are Buzz 1.0.0's: preview builds after it replace the dialog with Members and Invite tabs
+ * and hide Add directly.
  */
 export const peopleFlows = (expiry = "3 days", uses = "No limit"): Flow[] => [
   {

@@ -36,12 +36,24 @@ here ran on real infrastructure, a real phone or the released app.
   ["Mobile app" in a build with Builderlab sign-in, "Pair mobile" otherwise](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/pairing/index.tsx#L21);
   the released app offers Builderlab sign-in, so the guide now says Mobile app. The control that
   removes a key is [Remove from device](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/app/IdentitySettings.tsx#L391), not Sign out.
-  Both are read from source, not seen on screen. Claude and Codex agents
+  Both were read from source; Mobile app has since been seen on screen (below). Claude and Codex agents
   [need macOS or Linux](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/README.md#L112).
 - **Add directly is going away.** Previews from 0.7.0-preview.265.1 and main hide adding a member
   by npub in the app (`DIRECT_MEMBER_ADD_ENABLED = false`, src/bundled/moderation/features.ts). The
   app updates itself, so "Add people you know by their npub" loses its screen at the next stable
-  release; the server's `add-member` stays. The guide's people answer needs a rewrite then.
+  release; the server's `add-member` stays. The people answer and the skill now lead with the
+  invite link and say which builds have Add directly.
+- **Seen in the running app, 2026-11-12.** Settings in preview build `0.7.0-preview.270.2`
+  (v1.0.0 plus 38 commits), signed in as an admin of a local community. Under Community: Mobile
+  app, whose page is headed Pair mobile and names Add community on the phone and Codes match on
+  the desktop. Under Community admin: Membership, with Members and Invite tabs and no Add
+  directly. Under Buzz: Identity, with the Buzz ID card and its menu, and Security, with
+  Authorize external identity. Visiting the Invite tab mints a link at once, as
+  [the source says](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/moderation/CommunityAdmin.tsx#L555):
+  looking at that screen is not free of effect. Not seen: the Buzz ID card's menu (it holds the
+  private key), so Remove from device stays read from source; Moderation, which
+  [shows for relay staff only](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/relay-staff/index.tsx#L24);
+  and Codes match as a button, which needs a phone.
 - **The pin and the newer release.** `sha-744f394` still resolves to its recorded digest, for
   amd64 and arm64, with verified provenance; it was built on 2026-11-06, after the skill's
   `tested` date, and no committed run names it. `0.3.0` is the newest relay release and its facts

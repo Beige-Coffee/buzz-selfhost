@@ -717,8 +717,9 @@ details.how[open] > summary { background: var(--chip); }
 .how-step > p b { color: var(--ink); font-weight: 500; }
 .mb { --b1-base: #f5f5f6; --b1-line: #e8e8e8; --b1-citrus: #beda36; }
 .mb-modal-h b, .mb-dlg-h b {font-weight: 500; }
-.mb-nav-col .mb-nav-host {margin-bottom: 4px; }
-.mb-nav-host span {display: grid; place-items: center; width: 16px; height: 16px; border-radius: 5px; background: #f0f0f0; font-size: 8.5px; font-weight: 600; }
+.mb-nav-col .mb-nav-host {margin-bottom: 4px; padding-right: 0; }
+.mb-nav-host span {flex: none; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 5px; background: #f0f0f0; font-size: 8.5px; font-weight: 600; }
+.mb-nav-host em {min-width: 0; overflow: hidden; text-overflow: ellipsis; font-style: normal; }
 .mb-btns {display: flex; justify-content: flex-end; gap: 6px; margin: 6px 0 2px; }
 .mb-btn.dark {background: #0f0f0f; color: #fff; }
 .mb-btn.off {opacity: 0.4; }
@@ -751,14 +752,9 @@ details.how[open] > summary { background: var(--chip); }
 .id-pair-code {padding: 8px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #e6e6e6; }
 .id-pair-code + .mb-btn {display: flex; justify-content: center; margin-top: 8px; }
 .id-qr {display: block; width: 100%; fill: #0f0f0f; }
-.id-verify {display: flex; flex-direction: column; gap: 7px; }
-.id-verify > b {font-size: 11px; font-weight: 500; }
-.id-digits {padding: 9px 0; border-radius: 10px; box-shadow: 0 0 0 1px #e3e3e5; font: 600 15px var(--mono); letter-spacing: 0.12em; text-align: center; }
-.id-verify .mb-btn {justify-content: center; }
 .id-pair ol {display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
 .id-pair li {display: flex; gap: 8px; }
 .id-pair li > span {flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #f0f0f1; font-size: 10px; font-weight: 600; }
-.id-pair li > span.done {background: #e2f2e7; color: #2f9e57; }
 .id-pair li b {display: block; font-size: 11px; font-weight: 500; }
 .mb-canvas .id-pair li p {font-size: 9.5px; color: #5f5f5f; }
 .mb-av i {display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #f0f0f1; font: 500 9.5px var(--sans); font-style: normal; color: #2b2b2b; }
@@ -1096,8 +1092,10 @@ COMMUNITY_GROUPS = [
 
 
 def settings_nav(groups, current, host=""):
-    """Settings' left column, open at one item; a community's Settings start with its address."""
-    top = '<p class="mb-nav-host"><span>' + esc(host[:1].upper()) + "</span>" + esc(host) + "</p>" if host else ""
+    """Settings' left column, open at one item; a community's Settings start with its address, which ends in an
+    ellipsis where it runs past the column."""
+    top = ('<p class="mb-nav-host"><span>' + esc(host[:1].upper()) + "</span><em>" + esc(host) + "</em></p>"
+           if host else "")
     return '<nav class="mb-nav-col">' + top + "".join(
         '<p class="mb-nav-g">' + group + "</p>" + "".join(
             '<p class="mb-nav-i' + (" on" if label == current else "") + '">' + ti(icon) + label + "</p>"
@@ -1207,22 +1205,15 @@ QR = ('<svg class="id-qr" viewBox="-1 -1 23 23" shape-rendering="crispEdges" ari
       + "</svg>")
 
 
-def drawn_pair(host, verifying=False):
+def drawn_pair(host):
     """Settings, Mobile app (src/bundled/pairing/PairingSettings.tsx): the code to scan, beside the three steps
-    Buzz lists. Verifying, after the phone has scanned it: the six digits, with Codes match highlighted, which
-    sends your identity to the phone."""
-    if verifying:
-        left = ('<div class="id-verify"><b>Verify the code on your phone</b><span class="id-digits">482 913</span>'
-                '<span class="mb-btn dark hot">Codes match</span><span class="mb-btn">Cancel</span></div>')
-        first = '<span class="done">' + ti("check") + "</span>"
-    else:
-        left = '<div class="id-pair-code">' + QR + '</div><span class="mb-btn">Copy pairing code</span>'
-        first = "<span>1</span>"
+    Buzz lists."""
     page = (
         '<section class="mb-page id-pair"><h5>Pair mobile</h5><p class="mb-sub">Connect the Buzz mobile app to this '
         "community. Pairing is secured with end-to-end encryption and a verification code.</p>"
-        '<div class="id-pair-b"><div class="id-pair-left">' + left + "</div><ol>"
-        "<li>" + first + "<div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the "
+        '<div class="id-pair-b"><div class="id-pair-left"><div class="id-pair-code">' + QR + '</div>'
+        '<span class="mb-btn">Copy pairing code</span></div><ol>'
+        "<li><span>1</span><div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the "
         "code shown here.</p></div></li>"
         "<li><span>2</span><div><b>Verify the code on your phone</b><p>If your phone asks for a code, enter these "
         "digits and finish confirming on your phone. If it shows a code, check that the digits match. Then choose "
@@ -1279,10 +1270,13 @@ def member_steps(domain):
 def phone_steps(domain):
     return [
         ("Pair a phone", drawn_pair(domain),
+         # Once the digits match, the phone asks to protect your identity (Use Face ID, Use Touch ID or Use
+         # biometrics, or Skip) and holds the identity until you choose. Block's docs/pairing.md finishes on
+         # the phone before Codes match.
          "In Buzz on your computer, open <b>Settings</b>, then <b>Mobile app</b>. On the phone, open Buzz and choose "
          "<b>Scan a QR code</b>. If it already has a community, open its community switcher and choose <b>Add "
-         "Community</b> first. Scan the code and type the six digits your computer shows. Then choose <b>Codes "
-         "match</b> on your computer."
+         "Community</b> first. Scan the code and type the six digits your computer shows. On the phone, choose "
+         "<b>Use Face ID</b> or <b>Skip</b>. Then choose <b>Codes match</b> on your computer."
          # Signed in to Builderlab, the computer shows Get Buzz on your phone in place of the code, and the phone
          # restores only communities Block hosts
          "</p><p>Signed in with Builderlab? Your computer may show <b>Get Buzz on your phone</b> instead of a code. "
@@ -1350,7 +1344,8 @@ def drawn_paste():
 
 def how_to_find_npub():
     # The shortcut first: Buzz 1.0.0 with no community opens a full-page Join a community, with no dock and no
-    # profile picture, and the shortcut still opens Settings there
+    # profile picture, and the shortcut still opens Settings there. First run's own Connect to a community page,
+    # which follows Create account, has neither: the app isn't loaded until first run ends (Welcome.tsx).
     return how_to("Where to find your public ID", [
         ("Open Settings", drawn_profile_menu(),
          "In Buzz, press <code>\u2318,</code> on a Mac or <code>Ctrl+,</code> on Windows and Linux. Or click your "
@@ -1675,10 +1670,11 @@ def main_page(setup, error="", values=None):
         + ('<a class="btn" href="buzz://connect?relay=' + esc(urllib.parse.quote("wss://" + domain, safe="")) + '">Open in Buzz</a>'
            '<p class="muted small">Opens Buzz on this computer with the address filled in.</p>' if domain else "")
         + how_to("Show me how", join_steps(domain))
-        # Buzz's first run with a key of one's own (Other options, then Use an existing key) ends by joining
-        + '<p class="muted small">Made your own key? Setting up Buzz with it joins you too: choose <b>Other '
-        "options</b>, paste this address and choose <b>Continue</b>, then <b>Use an existing key</b>, and paste "
-        "your private key there.</p>"
+        # Buzz's first run with a key of one's own: Other options, then Use an existing key, then the Join
+        # Community page and Set up your profile (Welcome.tsx, KeyImport.tsx, FindCommunity.tsx, ProfileStep.tsx)
+        + '<p class="muted small">Made your own key? Join as you set up Buzz. Choose <b>Other options</b>, paste '
+        "this address and choose <b>Continue</b>. Choose <b>Use an existing key</b>, paste your private key and "
+        "choose <b>Continue with this key</b>. Then choose <b>Join</b>, enter a name and choose <b>Continue</b>.</p>"
         + ('<p class="muted small">Bought the domain recently? Your computer can take a while to find it. If Buzz '
            "can't connect, try again in a few minutes.</p>" if mode == "domain" else "") + "</div></div>"
         '<div class="step on"><span class="num">2</span><div class="step-body"><h2>Add members</h2>'

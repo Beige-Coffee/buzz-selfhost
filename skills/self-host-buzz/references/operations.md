@@ -14,9 +14,10 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   (adds in the same second collide). `./run.sh list-members` confirms; it prints hex. A member
   added this way skips the starter channels, so add them to a channel in Buzz too, or tell them
   about Search, Channels. The owner
-  can also do it in Buzz 1.0: Settings, Community admin, Membership, Invite members, then "Add
-  directly", or "Invite with a link" for a link anyone can join with until it expires (Buzz 0.X:
-  Settings, Invites).
+  can invite people from Buzz 1.0 without the server: Settings, Community admin, Membership, Invite
+  members, then "Invite with a link" for a link anyone can join with until it expires. Buzz 1.0.0
+  also has "Add directly" there for an npub; preview builds after it show an Invite tab and offer
+  only the link (Buzz 0.X: Settings, Invites).
   **To change the owner**, set `OWNER_HEX` from the new owner's npub, run compose.md step 7's
   command and check, then `BUZZ_COMPOSE_TLS=true ./run.sh restart` (members lose the connection
   for about 20 seconds). Check: `./run.sh list-members` shows the new key as `owner` and the old one

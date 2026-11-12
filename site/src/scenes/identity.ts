@@ -155,7 +155,7 @@ export const lostFlows: Flow[] = [
     steps: [
       { k: "Remove the old key now", t: "An admin opens <b>Membership</b>, the <b>…</b> on the person's row, then <b>Remove</b>. That disconnects the key at once, but an invite link that hasn't expired would still let it back in.", frame: settings("remove") },
       { k: "Make a new key", t: "On the new device, make a new key with the guide's key script. Not the saved copy: whoever has the old device has that key too.", frame: keyScript(NEW_NPUB) },
-      { k: "An admin adds the new npub", t: "Send the npub the script shows to an admin, who adds it: <b>Membership</b>, <b>Invite members</b>, paste it, <b>Add member</b>.", frame: settings("", invite("add")) },
+      { k: "An admin adds the new npub", t: "Send the npub the script shows to an admin, who adds it: <b>Membership</b>, <b>Invite members</b>, paste it, <b>Add member</b>. Or the admin sends you an invite link set to 1 use.", frame: settings("", invite("add")) },
       { k: "Sign in with the new key", t: "On the new device: <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>, and drop in the new key file. Save the new key in your password manager and delete the file, as when you first joined. Then pair the phone again, and start your agents again from the new identity.", frame: connect },
     ],
   },

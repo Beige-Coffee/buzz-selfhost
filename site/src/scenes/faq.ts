@@ -47,8 +47,8 @@ const CLICK_THROUGHS: Record<string, Flow[]> = {
   identity: identityFlows,
   lost: lostFlows,
   role: peopleFlows().filter((f) => f.id === "role"),
-  // the invite link as we recommend it: a day, and the people you expect
-  add: peopleFlows("1 day", "5").filter((f) => f.id === "add" || f.id === "link"),
+  // the invite link as we recommend it, first: a day, and the people you expect. Adding by npub follows.
+  add: ["link", "add"].map((id) => peopleFlows("1 day", "5").find((f) => f.id === id)!),
   remove: peopleFlows().filter((f) => f.id === "remove"),
   agents: agentFlows,
 };
@@ -119,6 +119,7 @@ const CASES = `<div class="fq-vis fq-cases">
  * (block/buzz-app#2325) and, created on Block's hosted page, asks for the person's details (#2579).
  */
 const KEYMAKER = skillURL("scripts/new-identity.py");
+const ADD_MEMBER = skillURL("references/operations.md");
 const KEYS =
   note(
     `There are two ways to get a key. This guide's <a href="${KEYMAKER}">key script</a> makes one on your computer with Python, saves it in a file only you can read and shows only its npub. Or <b>Create account</b> on Buzz's first screen makes one with a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details.`,
@@ -286,10 +287,14 @@ const GROUPS: [string, Question[]][] = [
         icon: "users",
         q: "How should we add people?",
         a: (t) =>
-          rec("Add people you know by their npub. For a group, use an invite link that expires after a day, limited to the people you expect.") +
+          rec("Send an invite link that expires after a day, limited to the people you expect. To add someone without a link, add their npub.") +
           ct("add") +
           note(
-            `Each person needs a key first (<a href="#operations" data-q-link="identity">how to get one</a>) and sends you its npub: the key script prints it, and Buzz shows it if they try to join before you add them.`,
+            `Each person needs a key first (<a href="#operations" data-q-link="identity">how to get one</a>). With a link they join by themselves. To be added by npub they send it to you: the key script prints it, and Buzz shows it if they try to join before you add them.`,
+          ) +
+          // block/buzz-app: v1.0.0's dialog has Add directly; from v0.7.0-preview.265.1 on, moderation/features.ts turns it off
+          note(
+            `<b>Add directly</b> is in Buzz 1.0.0. Preview builds after it show <b>Members</b> and <b>Invite</b> tabs in Membership and offer only the link. If yours has no Add directly, ask your agent to add the npub, or run the skill's <a href="${ADD_MEMBER}">add-member command</a> on the server.`,
           ) +
           // starter channels, from block/buzz#8594 (in the pin): invite claims and adds in Buzz, not buzz-admin add-member
           note("In a public channel's settings, turn on <b>Starter channel for new members</b>: everyone who joins by link, or whom you add in Buzz, joins it. People added from the server's command line aren't.") +

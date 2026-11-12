@@ -1,67 +1,81 @@
 # Phones and notifications
 
-## Use Block's gateway with the official iPhone app
+## Use Block's gateway
 
-Your self-hosted relay can send iPhone wake-ups through Block's push gateway. You do not need an
-Apple developer account, APNs certificate or a gateway of your own for this path. The official
-app handles registration; there is no gateway address for a member to find in Settings.
+A self-hosted relay can wake the App Store's Buzz app on an iPhone through Block's push gateway,
+`push.buzz.xyz`. You need no Apple developer account, no Apple push (APNs) credentials and no
+gateway of your own. Block's own notes for the bundle say so:
+["To use the public gateway, keep the template's explicit `BUZZ_PUSH_GATEWAY_DELIVERY_URL` and set `BUZZ_PUSH_ENABLED=true`"](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/deploy/compose/README.md#L41).
+The app registers by itself: there is no gateway address to type on the phone.
 
-Push is experimental and best effort. Run the locked-phone check below with your current app
-and relay before relying on it. See the [recorded validation coverage](https://github.com/Beige-Coffee/buzz-selfhost/blob/main/tests/README.md).
+It worked in this guide's tests on 2026-10-23 and 2026-10-27, with a locked iPhone on the App
+Store's app. Block calls push experimental and promises no level of service, and the request
+from self-hosters for a supported path, block/buzz#5206, is still open. So run the locked-phone
+test below before a team relies on it, and again after an upgrade. Test records:
+[what's covered](https://github.com/Beige-Coffee/buzz-selfhost/blob/main/tests/README.md).
 
-## Configure the relay, not Apple's credentials
+## Turn notifications on
 
-For the Compose bundle, both values belong in the deployment's `.env` and must reach the relay
-process. The bundle supplies the delivery URL but leaves push off until enabled:
+This guide's server setups turn notifications on; a local test has no use for them. By hand, both
+lines go in the deployment's `.env`, where the relay reads them. The bundle
+[ships the delivery address and leaves push off](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/deploy/compose/.env.example#L21):
 
 ```dotenv
 BUZZ_PUSH_ENABLED=true
 BUZZ_PUSH_GATEWAY_DELIVERY_URL=https://push.buzz.xyz/v1/deliveries/apns
 ```
 
-Use the setup's restart procedure after changing its environment. The Kubernetes steps provide
-the corresponding relay settings. A custom deployment must pass both variables itself; an
-unrelated shell file is not enough. The default executor key ID is `relay-v1`; it is not an Apple
-credential. Keep outbound HTTPS to the gateway available. The relay and app authenticate and
-register automatically; do not invent a gateway API token.
+Restart the relay the way your setup's steps do. The Kubernetes steps set the same two values.
+The relay needs outbound HTTPS to the gateway. It signs each request with its own relay key, and
+each phone vouches for that key when it signs up, so there is no gateway token to request or
+paste ([relay settings](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-relay/src/config.rs#L1139)).
 
-Source: [bundle defaults](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/deploy/compose/.env.example#L23)
-and [relay validation](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/crates/buzz-relay/src/config.rs#L1177).
+## Pair a phone
 
-## Pairing, wake-ups and messages are different
+Pairing copies your private key to the phone through your own deployment's `/pair` service. It
+has nothing to do with the push gateway. In the desktop app choose Settings, Mobile app: its page
+is headed Pair mobile. On the phone choose Add community and scan the QR code. Type the desktop's
+six digits if the phone asks for them, or check that they match if the phone shows a code. Then
+choose Codes match on the desktop: that click sends the key. Pair where nobody else can see the
+screen.
 
-Pairing uses your deployment's `/pair` service to transfer the identity to the phone. It is not
-the notification gateway. In the desktop app choose Settings, Pair mobile; on the phone choose
-Add community, scan the QR code, enter the displayed code, compare the confirmation shown on both devices and choose Codes match
-only if they agree. If they do not, cancel and start again.
-Do this where nobody else can see the pairing screen.
+A local test can't pair phones. This guide doesn't cover pairing on private Kubernetes.
 
-A notification wake-up travels through Block and Apple. The phone then fetches message content
-from your relay. No message text travels through the wake-up gateway, but Block sees the relay's
-public key, source address and delivery timing/device metadata. On a private network, the phone
-needs Tailscale connected to fetch its messages. Local tests cannot pair phones, and this guide
-does not cover pairing on private Kubernetes.
+## Test with the phone locked
 
-## Test a locked phone
+1. Allow Buzz notifications in iOS, and turn on notifications for the community in Buzz where the
+   app offers it. Check Focus and other iOS limits.
+2. Open the app once and confirm the phone can read the community. On a private network, keep
+   Tailscale connected: a phone runs one VPN at a time, and connecting another switches
+   Tailscale off until you turn it on again.
+3. Lock the phone and leave the desktop app idle. Have a second member send you a direct message
+   and a mention. Check that both arrive and that a tap opens the conversation.
+4. Nothing arrives? Check the two settings above, the relay's outbound HTTPS, the phone's
+   notification settings and whether the desktop app was active. A muted channel does not notify,
+   even for a mention. A passing health check does not test delivery, and plain channel messages
+   without a mention are not this test.
 
-1. Allow Buzz notifications in iOS, and enable Notifications for the community in Buzz when
-   the control is available. Check Focus and other iOS notification restrictions.
-2. Confirm the phone can read the community with the app open. A paired phone can still have
-   notifications disabled. On a private network, confirm Tailscale stays connected.
-3. With the phone locked and the desktop inactive, have a second test identity send a DM and an
-   explicit mention. Check arrival, the displayed content and the conversation opened on tap.
-4. If nothing arrives, check relay capability/configuration, client registration and preferences,
-   outbound connectivity and desktop suppression. A successful liveness or capability check does
-   not test delivery. Plain channel messages and thread replies without mentions are not this test.
+## What Block and Apple see
 
-Android messaging is available, but this guide does not promise Android background push. The
-reviewed [notification controls](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/mobile/lib/features/settings/settings_page/notifications_section.dart#L7)
-and native push path are iOS-only. Check platform support before depending on notifications.
+The wake-up travels through Block and Apple, and it is the same fixed signal every time. The
+phone then fetches the message from your relay. No message text, sender, channel or member ID
+[passes through the gateway](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-push-gateway/src/model.rs#L15). Block does see
+your relay's public key, the address its requests come from and when it wakes which phone, and it
+keeps each phone's Apple push token. Apple sees when a phone is woken. On a private network the
+phone needs Tailscale connected to fetch its messages. Turn notifications off with
+`BUZZ_PUSH_ENABLED=false` if Block must not see when your team's phones wake.
 
-## When you would run a gateway yourself
+## Android
 
-An operator-owned gateway needs matching Apple application identity, APNs credentials and App
-Attest configuration, plus a matching custom-signed phone app. It is not a drop-in replacement
-for the gateway in Block's distributed app. That app selects its gateway at build time.
-Follow [Block's gateway deployment guide](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/docs/push-gateway-deployment.md)
-only for that separate deployment. It is outside this guide's tested setup.
+The Android app can join and read a self-hosted community. It gets no notifications in the
+background yet: the app's push path is
+[iPhone only](https://github.com/block/buzz/blob/1adde0e6bfe732b1b66a1db140596108c5f294a4/mobile/lib/shared/push/push_bridge.dart#L55), and the work to add Android,
+block/buzz#6092 and block/buzz#3229, is open.
+
+## Run your own gateway
+
+You don't need one for the App Store's app, and one of your own can't serve it. A gateway needs an
+Apple developer identity, Apple push credentials and App Attest configuration, plus a phone app
+you build and sign to match: the app Block distributes picks its gateway when it is built. Follow
+[Block's gateway deployment guide](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/docs/push-gateway-deployment.md)
+only for that separate deployment. It is outside this guide's tested setups.

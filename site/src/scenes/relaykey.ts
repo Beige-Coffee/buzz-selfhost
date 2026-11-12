@@ -209,7 +209,8 @@ function frames(L: Layout): string[] {
 
   /* 5 · Keep it safe: what happens if it's lost, or leaked */
   const s5 = L.s5;
-  const LOST = ["Restore the original key from your backup", "A replacement key changes the relay identity", "Old signatures still verify; new records use a different signer"];
+  // lost with no copy: what a replacement key costs (block/buzz#7357). With a copy, restoring it changes nothing.
+  const LOST = ["Without a copy, it starts over with a new key", "Apps see a different relay", "Channels the old key signed no longer follow it"];
   const LEAKED = ["Sign a member list", "Sign notices like “Mallory added by Maya”", "Sign git updates"];
   const f5 = `
     <span class="rk-key dark rk-vault" style="${at(s5.key.x, s5.key.y, s5.key.w, s5.key.w)}"${A(0.1, "stamp", 0.6)}>${KEY}</span>

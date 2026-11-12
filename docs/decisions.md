@@ -34,6 +34,75 @@ beside the affected steps, and links the detailed records. No tested date was ad
 in this presentation approval authorizes a pin/chart change, real infrastructure tests, push or
 deployment. Those remain separate gates.
 
+## Security redrawn, and what an independent review corrected (2026-11-11, draft)
+
+A second review, by a different agent, read the overhaul draft below against upstream source and
+current documentation. The owner's verdict on the first Security section: too long, too much
+text, documentation pasted into large cards. These are local proposals until the owner approves
+them; facts and sources are in [research.md](research.md).
+
+- **Security is two practices for a community anyone can join, after the setup.** The heading is
+  Security. Its opening says who it is for and that these are today's best practices, in a level
+  voice: a fact, then the practice. Each practice has one still drawing and a few lines. "Give your
+  agent its own machine" sets your computer apart from the community, drawn as a Buzz window, and
+  the machine the agent runs on. "Keep private context out of open communities" is two lists: what
+  is fine to share flows into the open community, and what to keep out is struck through and stops
+  short. Nothing is operated. The section is about 800 pixels tall on a desktop, from about 3,100,
+  and about 1,630 on a phone, from 5,900. On a phone the first drawing is redrawn with the window
+  at full width, so its words stay readable.
+- **Three versions were rejected on the way, the same day.** One screen per decision with a drawing
+  to operate was too much scrolling with too much going on. One panel with three tabs and labelled
+  boxes was too simple, and its long notes were too much to fold under it. The owner then cut the
+  scope: what an agent can touch and what goes in an open community are the section, and who can
+  get in and who holds the keys are not. He picked both drawings from mockups, which stay outside
+  this repository.
+- **The rest of security is linked, not shown.** A row under the drawings opens the answers in
+  Running your relay (moderation, keys, a lost device, a leaked key, someone leaving, server
+  access) and links to `references/security.md` in full. Two cautions the folded notes carried
+  now sit in the answers they belong to: never put a private key in a chat, an agent prompt, an
+  issue or a screenshot (identity), and install only plugins you trust, with the experimental
+  protection feature named as not a sandbox (agents). A public address serving members only is
+  already on every card in Where to run.
+- **The section says the Buzz team is working on more advanced security features.** The owner
+  asked for the sentence. It links to Block's public draft design for agents, and
+  `references/security.md` gives that source and says the policy code does not govern agents yet.
+  It promises no date. Whether Block should see the sentence before it is published is open.
+- **One source for the long version.** `references/security.md` and `references/mobile.md` stay
+  the text agents read. The page folds mobile.md's sections by name, and the build fails when one
+  is renamed or moved (`site/build/skill.ts`, `SECTIONS`). The Security section is written in its
+  own words, so the build also fails when security.md stops saying a sentence the section rests on
+  (`SECURITY_SAYS`).
+- **The steps collapse as one.** With Security after the setup, the step-by-step commands sit
+  between the reader and the rest of the page, and they run to about 9,500 pixels on a desktop for
+  Kubernetes. They are one fold now. While they are open, a small "Collapse steps" pill floats at
+  the foot of the screen and comes to rest after the last step. Collapsed, the page comes back to
+  one line, "Show the 9 steps", the box of values steps aside with the steps, and Security is the
+  next thing on screen. Asking for the steps again, or following a link to one, opens them
+  (`site/src/scenes/setup.ts`). The owner tried five looks on a scrolling copy of the page and
+  picked the pill. He asked for no count of steps done on it, so the count shows only on the
+  collapsed line, once a step is ticked, and the thin progress bar above the steps is gone.
+- **The version note is one line under the setup's heading**, not a paragraph in Security: the
+  review date, the app, the relay image and, on Kubernetes, the chart, with a link to what the
+  tests cover (`site/src/scenes/checked.ts`). The image and the chart are read from the skill.
+- **Setup's two routes are one switch**, with one line under it for the route picked. The caution
+  that the skill is instructions, not a sandbox, sits in that line.
+- **Running your relay opens with five things to have true before the team arrives**, each a link
+  to its answer, and with "How should we add people?" again, not the phones answer.
+- **Phones are drawn by who runs each part**: your relay, Block's gateway, Apple's push service
+  and the phone, with the wake-up going out and the message coming back from your relay.
+- **Upgrades into migration 0086 follow Block's own note**: a small database lets the relay run it
+  and restarts on a timeout; only a large or busy one needs the prebuild. The first overhaul made
+  every existing database stop for the large-deployment procedure.
+- **Wording that changed for accuracy**: Buzz starts every local agent with no sandbox and no
+  approval prompts (not "can"); an agent takes requests from its owner and reads everyone's text;
+  Builderlab can decrypt the key copy it holds; pairing is under Settings, Mobile app, and ends
+  with Codes match as the app words it; Buzz can't cancel one invite link, and a ban cancels all
+  of a person's links; push through Block's gateway is Block's documented path for the bundle,
+  with no promised level of service.
+
+Not changed: the relay pin, the chart, the tested date, the hero's four reasons, the setups, the
+name and the marks.
+
 ## What the site is
 
 The guide is for people and teams who want their own Buzz relay instead of Block's hosting. It's

@@ -2,7 +2,7 @@
  * The section nav in the header. It appears once the headline scrolls away, marks the section
  * being read, and lands every in-page jump on the section's label, right under the header.
  */
-const SECTIONS = ["how", "security", "where", "guide", "operations"];
+const SECTIONS = ["how", "where", "guide", "security", "operations"];
 const HEADER = 56;
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -136,6 +136,22 @@ export function mountNav(): void {
     moveThumb();
     landOnHash();
   });
+  settleOnHash();
+}
+
+/**
+ * A shared link lands once the fonts are in, but `document.fonts.ready` can resolve before the
+ * fonts have even started loading, and the page then grows by a screen or more above the target.
+ * So for the first few seconds, land again whenever the page's height changes, until the reader
+ * scrolls or presses a key.
+ */
+function settleOnHash(): void {
+  if (!location.hash) return;
+  const settle = new ResizeObserver(() => landOnHash());
+  const stop = () => settle.disconnect();
+  settle.observe(document.body);
+  for (const type of ["wheel", "touchstart", "keydown", "pointerdown"]) addEventListener(type, stop, { once: true, passive: true });
+  window.setTimeout(stop, 4000);
 }
 
 /** Opened from a shared link: land on its section or step, under the header. */
@@ -147,9 +163,8 @@ function landOnHash(): void {
   if (SECTIONS.includes(to)) y = targetY(to);
   else {
     const el = document.getElementById(to);
-    // a step inside the closed commands reference: open it first
-    const fold = el?.closest("details");
-    if (fold && !fold.open) fold.open = true;
+    // a step inside collapsed steps, or a fix inside its fold: open every fold around it first
+    for (let fold = el?.closest("details") ?? null; fold; fold = fold.parentElement?.closest("details") ?? null) fold.open = true;
     if (el?.getClientRects().length) {
       let top = 0;
       for (let n: HTMLElement | null = el; n; n = n.offsetParent as HTMLElement | null) top += n.offsetTop;

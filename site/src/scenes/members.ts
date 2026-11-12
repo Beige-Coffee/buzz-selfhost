@@ -68,7 +68,7 @@ const MENU = `<div class="mb-pmenu">
 const open = app("messages", CHANNEL, MENU + CURSOR);
 
 /* ── Settings, over the app ── */
-const COMMUNITY: [string, string][] = [["user", "Profile"], ["settings", "Local settings"], ["mood-smile", "Custom emoji"], ["device-mobile", "Pair mobile"], ["logout", "Leave or remove"]];
+const COMMUNITY: [string, string][] = [["user", "Profile"], ["settings", "Local settings"], ["mood-smile", "Custom emoji"], ["device-mobile", "Mobile app"], ["logout", "Leave or remove"]];
 const ADMIN: [string, string][] = [["users", "Membership"]];
 const BUZZ: [string, string][] = [["shield", "Identity"], ["lock", "Security"], ["palette", "Appearance"], ["bell", "Notifications"], ["keyboard", "Shortcuts"], ["robot", "Agent setup"]];
 /** Settings' left column: groups of icon and label, with one item open; a community's Settings start with its address. */

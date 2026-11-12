@@ -79,7 +79,7 @@ const identityPage = (copy: "npub" | "nsec") => `<section class="mb-page id-page
   ${copy === "npub" ? `<div class="id-toast">${ti("check")}Buzz ID copied.</div>` : ""}
 </section>`;
 
-/** Settings, Pair mobile, once the phone has scanned: the six digits and Codes match, beside Buzz's three steps. */
+/** Settings, Mobile app, whose page is Pair mobile for a key kept off Builderlab (src/bundled/pairing/index.tsx, MobileApp.tsx), once the phone has scanned: the six digits and Codes match, beside Buzz's three steps. */
 const pairPage = `<section class="mb-page id-pair">
   <h5>Pair mobile</h5>
   <p class="mb-sub">Connect the Buzz mobile app to this community. Pairing is secured with end-to-end encryption and a verification code.</p>
@@ -145,8 +145,8 @@ export const identityFlows: Flow[] = [
 /** A lost device: retire an exposed key for a new one, or sign in again with a safe one. */
 const pairAgain = {
   k: "Pair the phone again",
-  t: "<b>Settings</b>, <b>Pair mobile</b>. On the phone, <b>Add community</b> and scan the code. Type the six digits if the phone asks, or check that they match, then choose <b>Codes match</b> on your computer.",
-  frame: settingsModal(nav("Pair mobile"), pairPage),
+  t: "<b>Settings</b>, <b>Mobile app</b>. On the phone, <b>Add community</b> and scan the code. Type the six digits if the phone asks, or check that they match, then choose <b>Codes match</b> on your computer.",
+  frame: settingsModal(nav("Mobile app"), pairPage),
 };
 export const lostFlows: Flow[] = [
   {

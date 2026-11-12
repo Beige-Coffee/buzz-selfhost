@@ -283,10 +283,10 @@ while the operator's own machine stays until the user removes it in the admin co
 deleting a DigitalOcean cluster didn't always delete its volumes, which keep costing money: check
 the provider's volumes list afterwards.
 
-**Production.** For production, or for Argo CD and Flux (they render with `helm template`, which
-makes the chart's generated secrets rotate, changing the relay's identity), use the chart's
-production profile with managed Postgres, Redis and S3 and a Secret made ahead of time; see the
-chart's README.
+**Production.** For production, or for a GitOps tool such as Argo CD or Flux, use the chart's
+production profile with managed Postgres, Redis and S3 and a Secret made ahead of time
+(`secrets.existingSecret`); see the chart's README. Argo CD renders with `helm template`, which
+makes the quickstart's generated secrets rotate, changing the relay's identity.
 
 **Phone pairing on a private network.** Steps 3 and 4 turn it on for a public relay. Here it would
 need its own Tailscale name: a second Tailscale ingress to the `buzz-pairing` service on port

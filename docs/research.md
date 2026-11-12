@@ -3,6 +3,125 @@
 What the tests, the agent runs and the upstream research found. Decisions that follow from it are
 in [decisions.md](decisions.md). Last updated 2026-11-11.
 
+## Independent review, checked on 2026-11-11
+
+A second review reread the two sections below against upstream source (the app at v1.0.0,
+`4fb386b`; the relay at the pin `744f394`, at release 0.3.0 `75d38b6` and at main `4c60be6`) and
+against live documentation. Where it disagrees with them, this section is the current one. Nothing
+here ran on real infrastructure, a real phone or the released app.
+
+- **Agents run without a sandbox, always.** Buzz 1.0 starts Codex with
+  [`approvalPolicy: "never"` and `sandbox: "danger-full-access"`](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/codex/runtime.ts#L2529)
+  and Claude with [`--permission-mode bypassPermissions`](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/claude-code/claude.ts#L298);
+  Goose and Pi are the same, and no setting changes it. "Can run with broad permissions"
+  understated this. A Workspace is the starting folder only.
+- **Who can start an agent, and what it reads.** Only the owner's mentions and direct messages
+  start conversation work ([owner check](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/features/agents/owner-attestation.ts#L142)),
+  plus the agent's own watches and timers, and any key the owner authorizes under Settings,
+  Security ([help](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/buzz-help.md#L130)). The agent then reads recent messages from
+  anyone: "Watched events are observed data and can come from anyone"
+  ([Codex notes](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/codex/README.md#L122)). The site's agent drawing shows exactly
+  this: the owner asks, a stranger's file rides along.
+- **Hosted agents are isolated from your computer.** A Builderlab agent
+  ["cannot open files on your computer"](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/builderlab/README.md#L9) and shares one
+  remote runtime with the person's other agents by default. "Moving it to someone else's server
+  does not itself establish isolation" was too broad.
+- **Builderlab's key backup.** The copy is sealed to a key the service supplies
+  ([crypto](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src-tauri/src/nsec_backup/crypto.rs#L54)), so the service can decrypt it and
+  return it to whoever signs in. Signed in, membership of a Block-hosted community
+  [saves the backup choice with no prompt](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/identity.md#L1044). "An encrypted backup"
+  alone understated who holds recovery.
+- **Plugins.** ["Plugins are trusted code... They are not sandboxed"](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/plugin-architecture.md#L358).
+- **Labels.** The Settings entry for pairing is
+  ["Mobile app" in a build with Builderlab sign-in, "Pair mobile" otherwise](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/pairing/index.tsx#L21);
+  the released app offers Builderlab sign-in, so the guide now says Mobile app. The control that
+  removes a key is [Remove from device](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/app/IdentitySettings.tsx#L391), not Sign out.
+  Both are read from source, not seen on screen. Claude and Codex agents
+  [need macOS or Linux](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/README.md#L112).
+- **Add directly is going away.** Previews from 0.7.0-preview.265.1 and main hide adding a member
+  by npub in the app (`DIRECT_MEMBER_ADD_ENABLED = false`, src/bundled/moderation/features.ts). The
+  app updates itself, so "Add people you know by their npub" loses its screen at the next stable
+  release; the server's `add-member` stays. The guide's people answer needs a rewrite then.
+- **The pin and the newer release.** `sha-744f394` still resolves to its recorded digest, for
+  amd64 and arm64, with verified provenance; it was built on 2026-11-06, after the skill's
+  `tested` date, and no committed run names it. `0.3.0` is the newest relay release and its facts
+  below hold; `sha-75d38b6` is the same source as a SHA-tagged build with its own digest
+  (`sha256:2a8078b6...e18f`), which today's test harness accepts.
+- **The security fixes after the pin do not reach this guide's setups.** `rmcp` (#9287) is not
+  linked into the binaries the image builds. `hickory` (#9351) is linked only through the relay
+  mesh, which is off by default ([config](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-relay/src/config.rs#L812)) and which
+  no setup here turns on. No access-control fix was found in the 80 commits between the pin and
+  0.3.0. So the pin's age is a reason to keep a pin-move routine, not a launch blocker. Not shown:
+  whether hickory is reachable with the mesh on.
+- **Migration 0086, for a small database.** Block's note:
+  ["Small databases may use migration 0086 with auto-migration; large deployments with auto-migration off prebuild concurrently"](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/docs/private-media-index-deployment.md#L3),
+  and a build that runs out of time "aborts the migration without recording 0086; retry after the
+  contention clears". The gate added below made every existing database stop for the
+  large-deployment prebuild; operations.md now follows the note. The rollback warning stands: an
+  older relay refuses migrations it doesn't know ([database notes](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/docs/database.md#L294)).
+- **Kubernetes gaps, not fixed here.** kubernetes.md sets `image.tag` only, though chart 0.1.10
+  takes `image.digest` and `tests/smoke-k8s.sh` uses it, so the test and the steps differ. The
+  chart's MinIO override is a floating, x86-only image Block builds for its test runners. Both
+  need a real cluster run to change.
+- **Tailscale.** Free for up to 6 users and non-commercial use, $8 a user on Standard
+  ([pricing](https://tailscale.com/pricing)): as the guide says. Added from the docs: tailnets made
+  since 2025-05-22 hold new users for
+  [approval](https://tailscale.com/docs/features/access-control/user-approval), and on an iPhone
+  connecting another VPN
+  [switches Tailscale off until it is turned on again](https://tailscale.com/docs/features/client/ios-vpn-on-demand).
+  Flux installs with Helm's SDK, not `helm template`; the advice to supply the Secret is right for
+  both. Not covered by the guide, and worth a test before a team relies on private mode: replacing
+  a dead private-network machine under the same name.
+- **Prices.** DigitalOcean's 4 GB server at $24, weekly backups at 20%, volumes at $0.10 a GiB and
+  load balancers from $12 were read from its pricing pages again.
+- **Does Block run a gateway self-hosters can use?** Yes, by Block's own notes for the bundle:
+  ["To use the public gateway, keep the template's explicit `BUZZ_PUSH_GATEWAY_DELIVERY_URL` and set `BUZZ_PUSH_ENABLED=true`"](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/deploy/compose/README.md#L41).
+  The gateway's code has no list of allowed relays: a phone running Block's app vouches for a
+  relay's key when it signs up, and the gateway then takes wake requests signed by that key
+  ([delivery request](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-push-gateway/src/model.rs#L15), one fixed payload, no
+  message field). A self-hoster needs no Apple account, and a gateway of their own could not
+  serve the App Store's app. What is not settled: Block names no level of service, other upstream
+  pages still say the gateway was never deployed beyond development and that push has not
+  shipped (stale, by this guide's October tests), and [#5206](https://github.com/block/buzz/issues/5206),
+  where self-hosters reported it not working as late as 2026-10-15, is open with no answer from
+  Block. Nothing here was sent to the gateway. A current locked-phone test is still owed.
+- **Pairing.** The app's own words: "If your phone asks for a code, enter these digits... If it
+  shows a code, check that the digits match. Then choose Codes match here to send your Buzz
+  identity" (src/bundled/pairing/PairingSettings.tsx at v1.0.0). The overhaul's "compare the
+  confirmation on both devices" was not what current phones show; the skill says the app's
+  version again.
+- **Access, as the pinned relay does it.** Before a client signs in, the relay answers only
+  ["auth-required"](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-relay/src/handlers/req.rs#L95); the info document, handle
+  lookup, invite claim and pairing service are public. The bundle turns membership on with
+  `BUZZ_REQUIRE_AUTH_TOKEN` and `BUZZ_REQUIRE_RELAY_MEMBERSHIP`
+  ([.env.example](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/deploy/compose/.env.example#L15)). File reads check
+  [community membership only](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-relay/src/api/media.rs#L900), links are content
+  hashes, and responses are cacheable for a year, so removal stops serving but recalls nothing.
+  [No end-to-end encryption](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/VISION.md#L100).
+- **Invites.** 30 days at most, 1 to 10,000 uses or unlimited
+  ([limits](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-core/src/invite.rs#L12)). No route cancels one link. A ban
+  [revokes every link the person made](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-db/src/store/relay_invite/revocation.rs#L12),
+  permanently; removing or demoting them does not.
+- **Owner and relay key.** Each start makes the configured owner the owner and
+  [demotes any other owner to admin](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-db/src/store/relay_members.rs#L598), so an
+  exposed owner key must still be removed and banned after a handover. #7357 (a new relay key
+  orphans channels) is open, with no maintainer reply. "Old signatures still verify" was true and
+  misleading: the app follows records signed by the relay's current key.
+- **Android push.** #6092 and #3229 are open; the phone app's push path is iPhone only.
+- **Shared links landed in the wrong place, some of the time.** On a desktop, roughly one fresh
+  load in four put a link to a section or an answer a screen or more off, in the overhaul draft
+  as well: `document.fonts.ready` can resolve before the fonts start loading, and the page grows
+  afterwards. The page now lands again while it settles, until the reader scrolls
+  (`site/src/lib/nav.ts`). 38 of 38 loads landed after the change.
+- **Browser checks on this draft.** All seven setups in both routes, all 21 answers (147 states
+  at each of 1440 and 390 pixels), the new links between sections, every case of the three
+  Security drawings at four widths with no change in height between cases, and axe with every
+  fold open: no failures, no page overflow, no console errors. Not checked: a real screen reader,
+  Safari and Firefox.
+- **Installer.** `npx skills add` shows no way to install from a tag or a commit, so a pinned
+  release of this skill would be a tagged archive with a checksum; the download the site serves
+  can carry one. Not confirmed from the installer's source.
+
 ## Launch review, checked on 2026-11-11
 
 This section supersedes current-status statements in the dated notes below. Those notes preserve

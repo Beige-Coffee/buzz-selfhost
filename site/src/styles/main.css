@@ -120,8 +120,9 @@ h3 { font-weight: 500; letter-spacing: -0.02em; }
   background-image: radial-gradient(circle, rgb(35 30 30 / 7%) 1px, transparent 1px); background-size: 22px 22px;
 }
 .story-steps { padding: 28vh 0 38vh; }
-.story-step { min-height: 64vh; display: flex; flex-direction: column; justify-content: center; opacity: 1; transition: color 0.6s var(--ease); }
-.story-step.on { opacity: 1; }
+/* the step being read is in full ink; the others step back to a gray that still passes AA on white */
+.story-step { min-height: 64vh; display: flex; flex-direction: column; justify-content: center; color: var(--ink-3); transition: color 0.6s var(--ease); }
+.story-step.on { color: var(--ink); }
 .parts-alt { display: none; }
 .story-step .n { font: 500 12px var(--mono); letter-spacing: 0.1em; color: var(--ink-3); margin-bottom: 14px; }
 .story-step.on .n { color: var(--ink); }
@@ -727,9 +728,6 @@ pre em.linked { outline: 1.5px solid var(--accent); outline-offset: 1px; border-
 .vl-out code em { font-style: normal; background: linear-gradient(transparent 58%, rgb(215 215 46 / 70%) 58%); }
 
 /* ── steps ──────────────────────────────────── */
-.tl-progress { display: flex; align-items: center; gap: 12px; margin: 30px 0 6px; font: 12px var(--mono); color: var(--ink-3); }
-.tl-progress i { flex: 1; height: 2px; border-radius: 2px; background: var(--line); overflow: hidden; }
-.tl-progress b { display: block; width: 0; height: 100%; background: var(--accent); transition: width 0.6s var(--ease); }
 ol.tl { position: relative; list-style: none; margin: 0; padding: 0; }
 ol.tl::before { content: ""; position: absolute; left: 15.5px; top: 30px; bottom: 30px; width: 1px; background: var(--line-2); }
 .tl-step { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 20px; padding: 24px 0; }
@@ -886,7 +884,6 @@ ul.plain li a { margin-left: 4px; font: 12.5px var(--mono); color: var(--ink-3);
 .ref-s { font-size: 13.5px; color: var(--ink-3); }
 .ref > summary:hover .ref-t { text-decoration: underline; text-underline-offset: 3px; }
 .ref[open] > summary { margin-bottom: 20px; }
-.ref .tl-progress { display: none; }
 .ref-op { margin-top: 22px; padding-top: 14px; }
 .ref-op > summary { font-size: 14px; }
 .tl-step { scroll-margin-top: 84px; }

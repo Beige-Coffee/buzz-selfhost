@@ -42,13 +42,15 @@ export interface SkillData {
   steps: SkillStep[];
   fixes: SkillFix[];
   ops: SkillOp[];
-  security: { title: string; html: string }[];
   mobile: { title: string; html: string }[];
   /** where the step-by-step view has a reader download the skill, so its scripts run by that path */
   home: string;
   preparation: string;
-  /** the image the skill recommends, from SKILL.md's metadata: `tested-image` and `tested-digest` */
-  pin: { tag: string; digest: string };
+  /**
+   * the image the skill recommends, from SKILL.md's metadata (`tested-image` and `tested-digest`), and
+   * the Helm chart kubernetes.md installs
+   */
+  pin: { tag: string; digest: string; chart: string };
 }
 
 const SERVER: Track[] = ["vps", "own-public"];
@@ -335,16 +337,43 @@ function ops(dir: string): SkillOp[] {
   return out;
 }
 
+/**
+ * The reference sections the page places by name: mobile.md's, which the phones answer shows or
+ * folds by title (src/scenes/faq.ts). A rename or a move there is an edit here and in the scene.
+ */
+const SECTIONS: Record<string, string[]> = {
+  "mobile.md": ["Use Block's gateway", "Turn notifications on", "Pair a phone", "Test with the phone locked", "What Block and Apple see", "Android", "Run your own gateway"],
+};
+
 /** Reader-facing reference sections share their source with the installed skill. */
 function referenceSections(dir: string, file: string): { title: string; html: string }[] {
   const text = readFileSync(join(dir, "references", file), "utf8");
   const sections = [...text.matchAll(/^## (.+)\n([\s\S]*?)(?=^## |(?![\s\S]))/gm)]
     .map((s) => ({ title: s[1].trim(), html: toHTML(s[2], "references") }));
-  if (!sections.length) fail(`${file}: missing reference sections`);
+  const titles = sections.map((s) => s.title).join(" | ");
+  if (titles !== SECTIONS[file].join(" | ")) fail(`${file}: the page expects the sections "${SECTIONS[file].join(" | ")}", and found "${titles}"`);
   return sections;
 }
 
+/**
+ * The Security section states two practices in its own words and links to security.md for the rest
+ * (src/scenes/security.ts). Each of its claims rests on one of these sentences, so if the skill stops
+ * saying one, the build stops until the page is changed to match.
+ */
+const SECURITY_SAYS = [
+  "with no sandbox and no approval prompts",
+  "give agents a machine of their own",
+  "share there only what you would publish",
+  "Any member can read an open channel",
+  "A private community needs the same care with less urgency",
+];
+function securityClaims(dir: string): void {
+  const text = readFileSync(join(dir, "references", "security.md"), "utf8").replace(/\s+/g, " ");
+  for (const claim of SECURITY_SAYS) if (!text.includes(claim)) fail(`security.md no longer says "${claim}", which the Security section rests on: change src/scenes/security.ts to match, then SECURITY_SAYS in build/skill.ts`);
+}
+
 export function parseSkill(dir: string): SkillData {
+  securityClaims(dir);
   const steps = [...Object.keys(FILES).flatMap((f) => fileSteps(dir, f)), ...skillSections(dir)];
   const ids = new Set<string>();
   for (const s of steps) {
@@ -360,7 +389,13 @@ export function parseSkill(dir: string): SkillData {
   const tag = meta("tested-image");
   const digest = meta("tested-digest");
   if (!tag || !digest) fail("SKILL.md's metadata needs tested-image and tested-digest: every setup installs that image");
-  const data = { steps, fixes: fixes(dir), ops: ops(dir), security: referenceSections(dir, "security.md"), mobile: referenceSections(dir, "mobile.md"), home: HOME, preparation: toHTML(readFileSync(join(dir, "references", "manual.md"), "utf8").replace(/^# .*\n/, ""), "references"), pin: { tag: tag!, digest: digest! } };
+  // every chart version kubernetes.md and operations.md name must be the same one
+  const charts = new Set(
+    ["kubernetes.md", "operations.md"].flatMap((f) => [...readFileSync(join(dir, "references", f), "utf8").matchAll(/charts\/buzz --version (\S+)/g)].map((m) => m[1])),
+  );
+  if (charts.size !== 1) fail(`the skill installs ${charts.size ? [...charts].join(" and ") : "no"} chart version: the page shows one`);
+  const chart = [...charts][0];
+  const data = { steps, fixes: fixes(dir), ops: ops(dir), mobile: referenceSections(dir, "mobile.md"), home: HOME, preparation: toHTML(readFileSync(join(dir, "references", "manual.md"), "utf8").replace(/^# .*\n/, ""), "references"), pin: { tag: tag!, digest: digest!, chart } };
   for (const text of [...data.steps.map((x) => x.html), ...data.ops.map((x) => x.html), ...data.fixes.flatMap((x) => [x.symptom, x.fix])]) {
     const old = text.match(OLD);
     if (old) fail(`the site would show "${old[0]}": add a rule to CURRENT in build/skill.ts (${text.replace(/<[^>]+>/g, "").slice(0, 80)})`);
@@ -377,5 +412,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   console.log(`fixes: ${data.fixes.length}`);
   console.log(`pin: ${data.pin.tag}@${data.pin.digest}`);
+  console.log(`chart: ${data.pin.chart}`);
   for (const t of TRACKS) console.log(`ops ${t}: ${data.ops.filter((o) => o.tracks.includes(t)).map((o) => `${o.kind}/${o.title}`).join(", ")}`);
 }

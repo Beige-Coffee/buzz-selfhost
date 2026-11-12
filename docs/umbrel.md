@@ -131,8 +131,8 @@ Credit #5928 when we submit.
   compose file's default. Android has no push yet (block/buzz#6092).
 - **Members' agents** get in through their owner (owner attestation, `BUZZ_ALLOW_NIP_OA_AUTH`, set
   as in Block's compose example). Buzz 1.0 never adds an agent as a member, so without it no agent
-  could join, the owner's own included. An agent made in Buzz 1.0 acts only on its owner's
-  mentions, but it runs on that person's computer without approval prompts and reads what others
+  could join, the owner's own included. Most agents made in Buzz 1.0 act only on their owner's
+  mentions, but they run on that person's computer without approval prompts and read what others
   post. So the live page's tips say to treat a community anyone can join as public and to keep
   agents on personal computers out of it.
 - **The relay's health and metrics ports** listen on every interface, with no setting to change it
@@ -149,9 +149,12 @@ Credit #5928 when we submit.
   page keeps its tests and CI here. Styled after the guide site: three steps (the owner, how
   members reach it, the acknowledgement), with the npub's checksum checked and a private key
   refused. The owner step points new owners to a key of their own, made with an open-source tool
-  such as nak or a Nostr app, and brought into Buzz with Other options, then Use an existing key:
-  Buzz 1.0 on a computer otherwise makes a key only with a Builderlab account (Block's, which
-  keeps a backup Block can decrypt). Owners who already use Buzz with Builderlab can use that
+  such as nak or a Nostr app, and brought into Buzz with Other options, then Use an existing key,
+  as nsec1 (nak prints hex; the page says to convert it with `nak encode nsec`). Buzz 1.0 on a
+  computer otherwise makes a key only with a Builderlab account (Block's, which keeps a backup
+  Block can decrypt). New owners wait to set up Buzz until the community is live: first run's
+  Connect to a community page has no skip, so a Buzz set up first can't reach Settings to copy
+  its Buzz ID. Owners who already use Buzz with Builderlab can use that
   Buzz ID. Either way the page takes only the public ID, and Change the owner is the way back
   from a lost key. Then a status list that refreshes every
   five seconds, and the steps for the chosen option: the Cloudflare values, or Tailscale's sign-in,

@@ -66,7 +66,7 @@ services:
     restart: on-failure
 
   relay:
-    image: ghcr.io/block/buzz:sha-744f394@sha256:b67a32b7b2a274cdbd9a685fe996657fa544a3e981284ab3a8c660a128f36a3d
+    image: ghcr.io/block/buzz:0.3.0@sha256:84f34c5b801192665b1a05939518d746f25184babf4d6e927d0de7e12e9c5674
     init: true
     # Generates the relay's own key on first start, waits for the setup page, then runs the
     # relay. When the setup page changes the settings, it exits so the relay restarts with them.
@@ -175,7 +175,7 @@ services:
       - -c
       - |
         set -u
-        want() { m=$$([ -f /settings/tailscale-enabled ] && tr -d ' \n' < /settings/tailscale-enabled); [ "$$m" = on ] && m=funnel; echo "$$m"; }
+        want() { [ -f /settings/tailscale-enabled ] && tr -d ' \n' < /settings/tailscale-enabled; }
         sock=/tmp/tailscaled.sock
         ts() { tailscale --socket="$$sock" "$$@"; }
         trap '[ -n "$${daemon:-}" ] && kill -TERM "$$daemon" 2> /dev/null; wait; exit 0' TERM INT
@@ -232,9 +232,10 @@ services:
     restart: on-failure
 
   # Your own domain: this app's own Cloudflare tunnel. The owner signs in to Cloudflare from the
-  # setup page and chooses the domain; then it creates the tunnel and the DNS name, and connects
-  # the gateway. With another option chosen, it waits. The image is the connector of Umbrel's
-  # Cloudflare Tunnel app (Radiokot/umbrel-cloudflared): Alpine with Cloudflare's own cloudflared.
+  # setup page and chooses the domain; then it creates the tunnel and the DNS name, deletes the
+  # sign-in, and runs the tunnel to the gateway with its token alone. With another option chosen, it
+  # waits. The image is the connector of Umbrel's Cloudflare Tunnel app (Radiokot/umbrel-cloudflared):
+  # Alpine with Cloudflare's own cloudflared.
   cloudflared:
     image: ghcr.io/radiokot/umbrel-cloudflared-connector:1.1.0-cf.2026.10.4@sha256:2d56d59924d5b91a75ea4263b377330b0d90892bd9e09ab0230d298f9d409915
     user: "1000:1000"
@@ -247,31 +248,41 @@ services:
       - |
         set -u
         cf=/cloudflared
-        # Its sign-in certificate and tunnel token stay in its own folder, which no other service mounts
+        # Its tunnel token, and the sign-in while it sets up a name, stay in its own folder, which no
+        # other service mounts
         mkdir -p "$$HOME" && chmod 700 "$$HOME"
         want() { [ -f /settings/cloudflare-enabled ] && tr -d ' \n' < /settings/cloudflare-enabled; }
         state() { printf '%s\n' "$$1" > /settings/cloudflare-state.tmp && mv -f /settings/cloudflare-state.tmp /settings/cloudflare-state; }
+        # Set up for this address: the tunnel has its token and this DNS name, all that running it needs
+        ready() { [ -s "$$HOME/tunnel.token" ] && [ "$$(cat "$$HOME/routed" 2> /dev/null)" = "$$1" ]; }
+        # The sign-in (cert.pem) can create, route and delete tunnels in the owner's account, more than
+        # running one needs, so it goes once the name is set up, with the credentials file that tunnel
+        # create writes beside it. A new address asks for a new sign-in.
+        signout() { rm -rf "$$HOME/.cloudflared"; }
         job=
         trap '[ -n "$$job" ] && kill -TERM "$$job" 2> /dev/null; wait; exit 0' TERM INT
         while :; do
           host=$$(want)
           if [ -z "$$host" ]; then
+            signout
             rm -f /settings/cloudflare-state /settings/cloudflare-login.log
             until [ -n "$$(want)" ]; do sleep 5; done
             continue
           fi
-          # The page's "Sign in again": a new sign-in, and a new tunnel in whichever account it's for
+          # The page's "Sign in again", offered only after an error, while the sign-in is still here: a
+          # new sign-in, and a new tunnel in whichever account it's for
           if [ -e /settings/cloudflare-reset ]; then
             [ -s "$$HOME/.cloudflared/cert.pem" ] && [ -s "$$HOME/tunnel-name" ] &&
               $$cf tunnel delete -f "$$(cat "$$HOME/tunnel-name")" > /dev/null 2>&1
-            rm -rf "$$HOME/.cloudflared" "$$HOME/tunnel.token" "$$HOME/tunnel-name" "$$HOME/routed" /settings/cloudflare-reset
+            signout
+            rm -f "$$HOME/tunnel.token" "$$HOME/tunnel-name" "$$HOME/routed" /settings/cloudflare-reset
           fi
           # Tunnel names are unique within a Cloudflare account, so this one is made once
           [ -s "$$HOME/tunnel-name" ] || echo "buzz-relay-$$(od -An -tx1 -N3 /dev/urandom | tr -d ' \n')" > "$$HOME/tunnel-name"
           name=$$(cat "$$HOME/tunnel-name")
-          # 1. Cloudflare's own sign-in, where the owner chooses the domain. Its link lasts about ten
-          # minutes; a new one then takes its place on the page.
-          if [ ! -s "$$HOME/.cloudflared/cert.pem" ]; then
+          # 1. Cloudflare's own sign-in, where the owner chooses the domain, unless the tunnel is set up for
+          # this address. Its link lasts about ten minutes; a new one then takes its place on the page.
+          if ! ready "$$host" && [ ! -s "$$HOME/.cloudflared/cert.pem" ]; then
             state signin
             $$cf tunnel login > /settings/cloudflare-login.log 2>&1 &
             job=$$!
@@ -296,6 +307,12 @@ services:
           if [ "$$(cat "$$HOME/routed" 2> /dev/null)" != "$$host" ]; then
             state routing
             if ! $$cf tunnel route dns "$$name" "$$host" > /settings/cloudflare-setup.log 2>&1; then
+              # A tunnel from an earlier sign-in that this account doesn't have (the owner signed in to
+              # another account for the new address, or deleted it there): a new tunnel in this one
+              if [ "$$HOME/tunnel.token" -ot "$$HOME/.cloudflared/cert.pem" ] &&
+                grep -q "neither the ID nor the name" /settings/cloudflare-setup.log; then
+                rm -f "$$HOME/tunnel.token" "$$HOME/tunnel-name"; continue
+              fi
               if grep -q "already exists" /settings/cloudflare-setup.log; then state taken; else state error; fi
               sleep 20; continue
             fi
@@ -307,7 +324,8 @@ services:
             fi
             echo "$$host" > "$$HOME/routed"
           fi
-          # 4. The tunnel, to the gateway, until the owner chooses something else
+          # 4. The tunnel, to the gateway, until the owner chooses something else. Its token is enough.
+          signout
           state running
           $$cf --no-autoupdate tunnel run --token-file "$$HOME/tunnel.token" --url http://buzz-gateway:80 &
           job=$$!
@@ -326,7 +344,7 @@ services:
 
   # Phones pair with Buzz Desktop through this service, at wss://<domain>/pair.
   pair:
-    image: ghcr.io/block/buzz:sha-744f394@sha256:b67a32b7b2a274cdbd9a685fe996657fa544a3e981284ab3a8c660a128f36a3d
+    image: ghcr.io/block/buzz:0.3.0@sha256:84f34c5b801192665b1a05939518d746f25184babf4d6e927d0de7e12e9c5674
     init: true
     entrypoint: ["/usr/local/bin/buzz-pair-relay"]
     environment:

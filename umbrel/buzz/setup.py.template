@@ -33,7 +33,7 @@ TAILSCALE_DIR = "/tailscale"
 TAILSCALE_ON = os.path.join(TAILSCALE_DIR, "tailscale-enabled")
 TAILSCALE_STATUS = os.path.join(TAILSCALE_DIR, "tailscale-status.json")
 TAILSCALE_SERVE = os.path.join(TAILSCALE_DIR, "tailscale-serve.txt")
-TAILSCALE_LOGS = ("tailscale-publish.log", "tailscale-funnel.log")
+TAILSCALE_LOGS = ("tailscale-publish.log",)
 # Shared with the app's Cloudflare tunnel alone: the name it serves, where it stands, and its sign-in link
 CLOUDFLARE_DIR = "/cloudflare"
 CLOUDFLARE_ON = os.path.join(CLOUDFLARE_DIR, "cloudflare-enabled")
@@ -158,8 +158,7 @@ def write_atomic(path, text):
 
 
 def norm_mode(mode):
-    # The first package called the public Tailscale address "tailscale".
-    return "funnel" if mode == "tailscale" else (mode if mode in MODES else "domain")
+    return mode if mode in MODES else "domain"
 
 
 def load_setup():
@@ -225,20 +224,6 @@ def save(owner_text, key, mode, domain, push=None):
         write_relay_env(key, domain, push)
     elif os.path.exists(RELAY_ENV):
         os.remove(RELAY_ENV)
-
-
-def migrate():
-    """Settings from earlier versions of this package: "tailscale" is now "funnel", and a domain gets the
-    app's own Cloudflare tunnel."""
-    setup = read_json(SETUP_JSON)
-    if isinstance(setup, dict) and setup.get("mode") == "tailscale":
-        setup["mode"] = "funnel"
-        write_atomic(SETUP_JSON, json.dumps(setup))
-    if read_text(TAILSCALE_ON).strip() == "on":
-        write_atomic(TAILSCALE_ON, "funnel\n")
-    # A domain saved before this app ran its own Cloudflare tunnel: the tunnel starts for it too
-    if isinstance(setup, dict) and setup.get("mode") == "domain" and setup.get("domain") and not os.path.exists(CLOUDFLARE_ON):
-        write_atomic(CLOUDFLARE_ON, setup["domain"] + "\n")
 
 
 # ---------------------------------------------------------------- Tailscale
@@ -1381,19 +1366,19 @@ def connect_steps(setup, domain):
         state = cf["state"]
         if state == "signin" and cf["link"]:
             action = ("<p>Sign in to Cloudflare, or create a free account. When it asks which domain to authorize, "
-                      "choose the one <code>" + esc(domain) + "</code> is under. This app then creates its tunnel and the "
+                      "choose the one <code>" + esc(domain) + "</code> is under. This app then sets up its tunnel and the "
                       "name in your Cloudflare account.</p>"
                       '<a class="btn" href="' + esc(cf["link"]) + '" target="_blank" rel="noopener">Sign in to Cloudflare</a>'
                       '<p class="muted small">The domain has to be on Cloudflare: buy one there, or add one you own to a '
                       "free Cloudflare account. The link works for about ten minutes, and a new one appears here after "
-                      "that.</p>")
+                      "that. This app keeps your sign-in only until the name is set up.</p>")
         elif state in ("", "signin"):
             action = "<p class=\"muted\">Starting Cloudflare's sign-in. This takes a few seconds.</p>"
         elif state in ("creating", "routing"):
-            action = ("<p class=\"muted\">Signed in. Creating the tunnel and the name <code>" + esc(domain)
+            action = ("<p class=\"muted\">Signed in. Setting up the tunnel and the name <code>" + esc(domain)
                       + "</code> in Cloudflare.</p>")
         elif state == "running":
-            action = ("<p class=\"muted\">Signed in, and the tunnel is set up. Cloudflare is publishing <code>" + esc(domain)
+            action = ("<p class=\"muted\">The tunnel is set up. Cloudflare is publishing <code>" + esc(domain)
                       + "</code>: a few minutes, or longer for a brand-new domain. This page checks every few "
                       "seconds.</p>")
         elif state == "taken":
@@ -1484,6 +1469,8 @@ def address_change(setup, values, current):
             "to this address to bring it back.")
     if now != "domain":
         note += " Switching between the two Tailscale options keeps the same address."
+    else:
+        note += " On your own domain, moving to another address asks you to sign in to Cloudflare again."
     confirm = (
         '<label class="field" for="confirm">To confirm, type <code>' + esc(current) + "</code></label>"
         '<input type="text" id="confirm" name="confirm" autocomplete="off" spellcheck="false" data-expect="' + esc(current) + '">'
@@ -1747,7 +1734,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    migrate()
     if not PASSWORD:
         print("APP_PASSWORD is not set: the setup page refuses every sign-in.", flush=True)
     threading.Thread(target=tailscale_watcher, daemon=True).start()

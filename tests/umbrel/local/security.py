@@ -226,9 +226,9 @@ stub(bin_dir, "tailscale", 'shift\nstate="' + d + '/serve-state"\ncase "$1 $2" i
      '  "serve --bg") echo "https://buzz.tail1234.ts.net (tailnet only)" > "$state"; echo private >> "' + history + '" ;;\n'
      'esac\n')
 tailscale = (compose_script("tailscale").replace("/settings/", ts_dir + "/").replace("/var/lib/tailscale", d + "/ts-state")
-             .replace("/tmp/tailscaled.sock", d + "/tsd.sock"))
+             .replace("/tmp/tailscaled.sock", "tsd.sock"))  # relative: macOS caps socket paths at 104 bytes
 write(ts_dir + "/tailscale-enabled", "funnel\n")
-proc = subprocess.Popen(["sh", "-c", tailscale], env=dict(os.environ, PATH=bin_dir + ":" + os.environ["PATH"]), start_new_session=True,
+proc = subprocess.Popen(["sh", "-c", tailscale], env=dict(os.environ, PATH=bin_dir + ":" + os.environ["PATH"]), start_new_session=True, cwd=d,
                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 try:
     log = ts_dir + "/tailscale-publish.log"

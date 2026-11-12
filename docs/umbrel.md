@@ -49,8 +49,11 @@ Credit #5928 when we submit.
     `http://buzz-gateway:80`, with no router ports opened. The owner signs in to Cloudflare from
     the page with `cloudflared tunnel login` and chooses the domain; the `cloudflared` service then
     creates a tunnel, adds the name to the domain's DNS (refusing a name that already has a
-    record, and catching a domain chosen wrong), and runs it. The sign-in certificate and tunnel
-    token stay in `data/cloudflare`, which no other service mounts. Its image is the connector of
+    record, and catching a domain chosen wrong), and runs it. The tunnel token stays in
+    `data/cloudflare`, which no other service mounts. The sign-in certificate (`cert.pem`) can
+    create, route and delete tunnels in the owner's account, so the service deletes it once the
+    name is routed, and Umbrel's backups skip its folder; changing the address later asks for a new
+    sign-in (asked for in Umbrel's review). Its image is the connector of
     Umbrel's Cloudflare Tunnel app (Radiokot/umbrel-cloudflared), Alpine with Cloudflare's own
     `cloudflared`; the official image has no shell to wait in, so it would restart every minute
     until set up. With another option chosen, the service waits. Owners who already run Umbrel's

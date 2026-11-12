@@ -7,6 +7,7 @@ import { mountRelayKey } from "../scenes/relaykey";
 import { mountSecurity } from "../scenes/security";
 import { mountChecked } from "../scenes/checked";
 import { mountFaq } from "../scenes/faq";
+import { mountAsk } from "../scenes/ask";
 
 const registry: Record<string, (el: HTMLElement) => void> = {
   story: mountStory,
@@ -18,6 +19,7 @@ const registry: Record<string, (el: HTMLElement) => void> = {
   agent: mountAgent,
   relaykey: mountRelayKey,
   faq: mountFaq,
+  ask: mountAsk,
 };
 
 /** The footer's lists start folded on a phone, open everywhere else. */

@@ -60,8 +60,18 @@ done: the work they call for is listed where it is still owed.
 - **Upgrades into migration 0086 follow Block's note**, as corrected below.
 - **The launch gets a version tag.** Owed: one tag on the tested commit, made when the owner
   approves publishing.
-- **A place to ask.** Owed: a last section on joining Block's feedback community, picked from
-  mockups. Its channel is named once the channel exists, and nothing is published before then.
+- **A place to ask** is the page's last section, and in the menu as Ask. It shows how to join
+  Block's feedback community for Buzz in three steps, each under a still drawing: Block's invite
+  page, Buzz's community list, and the channel. The owner picked the look from three mockups. The
+  invite is Block's public one, from the Buzz app's README. Step 1 says what the invite asks: 18
+  or older, and Buzz's terms. One line carries the skill's caution about keys: signed in to
+  Builderlab, Buzz backs up a key to Block once its owner joins a community Block hosts. Two ways
+  round follow: pasting the invite into Join a community, and a GitHub issue for someone who
+  would rather not join. Joining needs no Builderlab sign-in for someone who already has a Buzz
+  identity: the community's public settings say so and Buzz 1.0.0 follows them
+  ([research.md](research.md)), so the section does not ask for one. Owed before publishing: the
+  channel's real name (`CHANNEL` in `site/src/scenes/ask.ts` is a placeholder, since the channel
+  does not exist yet) and Block's agreement to send readers there.
 
 ## Security redrawn, and what an independent review corrected (2026-11-11, draft)
 

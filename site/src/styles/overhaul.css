@@ -229,3 +229,87 @@
   .fq-pn + .fq-pn::after { left: 50%; top: -13px; margin: 0 0 0 -2px; transform: rotate(135deg); }
   .fq-push-u { display: none; }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   A place to ask (scenes/ask.ts): the page's last section. The invite sits beside the heading.
+   Under them, three steps, each under a still drawing of the screen it happens on, then one note
+   about keys and a row with two ways round. Nothing in a drawing is operated.
+   ───────────────────────────────────────────────────────────── */
+.aq-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 40px; align-items: end; }
+.aq-join { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; justify-items: start; min-width: 0; padding-bottom: 4px; }
+.aq-join .btn { padding: 11px 18px; font-size: 14.5px; }
+.aq-addr { display: inline-flex; align-items: center; gap: 9px; max-width: 100%; padding: 5px 5px 5px 12px; border: 1px solid var(--line-2); border-radius: 999px; background: #fff; }
+.aq-addr:has(.aq-copy[hidden]) { padding: 9px 14px 9px 12px; }
+.aq-bee { flex: none; width: 21px; height: 14px; color: var(--ink); }
+.aq-addr code { min-width: 0; padding: 0; overflow: hidden; background: none; font-size: 12.5px; white-space: nowrap; text-overflow: ellipsis; color: var(--ink); }
+.aq-copy { display: inline-flex; flex: none; align-items: center; gap: 6px; padding: 5px 11px; border: 0; border-radius: 999px; background: #f2f2ee; cursor: pointer; font: 500 12.5px var(--sans); white-space: nowrap; color: var(--ink); transition: background 0.2s; }
+.aq-copy[hidden] { display: none; }
+.aq-copy:hover { background: #e9e9e3; }
+.aq-copy svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.aq { --b1-base: #f1f1f2; --b1-text: #0f0f0f; --b1-nav-text: #404040; --b1-meta: #5f5f5f; --b1-line: #e8e8e8; --b1-citrus: #beda36; --b1-bub: #f3f3f4; }
+.aq svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.aq-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 22px; margin: 0; padding: 0; list-style: none; }
+/* a step is a drawing over its words: the three drawings share one height, so the words start level */
+.aq-steps li { display: grid; grid-template-rows: 306px auto; gap: 16px; min-width: 0; }
+.aq-shot { display: grid; place-items: center; min-width: 0; padding: 20px; border-radius: 22px; background-color: var(--canvas); background-image: radial-gradient(circle, rgb(35 30 30 / 7%) 1px, transparent 1px); background-size: 18px 18px; }
+.aq-text h3 { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: start; margin: 0 0 4px; font-size: 17px; font-weight: 500; line-height: 1.3; letter-spacing: -0.02em; }
+.aq-text h3 i { display: grid; place-items: center; width: 30px; height: 30px; margin-top: -4px; border-radius: 9px; background: var(--accent); font: 500 11.5px var(--mono); font-style: normal; letter-spacing: 0; }
+.aq-text p { margin: 0 0 0 42px; font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+.aq-text strong { font-weight: 600; color: var(--ink); }
+.aq-also { max-width: 52em; margin: 24px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--ink-2); }
+.aq-also b { font-weight: 600; color: var(--ink); }
+.aq-more { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; margin: 14px 0 0; padding-top: 16px; border-top: 1px solid var(--line-2); font-size: 14px; color: var(--ink-2); }
+.aq-more b { font-weight: 500; color: var(--ink); }
+.aq-gh { margin-left: auto; font-weight: 500; color: var(--ink); }
+.aq-gh::after { content: "\00a0\2192"; }
+
+/* a community's tile: its initial, as Buzz shows one with no picture */
+.aq-tile { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 8px; background: #f1f1f2; font: 600 11px var(--sans); color: #404040; }
+.aq-tile.b { background: #0f0f0f; color: #beda36; }
+
+/* 1 · Block's invite page: its yellow, its card, the two boxes and the button */
+.aq-ip { width: 100%; max-width: 262px; padding: 13px 12px 12px; border-radius: 16px; background: #d9d92c; box-shadow: 0 0 0 1px rgb(35 30 30 / 8%), 0 12px 30px rgb(24 20 14 / 10%); }
+.aq-ip-card { display: grid; gap: 9px; padding: 15px 14px 13px; border-radius: 16px; background: #fff; text-align: left; color: #0f0f0f; }
+.aq-ip-h { font-size: 20px; line-height: 1.1; letter-spacing: -0.02em; }
+.aq-ip-s { margin-top: -4px; font-size: 11px; color: #5f5f5f; }
+.aq-ip-c { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 10px; background: #f4f4f4; font-size: 12.5px; font-weight: 500; }
+.aq-ip-c .aq-tile { width: 24px; height: 24px; border-radius: 7px; }
+.aq-ip-chk { display: grid; gap: 5px; padding: 8px 9px; border: 1px solid #dcdcdc; border-radius: 10px; background: #f6f6f6; font-size: 10.5px; line-height: 1.35; color: #404040; }
+.aq-ip-chk span { display: grid; grid-template-columns: 13px minmax(0, 1fr); gap: 7px; align-items: start; }
+.aq-ip-chk i { display: grid; place-items: center; width: 13px; height: 13px; margin-top: 1px; border-radius: 3.5px; background: #0f0f0f; color: #fff; }
+.aq-ip-chk svg { width: 9px; height: 9px; stroke-width: 3.2; }
+.aq-ip-go { padding: 8px; border-radius: 999px; background: #0f0f0f; font-size: 12px; font-weight: 500; text-align: center; color: #fff; box-shadow: 0 0 0 4px rgb(190 218 54 / 55%); }
+
+/* 2 · the community button at the foot of the dock, and its list */
+.aq-pkw { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 9px; align-items: end; width: 100%; max-width: 304px; }
+.aq-dock { display: grid; align-content: end; justify-items: center; gap: 9px; height: 168px; padding: 0 0 9px; border-radius: 13px; background: #f1f1f2; box-shadow: 0 0 0 1px #e3e3e5; }
+.aq-dock img { width: 20px; height: 20px; border-radius: 50%; }
+.aq-cb { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; background: #0f0f0f; font: 600 10px var(--sans); color: #beda36; box-shadow: 0 0 0 2px #f1f1f2, 0 0 0 5px rgb(190 218 54 / 80%); }
+.aq-pk { min-width: 0; padding: 6px; border-radius: 16px; background: #fff; box-shadow: 0 0 0 1px #e3e3e5, 0 14px 34px rgb(24 20 14 / 14%); font-size: 12.5px; color: #0f0f0f; text-align: left; }
+.aq-pk-row { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; align-items: center; padding: 7px 8px; border-radius: 11px; }
+.aq-pk-row.on { background: rgb(190 218 54 / 34%); }
+.aq-pk-row b { display: block; font-weight: 500; line-height: 1.25; }
+.aq-pk-row small { display: block; overflow: hidden; font: 10px/1.3 var(--mono); white-space: nowrap; text-overflow: ellipsis; color: #4d4d4d; }
+.aq-pk-add { display: flex; align-items: center; gap: 10px; margin-top: 4px; padding: 8px 8px 6px; border-top: 1px solid #ececee; color: #404040; }
+.aq-pk-add span { display: grid; place-items: center; width: 26px; height: 26px; }
+.aq-pk-add svg { width: 15px; height: 15px; }
+
+/* 3 · the channel, in the guide's own drawing of Buzz */
+.aq-ch { width: 100%; max-width: 280px; overflow: hidden; border-radius: 16px; background: #fff; box-shadow: 0 0 0 1px #e3e3e5, 0 12px 30px rgb(24 20 14 / 9%); color: var(--b1-text); font-size: 12.5px; line-height: 1.45; text-align: left; }
+.aq-ch .b1-head { padding: 8px 12px 8px 10px; }
+.aq-ch .b1-msgs { gap: 8px; padding: 10px 12px 8px; }
+.aq-ch .b1-compose { margin: 2px 10px 10px; padding: 7px 12px; }
+
+@media (max-width: 900px) {
+  /* the invite under the heading, and one step after the other */
+  .aq-top { grid-template-columns: minmax(0, 1fr); }
+  .aq-steps { grid-template-columns: minmax(0, 1fr); gap: 26px 0; }
+  .aq-steps li { grid-template-rows: auto auto; }
+  .aq-gh { margin-left: 0; }
+}
+@media (max-width: 560px) {
+  .aq-shot { padding: 14px; }
+  .aq-bee { display: none; }
+  .aq-addr code { font-size: 12px; }
+}

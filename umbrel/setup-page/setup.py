@@ -87,7 +87,7 @@ def owner_hex(text):
     if re.fullmatch(r"[0-9a-f]{64}", value):
         return value
     if value.startswith("nsec"):
-        raise ValueError("That's a private key. Keep it secret and don't paste it anywhere. Your public ID starts with npub1.")
+        raise ValueError("That's a private key. Keep it secret, and paste only your public ID here. It starts with npub1.")
     if not value.startswith("npub1") or len(value) != 63:
         raise ValueError("Paste your public ID. In Buzz, it's under Settings, then Identity, on your Buzz ID card. It starts with npub1 and is 63 characters long.")
     data = []
@@ -752,9 +752,14 @@ details.how[open] > summary { background: var(--chip); }
 .id-pair-code {padding: 8px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #e6e6e6; }
 .id-pair-code + .mb-btn {display: flex; justify-content: center; margin-top: 8px; }
 .id-qr {display: block; width: 100%; fill: #0f0f0f; }
+.id-verify {display: flex; flex-direction: column; gap: 7px; }
+.id-verify > b {font-size: 11px; font-weight: 500; }
+.id-digits {padding: 9px 0; border-radius: 10px; box-shadow: 0 0 0 1px #e3e3e5; font: 600 15px var(--mono); letter-spacing: 0.12em; text-align: center; }
+.id-verify .mb-btn {justify-content: center; }
 .id-pair ol {display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
 .id-pair li {display: flex; gap: 8px; }
 .id-pair li > span {flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #f0f0f1; font-size: 10px; font-weight: 600; }
+.id-pair li > span.done {background: #e2f2e7; color: #2f9e57; }
 .id-pair li b {display: block; font-size: 11px; font-weight: 500; }
 .mb-canvas .id-pair li p {font-size: 9.5px; color: #5f5f5f; }
 .mb-av i {display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #f0f0f1; font: 500 9.5px var(--sans); font-style: normal; color: #2b2b2b; }
@@ -1205,15 +1210,22 @@ QR = ('<svg class="id-qr" viewBox="-1 -1 23 23" shape-rendering="crispEdges" ari
       + "</svg>")
 
 
-def drawn_pair(host):
+def drawn_pair(host, verifying=False):
     """Settings, Mobile app (src/bundled/pairing/PairingSettings.tsx): the code to scan, beside the three steps
-    Buzz lists."""
+    Buzz lists. Verifying, after the phone has scanned it: the six digits, with Codes match highlighted, which
+    sends your identity to the phone."""
+    if verifying:
+        left = ('<div class="id-verify"><b>Verify the code on your phone</b><span class="id-digits">482 913</span>'
+                '<span class="mb-btn dark hot">Codes match</span><span class="mb-btn">Cancel</span></div>')
+        first = '<span class="done">' + ti("check") + "</span>"
+    else:
+        left = '<div class="id-pair-code">' + QR + '</div><span class="mb-btn">Copy pairing code</span>'
+        first = "<span>1</span>"
     page = (
         '<section class="mb-page id-pair"><h5>Pair mobile</h5><p class="mb-sub">Connect the Buzz mobile app to this '
         "community. Pairing is secured with end-to-end encryption and a verification code.</p>"
-        '<div class="id-pair-b"><div class="id-pair-left"><div class="id-pair-code">' + QR + '</div>'
-        '<span class="mb-btn">Copy pairing code</span></div><ol>'
-        "<li><span>1</span><div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the "
+        '<div class="id-pair-b"><div class="id-pair-left">' + left + "</div><ol>"
+        "<li>" + first + "<div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the "
         "code shown here.</p></div></li>"
         "<li><span>2</span><div><b>Verify the code on your phone</b><p>If your phone asks for a code, enter these "
         "digits and finish confirming on your phone. If it shows a code, check that the digits match. Then choose "
@@ -1261,7 +1273,7 @@ def member_steps(domain):
          "<b>Invite members</b>, or the <b>Invite</b> tab in newer versions of Buzz."),
         ("Send an invite link", drawn_membership(domain, inviting=True),
          "Copy the invite link and send it. Anyone with the link can join until it expires or runs out of uses. "
-         "To invite one person, set <b>Max uses</b> to 1 before you copy it. They open it and choose <b>Accept "
+         "To invite one person, set <b>Max uses</b> to <b>1 use</b> before you copy it. They open it and choose <b>Accept "
          "invite in Buzz</b>, or paste it into Buzz. Buzz 1.0.0 can also add someone by their public ID: paste it "
          "under <b>Add directly</b> and choose <b>Add member</b>."),
     ]
@@ -1270,19 +1282,21 @@ def member_steps(domain):
 def phone_steps(domain):
     return [
         ("Pair a phone", drawn_pair(domain),
-         # Once the digits match, the phone asks to protect your identity (Use Face ID, Use Touch ID or Use
-         # biometrics, or Skip) and holds the identity until you choose. Block's docs/pairing.md finishes on
-         # the phone before Codes match.
          "In Buzz on your computer, open <b>Settings</b>, then <b>Mobile app</b>. On the phone, open Buzz and choose "
          "<b>Scan a QR code</b>. If it already has a community, open its community switcher and choose <b>Add "
-         "Community</b> first. Scan the code and type the six digits your computer shows. On the phone, choose "
-         "<b>Use Face ID</b> or <b>Skip</b>. Then choose <b>Codes match</b> on your computer."
+         "Community</b> first. Then scan the code."
          # Signed in to Builderlab, the computer shows Get Buzz on your phone in place of the code, and the phone
          # restores only communities Block hosts
          "</p><p>Signed in with Builderlab? Your computer may show <b>Get Buzz on your phone</b> instead of a code. "
          "Then open Buzz on the phone and choose <b>or sign in with email</b>, with the same account. Your community "
          "won't appear there by itself: choose <b>Enter a community link</b>, paste <code>https://" + esc(domain)
          + "</code>, choose <b>Continue</b>, then your saved identity."),
+        ("Check the code", drawn_pair(domain, verifying=True),
+         # Once the digits match, the phone asks to protect your identity (Use Face ID, Use Touch ID or Use
+         # biometrics, or Skip) and holds the identity until you choose. Block's docs/pairing.md finishes on
+         # the phone before Codes match.
+         "Type the six digits your computer shows into the phone. When the phone asks to protect your identity, "
+         "choose <b>Use Face ID</b> or <b>Skip</b>. Then choose <b>Codes match</b> on your computer."),
     ]
 
 
@@ -1355,7 +1369,7 @@ def how_to_find_npub():
          "key that starts with npub1. That's your public ID."),
         ("Paste it here", drawn_paste(), "Paste it into the box above. It starts with npub1."),
     ], 'You need Buzz on your computer. If you don\'t have it yet, <a href="' + BUZZ_APP + '" target="_blank" '
-       'rel="noopener">install it</a>, then open <b>No Buzz identity yet?</b> below.')
+       'rel="noopener">install it</a>, but wait to set it up. Open <b>No Buzz identity yet?</b> below.')
 
 
 def no_identity():
@@ -1365,7 +1379,10 @@ def no_identity():
         '<details class="alt"><summary>No Buzz identity yet?</summary><div class="inner">'
         "<p>Make your own key. It's yours alone, and nobody else keeps a copy. Use an open-source tool like "
         '<a href="' + NAK + '" target="_blank" rel="noopener">nak</a>, or a Nostr app you already use. Paste the '
-        "public ID (npub1...) here. Keep the private key (nsec1...) safe, and never paste it on this page.</p>"
+        "public ID (npub1...) here. Keep the private key (nsec1...) safe, and never paste it on this page. "
+        # nak key generate prints hex; Buzz 1.0's Use an existing key takes nsec1 only (key-import.ts)
+        "nak prints keys in hex. Buzz takes the private key only as nsec1: convert it with <code>nak encode "
+        "nsec</code>.</p>"
         "<p>Once your community is live, open Buzz and choose <b>Other options</b>. Paste the community's address "
         "and choose <b>Continue</b>, then <b>Use an existing key</b>, and paste your private key there. Buzz doesn't "
         "take a password-protected key. If Buzz already has a key on this computer, it doesn't offer <b>Other "
@@ -1569,12 +1586,12 @@ def address_change(setup, values, current):
 
 SAFETY_TIPS = [
     ("Agents work with what's on their computer.",
-     "An agent made in the Buzz app runs on its owner's computer. It can run commands, change files and go online "
-     "there without asking first. That's true in any community."),
+     "Most agents made in the Buzz app run on their owner's computer. They can run commands, change files and go "
+     "online there without asking first. That's true in any community."),
     ("Open communities bring in people you don't know.",
      "If anyone can join, as with many open-source projects, strangers can post. Members can also bring their own "
-     "agents without asking you. An agent made in Buzz takes requests only from its owner, but it reads what others "
-     "write, and a message can be written to mislead it."),
+     "agents without asking you. Most agents made in Buzz take requests only from their owner, but they read what "
+     "others write, and a message can be written to mislead them."),
     ("Keep agents on personal computers out of open communities.",
      "If you want an agent there, run it on a separate computer with nothing private on it, signed in to Buzz with a "
      "separate identity, not the one that owns your community. Don't connect it to your email, drives or code."),
@@ -1587,7 +1604,7 @@ SAFETY_TIPS = [
      "Files work differently for now: anyone in the community who has a file's link can open it."),
     ("Invite links decide which people get in.",
      "A new link works for 3 days with no limit on uses, unless you change <b>Expires after</b> or <b>Max uses</b>. "
-     "To invite one person, set <b>Max uses</b> to 1 before you copy the link. A link posted in public lets anyone "
+     "To invite one person, set <b>Max uses</b> to <b>1 use</b> before you copy the link. A link posted in public lets anyone "
      "join until it expires, 30 days at most. Links can't be canceled yet, and someone you remove can rejoin with a "
      "link that still works."),
 ]
@@ -1668,7 +1685,7 @@ def main_page(setup, error="", values=None):
         # Buzz 1.0's own link for a community's address (docs/deep-links.md in block/buzz-app): it opens
         # the join screen with the address filled in, and joins nothing by itself
         + ('<a class="btn" href="buzz://connect?relay=' + esc(urllib.parse.quote("wss://" + domain, safe="")) + '">Open in Buzz</a>'
-           '<p class="muted small">Opens Buzz on this computer with the address filled in.</p>' if domain else "")
+           '<p class="muted small">Opens Buzz on this computer with the address filled in, once Buzz is set up.</p>' if domain else "")
         + how_to("Show me how", join_steps(domain))
         # Buzz's first run with a key of one's own: Other options, then Use an existing key, then the Join
         # Community page and Set up your profile (Welcome.tsx, KeyImport.tsx, FindCommunity.tsx, ProfileStep.tsx)

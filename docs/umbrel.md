@@ -452,8 +452,8 @@ pinned by digest: `pre-submit.sh` on a fresh DigitalOcean droplet (Intel) passed
 - Before it: the page's local tests (291 page states, 28 security checks, 37 Cloudflare checks with
   a stand-in `cloudflared`) on this Mac and in GitHub Actions, and the published image served the
   page on this Mac, as user 1000, from the tagged `setup.py`.
-- Not run again on ARM: the image is built for both chips and the page is the same Python file;
-  Umbrel's reviewer runs ARM.
+- Not run again on ARM: the image is built for both chips and the page is the same Python file.
+  Umbrel's reviewer ran the previous round on ARM (umbrelOS 2.0.1).
 
 ## Not yet tested
 

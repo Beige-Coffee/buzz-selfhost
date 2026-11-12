@@ -10,7 +10,7 @@ services:
   # built from umbrel/setup-page in github.com/Beige-Coffee/buzz-selfhost by GitHub Actions, after
   # the page's tests pass, with build provenance: one Python file on the official Python image.
   web:
-    image: ghcr.io/beige-coffee/buzz-umbrel-setup:1.0.0@sha256:PENDING
+    image: ghcr.io/beige-coffee/buzz-umbrel-setup:1.0.0@sha256:d4a17d9c93eea4fcffbb9f8ab3c1e041af690e234319e8a99e9245a6e8029eb1
     init: true
     user: "1000:1000"
     environment:

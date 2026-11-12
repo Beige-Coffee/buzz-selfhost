@@ -1,0 +1,266 @@
+# tests/umbrel/pre-submit.sh: Intel, umbrelOS 2.0.0 in Docker on a DigitalOcean droplet (x86_64), relay 0.3.0 (ghcr.io/block/buzz:0.3.0), setup page image ghcr.io/beige-coffee/buzz-umbrel-setup:1.0.0, package at 9b7e282
+== Droplet
+created buzz-umbrel-test in sfo3
+buzz-umbrel-test at <ip>
+x86_64
+== umbrelOS and Buzz Relay, installed through Umbrel
+{
+  "state": "ready",
+  "progress": 0
+}
+== Memory, installed, before setup (after two minutes)
+buzz_cloudflared_1 0.00% 680KiB / 7.755GiB
+buzz_gateway_1 0.32% 12.84MiB / 7.755GiB
+buzz_pair_1 0.00% 876KiB / 7.755GiB
+buzz_postgres_1 5.46% 25.92MiB / 7.755GiB
+buzz_redis_1 0.71% 3.492MiB / 7.755GiB
+buzz_relay_1 4.20% 968KiB / 7.755GiB
+buzz_silo_1 4.17% 66.27MiB / 7.755GiB
+buzz_tailscale_1 0.01% 672KiB / 7.755GiB
+buzz_web_1 0.04% 16.31MiB / 7.755GiB
+TOTAL 128 MiB
+== End to end
+== Tunnel
+PASS  relay address https://reliability-likes-emotional-aka.trycloudflare.com
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://reliability-likes-emotional-aka.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://reliability-likes-emotional-aka.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 36  failed: 0
+community address: https://reliability-likes-emotional-aka.trycloudflare.com
+== What each service can reach, and how fast the page stops
+OWN cloudflared
+MOUNTS buzz_cloudflared_1
+SETTINGS buzz_relay_1 false
+SETTINGS buzz_web_1 true
+TSCONTROL buzz_web_1
+CFCONTROL buzz_web_1
+SETTINGS buzz_gateway_1 false
+TSCONTROL buzz_tailscale_1
+CFCONTROL buzz_cloudflared_1
+STOPPED 0
+PASS  Cloudflare's sign-in and tunnel files are in a folder only its own service mounts
+PASS  only the page writes the relay's settings, and each helper shares only its own folder with the page
+PASS  the page, relay, pairing, Tailscale and gateway services run under an init process
+PASS  the setup page stops in under 5 s
+== Another app on this Umbrel, trying the app's services directly
+PAGE_GET 303
+PAGE_SAVE 401
+PAGE_NEGLEN 413 0
+PAGE_FRAME DENY
+PAGE_IDLE 20 200
+RELAY_XPUBKEY 401
+GATEWAY_OTHER 404
+GATEWAY_OWN 200
+SILO_ANON 403
+METRICS 200
+PG refused
+REDIS NOAUTH Authentication required.
+PASS  another app can't use the setup page without its password
+PASS  a request with a bad length is refused at once, not read
+PASS  the setup page refuses to be shown inside another app's page
+PASS  20 half-sent requests are dropped after the time limit, and the page still answers
+PASS  the relay refuses a request that only claims to be the owner in a header
+PASS  the gateway answers the community's address and no other
+PASS  file storage refuses requests without its keys
+PASS  the database refuses a guessed password
+PASS  Redis refuses commands without its password
+INFO  the relay's metrics port answers other apps with HTTP 200: counts only, no keys or messages (block/buzz#7989, fix open in #8004)
+== The relay's settings, written to by something other than the page
+READY tampered
+ENV BUZZ_REQUIRE_RELAY_MEMBERSHIP=true
+READY again
+PASS  lines added to the relay's settings run nothing and can't turn off its checks
+PASS  the relay starts again with the page's own settings
+== Memory with a community
+buzz_cloudflared_1 0.29% 14.93MiB / 7.755GiB
+buzz_gateway_1 0.27% 12.05MiB / 7.755GiB
+buzz_pair_1 0.01% 868KiB / 7.755GiB
+buzz_postgres_1 0.37% 72.16MiB / 7.755GiB
+buzz_redis_1 0.68% 3.402MiB / 7.755GiB
+buzz_relay_1 0.53% 12.42MiB / 7.755GiB
+buzz_silo_1 0.00% 171.3MiB / 7.755GiB
+buzz_tailscale_1 0.00% 664KiB / 7.755GiB
+buzz_web_1 0.08% 17.2MiB / 7.755GiB
+TOTAL 305 MiB
+== Load: 20 members send 10 messages each, ten at a time
+PASS  20 members added
+INFO  memory under the load:
+buzz_cloudflared_1 0.01% 14.94MiB / 7.755GiB
+buzz_gateway_1 0.27% 13.91MiB / 7.755GiB
+buzz_pair_1 0.00% 868KiB / 7.755GiB
+buzz_postgres_1 0.31% 150.1MiB / 7.755GiB
+buzz_redis_1 0.70% 3.508MiB / 7.755GiB
+buzz_relay_1 0.51% 15.32MiB / 7.755GiB
+buzz_silo_1 0.08% 171.3MiB / 7.755GiB
+buzz_tailscale_1 0.01% 656KiB / 7.755GiB
+buzz_web_1 0.06% 17.2MiB / 7.755GiB
+TOTAL 388 MiB
+PASS  200 messages sent in 23s, and all 200 read back
+INFO  memory after the load:
+buzz_cloudflared_1 0.01% 14.95MiB / 7.755GiB
+buzz_gateway_1 0.28% 13.91MiB / 7.755GiB
+buzz_pair_1 0.00% 868KiB / 7.755GiB
+buzz_postgres_1 5.91% 150.5MiB / 7.755GiB
+buzz_redis_1 0.69% 3.508MiB / 7.755GiB
+buzz_relay_1 0.67% 15.36MiB / 7.755GiB
+buzz_silo_1 4.27% 171.3MiB / 7.755GiB
+buzz_tailscale_1 0.01% 656KiB / 7.755GiB
+buzz_web_1 0.07% 17.2MiB / 7.755GiB
+TOTAL 388 MiB
+INFO  the app's data: 74M
+== Files and videos
+PASS  a 20 MB image goes up, in 5s
+PASS  another member downloads it intact
+PASS  a 60 MB image is refused: images stop at 50 MiB, Buzz's default
+INFO  memory while it goes up:
+buzz_cloudflared_1 0.00% 14.93MiB / 7.755GiB
+buzz_gateway_1 19.22% 13.92MiB / 7.755GiB
+buzz_pair_1 0.00% 868KiB / 7.755GiB
+buzz_postgres_1 2.46% 153MiB / 7.755GiB
+buzz_redis_1 5.11% 3.5MiB / 7.755GiB
+buzz_relay_1 65.47% 58.96MiB / 7.755GiB
+buzz_silo_1 0.13% 173.6MiB / 7.755GiB
+buzz_tailscale_1 0.00% 656KiB / 7.755GiB
+buzz_web_1 0.02% 17.2MiB / 7.755GiB
+TOTAL 437 MiB
+PASS  a 96 MB video goes up, in 16s
+PASS  another member downloads it intact
+PASS  a 100.5 MB video is refused at the package's 100 MB limit (HTTP 413)
+== What the community's public address shows
+PASS  the public address never shows the setup page
+== Secrets in the app's logs
+settings checked: 16, log lines: 396
+PASS  no setting's secret value shows up in the app's logs
+== Restarting the whole Umbrel
+INFO  back after 25s
+PASS  every table has the same rows after the restart
+PASS  the setup survives the restart
+== Umbrel's own backup, restored onto a second umbrelOS that was never set up
+PASS  Umbrel backs up the app, in 13s
+INFO  the second Umbrel ran Buzz from the backup after 81s
+PASS  every table has the rows it had at the backup
+PASS  the setup came back
+PASS  the relay serves the community's address
+PASS  the stored files are byte for byte the same
+PASS  Postgres starts with no errors
+INFO  Postgres recovered as after a power cut, since Umbrel copies its files while it runs: 2 lines
+INFO  memory on the second Umbrel:
+buzz_cloudflared_1 0.32% 14.66MiB / 7.755GiB
+buzz_gateway_1 0.37% 12.25MiB / 7.755GiB
+buzz_pair_1 0.00% 876KiB / 7.755GiB
+buzz_postgres_1 0.59% 77.04MiB / 7.755GiB
+buzz_redis_1 4.37% 3.293MiB / 7.755GiB
+buzz_relay_1 0.16% 13.61MiB / 7.755GiB
+buzz_silo_1 0.00% 102.4MiB / 7.755GiB
+buzz_tailscale_1 0.00% 668KiB / 7.755GiB
+buzz_web_1 0.03% 16.71MiB / 7.755GiB
+TOTAL 241 MiB
+== Cloudflare and Tailscale, up to their sign-in links, and what each can see
+PASS  your own domain: the app's Cloudflare tunnel waits for a sign-in, with Cloudflare's link
+PASS  switching to the free Tailscale address is accepted
+PASS  Tailscale waits for a sign-in, with a link (funnel)
+PASS  the Cloudflare tunnel turns off and waits
+PASS  switching to the private network is accepted
+PASS  the page shows the private network's sign-in
+PASS  the relay can't see Tailscale's status, and neither helper can see the relay's settings
+== Uninstall, then install again
+PASS  Umbrel uninstalls the app
+PASS  uninstalling removes the app's data
+PASS  installing again starts at a fresh setup page
+== Tunnel
+PASS  relay address https://bidder-saint-cheers-cluster.trycloudflare.com
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://bidder-saint-cheers-cluster.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://bidder-saint-cheers-cluster.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 36  failed: 0
+community address: https://bidder-saint-cheers-cluster.trycloudflare.com
+
+passed: 115  failed: 0
+
+== Deleting the droplet
+deleted droplet buzz-umbrel-test
+deleted firewall buzz-umbrel-test-ssh-only

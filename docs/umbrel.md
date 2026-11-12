@@ -19,7 +19,8 @@ would, passed 115 of 115 on an Intel droplet. On 2026-11-10 Umbrel's reviewer ra
 (arm64), asked to drop `migrate()` and to delete Cloudflare's sign-in once it's set up, and suggested an
 image for the setup page; Buzz 1.0 came out the same day. On 2026-11-11 all three went in, with relay
 0.3.0, Block's first versioned release, the page's steps and drawings for Buzz 1.0, and safety tips on
-the live page. TESTS_2026_11_11 It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
+the live page. `pre-submit.sh` passed 115 of 115 on an Intel droplet with the relay and the page's
+image. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package
 
@@ -434,6 +435,25 @@ relay `sha-744f394`: `pre-submit.sh` on a fresh DigitalOcean droplet (Intel) pas
   Buzz from it after 87 s with every table, the setup and the stored files the same.
 - Not run again on ARM: the changes are in scripts, the page and the gateway's config, none of them
   chip-specific, and the new relay image is built for both.
+
+2026-11-11, unattended, after Umbrel's review (no `migrate()`, Cloudflare's sign-in deleted once
+routed), relay 0.3.0 and the setup page in its own image, `ghcr.io/beige-coffee/buzz-umbrel-setup:1.0.0`
+pinned by digest: `pre-submit.sh` on a fresh DigitalOcean droplet (Intel) passed 115 of 115
+([log](../tests/runs/2026-11-11-2129-umbrel-pre-submit-intel-droplet.log)).
+
+- Umbrel installed the app with the page's image from GitHub's registry. The page signed in with the
+  app password and saved the owner and domain; the attacks from another app's container got the same
+  answers as on 2026-11-09.
+- `e2e.sh` 36 of 36 before and after a reinstall, on relay 0.3.0 with its new migrations. Memory:
+  128 MiB before setup, 305 MiB with a community, 388 MiB while 20 members sent 200 messages in 23 s.
+  A 96 MB video went up in 16 s. Restarting the whole Umbrel: back in 25 s. Umbrel's backup took
+  13 s, and the second Umbrel ran Buzz from it after 81 s with every table, the setup and the stored
+  files the same.
+- Before it: the page's local tests (291 page states, 28 security checks, 37 Cloudflare checks with
+  a stand-in `cloudflared`) on this Mac and in GitHub Actions, and the published image served the
+  page on this Mac, as user 1000, from the tagged `setup.py`.
+- Not run again on ARM: the image is built for both chips and the page is the same Python file;
+  Umbrel's reviewer runs ARM.
 
 ## Not yet tested
 

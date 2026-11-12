@@ -1,7 +1,7 @@
 """Renders every state of the setup page with mocked settings, Tailscale and checks, to catch errors
 before a real run. A mocked test: nothing runs but the page's own code."""
 import importlib.machinery, importlib.util, itertools, json, os, tempfile
-PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../umbrel/buzz/setup.py.template")
+PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../umbrel/setup-page/setup.py")
 loader = importlib.machinery.SourceFileLoader("s", PAGE)
 m = importlib.util.module_from_spec(importlib.util.spec_from_loader("s", loader)); loader.exec_module(m)
 OWNER = "npub1464m3lr8zsjm79l073tcrptr8ekddatt30p8q4f25zcc7dq0zc7sc9a4yn"

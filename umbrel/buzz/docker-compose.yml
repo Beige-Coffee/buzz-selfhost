@@ -6,12 +6,13 @@ services:
       APP_HOST: buzz_web_1
       APP_PORT: 8080
 
-  # Setup and status page: the owner's public ID, the community's domain, and checks.
+  # Setup and status page: the owner's public ID, the community's domain, and checks. Its image is
+  # built from umbrel/setup-page in github.com/Beige-Coffee/buzz-selfhost by GitHub Actions, after
+  # the page's tests pass, with build provenance: one Python file on the official Python image.
   web:
-    image: python:3.13.16-alpine3.24@sha256:2d9aefe2fef018a7eb2c13064c89c71929800fd2e5dccdbf52ea5da5bb8d929a
+    image: ghcr.io/beige-coffee/buzz-umbrel-setup:1.0.0@sha256:PENDING
     init: true
     user: "1000:1000"
-    command: ["python3", "-u", "/app/setup.py"]
     environment:
       # The page's own sign-in: Umbrel shows APP_PASSWORD to the owner (deterministicPassword).
       # Umbrel's login guards browsers, but other apps on the shared network could reach this
@@ -19,7 +20,6 @@ services:
       APP_PASSWORD: ${APP_PASSWORD}
       SETUP_SESSION_SECRET: ${APP_BUZZ_SETUP_SECRET}
     volumes:
-      - ${APP_DATA_DIR}/setup.py:/app/setup.py:ro
       - ${APP_DATA_DIR}/data/settings:/settings
       # One folder shared with each helper, so neither can touch the relay's settings
       - ${APP_DATA_DIR}/data/tailscale-control:/tailscale

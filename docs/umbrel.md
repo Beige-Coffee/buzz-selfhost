@@ -15,7 +15,11 @@ then passed 96 of 96 on an Intel droplet. Submitted to Umbrel on 2026-11-01 as
 [getumbrel/umbrel-apps#6291](https://github.com/getumbrel/umbrel-apps/pull/6291). On 2026-11-09,
 after a red-team review (below), its fixes, Buzz 1.0's sign-in on the owner step and relay
 `sha-744f394` went in, and `pre-submit.sh`, now attacking the app as another app on the Umbrel
-would, passed 115 of 115 on an Intel droplet. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
+would, passed 115 of 115 on an Intel droplet. On 2026-11-10 Umbrel's reviewer ran it on umbrelOS 2.0.1
+(arm64), asked to drop `migrate()` and to delete Cloudflare's sign-in once it's set up, and suggested an
+image for the setup page; Buzz 1.0 came out the same day. On 2026-11-11 all three went in, with relay
+0.3.0, Block's first versioned release, the page's steps and drawings for Buzz 1.0, and safety tips on
+the live page. TESTS_2026_11_11 It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package
 
@@ -37,12 +41,15 @@ Credit #5928 when we submit.
   Members, the owner included, chat in Buzz Desktop and the iPhone app. Block ships no browser
   version to run on Umbrel: the relay's own web pages are invite pages and a code browser.
 - **For Buzz 1.0 only.** The package ships once Buzz 1.0 is out, so the page names its menus and
-  no others. Dropdowns show Buzz's own screens, adapted from the guide site's drawings
-  (`site/src/scenes/identity.ts` and `members.ts`): where to find the public ID, under the owner's
-  field, and, once the community is live, how to join it, add members and pair a phone. Redraw
-  them when Buzz's screens change.
+  no others. Dropdowns show Buzz 1.0.0's own screens, drawn from its source (block/buzz-app
+  v1.0.0): where to find the public ID, under the owner's field, and, once the community is live,
+  how to join it, add members and pair a phone. Redraw them when Buzz's screens change. Buzz's
+  next release already changes the invite dialog and drops adding members by public ID
+  ([block/buzz-app#3147](https://github.com/block/buzz-app/pull/3147)), so the page leads with
+  invite links.
 - **Reaching the community is separate from joining it.** Every option keeps the community
-  members-only: the relay requires membership, so only people the owner adds can read or post. The
+  members-only: the relay requires membership, so only people the owner invites, and the agents they
+  bring, can read or post. The
   options differ in how members' apps reach the Umbrel.
   - **Your own domain (recommended):** the owner types a name (`buzz` unless changed or cleared)
     and the domain in two boxes. The app's own Cloudflare tunnel connects the name to
@@ -122,24 +129,37 @@ Credit #5928 when we submit.
   environment variables, so the page's Settings has the switch the skill gives as
   `BUZZ_PUSH_ENABLED=false`; the page writes it into the relay's settings, which win over the
   compose file's default. Android has no push yet (block/buzz#6092).
+- **Members' agents** get in through their owner (owner attestation, `BUZZ_ALLOW_NIP_OA_AUTH`, set
+  as in Block's compose example). Buzz 1.0 never adds an agent as a member, so without it no agent
+  could join, the owner's own included. An agent made in Buzz 1.0 acts only on its owner's
+  mentions, but it runs on that person's computer without approval prompts and reads what others
+  post. So the live page's tips say to treat a community anyone can join as public and to keep
+  agents on personal computers out of it.
 - **The relay's health and metrics ports** listen on every interface, with no setting to change it
   yet ([block/buzz#7989](https://github.com/block/buzz/issues/7989); the fix is
   [block/buzz#8004](https://github.com/block/buzz/pull/8004)). Other apps on Umbrel's network can
   read them: readiness, counters, the community's host name and reasons for refused sign-ins, but
   no messages, keys or secrets. Low risk, not none. Once #8004 lands, bind them to 127.0.0.1. The
   page doesn't use them: it checks readiness on the relay's main port and the community's NIP-11.
-- **Setup page** (`setup.py.template`, Python's standard library in the official image), styled
-  after the guide site: three steps (the owner, how members reach it, the acknowledgement), with
-  the npub's checksum checked and a private key refused. Buzz 1.0 on a computer makes a key only
-  with a Builderlab account (Block's, which backs the key up where Block can decrypt it), so the
-  owner step also offers a key of the owner's own, made with an open-source tool such as nak and
-  brought into Buzz with Use an existing key. Either way the page takes only the public ID, and
-  Change the owner is the way back from a lost key. Then a status list that refreshes every
+- **Setup page** ([`umbrel/setup-page/setup.py`](../umbrel/setup-page/), Python's standard library)
+  in its own image, `ghcr.io/beige-coffee/buzz-umbrel-setup`. The
+  [workflow](../.github/workflows/umbrel-setup-page.yml) runs the page's tests on every push and,
+  from a tag `umbrel-setup-vX.Y.Z`, builds it for Intel and ARM with build provenance; the package
+  pins it by digest. Umbrel's review suggested the image: the store package stays small, and the
+  page keeps its tests and CI here. Styled after the guide site: three steps (the owner, how
+  members reach it, the acknowledgement), with the npub's checksum checked and a private key
+  refused. The owner step points new owners to a key of their own, made with an open-source tool
+  such as nak or a Nostr app, and brought into Buzz with Other options, then Use an existing key:
+  Buzz 1.0 on a computer otherwise makes a key only with a Builderlab account (Block's, which
+  keeps a backup Block can decrypt). Owners who already use Buzz with Builderlab can use that
+  Buzz ID. Either way the page takes only the public ID, and Change the owner is the way back
+  from a lost key. Then a status list that refreshes every
   five seconds, and the steps for the chosen option: the Cloudflare values, or Tailscale's sign-in,
   machine approval and consent links. Once live: the join address, with an Open in Buzz button
   (`buzz://connect?relay=wss://…`, Buzz 1.0's link that opens its join screen with the address filled
   in, as Pavlenex's package did), adding members, pairing phones
-  (with Tailscale on, for the private option), and phone notifications. Settings: change the owner
+  (with Tailscale on, for the private option), phone notifications, and collapsed tips for keeping
+  a community safe, most of all one anyone can join. Settings: change the owner
   (the old one becomes an admin), turn phone notifications off or on, change the address, and how
   moving servers works. Umbrel's rules require a page like this for an app with no web interface of its
   own.
@@ -149,7 +169,8 @@ Credit #5928 when we submit.
   keys. It reads its settings as plain KEY=value lines, and only the names the page writes, never
   as a script, so nothing in the file can run a command or turn off the relay's checks. Routine
   access lines name members on every request, so they're logged at `warn` only: refusals, errors
-  and aborted requests.
+  and aborted requests. Relay 0.3.0 changes the database at its first start (migrations 0084 to
+  0086), and an older relay then refuses it, so an update to 0.3.0 can't be undone.
 - **Gateway:** Caddy at `buzz-gateway:80` is what Cloudflare Tunnel and Tailscale point at. `/pair`
   goes to the pairing service, everything else to the relay. On a domain it answers only the
   community's current address, read from the relay's settings, and starts again when they change,
@@ -202,8 +223,20 @@ Left, with the reason:
 - Signing out doesn't end other copies of the same session; sessions expire after 30 days.
 - A member can fill the Umbrel's disk with uploads: Buzz has no per-member storage limit yet.
 
-`tests/umbrel/local/security.py` checks the fixes on a Mac without Docker, and `pre-submit.sh` tries
-the app's services as another app on the Umbrel would.
+On 2026-11-11, from Umbrel's review: Cloudflare's sign-in (`cert.pem`, an account-wide API token,
+with the tunnel's credentials file) is deleted once the name is routed, and Umbrel's backups skip
+its folder. Deleting the file doesn't revoke the token: it stays in the owner's Cloudflare profile
+(My Profile, API Tokens) until deleted there.
+
+What the live page's safety tips state, from Buzz 1.0.0 and relay 0.3.0: in the relay's default
+media mode any member with a file's link can open it, one from a private channel included
+([block/buzz#9077](https://github.com/block/buzz/pull/9077) adds an enforce mode, off by default);
+invite links last 3 days with no use limit by default, 30 days at most, and can't be canceled;
+removing a member isn't a ban, and Buzz 1.0 offers the owner of a self-hosted community no ban.
+
+`tests/umbrel/local/security.py` checks the fixes on a Mac without Docker,
+`tests/umbrel/local/cloudflare.py` runs the Cloudflare service's script with a stand-in
+`cloudflared`, and `pre-submit.sh` tries the app's services as another app on the Umbrel would.
 
 ## Tested
 
@@ -402,6 +435,10 @@ relay `sha-744f394`: `pre-submit.sh` on a fresh DigitalOcean droplet (Intel) pas
 ## Not yet tested
 
 - An update from the previous package on umbrelOS: the setup should carry over, with one sign-in.
+- The new Cloudflare steps against a real account (deleting the sign-in once routed, a new
+  sign-in after an address change): so far only with a stand-in `cloudflared`.
+- Relay 0.3.0's migration 0086 on a large database on slow ARM storage: it builds an index with a
+  5-second limit, and the relay won't start if that runs out.
 - A real Raspberry Pi: ARM itself passed on a Mac, but not the Pi's slower processor and storage.
   Umbrel asks for the chip type to be tested, not a particular device.
 
@@ -411,7 +448,10 @@ relay `sha-744f394`: `pre-submit.sh` on a fresh DigitalOcean droplet (Intel) pas
 `Beige-Coffee/umbrel-apps`, branch `add-buzz-relay`, which holds only `buzz/`. Umbrel's linter
 found no issues once the PR link was set. To change the PR, change the package here, copy
 `umbrel/buzz/` over the fork's `buzz/` without `__pycache__`, run
-`npm run lint:apps -- buzz --check-images` there, and push. The PR credits #5928 and says how it
+`npm run lint:apps -- buzz --check-images` there, and push. The setup page isn't in the PR: to
+change it, push a tag `umbrel-setup-vX.Y.Z`, then pin the new image's digest in
+`docker-compose.yml`. Nate Fretz (nmfretz) reviewed it on 2026-11-10 and holds his own end-to-end
+test, with real Cloudflare and Tailscale accounts, until we say the PR is final. The PR credits #5928 and says how it
 differs from [#5993](https://github.com/getumbrel/umbrel-apps/pull/5993).
 
 ## Testing again
@@ -457,7 +497,8 @@ bash tests/umbrel/local/down.sh                       # removes the run, data in
 ```
 
 The local run's password is `local-test-only`. `check.py` expects a fresh run: `down.sh`, then
-`up.sh`.
+`up.sh`. The local run serves the page from this checkout on the image's own base, so it tests
+edits before any image is published; the droplet runs use the published image.
 
 ## Gotchas found while testing
 

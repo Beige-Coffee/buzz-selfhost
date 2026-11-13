@@ -61,8 +61,8 @@ done: the work they call for is listed where it is still owed.
 - **Kubernetes pins both images by digest.** Done on 2026-11-12: the relay and the file-store
   image, with the test running the steps' own values block, proved by the Kubernetes run.
 - **Upgrades into migration 0086 follow Block's note**, as corrected below.
-- **The launch gets a version tag.** Owed: one tag on the tested commit, made when the owner
-  approves publishing.
+- **The launch gets a version tag.** Done on 2026-11-13: `v1.0.0` on the commit deployed to
+  self-host.buzz that day, after the owner approved publishing.
 - **A place to ask** is the page's last section, and in the menu as Ask. It shows how to join
   Block's feedback community for Buzz in three steps, each under a still drawing: Block's invite
   page, Buzz's community list, and the channel. The owner picked the look from three mockups. The

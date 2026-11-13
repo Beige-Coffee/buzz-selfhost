@@ -5,7 +5,7 @@ for caddy and tailscale.
 
   python3 tests/umbrel/local/security.py
 """
-import base64, html, http.client, http.server, importlib.machinery, importlib.util, io, json, os, shutil, signal
+import base64, html, html.parser, http.client, http.server, importlib.machinery, importlib.util, io, json, os, shutil, signal
 import re, socket, subprocess, sys, tempfile, threading, time
 import signin_files as sf
 
@@ -633,6 +633,109 @@ try:
     ok({"Copy", "Copy the address"} <= {label for _, label in copies} and {call for call, _ in copies} == {"copyText(this, this.dataset.copy)"},
        "the address reaches both copy buttons through a data attribute, never inside script")
     m.request, m.resolves = real_request, real_resolves
+
+    def fetch(path, signed_in=True):
+        """(status, text) for a GET, or (None, the error) when the server drops the connection."""
+        conn = http.client.HTTPConnection("127.0.0.1", PORT, timeout=15)
+        try:
+            conn.request("GET", path, headers={"Cookie": m.COOKIE + "=" + session} if signed_in else {})
+            response = conn.getresponse()
+            return response.status, response.read().decode(errors="replace")
+        except (OSError, http.client.HTTPException) as error:
+            return None, repr(error)
+        finally:
+            conn.close()
+
+    status, text = fetch("/status.json", signed_in=False)
+    refused = json.loads(text) if status == 401 else {}
+    ok(status == 401 and refused and "html" not in refused and "sig" not in refused,
+       "without a session, status.json is refused: 401, with neither the checks nor their signature")
+
+    print("== Names in the page's own files that it never wrote")
+
+    class Markup(html.parser.HTMLParser):
+        """The elements in some HTML, and every attribute that runs script."""
+        def __init__(self, text):
+            super().__init__()
+            self.tags, self.handlers = [], []
+            self.feed(text)
+            self.close()
+
+        def handle_starttag(self, tag, attrs):
+            self.tags.append(tag)
+            self.handlers += [(name, value) for name, value in attrs if name.startswith("on")]
+
+    def harmless(text, scripts):
+        """No element or script from a name: the page's own script alone, and no handler but its copy buttons'."""
+        found = Markup(text)
+        return (found.tags.count("script") == scripts and "img" not in found.tags
+                and set(found.handlers) <= {("onclick", "copyText(this, this.dataset.copy)")})
+
+    # Written straight into setup.json and the relay's settings, as a service sharing a folder could, past the checks
+    # save() makes: the page escapes every place a name goes, on the live page, while connecting, and in status.json
+    NAMES = ['buzz.example.com"><img src=x onerror=alert(1)>', "x'><script>alert(2)</script>.example.com",
+             "</script><script>alert(3)</script>", 'a" onmouseover="alert(4)" b']
+    SERVE = "https://buzz.tail1234.ts.net (tailnet only)\n|-- / proxy http://buzz-gateway:80\n"
+    write(m.CLOUDFLARE_LOGIN, "https://dash.cloudflare.com/argotunnel?aud=&callback=x\n")
+    write(m.TAILSCALE_STATUS, json.dumps({"BackendState": "Running", "Self": {"DNSName": "buzz.tail1234.ts.net."}}))
+    write(m.TAILSCALE_SERVE, SERVE)
+    seen, failed = 0, []
+    for name in NAMES:
+        # live, a community that answers, with moderation advertised at the name; connecting, nothing answers; and the
+        # private network live, its device check carrying the name
+        for mode, cf, request, addresses, want in (
+                ("domain", "running", community(m.admin_origin(name)), ["104.16.0.1"], "Moderation is reachable at"),
+                ("domain", "signin", real_request, [], "Sign in to Cloudflare</a>"),
+                ("private", "", community(""), [], "Checking from this device")):
+            record = {"owner": OWNER, "owner_hex": KEY, "mode": mode, "domain": name, "push": True}
+            if mode == "domain":
+                record["moderation"] = True  # moderation's address carries the name too
+            write(m.SETUP_JSON, json.dumps(record))
+            write(m.RELAY_ENV, "RELAY_OWNER_PUBKEY=" + KEY + "\nBUZZ_DOMAIN=" + name + "\n")
+            write(m.CLOUDFLARE_STATE, cf + "\n")
+            m.request = request
+            m.resolves = lambda domain, found=addresses: list(found)
+            m.forget_admin()
+            m.CACHE["key"] = None
+            status, text = fetch("/")
+            m.CACHE["key"] = None
+            listed_status, listed = fetch("/status.json")
+            checks = json.loads(listed)["html"] if listed_status == 200 else ""
+            shown = html.escape(name)
+            good = (status == 200 and want in text and harmless(text, 1) and name not in text and shown in text
+                    and harmless(checks, 0) and name not in checks and shown in checks)
+            seen += 1
+            if not good:
+                failed.append((mode, cf, name))
+    ok(seen == 12 and not failed, "a name with quotes, an element or a script in it shows as text everywhere, in %d pages and their "
+       "status.json: no element, script or handler from it%s" % (seen, (": not " + repr(failed)) if failed else ""))
+
+    print("== Bytes that aren't text in the helpers' files")
+    NOT_TEXT = b"\xff\xfe\x80\xc3 not text \xed\xa0\x80\n"
+    fresh("domain", "buzz.example.com")
+    m.request, m.resolves = real_request, real_resolves
+    write(m.CLOUDFLARE_STATE, "signin\n")
+    with open(m.CLOUDFLARE_LOGIN, "wb") as f:
+        f.write(NOT_TEXT + b"https://dash.cloudflare.com/argotunnel?aud=&callback=x\n")
+    m.CACHE["key"] = None
+    signin = fetch("/")
+    write(m.CLOUDFLARE_STATE, "error\n")
+    with open(m.CLOUDFLARE_SETUP, "wb") as f:
+        f.write(b"ERR Failed to add route: " + NOT_TEXT)
+    m.CACHE["key"] = None
+    refused_step = fetch("/")
+    fresh("private", "buzz.tail1234.ts.net")
+    write(m.TAILSCALE_SERVE, "")
+    with open(os.path.join(m.TAILSCALE_DIR, "tailscale-publish.log"), "wb") as f:
+        f.write(NOT_TEXT + b"To enable, visit:\n\n https://login.tailscale.com/f/serve?node=n1\n")
+    m.CACHE["key"] = None
+    consent = fetch("/")
+    os.remove(os.path.join(m.TAILSCALE_DIR, "tailscale-publish.log"))
+    ok(signin[0] == 200 and "argotunnel?aud=&amp;callback=x" in signin[1] and refused_step[0] == 200
+       and "Failed to add route" in refused_step[1] and consent[0] == 200 and "Allow it in Tailscale" in consent[1],
+       "bytes that aren't UTF-8 in Cloudflare's sign-in and setup logs and Tailscale's log: the page still opens, with the links "
+       "and the error line (%s %s %s)" % (signin[0], refused_step[0], consent[0]))
+    fresh("domain", "buzz.example.com")
 finally:
     printed, sys.stderr = sys.stderr.getvalue(), stderr
 ok(printed == "", "nothing reached the page's error output in all of this%s" % (": " + printed[:300] if printed else ""))

@@ -155,8 +155,23 @@ for _ in range(40):
 ok(bool(cf_link), "the app's own Cloudflare tunnel waits for a sign-in, with Cloudflare's link")
 s, body, _ = call("/")
 ok("Sign in to Cloudflare" in body and html.escape(cf_link) in body, "the page shows that sign-in link")
-s, data, _ = call("/status.json")
-data = json.loads(data) if s == 200 else {}
+
+
+def steady_page(tries=8):
+    """The page and status.json while the checks hold still: status.json before and after the page, with the same
+    signature both times. The relay can become ready between two requests, and changes the bar when it does."""
+    for _ in range(tries):
+        s1, before, _ = call("/status.json")
+        s, body, _ = call("/")
+        s2, after, _ = call("/status.json")
+        before, after = (json.loads(before) if s1 == 200 else {}), (json.loads(after) if s2 == 200 else {})
+        if s == 200 and before.get("sig") and before.get("sig") == after.get("sig"):
+            return body, after
+        time.sleep(2)
+    return body, after
+
+
+body, data = steady_page()
 ok(you(body) == ["Sign in to Cloudflare"] and data.get("html", "-") in body and 'data-sig="' + data.get("sig", "-") + '"' in body,
    "the progress bar marks Cloudflare's sign-in as the owner's turn, and status.json sends the same bar")
 

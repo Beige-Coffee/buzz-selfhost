@@ -2,9 +2,10 @@
 another container on the shared network, setup, persistence across restarts, owner and address
 changes, switching back, the Tailscale modes up to the sign-in link, a sign-in uploaded as the file
 Cloudflare saved, taken by the real Cloudflare service, and moderation turned on and off, with the relay's
-admin API asked through the gateway and a ban. Prints PASS/FAIL lines. The app password is read from
-run/.env and never printed. The upload is made up: Cloudflare refuses its token once. The test keys for
-moderation are made here and kept in memory."""
+admin API asked through the gateway, a ban that an invite link doesn't get around, its lift, and a restart
+with moderation on. Prints PASS/FAIL lines. The app password is read from run/.env and never printed.
+The upload is made up: Cloudflare refuses its token once. The test keys for moderation are made here and
+kept in memory."""
 import html, http.cookiejar, importlib.machinery, importlib.util, io, json, os, re, subprocess, sys, tarfile, time, uuid
 import urllib.error, urllib.parse, urllib.request
 import signin_files
@@ -408,6 +409,20 @@ def member_post(secret, kind, tags, content=""):
     return (status if status != 200 or accepted else "200, not accepted"), text
 
 
+def api_post(secret, path, body):
+    """A signed POST to the relay's HTTP API at the community's own address, as Buzz sends one: (status, body)."""
+    got = gateway(D1, "POST", path, body=body, auth=lib("nip98.py", "POST", "https://" + D1 + path, body, secret=secret))
+    return got.get("status"), got.get("body", "")
+
+
+def json_of(text):
+    try:
+        value = json.loads(text)
+    except ValueError:
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
 owner_sk, owner_key = lib("keygen.py").split()
 member_sk, member_key = lib("keygen.py").split()
 s, body, _ = call("/owner", {"owner": owner_key})
@@ -452,6 +467,15 @@ for _ in range(10):
         break
     time.sleep(2)
 ok(refused, "the banned member's posts are refused: banned from this community")
+# The page says a banned identity can't come back with an invite link, and a new identity still joins with one
+s, text = api_post(owner_sk, "/api/invites", "{}")
+code = (json_of(text) if s == 200 else {}).get("code", "")
+s1, t1 = api_post(member_sk, "/api/invites/claim", json.dumps({"code": code}))
+guest_sk, _ = lib("keygen.py").split()
+s2, t2 = api_post(guest_sk, "/api/invites/claim", json.dumps({"code": code}))
+ok(bool(code) and s1 == 403 and json_of(t1).get("error") == "invite_restricted" and s2 == 200 and json_of(t2).get("status") == "joined",
+   "the banned identity can't come back with the owner's invite link (HTTP %s, invite_restricted), and a new identity "
+   "joins with the same link (HTTP %s)" % (s1, s2))
 s, body, _ = call("/moderation", {})
 ok(s == 303 and "BUZZ_ADMIN_HOST" not in settings("relay.env") and '"moderation": false' in settings("setup.json"),
    "the page turns it off: the line goes, and setup.json keeps \"moderation\": false")
@@ -461,6 +485,20 @@ s, text = member_post(member_sk, 9, [["h", channel]], "with moderation off")
 ok(s == 403 and "banned" in text, "the ban holds with moderation off")
 call("/moderation", {"moderation": "on"})
 advertised(ORIGIN)
+lift = "/api/admin/v1/members/" + member_key + "/ban?communityHost=" + D1
+got = gateway(D1 + ":8443", "DELETE", lift, auth=signed(owner_sk, "DELETE", lift))
+back = None
+for _ in range(10):
+    back, _ = member_post(member_sk, 9, [["h", channel]], "after the ban is lifted")
+    if back == 200:
+        break
+    time.sleep(2)
+ok(got["status"] == 204 and back == 200,
+   "turned on again, the owner lifts the ban (HTTP %s), and the member posts again (HTTP %s)" % (got["status"], back))
+sh("docker", "compose", "-p", "buzzlocal", "--env-file", os.path.join(L, "run/.env"), "-f", os.path.join(L, "run/compose.yml"), "restart")
+time.sleep(5)
+ok(advertised(ORIGIN) and relay_admin_env() == "BUZZ_ADMIN_HOST=" + D1 + ":8443" and probe(owner_sk)["status"] == 200,
+   "after a restart of every container it's still on: advertised, and the owner's signature still gets in")
 s, body, _ = call("/owner", {"owner": OWNER2})
 time.sleep(8)
 ok(s == 303 and advertised(ORIGIN) and owner_of(members()) == hexkey(OWNER2) and probe(owner_sk)["status"] == 403,

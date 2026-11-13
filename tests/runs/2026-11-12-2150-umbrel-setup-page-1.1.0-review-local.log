@@ -1,0 +1,279 @@
+# The setup page's next image (1.1.0, not published), after the review of the built code: the Cloudflare
+# service's read of an uploaded sign-in gets a 5-second limit, texts that said more than Buzz or the relay
+# does, and the moderation tests the design planned. On an Apple Silicon Mac, Docker Desktop, no umbrelOS,
+# no cost. The page from this checkout; relay 0.3.0's image and the package's other images as pinned. The
+# mocked suites' summary lines, then check.py on a fresh up.sh run, then by hand against the same
+# containers, removed afterwards with down.sh.
+
+$ python3 tests/umbrel/local/render.py
+rendered 1067 page states without errors
+
+# Each of 9 copies of setup.py with one of the review's text fixes undone, through render.py: each made it fail
+caught  the private tip's lead kept while on
+caught  no operator line in STAFF_RETURN
+caught  the review sentence on Tailscale too
+caught  the owner's loss not said
+caught  the owner form without the operator line
+caught  no tooltip hint
+caught  the third message's cause not hedged
+caught  no operator warning before turning off
+caught  the ban point back to 'that identity'
+
+$ docker run --rm -v "$PWD:/repo:ro" -w /repo python:3.13.16-alpine3.24 sh -c 'python3 tests/umbrel/local/render.py; python3 tests/umbrel/local/cloudflare.py'   # the image's Python, on Linux, with busybox's timeout
+rendered 1067 page states without errors
+(cloudflare.py, its last section and summary)
+== A pipe in the upload's place after the service's test
+PASS  on a new address, the service waits for a sign-in again
+PASS  a read of the upload that never returns ends after its time limit, and the file is dropped (in 8 s): no cert.pem, the same sign-in still waiting
+PASS  and the service answers the next change
+
+passed: 63  failed: 0
+
+$ python3 tests/umbrel/local/security.py
+passed: 103  failed: 0
+
+$ python3 tests/umbrel/local/cloudflare.py
+== A pipe in the upload's place after the service's test
+PASS  on a new address, the service waits for a sign-in again
+PASS  a read of the upload that never returns ends after its time limit, and the file is dropped (in 8 s): no cert.pem, the same sign-in still waiting
+PASS  and the service answers the next change
+
+passed: 63  failed: 0
+
+# The same against a copy of the package without the read's time limit: the new section fails
+$ python3 tests/umbrel/local/cloudflare.py <that copy>/umbrel/buzz
+== A pipe in the upload's place after the service's test
+PASS  on a new address, the service waits for a sign-in again
+FAIL  a read of the upload that never returns ends after its time limit, and the file is dropped (in 15 s): no cert.pem, the same sign-in still waiting
+FAIL  and the service answers the next change
+
+passed: 61  failed: 2
+
+# The review's race, against the fixed take(): a writer swaps a plain file and a pipe at the upload's path
+# while take() runs 25 times, with sh, then dash. Before the fix, take() stayed blocked on the pipe.
+finished all 25 takes: done; the longest took 5 s; 5 hit the time limit
+finished all 25 takes: done; the longest took 6 s; 5 hit the time limit
+
+# preview.py, each of its 11 scenarios on its own port, its page and status.json fetched, and what the
+# moderation scenarios should show, the review's new texts among them
+passed: 11  failed: 0
+
+$ bash tests/umbrel/local/up.sh && python3 tests/umbrel/local/check.py
+== Sign-in
+PASS  the page sends a visitor without a session to sign in
+PASS  status.json refuses a visitor without a session (HTTP 401)
+== Another app on the same Docker network, going around Umbrel's proxy
+PASS  a direct request from another container can't save settings or read status (HTTP 401 401)
+PASS  nothing was saved by that request
+PASS  a wrong password is refused
+PASS  the app password signs in and sets a session cookie
+PASS  the session cookie is HttpOnly
+PASS  a form posted from another app's page on the same Umbrel is refused (HTTP 403)
+PASS  the page's own forms pass whatever Host the proxy forwards (reached validation)
+== Setup
+PASS  signed in, the page shows the setup steps
+PASS  creating without the acknowledgement is refused
+PASS  a bad public ID is refused
+PASS  a home-network-only name is refused
+PASS  the owner and the domain are saved (HTTP 303)
+PASS  the relay starts with the saved address (NIP-11 answers for buzz-one.local-test.invalid)
+PASS  the relay's owner is the page's owner
+PASS  phone notifications are on by default (NIP-11 offers buzz-push-v1)
+PASS  the page shows the Cloudflare steps, and that the name doesn't resolve
+PASS  the page gives the tunnel's service URL
+PASS  the app's own Cloudflare tunnel waits for a sign-in, with Cloudflare's link
+PASS  the page shows that sign-in link
+== Persistence across a restart of every container
+PASS  the relay comes back with the same identity
+PASS  the owner survives the restart
+PASS  the session survives the restart and the page remembers the setup
+== Phone notifications
+PASS  turning phone notifications off is saved
+PASS  the relay restarts without them
+PASS  the page shows them off
+== Changing the owner
+PASS  the new owner is saved
+PASS  the relay's owner is the new one
+PASS  the previous owner is now an admin
+PASS  phone notifications stay off through the owner change
+PASS  turning them back on offers them again
+== Changing the address, guarded
+PASS  a change without typing the current address is refused
+PASS  typing the current address confirms the change, with the new address in the two boxes
+PASS  the new address is a separate community: the owner, and none of the old members
+PASS  switching back to the first address brings its community back, admin included
+== The Tailscale modes, up to the sign-in
+PASS  choosing the free Tailscale address starts Tailscale in Funnel mode
+PASS  and turns the Cloudflare tunnel off: it waits, with no sign-in running
+PASS  Tailscale is waiting for a sign-in, with a link
+PASS  the page shows that sign-in link
+PASS  the relay waits: no address until Tailscale names the machine
+PASS  with no address to type, a change needs the box ticked
+PASS  with no address yet, switching to the private network needs only the acknowledgement
+PASS  going back to the domain turns Tailscale off
+PASS  and the first address's community is back
+PASS  Tailscale stopped and cleared its state for the page
+PASS  switching to Tailscale again starts it again, with a sign-in link (private network)
+PASS  the page shows the private network's sign-in step
+== A sign-in Cloudflare saved as a file, uploaded
+PASS  the service's own check, in the real image, takes exactly the 14 made-up files the page takes, of 57
+PASS  back on the domain, the page takes a sign-in file while the service waits (HTTP 303)
+PASS  within seconds the real service took it: the upload is gone and the tunnel moved on (creating)
+PASS  it's the service's cert.pem, byte for byte as uploaded, mode 600, owned by the app's user (600 1000)
+PASS  Cloudflare refuses the made-up token, and the page offers Sign in to Cloudflare again
+PASS  the reset deletes that sign-in and starts a new one, with a new link
+== Moderation: the relay's admin API at buzz-one.local-test.invalid:8443, from the real image
+PASS  a test owner whose key is held here becomes the owner
+PASS  moderation is off by default: no admin API advertised, and none at buzz-one.local-test.invalid:8443
+PASS  the page turns it on: its line in the relay's settings
+PASS  the relay restarts with it, and its NIP-11 advertises admin_api https://buzz-one.local-test.invalid:8443
+PASS  the relay process has that alone: no open mode, no other operators, no browser dashboard (BUZZ_ADMIN_HOST=buzz-one.local-test.invalid:8443)
+PASS  through the gateway, buzz-one.local-test.invalid:8443 is the relay's admin host: 404 with its own security policy (HTTP 404)
+PASS  a browser there gets no page: the dashboard is off (HTTP 404)
+PASS  an unsigned request to the admin API is refused (HTTP 401)
+PASS  another key's signature is refused (HTTP 403)
+PASS  the owner's signature gets in: the operator, as the relay's owner (HTTP 200)
+PASS  the same signature sent for the community's own address is refused (HTTP 403)
+PASS  a member posts (HTTP 200, 200)
+PASS  the owner bans the member through the admin API (HTTP 200)
+PASS  the banned member's posts are refused: banned from this community
+PASS  the banned identity can't come back with the owner's invite link (HTTP 403, invite_restricted), and a new identity joins with the same link (HTTP 200)
+PASS  the page turns it off: the line goes, and setup.json keeps "moderation": false
+PASS  the relay restarts without it: no admin API advertised
+PASS  and none at buzz-one.local-test.invalid:8443, for the owner either
+PASS  the ban holds with moderation off
+PASS  turned on again, the owner lifts the ban (HTTP 204), and the member posts again (HTTP 200)
+PASS  after a restart of every container it's still on: advertised, and the owner's signature still gets in
+PASS  after an owner change it stays on, and the previous owner's signature is refused (HTTP 403)
+PASS  choosing a Tailscale option turns it off
+PASS  and back on the domain, it stays off
+
+passed: 78  failed: 0
+
+# By hand, against the same containers: e2e.sh's whole moderation section as written there, and its new block
+# after the restart. Swapped: the umbrelOS layer (the containers run on Docker directly), the public address
+# (requests go through the gateway with the community's Host, not through Cloudflare) and the page's sign-in
+# (its published port, not the container's address). Every container restarted instead of Umbrel's restart.
+INFO  member A makes an open channel: HTTP 200
+INFO  member B joins it: HTTP 200
+== Moderation: the relay's admin API, turned on and off on the app's page
+PASS  moderation is off by default: NIP-11 advertises no admin API
+PASS  and buzz-one.local-test.invalid:8443 has no admin API (HTTP 404)
+PASS  the page turns it on: one line in the relay's settings, BUZZ_ADMIN_HOST=buzz-one.local-test.invalid:8443
+PASS  the relay restarts with it: NIP-11 advertises admin_api https://buzz-one.local-test.invalid:8443
+PASS  the relay process has that alone: no open mode, no other operators, and no browser dashboard
+INFO  from this machine, through Cloudflare, https://buzz-one.local-test.invalid:8443/ answered HTTP 000 (404 when Cloudflare carries port 8443 to it)
+PASS  through the gateway, buzz-one.local-test.invalid:8443 is the relay's admin host (404 with its own security policy)
+PASS  a browser there gets no page: the dashboard is off
+PASS  an unsigned request to the admin API is refused (HTTP 401)
+PASS  a member's signature is refused (HTTP 403)
+PASS  the owner's signature gets in (HTTP 200): the operator, as the relay's owner
+PASS  the same signature sent for the community's own address is refused (HTTP 403)
+PASS  the owner bans member A through the admin API (HTTP 200)
+PASS  member A's posts are refused: banned from this community
+PASS  member B still posts
+PASS  member A can't come back with the owner's new invite link (HTTP 403, invite_restricted)
+PASS  a new identity joins with the same link
+PASS  the page turns it off: the line is gone from the relay's settings
+PASS  the relay restarts without it: NIP-11 advertises no admin API
+PASS  and buzz-one.local-test.invalid:8443 has no admin API again (HTTP 404)
+PASS  the ban holds with moderation off
+PASS  the page turns it on again, and NIP-11 advertises it
+PASS  the owner lifts member A's ban through the admin API (HTTP 204)
+PASS  member A posts again
+== (instead of Umbrel's restart) every container restarted
+PASS  moderation stays on through the restart: NIP-11 advertises https://buzz-one.local-test.invalid:8443
+PASS  then the page turns it off
+passed: 25  failed: 0
+
+# By hand, against the same containers: tests/umbrel/moderation.sh's functions as written there, with the
+# umbrelOS layer swapped the same way and the gateway standing in for Cloudflare. The harness made the test
+# owner the page's owner first. Key files: made-up test keys in a private folder, removed afterwards.
+$ moderation.sh status
+page:     option domain, moderation off, after being on
+address:  buzz-one.local-test.invalid
+settings: no BUZZ_ADMIN_HOST line
+relay:    no admin settings
+exit 0
+
+$ moderation.sh add-member buzz-one.local-test.invalid <member keys>
+added <hex> as member
+PASS  the member belongs to the community at buzz-one.local-test.invalid
+
+passed: 1  failed: 0
+exit 0
+
+$ moderation.sh check buzz-one.local-test.invalid <member keys> <owner keys>
+INFO  NIP-11 at https://buzz-one.local-test.invalid/ has no admin_api: moderation is off, so the rest is judged for that
+PASS  https://buzz-one.local-test.invalid:8443/ reached the relay with Host buzz-one.local-test.invalid:8443 (no community there): Cloudflare, cloudflared and the gateway keep the port
+PASS  https://buzz-one.local-test.invalid:8443/api/admin/v1/probe, no credential: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  https://buzz-one.local-test.invalid/api/admin/v1/probe, no credential: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  https://buzz-one.local-test.invalid:8443/api/admin/v1/probe, no credential, no User-Agent: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  https://buzz-one.local-test.invalid:8443/api/admin/v1/probe, signed by the member, no User-Agent: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  the same signature sent to https://buzz-one.local-test.invalid/api/admin/v1/probe: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  https://buzz-one.local-test.invalid:8443/api/admin/v1/probe, signed by the owner: an empty 404, no admin API yet
+PASS  the owner's signature sent to https://buzz-one.local-test.invalid/api/admin/v1/probe: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+
+passed: 8  failed: 0
+exit 0
+
+$ moderation.sh on buzz-one.local-test.invalid
+PASS  the page turned moderation on: BUZZ_ADMIN_HOST=buzz-one.local-test.invalid:8443 in the relay's settings
+PASS  the relay process has that alone: no open mode, no other operators, no browser dashboard
+PASS  https://buzz-one.local-test.invalid/_liveness answers
+PASS  NIP-11 at https://buzz-one.local-test.invalid/ advertises admin_api https://buzz-one.local-test.invalid:8443: moderation is on
+
+passed: 4  failed: 0
+exit 0
+
+$ moderation.sh check buzz-one.local-test.invalid <member keys> <owner keys>
+PASS  NIP-11 at https://buzz-one.local-test.invalid/ advertises admin_api https://buzz-one.local-test.invalid:8443: moderation is on
+PASS  https://buzz-one.local-test.invalid:8443/ reached the relay with Host buzz-one.local-test.invalid:8443: its admin host answered (404 with the admin CSP)
+PASS  https://buzz-one.local-test.invalid:8443/api/admin/v1/probe, no credential: HTTP 401 unauthorized from the relay's admin API (WWW-Authenticate: Nostr)
+PASS  https://buzz-one.local-test.invalid/api/admin/v1/probe, no credential: HTTP 401 unauthorized from the relay's admin API (WWW-Authenticate: Nostr)
+PASS  https://buzz-one.local-test.invalid:8443/api/admin/v1/probe, no credential, no User-Agent: HTTP 401 unauthorized from the relay's admin API (WWW-Authenticate: Nostr)
+PASS  https://buzz-one.local-test.invalid:8443/api/admin/v1/probe, signed by the member, no User-Agent: HTTP 403 forbidden from the relay's admin API
+PASS  the same signature sent to https://buzz-one.local-test.invalid/api/admin/v1/probe: HTTP 403 forbidden from the relay's admin API
+PASS  https://buzz-one.local-test.invalid:8443/api/admin/v1/probe, signed by the owner, no User-Agent: HTTP 200, the operator as the relay's owner
+PASS  the owner's signature sent to https://buzz-one.local-test.invalid/api/admin/v1/probe: HTTP 403 forbidden from the relay's admin API
+
+passed: 9  failed: 0
+exit 0
+
+$ moderation.sh status
+page:     option domain, moderation on
+address:  buzz-one.local-test.invalid
+settings: BUZZ_ADMIN_HOST=buzz-one.local-test.invalid:8443
+relay:    BUZZ_ADMIN_HOST=buzz-one.local-test.invalid:8443
+exit 0
+
+$ moderation.sh off buzz-one.local-test.invalid
+PASS  the page turned moderation off: the line is gone, and setup.json keeps "moderation": false
+PASS  the relay process has no admin settings
+PASS  https://buzz-one.local-test.invalid/_liveness answers
+INFO  NIP-11 at https://buzz-one.local-test.invalid/ has no admin_api: moderation is off, so the rest is judged for that
+
+passed: 3  failed: 0
+exit 0
+
+$ moderation.sh check buzz-one.local-test.invalid <member keys>
+INFO  NIP-11 at https://buzz-one.local-test.invalid/ has no admin_api: moderation is off, so the rest is judged for that
+PASS  https://buzz-one.local-test.invalid:8443/ reached the relay with Host buzz-one.local-test.invalid:8443 (no community there): Cloudflare, cloudflared and the gateway keep the port
+PASS  https://buzz-one.local-test.invalid:8443/api/admin/v1/probe, no credential: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  https://buzz-one.local-test.invalid/api/admin/v1/probe, no credential: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  https://buzz-one.local-test.invalid:8443/api/admin/v1/probe, no credential, no User-Agent: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  https://buzz-one.local-test.invalid:8443/api/admin/v1/probe, signed by the member, no User-Agent: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  the same signature sent to https://buzz-one.local-test.invalid/api/admin/v1/probe: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+
+passed: 6  failed: 0
+exit 0
+
+$ moderation.sh status
+page:     option domain, moderation off, after being on
+address:  buzz-one.local-test.invalid
+settings: no BUZZ_ADMIN_HOST line
+relay:    no admin settings
+exit 0
+
+$ bash tests/umbrel/local/down.sh
+ Network umbrel_main_network_local  Removed

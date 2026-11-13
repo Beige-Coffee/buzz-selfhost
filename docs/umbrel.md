@@ -20,9 +20,9 @@ would, passed 115 of 115 on an Intel droplet. On 2026-11-10 Umbrel's reviewer ra
 image for the setup page; Buzz 1.0 came out the same day. On 2026-11-11 all three went in, with relay
 0.3.0, Block's tagged release, in place of a build of main, the page's steps and drawings for Buzz 1.0,
 and safety tips on the live page. `pre-submit.sh` passed 115 of 115 on an Intel droplet with the relay and the page's
-image. On 2026-11-12 the page gained two features for its next image, 1.1.0, not yet published: it takes the
-`cert.pem` Cloudflare's page can save in the browser instead of passing it on, and an owner on their own domain
-can turn on moderation (below). Both passed the page's local tests and the package's containers on Docker; the
+image. On 2026-11-12 the page gained two features for its next image, 1.1.0, not yet published: when Cloudflare's
+page saves `cert.pem` in the browser instead of passing it to the app, the owner can upload that file, and an owner
+on their own domain can turn on moderation (below). Both passed the page's local tests and the package's containers on Docker; the
 package still pins the 1.0.0 image. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package
@@ -233,9 +233,10 @@ that turns it on. Built for the page's image 1.1.0, not yet published.
 - **Who gets in.** Signed requests only (NIP-98, the relay's default): `BUZZ_ADMIN_AUTH` stays unset,
   never `disabled`, which would serve every moderation read to anyone. `RELAY_OPERATOR_PUBKEYS` stays
   unset too, so the owner set on the page is the only built-in operator (the relay's owner fallback).
-  The owner adds staff in Buzz. The relay checks a signature against `https://<domain>:8443` and the
-  request's Host, so a member's signature, or the owner's sent to the community's own address, gets
-  403.
+  The owner adds staff in Buzz. The relay checks each signature against `https://<domain>:8443`, then the
+  roster, then the request's Host (`authorize_staff` in `api/admin/auth.rs`): a member's signature gets 403
+  because they aren't staff, and the owner's, sent to the community's own address, gets 403 from the Host
+  check.
 - **The relay's entrypoint** unsets `BUZZ_ADMIN_HOST`, `BUZZ_ADMIN_AUTH`, `BUZZ_ADMIN_TOKEN`,
   `RELAY_OPERATOR_PUBKEYS` and `BUZZ_ADMIN_WEB_DIR` before it reads the settings, and its settings
   reader takes `BUZZ_ADMIN_HOST` alone of them. So the page is the only source: nothing in the compose
@@ -255,11 +256,15 @@ that turns it on. Built for the page's image 1.1.0, not yet published.
 - **Bans and staff outlive the switch.** Turning it off removes the line and the relay restarts
   without the admin API. Bans and timeouts stay enforced; lifting them needs moderation on again.
   Staff rows stay in the database and come back with it, also after Change the owner, where the new
-  owner becomes the operator and the old one no longer is. So once it has been on, `setup.json` keeps
-  `"moderation": false` when it's off: the row then warns that earlier staff return, and the Owner
-  form says staff stay. A missing key means it was never on. A ban keeps one identity, and the agents
-  that join through it, out of one community, even with an invite link; a person can come back under a
-  new identity, and the page's texts say so.
+  owner becomes the operator and the old one no longer is. Staff with the operator role keep one power
+  while it's off: relay 0.3.0 lets an operator rename any listed open channel, whatever their role in it,
+  with no admin host (`operator_may_rename` in `handlers/side_effects.rs`, through `is_relay_operator`).
+  So once it has been on, `setup.json` keeps `"moderation": false` when it's off. The row then warns that
+  earlier staff return and that operators can rename public channels meanwhile; the Owner form says the
+  same. While it's on, the row and the Owner form say to remove staff the owner no longer trusts first,
+  and the Owner form says the owner loses Moderation with the change. A missing key means it was never
+  on. A ban keeps one identity, and the agents that join through it, out of one community, even with an
+  invite link; a person can come back under a new identity, and the page's texts say so.
 - **Addresses.** It's offered once the community is live on the owner's own domain. Moving to another
   domain keeps it on, at the new name: the line follows the domain at every save. A Tailscale option
   turns it off, and back on a domain it stays off until the owner turns it on again. On the Tailscale
@@ -278,9 +283,13 @@ that turns it on. Built for the page's image 1.1.0, not yet published.
   asked again by a page load after 30 seconds. Each look is one warning line in the relay's log. The
   page never shows what NIP-11 advertises: it compares it with its own address.
 - **When Buzz's check fails**, Buzz keeps Moderation out of Settings without a word and says why only in
-  Settings, Plugins, Manage plugins, Moderation. The row explains Buzz 1.0.0's three messages there
-  (Could not check access; Access is unavailable in this build or on this relay; Select a community on a
-  relay where you have staff access) and what each likely means here.
+  Settings, Plugins, Manage plugins, Moderation, and even there only as a tooltip: the plugin says
+  "Unavailable", and pointing at its button shows the reason (`src/app/Settings.tsx`). The row says so, and
+  explains Buzz 1.0.0's three messages (Could not check access; Access is unavailable in this build or on
+  this relay; Select a community on a relay where you have staff access) and what each likely means here.
+  Buzz shows the third for any 401 or 403 that isn't an HTML page (`relay-staff/staff.ts`), so also for
+  Cloudflare's plain-text refusal and the relay's refusal of a Host that lost its port: the row sends the
+  owner to the page's own check first.
 
 ## Security review
 
@@ -343,13 +352,29 @@ Left, with the reason:
   nothing limits how fast requests come, and Block hasn't confirmed this public use with NIP-98 yet.
 - The owner and staff can read any stored message by its ID while it's on; members learn it only if
   the owner shares the tips.
-- Staff and bans outlive the switch and owner changes. The page warns, but it can't list the staff.
+- Staff and bans outlive the switch and owner changes, and staff with the operator role can rename public
+  channels while it's off. The page warns, but it can't list the staff.
 - Cloudflare accounts with stricter security settings may turn away Buzz's admin client, which sends
   no User-Agent. The page can check only from the Umbrel's side.
 - The page's other writes into the folders it shares with the helpers (`write_atomic`) open their
   temporary files with a plain open, which follows a link; the upload's write refuses one. A
   compromised helper could make the page overwrite its own settings with its own content: a denial of
   service. A separate change.
+
+Then a review of the built code, the same day. Fixed:
+
+- The Cloudflare service tested an uploaded file and then read it by name, so whatever can write the
+  shared folder, a compromised page included, could swap in a pipe between the two and hold the
+  service's loop: no reset, address change or switch to Tailscale until a restart. The read now has 5
+  seconds (busybox's `timeout`, in the image), and `cloudflare.py` checks a read that never returns.
+- Texts that said more than Buzz or the relay does. The private-channel tip's lead still promised
+  privacy while moderation is on. Staff with the operator role can rename public channels while it's
+  off, which the page now says wherever it says staff come back. The Owner form didn't say the owner
+  loses Moderation with the change, and offered a review in Buzz on a Tailscale option. Buzz's reason
+  for hiding Moderation is a tooltip, and its third message also comes from Cloudflare or a lost port.
+- Tests the design planned: `tests/umbrel/moderation.sh` for the real-domain run, and in `check.py`
+  and `e2e.sh`, a banned identity's invite claim refused, a lifted ban, and moderation still on after a
+  restart.
 
 `tests/umbrel/local/security.py` checks the fixes on a Mac without Docker, the relay's entrypoint
 included (run with a stand-in relay that writes down the admin settings it got),
@@ -624,15 +649,35 @@ this Mac at no cost ([log](../tests/runs/2026-11-12-2000-umbrel-setup-page-1.1.0
 - By hand: `e2e.sh`'s moderation helpers, taken out of the script, worked against those containers.
   `e2e.sh` itself and `pre-submit.sh` weren't run: they need umbrelOS and the published image.
 
+Later the same evening, after the review of the built code (Security review, above), the same way
+([log](../tests/runs/2026-11-12-2150-umbrel-setup-page-1.1.0-review-local.log)):
+
+- **Mocked:** `render.py` 1067 page states, also on the image's Python 3.13 on Linux; each of the
+  review's text fixes, undone in a copy of the page, made it fail. `security.py` 103. `cloudflare.py` 63,
+  also on Linux with busybox's `timeout`, among them a read of the upload that never returns, which the
+  package without the time limit fails. `preview.py`'s 11 screens.
+- **Real:** `check.py` 78 of 78, adding that a banned identity's claim of the owner's invite link is
+  refused (`invite_restricted`) while a new identity joins with it, that a lifted ban lets the member post
+  again, and that moderation is still on after a restart of every container.
+- By hand, against those containers, with the gateway standing in for the public address: `e2e.sh`'s
+  whole moderation section and its new step after the restart, 25 of 25, and `moderation.sh`'s probes,
+  `on`, `off`, `status` and `add-member`. The review's race, a pipe swapped in over a plain file while
+  the Cloudflare service took uploads, no longer holds the service: 25 takes each with `sh` and `dash`,
+  the longest 6 s.
+
 ## Not yet tested
 
 - The page's image 1.1.0 on umbrelOS: it isn't published yet. Then `pre-submit.sh`, whose `e2e.sh` now
-  turns moderation on and off on the page, asks the admin API through the gateway and bans a member,
-  and whose tamper step adds admin settings to the relay's settings file.
+  turns moderation on and off on the page, asks the admin API through the gateway, bans a member, checks
+  the ban against an invite link, lifts it and keeps moderation on through a restart, and whose tamper
+  step adds admin settings to the relay's settings file.
 - An upload of a real `cert.pem` that Cloudflare saved in the browser, by hand: so far made-up files,
   in a browser and on the real Cloudflare service, which Cloudflare refused.
+- Umbrel's backup skipping an uploaded sign-in, the new `backupIgnore` line: `pre-submit.sh`'s markers
+  check it on a droplet, and it hasn't run since the line went in.
 - Moderation turned on from the page on a real domain, then Buzz's Moderation, a ban and turning it off:
   the by-hand test of 2026-11-12 set the line in the compose file, with the dashboard on.
+  `tests/umbrel/moderation.sh` has the steps, and hasn't run on a real domain in its committed form.
 - Whether a quick tunnel (`*.trycloudflare.com`) carries port 8443: `e2e.sh` prints what it gets as INFO.
 - Moderation through Umbrel's Cloudflare Tunnel app instead of the app's own tunnel, and on Cloudflare
   accounts with Bot Fight Mode or other stricter security settings.
@@ -651,8 +696,10 @@ found no issues once the PR link was set. To change the PR, change the package h
 `umbrel/buzz/` over the fork's `buzz/` without `__pycache__`, run
 `npm run lint:apps -- buzz --check-images` there, and push. The setup page isn't in the PR: to
 change it, push a tag `umbrel-setup-vX.Y.Z`, then pin the new image's digest in
-`docker-compose.yml`. Nate Fretz (nmfretz) reviewed it on 2026-11-10 and holds his own end-to-end
-test, with real Cloudflare and Tailscale accounts, until we say the PR is final. The PR credits #5928 and says how it
+`docker-compose.yml`. While `docker-compose.yml` still pins the page's 1.0.0 image, don't copy
+`umbrel/buzz/` to the fork: the App Store description already says the owner can turn on moderation
+from the app's page, which only 1.1.0 can do. Nate Fretz (nmfretz) reviewed it on 2026-11-10 and holds
+their own end-to-end test, with real Cloudflare and Tailscale accounts, until we say the PR is final. The PR credits #5928 and says how it
 differs from [#5993](https://github.com/getumbrel/umbrel-apps/pull/5993).
 
 ## Testing again
@@ -690,10 +737,29 @@ Its moderation section turns moderation on with the page's own form, then asks t
 through the gateway from inside umbrelOS, with the Host a request for `<name>:8443` has when the app's
 tunnel delivers it, so it doesn't depend on whether a quick tunnel carries port 8443. An unsigned
 request gets 401, a member's signature 403, and the test owner's 200 (signed with `tests/lib/nip98.py`).
-The owner bans a member through the admin API, the member's next post, made with `tests/lib/event.py`
-without the buzz CLI, is refused, and the ban holds once moderation is off again. With a real owner
-(`OWNER_HEX`), the owner's checks and the ban are skipped. On a Tailscale address (`DOMAIN` set to the
-ts.net name) it checks only that the page refuses to turn it on. It runs with `UMBREL_LOCAL=1` too.
+The owner bans a member through the admin API. The member's next post, made with `tests/lib/event.py`
+without the buzz CLI, is refused, and so is their claim of the owner's new invite link, which a new
+identity then joins with. The ban holds once moderation is off. Turned on again, the owner lifts the ban
+and the member posts again; moderation stays on through the restart through Umbrel, then goes off. With a
+real owner (`OWNER_HEX`), the owner's checks, the ban and the lift are skipped. On an Umbrel already set
+up on a Tailscale option (`SKIP_SETUP=1`, `DOMAIN` its ts.net name), it checks only that the page refuses
+to turn it on: the section follows the option saved on the page, and setup would refuse a ts.net name
+on the own-domain option. It runs with `UMBREL_LOCAL=1` too.
+
+On a real domain, [`tests/umbrel/moderation.sh`](../tests/umbrel/moderation.sh) asks what Buzz asks, from
+this computer through Cloudflare: whether NIP-11 advertises moderation, whether `https://<name>:8443`
+reaches the relay with its port, and how the admin API answers no credential, no User-Agent, a member's
+signature and a test owner's. `on` and `off` use the page's switch, from inside the page's container on
+the test Umbrel, and `status` shows the switch, the relay's settings and the relay process's admin
+settings by name. Its probes are those of the by-hand run of 2026-11-12; with the gateway standing in for
+Cloudflare, all of it but `post` passed against the local containers.
+
+```bash
+bash tests/umbrel/moderation.sh check <name> <member keys> [<owner keys>]   # before turning it on, and after
+bash tests/umbrel/moderation.sh on <name>                  # the page's switch, on the test Umbrel
+BUZZ_CLI=path/to/buzz bash tests/umbrel/moderation.sh post <name> <member keys>   # POSTED, then BANNED once banned in Buzz
+bash tests/umbrel/moderation.sh off <name>
+```
 
 The setup page on this machine, with no umbrelOS and no cost (Docker, and a Python with PyYAML for
 `make.py`):
@@ -760,7 +826,8 @@ edits before any image is published; the droplet runs use the published image.
   ([cloudflare/cloudflared#1252](https://github.com/cloudflare/cloudflared/issues/1252)). It happened on
   the first of two real sign-ins on 2026-11-12, and copying the file into `data/cloudflare/.cloudflared/`
   by hand let the setup carry on. The page now takes that file as an upload, under "Cloudflare saved a
-  file named cert.pem instead?", and it works like one that arrived.
+  file named cert.pem instead?". In local tests the service takes it like one that arrived; a real one
+  isn't tested yet (Not yet tested, above).
 - An install stuck on a failing service can't be uninstalled until its compose run is stopped.
 - `buzz-admin add-member` takes the key with `--pubkey`.
 - With `Referrer-Policy: no-referrer`, browsers send a page's own form posts with `Origin: null`.

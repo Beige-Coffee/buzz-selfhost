@@ -2,11 +2,12 @@
 # End to end on the test Umbrel: a Cloudflare quick tunnel to the app's gateway, setup through the
 # app's page, then the relay checks, members posting and reading, a stranger refused, a file up and
 # down, invite links, Buzz 1.0's New chat with an agent, moderation turned on and off on the page
-# (the admin API's answers, and a ban), and the same after Umbrel restarts the app.
+# (the admin API's answers, a ban that an invite link doesn't get around, and its lift), and the same
+# after Umbrel restarts the app, with moderation still on.
 #
 # The owner is a test identity made here, unless OWNER_HEX names a real person, who joins from Buzz
-# afterwards. With a real owner the invite checks, the owner's moderation checks and the ban are
-# skipped (they need the owner's key), and New chat runs as a member, which Buzz 1.0 allows any member.
+# afterwards. With a real owner the invite checks, the owner's moderation checks, the ban and its lift
+# are skipped (they need the owner's key), and New chat runs as a member, which Buzz 1.0 allows any member.
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 U="bash $HERE/ssh.sh"
@@ -222,6 +223,15 @@ ENV
 # member_posts SECRET TEXT: a member's message in the channel, signed with event.py and posted as Buzz posts it
 member_posts() { signed_post "$1" /events "$(python3 "$T/lib/event.py" 9 "[[\"h\",\"$CH\"]]" "$2" <<<"$1")"; }
 banned() { for _ in $(seq 1 10); do [ "$(member_posts "$A_SK" "$1")" = 403 ] && grep -q banned "$TMP/post.json" && return 0; sleep 3; done; return 1; }
+# accepted SECRET TEXT: the member's message is accepted within 30 seconds, as after a ban is lifted
+accepted() {
+  for _ in $(seq 1 10); do
+    STATUS=$(member_posts "$1" "$2")
+    [[ $STATUS == 200 && $(field accepted < "$TMP/post.json") == True ]] && return 0
+    sleep 3
+  done
+  return 1
+}
 umbrel "rm -f $JAR"
 [ "$(signin)" = 303 ] || fail "signing in to the page for moderation"
 if [ "$(saved | field mode)" != domain ]; then
@@ -278,6 +288,17 @@ else
     STATUS=$(member_posts "$B_SK" "member B, after A's ban")
     [[ $STATUS == 200 && $(field accepted < "$TMP/post.json") == True ]] && pass "member B still posts" ||
       fail "member B after A's ban: HTTP $STATUS $(head -c 200 "$TMP/post.json")"
+    # The page says a banned identity can't come back with an invite link, and a new identity still joins with one
+    STATUS=$(signed_post "$OWNER_SK" /api/invites '{}')
+    INVITE=$(field code < "$TMP/post.json")
+    STATUS=$(signed_post "$A_SK" /api/invites/claim "{\"code\":\"$INVITE\"}")
+    [[ -n $INVITE && $STATUS == 403 && $(field error < "$TMP/post.json") == invite_restricted ]] &&
+      pass "member A can't come back with the owner's new invite link (HTTP 403, invite_restricted)" ||
+      fail "member A claiming an invite after the ban: HTTP $STATUS $(head -c 200 "$TMP/post.json")"
+    read -r G_SK _ <<<"$(python3 "$T/lib/keygen.py")"
+    STATUS=$(signed_post "$G_SK" /api/invites/claim "{\"code\":\"$INVITE\"}")
+    [[ $STATUS == 200 && $(field status < "$TMP/post.json") == joined ]] && pass "a new identity joins with the same link" ||
+      fail "a new identity claiming that link: HTTP $STATUS $(head -c 200 "$TMP/post.json")"
   else
     echo "INFO  the owner's own checks and the ban skipped: the owner is a real person, whose key isn't here"
   fi
@@ -290,6 +311,19 @@ else
   [ "$(gw status)" = 404 ] && pass "and $DOMAIN:8443 has no admin API again (HTTP 404)" || fail "after turning it off, the probe got HTTP $(gw status)"
   if [ -n "$OWNER_SK" ]; then
     banned "with moderation off" && pass "the ban holds with moderation off" || fail "member A posted once moderation was off"
+  fi
+  # On again: lifting a ban needs it, and it stays on through the restart below
+  code=$(post /moderation "moderation=on")
+  [ "$code" = 303 ] && advertised "$ORIGIN" && pass "the page turns it on again, and NIP-11 advertises it" ||
+    fail "turning it on again got HTTP $code, and NIP-11 advertises [$(admin_api)]"
+  MODERATION_ON=1
+  if [ -n "$OWNER_SK" ]; then
+    LIFT="/api/admin/v1/members/$A_HEX/ban?communityHost=$DOMAIN"
+    sign "$OWNER_SK" DELETE "$LIFT" | gateway "$DOMAIN:8443" DELETE "$LIFT" application/json
+    [ "$(gw status)" = 204 ] && pass "the owner lifts member A's ban through the admin API (HTTP 204)" ||
+      fail "lifting the ban got HTTP $(gw status): $(gw body | head -c 200)"
+    accepted "$A_SK" "after the ban is lifted" && pass "member A posts again" ||
+      fail "member A after the lift: HTTP $STATUS $(head -c 200 "$TMP/post.json")"
   fi
 fi
 umbrel "rm -f $JAR"
@@ -304,6 +338,16 @@ state=$(umbrel 'umbreld client apps.state.query --appId buzz 2>&1' | tr -d '\n '
 [[ $state == *ready* ]] && pass "Umbrel reports the app ready after restart" || fail "state after restart: $state"
 read_both && pass "messages survive the restart" || fail "messages after restart"
 fetch && pass "the file survives the restart" || fail "file after restart"
+if [ -n "${MODERATION_ON:-}" ]; then
+  advertised "$ORIGIN" && pass "moderation stays on through the restart: NIP-11 advertises $ORIGIN" ||
+    fail "after the restart, NIP-11 advertises [$(admin_api)]"
+  umbrel "rm -f $JAR"
+  [ "$(signin)" = 303 ] || fail "signing in to the page after the restart"
+  code=$(post /moderation "")
+  [ "$code" = 303 ] && [ -z "$(admin_line)" ] && advertised "<none>" && pass "then the page turns it off" ||
+    fail "turning it off after the restart got HTTP $code: the relay's settings say [$(admin_line)], NIP-11 [$(admin_api)]"
+  umbrel "rm -f $JAR"
+fi
 
 echo
 echo "passed: $PASS  failed: $FAIL"

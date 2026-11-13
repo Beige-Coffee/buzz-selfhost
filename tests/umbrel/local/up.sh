@@ -2,7 +2,8 @@
 # Runs the package's containers on this machine's Docker, from make.py's compose project, with the
 # data volumes owned by 1000:1000 as umbrelOS prepares an app's data folder. The setup page is then
 # at http://127.0.0.1:8090, password local-test-only. down.sh removes it all, data included.
-# PYTHON names a Python with PyYAML, if python3 has none.
+# PYTHON names a Python with PyYAML, if python3 has none; BUZZ_LOCAL_PORT another port for the page,
+# which check.py then needs too.
 set -euo pipefail
 L=$(cd "$(dirname "$0")" && pwd)
 "${PYTHON:-python3}" "$L/make.py"

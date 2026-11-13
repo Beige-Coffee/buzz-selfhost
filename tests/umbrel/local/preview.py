@@ -8,7 +8,7 @@ funnel-login, funnel-consent, private-consent (signed in, Tailscale asks to allo
 domain-moderation (moderation on and reachable), domain-moderation-blocked (on, and Cloudflare turns it away),
 domain-moderation-starting (on, while Buzz restarts with it: a check still waiting on a live page).
 Everything except "login" skips the sign-in. Mocked: relay and public checks, moderation's address, Tailscale
-status files. On a live page, #join, #invite and #phone open that step of the next steps.
+status files. On a live page, #join, #invite, #safe and #phone open that step of the next steps.
 """
 import http.server, importlib.machinery, importlib.util, json, os, sys, tempfile
 

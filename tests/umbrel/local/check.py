@@ -12,7 +12,7 @@ import signin_files
 
 L = os.path.dirname(os.path.abspath(__file__))
 ENV = dict(line.strip().split("=", 1) for line in open(os.path.join(L, "run/.env")) if "=" in line)
-BASE = "http://127.0.0.1:8090"
+BASE = "http://127.0.0.1:" + os.environ.get("BUZZ_LOCAL_PORT", "8090")  # as up.sh published it
 DOCKER = dict(os.environ, DOCKER_CONFIG=os.path.join(L, "run/dockercfg"))
 OWNER = "npub1464m3lr8zsjm79l073tcrptr8ekddatt30p8q4f25zcc7dq0zc7sc9a4yn"   # a test identity
 OWNER2 = "npub1xhq934ja9kl4d0h6r4pazkjg4whvp6umptmtsxcrd2zkc9e3rd3ssj94xd"  # another test identity

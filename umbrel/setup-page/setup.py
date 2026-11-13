@@ -10,6 +10,7 @@ GitHub Actions (see README.md here).
 """
 import base64
 import concurrent.futures
+import decimal
 import email.parser
 import email.policy
 import hashlib
@@ -58,8 +59,10 @@ NAK = "https://github.com/fiatjaf/nak"
 TUNNEL_GUIDE = "https://github.com/Radiokot/umbrel-cloudflared/wiki/How-to-set-up-Cloudflare-Tunnel-on-your-Umbrel"
 TAILSCALE_ADMIN = "https://login.tailscale.com/admin/machines"
 TAILSCALE_ACCESS = "https://login.tailscale.com/admin/acls"
-# The self-hosting guide, by its homepage alone: its deeper paths can change
+# The self-hosting guide, by its homepage alone: its deeper paths can change. Its Security section is an anchor on
+# that page, which still opens the guide if the anchor goes.
 SELF_HOST_GUIDE = "https://self-host.buzz/"
+SELF_HOST_SECURITY = SELF_HOST_GUIDE + "#security"
 
 PASSWORD = os.environ.get("APP_PASSWORD", "")
 SECRET = (os.environ.get("SETUP_SESSION_SECRET") or hashlib.sha256(("buzz-setup|" + PASSWORD).encode()).hexdigest()).encode()
@@ -1090,12 +1093,19 @@ details.how[open] > summary { background: var(--chip); }
 .g-more p { margin-top: 6px; font-size: 14px; color: var(--ink-2); }
 .g-foot { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
 .g-foot > p { margin-top: 0; }
+.g-notes { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.g-notes li { display: flex; align-items: flex-start; gap: 12px; }
+.g-ni { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 9px; background: var(--chip); font-size: 16px; }
+.g-notes p { min-width: 0; margin: 3px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+.g-notes b { font-weight: 500; color: var(--ink); }
+.g-foot > .g-notes + p { margin-top: 16px; }
 .g-pane > .panel { margin-top: 18px; }
 @media (max-width: 560px) { .g-pane { padding: 22px 16px 24px; } }
 .js .g-btns { display: flex; }
 .js .g-pane + .g-pane { border-top: 0; }
 [data-step="join"] .guide:not(.ready) .g-pane:not(#join), [data-step="invite"] .guide:not(.ready) .g-pane:not(#invite),
-[data-step="phone"] .guide:not(.ready) .g-pane:not(#phone), .js:not([data-frame="2"]) .guide:not(.ready) .g-frame:not(:first-child),
+[data-step="safe"] .guide:not(.ready) .g-pane:not(#safe), [data-step="phone"] .guide:not(.ready) .g-pane:not(#phone),
+.js:not([data-frame="2"]) .guide:not(.ready) .g-frame:not(:first-child),
 [data-frame="2"] .guide:not(.ready) .g-frame:not(:nth-child(2)) { display: none; }
 @media (forced-colors: active) { .g-nav a[aria-current] { border: 2px solid CanvasText; padding: 8px 10px 8px 8px; } }
 .set-card { margin-top: 14px; border: 1px solid var(--line-2); border-radius: 14px; background: #fff; overflow: hidden; }
@@ -1266,17 +1276,121 @@ details.how[open] > summary { background: var(--chip); }
 .hw-input em { margin-left: auto; padding: 2px 8px; border-radius: 999px; background: #eef5d0; font: normal 500 10px var(--sans); color: #55550a; }
 """
 
+# The safety step's two drawings, as the self-hosting guide draws them (site/src/styles/overhaul.css on main), each
+# rule inside .sq so none reaches the rest of the page. The page's own colors stand in for the guide's: --soft for its
+# canvas, and --ink-2 for its fainter text too, which keeps small text at 4.5:1; --ink-3 is for a mark that isn't
+# text. The guide changes to the tall drawing on screens under 520 pixels, where its drawing is under 480 wide; here
+# the drawing's own width decides, so it works in the guide's pane, beside the steps or under them. Each drawing is
+# at least as tall as Buzz's screens in the other steps, so the stepper stays put on a computer, and at a phone's
+# width the lists tighten and long words break before they leave their box. In forced colors a drawing keeps its own,
+# on its own light ground: forced, its SVG text could take the color of the shapes behind it.
+SAFE_STYLE = """
+.sq { container: sq / inline-size; }
+.sq svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sq ul { margin: 0; padding: 0; list-style: none; }
+.sq .sq-fig { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: min(340px, 100cqw * 340 / 560); margin: 0; padding: 16px 16px 18px; border-radius: 22px; background-color: var(--soft); background-image: radial-gradient(circle, rgb(35 30 30 / 7%) 1px, transparent 1px); background-size: 18px 18px; }
+.sq .sq-k { display: flex; align-items: center; gap: 9px; margin: 2px 4px 0; font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+.sq .sq-k i { flex: none; width: 20px; height: 11px; border: 1.3px dashed #a9a917; border-radius: 3px; background: rgb(215 215 46 / 30%); transform: skewX(-24deg); }
+.sq .sq-rec { position: absolute; top: 14px; right: 16px; padding: 3px 10px; border-radius: 999px; background: var(--ink); font: 600 9.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.sq .sq-stage, .sq .sq-lists { width: 100%; max-width: 600px; margin: auto; }
+.sq .sq-iso { display: block; width: 100%; height: auto; overflow: visible; }
+.sq .sq-tall { display: none; }
+.sq .sq-b polygon { stroke: rgb(35 30 30 / 38%); stroke-width: 1.5; stroke-linejoin: round; }
+.sq .sq-floor { fill: rgb(35 30 30 / 3.5%); stroke: rgb(35 30 30 / 34%); stroke-width: 1.3; stroke-dasharray: 5 5; }
+.sq .sq-floor.open { fill: rgb(215 215 46 / 22%); stroke: #a9a917; }
+.sq .sq-shadow { fill: rgb(35 30 30 / 13%); stroke: none; }
+.sq .sq-badge rect { fill: #fff; stroke: rgb(35 30 30 / 55%); stroke-width: 1.4; }
+.sq .sq-badge.pub rect { fill: var(--accent); stroke: #8c8c12; }
+.sq .sq-badge g { stroke: var(--ink); stroke-width: 2.1; }
+.sq .sq-led { fill: #a9a917; stroke: none; }
+.sq .sq-slot { stroke: rgb(35 30 30 / 34%); stroke-width: 1.6; }
+.sq .sq-bar { stroke: rgb(35 30 30 / 50%); stroke-width: 1.6; stroke-dasharray: 2 6; }
+.sq .sq-no circle { fill: var(--ink); stroke: var(--soft); stroke-width: 2.5; }
+.sq .sq-no path { stroke: #fff; stroke-width: 2.2; }
+.sq .sq-wire { stroke: var(--ink); stroke-width: 1.6; }
+.sq .sq-dot { fill: var(--ink); stroke: none; }
+.sq .sq-iso text { stroke: none; }
+.sq .sq-note { fill: var(--ink-2); font: 500 11px var(--mono); letter-spacing: 0.02em; text-anchor: middle; }
+.sq .sq-cap { fill: var(--ink); font: 600 14px var(--sans); letter-spacing: -0.015em; text-anchor: middle; }
+.sq .sq-sub { fill: var(--ink-2); font: 10.5px var(--mono); text-anchor: middle; }
+.sq .sq-win { filter: drop-shadow(0 7px 10px rgb(24 20 14 / 9%)); }
+.sq .sq-w-body { fill: #f1f1f2; stroke: #d6d6d9; stroke-width: 1; }
+.sq .sq-w-light { fill: #d5d5d8; stroke: none; }
+.sq .sq-w-panel { fill: #fff; stroke: #e6e6e8; stroke-width: 1; }
+.sq .sq-w-ring { fill: #fff; stroke: none; }
+.sq .sq-w-pill { fill: #f1f1f2; stroke: none; }
+.sq .sq-w-rule { stroke: #e8e8e8; stroke-width: 1; }
+.sq .sq-w-bub { fill: #f3f3f4; stroke: none; }
+.sq .sq-w-chip { fill: #dadada; stroke: none; }
+.sq .sq-w-tile { fill: #efecf8; stroke: none; }
+.sq .sq-wi { stroke: #0f0f0f; stroke-width: 2.3; }
+.sq .sq-wi.dim { stroke: #404040; }
+.sq .sq-wt { fill: #0f0f0f; font: 400 11px var(--sans); }
+.sq .sq-wt.ttl { font-weight: 600; font-size: 11.5px; }
+.sq .sq-wt.nm { font-weight: 500; font-size: 9.5px; }
+.sq .sq-wt.ch { font-weight: 500; }
+.sq .sq-wt.pl { fill: #404040; font-size: 9.5px; }
+.sq .sq-wt .tm { fill: #5f5f5f; font-weight: 400; }
+.sq .sq-caps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 6px; padding-top: 2px; text-align: center; }
+.sq .sq-caps p { margin: 0; }
+.sq .sq-caps b { display: block; font-size: 14px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; }
+.sq .sq-caps span { display: block; margin-top: 3px; font: 10.5px/1.4 var(--mono); color: var(--ink-2); }
+.sq .sq-lists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 34px auto; gap: 0 16px; padding-top: 14px; }
+.sq .sq-tray { min-width: 0; padding: 12px 12px 13px; border: 1px solid var(--line-2); border-radius: 16px; background: #fff; box-shadow: 0 1px 2px rgb(24 20 14 / 4%); }
+.sq .sq-h { margin: 0 0 10px; font: 600 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+.sq .sq-tray ul { display: grid; gap: 8px; }
+.sq .sq-tray li { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.25; overflow-wrap: anywhere; hyphens: auto; }
+.sq .sq-b2 { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border: 1.4px solid rgb(35 30 30 / 55%); border-radius: 8px; background: #fff; }
+.sq .sq-b2.pub { border-color: #8c8c12; background: var(--accent); }
+.sq .sq-b2 svg { width: 15px; height: 15px; stroke-width: 2.1; }
+.sq .sq-out { border: 1.3px dashed rgb(35 30 30 / 30%); background: none; box-shadow: none; }
+.sq .sq-out li { color: var(--ink-2); text-decoration: line-through; text-decoration-thickness: 1.6px; text-decoration-color: var(--ink); }
+.sq .sq-out .sq-b2 { border-color: rgb(35 30 30 / 30%); background: none; }
+.sq .sq-flow { position: relative; }
+.sq .sq-flow::before { content: ""; position: absolute; left: 50%; top: 4px; bottom: 5px; margin-left: -0.8px; border-left: 1.6px solid var(--ink); }
+.sq .sq-flow::after { content: ""; position: absolute; left: 50%; bottom: 5px; width: 7px; height: 7px; margin-left: -4.3px; border-right: 1.6px solid var(--ink); border-bottom: 1.6px solid var(--ink); transform: rotate(45deg); }
+.sq .sq-stop::before { bottom: 16px; border-left: 1.6px dotted rgb(35 30 30 / 55%); }
+.sq .sq-stop::after { display: none; }
+.sq .sq-x { position: absolute; left: 50%; bottom: 3px; display: grid; place-items: center; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: var(--ink); color: #fff; box-shadow: 0 0 0 2.5px var(--soft); }
+.sq .sq-x svg { width: 11px; height: 11px; stroke-width: 2.9; }
+.sq .sq-room { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; margin: 0; padding: 12px 14px; border: 1.3px dashed #a9a917; border-radius: 16px; background: rgb(215 215 46 / 22%); }
+.sq .sq-faces { display: flex; flex: none; padding-right: 5px; }
+.sq .sq-av, .sq .sq-new { flex: none; width: 26px; height: 26px; margin-right: -5px; border-radius: 50%; box-shadow: 0 0 0 2px #fff; }
+.sq .sq-new { display: grid; place-items: center; border: 1.3px dashed rgb(35 30 30 / 50%); background: #fff; color: var(--ink-3); }
+.sq .sq-new svg { width: 13px; height: 13px; }
+.sq .sq-name b { display: block; font-size: 15px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.2; }
+.sq .sq-name i { display: block; margin-top: 2px; font: 10.5px/1.35 var(--mono); font-style: normal; color: var(--ink-2); }
+.sq-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+@media (forced-colors: active) { .sq .sq-fig { forced-color-adjust: none; } }
+@container sq (max-width: 479px) {
+  .sq .sq-wide, .sq .sq-caps { display: none; }
+  .sq .sq-tall { display: block; }
+  .sq .sq-rec { position: static; align-self: flex-end; margin: 8px 4px 0; }
+  .sq .sq-lists { gap: 0 10px; }
+  .sq .sq-tray { padding: 11px 10px 12px; }
+  .sq .sq-tray li { gap: 8px; font-size: 13px; }
+}
+@container sq (max-width: 360px) {
+  .sq .sq-fig { padding: 14px 10px 16px; }
+  .sq .sq-lists { gap: 0 8px; }
+  .sq .sq-tray { padding: 11px 8px 12px; }
+  .sq .sq-tray li { gap: 6px; font-size: 12px; }
+  .sq .sq-b2 { width: 22px; height: 22px; border-radius: 7px; }
+  .sq .sq-b2 svg { width: 13px; height: 13px; }
+}
+"""
+
 # The poll opens the page again at each new step, except while a file is chosen but not yet uploaded: that
 # would drop it. It opens the page's own address, not a form's: after a refused form the browser is at the
 # form's address, and a reload would send the form again. Between steps it swaps in the checks only when they
 # changed (their signature), so an open list stays open, this device's last answer stays shown and focus stays where
 # it was; then a screen reader hears one sentence about them.
 # The first lines run before the page is drawn: with scripts on, the guide shows one step from the start, the one
-# the address names (#join, #invite or #phone), so the browser scrolls to the right place. Without one, the step and
-# drawing the reader had open when the page opened itself again at a new phase, kept for that one load.
+# the address names (#join, #invite, #safe or #phone), so the browser scrolls to the right place. Without one, the step
+# and drawing the reader had open when the page opened itself again at a new phase, kept for that one load.
 SCRIPT = """
 (function () {
-  var root = document.documentElement, steps = ["join", "invite", "phone"], step = location.hash.slice(1), kept = [];
+  var root = document.documentElement, steps = ["join", "invite", "safe", "phone"], step = location.hash.slice(1), kept = [];
   root.classList.add("js");
   try { kept = (sessionStorage.getItem("buzz-guide") || "").split(":"); sessionStorage.removeItem("buzz-guide"); } catch (e) {}
   if (steps.indexOf(step) < 0 && steps.indexOf(kept[0]) >= 0) {
@@ -1432,6 +1546,7 @@ function guide(box) {
     panes.forEach(function (pane, k) { pane.hidden = k !== i; });
     frames(i).forEach(function (frame, k) { frame.hidden = k !== j; });
     howScale(frames(i)[j]);
+    bubbles(frames(i)[j]);
   }
   function go(by) {
     var i = at[0], j = at[1] + by;
@@ -1457,9 +1572,10 @@ function guide(box) {
       if (button.getAttribute("aria-disabled") !== "true") { go(Number(button.getAttribute("data-go"))); }
     });
   });
+  // A link to a step from elsewhere on the page, such as Settings, Moderation: focus moves to the step, as with its link
   window.addEventListener("hashchange", function () {
     var i = ids.indexOf(location.hash.slice(1));
-    if (i >= 0) { show(i, 0); panes[i].scrollIntoView(); }
+    if (i >= 0) { show(i, 0); panes[i].scrollIntoView(); panes[i].querySelector("h2").focus({ preventScroll: true }); }
   });
   box.classList.add("ready");
   var first = Math.max(0, ids.indexOf(root.getAttribute("data-step")));
@@ -1468,6 +1584,15 @@ function guide(box) {
 function howScale(how) {
   how.querySelectorAll(".mb-stage").forEach(function (stage) {
     if (stage.clientWidth) { stage.style.setProperty("--s", Math.min(1, stage.clientWidth / 560)); }
+  });
+}
+// The safety step's drawn chat bubbles, each as wide as its words in this browser's font, as the self-hosting guide
+// does. A drawing that isn't shown can't be measured: it is when it shows, or when the window's width changes it.
+function bubbles(el) {
+  el.querySelectorAll(".sq-bub").forEach(function (g) {
+    var bubble = g.querySelector(".sq-w-bub"), texts = g.querySelectorAll("text"), words = null;
+    try { words = texts[texts.length - 1].getBBox(); } catch (e) {}
+    if (words && words.width) { bubble.setAttribute("width", (words.x + words.width + 10 - bubble.x.baseVal.value).toFixed(1)); }
   });
 }
 function howShow(how, n) {
@@ -1483,7 +1608,10 @@ document.addEventListener("DOMContentLoaded", function () {
     howShow(how, 0);
   });
   document.querySelectorAll(".guide").forEach(guide);
-  window.addEventListener("resize", function () { document.querySelectorAll("details.how[open], .guide").forEach(howScale); });
+  window.addEventListener("resize", function () {
+    document.querySelectorAll("details.how[open], .guide").forEach(howScale);
+    document.querySelectorAll(".guide").forEach(bubbles);
+  });
   document.querySelectorAll("form[data-guided]").forEach(function (form) {
     form.addEventListener("input", function () { updateForm(form); });
     form.addEventListener("change", function () { updateForm(form); });
@@ -1513,7 +1641,7 @@ def layout(body, signed_in=True, title="Buzz Relay"):
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1"><title>' + esc(title) + "</title>"
-        "<style>" + STYLE + HOW_STYLE + "</style><script>" + SCRIPT + "</script></head><body>"
+        "<style>" + STYLE + HOW_STYLE + SAFE_STYLE + "</style><script>" + SCRIPT + "</script></head><body>"
         '<header class="hd"><span class="brand">' + BEE + "<span>Buzz Relay</span></span>" + logout + "</header>"
         "<main>" + body + '<p class="foot">Buzz is open source, from Block: '
         '<a href="https://github.com/block/buzz" target="_blank" rel="noopener">github.com/block/buzz</a>.</p>'
@@ -1648,6 +1776,9 @@ TABLER = {
     'user-plus': '<path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M16 19h6"/><path d="M19 16v6"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4"/>',
     'book': '<path d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6l0 13"/><path d="M12 6l0 13"/><path d="M21 6l0 13"/>',
     'arrow-up-right': '<path d="M17 7l-10 10"/><path d="M8 7l9 0l0 9"/>',
+    'shield-check': '<path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/><path d="M9 12l2 2l4 -4"/>',
+    'link': '<path d="M9 15l6 -6"/><path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464"/><path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"/>',
+    'ban': '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M5.7 5.7l12.6 12.6"/>',
 }
 
 
@@ -1825,16 +1956,21 @@ def how_to(summary, steps, intro=""):
     )
 
 
+def screen(drawing):
+    """Buzz's screen as a drawing of the guide: a picture alone, which its caption says in words."""
+    return '<div class="mb" aria-hidden="true"><div class="mb-stage"><div class="mb-canvas">' + drawing + "</div></div></div>"
+
+
 # The guide's drawings, each as (title, drawing, caption, more): more is HTML under the caption.
 def join_steps(domain):
     # Buzz 1.0.0: the community button sits at the foot of the left dock; with no community saved, Buzz opens
     # on a full-page Join a community instead. The join dialog asks Continue twice, then publishes the profile.
     return [
-        ("Open Join a community", drawn_switcher(),
+        ("Open Join a community", screen(drawn_switcher()),
          "In Buzz, click the community button at the bottom left, then <b>Join a community</b>. Not <b>Create "
          "community</b>: that makes a new community that Block hosts. If Buzz opens on a <b>Join a community</b> page "
          "instead, paste the address there and choose <b>Join</b>.", ""),
-        ("Paste the address", drawn_join("https://" + domain),
+        ("Paste the address", screen(drawn_join("https://" + domain)),
          "Paste the address into <b>Community URL</b> and choose <b>Continue</b> twice. Then choose <b>Publish profile "
          "&amp; open</b>.", ""),
     ]
@@ -1844,10 +1980,10 @@ def member_steps(domain):
     # Buzz 1.0.0 still adds members by public ID; its next release drops that (block/buzz-app#3147), and makes
     # Invite a tab
     return [
-        ("Open Membership", drawn_membership(domain),
+        ("Open Membership", screen(drawn_membership(domain)),
          "In Buzz, open <b>Settings</b>. Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite "
          "members</b>, or the <b>Invite</b> tab in newer versions of Buzz.", ""),
-        ("Send an invite link", drawn_membership(domain, inviting=True),
+        ("Send an invite link", screen(drawn_membership(domain, inviting=True)),
          "Copy the link and send it. Anyone with the link can join until it expires or runs out of uses. To invite one "
          "person, set <b>Max uses</b> to <b>1 use</b> first. In Buzz 1.0.0 you can also paste someone's public ID under "
          "<b>Add directly</b> and choose <b>Add member</b>, then send them the address.", ""),
@@ -1856,7 +1992,7 @@ def member_steps(domain):
 
 def phone_steps(domain):
     return [
-        ("Scan the code", drawn_pair(domain),
+        ("Scan the code", screen(drawn_pair(domain)),
          "In Buzz on your computer, open <b>Settings</b>, then <b>Mobile app</b>. On the phone, choose <b>Scan a QR "
          "code</b> and scan it. If the phone already has a community, choose <b>Add Community</b> in its community "
          "switcher first.",
@@ -1867,7 +2003,7 @@ def phone_steps(domain):
          "with the same account. Your community won't appear there by itself: choose <b>Enter a community link</b>, "
          "paste <code>https://" + esc(domain) + "</code>, choose <b>Continue</b>, then your saved identity.</p>"
          "</details>"),
-        ("Check the code", drawn_pair(domain, verifying=True),
+        ("Check the code", screen(drawn_pair(domain, verifying=True)),
          # The phone either asks for the computer's code or shows its own to compare, as the drawing says
          # (PairingSettings.tsx). Once the code is right, the phone asks to protect your identity (Use Face ID, Use
          # Touch ID or Use biometrics, whichever it has, or Skip) and holds the identity until you choose. Block's
@@ -1876,6 +2012,230 @@ def phone_steps(domain):
          "digits match. When it asks to protect your identity, choose <b>Use Face ID</b>, <b>Use Touch ID</b> or "
          "<b>Use biometrics</b>, or <b>Skip</b>. Then choose <b>Codes match</b> on your computer.", ""),
     ]
+
+
+# The safety step's two drawings, from the self-hosting guide's Security section (site/src/scenes/security.ts on
+# main), drawn here by the same rules, so they come out as the guide has them: what an agent can touch, and what anyone
+# who joins can read. Unlike Buzz's screens they aren't pictures alone: the first says what it shows to screen readers,
+# and the second is two real lists. The people and the agent are drawn once, in SAFE_DEFS, and used where they show.
+SAFE_ICON = {
+    "folder": '<path d="M4 7a2 2 0 0 1 2-2h3.6l2 2H18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>',
+    "key": '<circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3M17 6l3 3M14 9l2.5 2.5"/>',
+    "lock": '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    "doc": '<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2zM9 13h6M9 17h4"/>',
+    "branch": '<circle cx="7" cy="6" r="2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="8" r="2"/><path d="M7 8v8M17 10c0 4-10 2-10 6"/>',
+    "user": '<circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>',
+    "users": TABLER["users"],
+    "x": '<path d="M18 6 6 18M6 6l12 12"/>',
+    "world": '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+    "horn": '<path d="M18 8a3 3 0 0 1 0 6"/><path d="M10 8v11a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-5"/><path d="M12 8l4.5-3.8a.9.9 0 0 1 '
+            '1.5.7v12.2a.9.9 0 0 1-1.5.7L12 14H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>',
+    # Buzz's own robot mark, as its agents carry it
+    "robot": '<rect x="4.75" y="7" width="14.5" height="13.25" rx="4.5"/><path d="M12 7V2.5M3.25 11.5v4.25M20.75 11.5v4.25"/>'
+             '<g fill="currentColor" stroke="none"><circle cx="9" cy="13.25" r="1.4"/><circle cx="15" cy="13.25" r="1.4"/></g>',
+}
+
+
+def js_fixed(n):
+    """n.toFixed(1), as the guide's drawing code writes its coordinates: a tie rounds away from zero."""
+    return str(decimal.Decimal(n).quantize(decimal.Decimal("0.1"), rounding=decimal.ROUND_HALF_UP))
+
+
+def js_num(n):
+    """A number as the guide's drawing code writes it: 90, not 90.0."""
+    return str(int(n)) if float(n).is_integer() else repr(float(n))
+
+
+def drawn_avatar(name, x, y, size):
+    """A person's or the agent's picture, from SAFE_DEFS."""
+    return '<use href="#sq-' + name + '" x="' + x + '" y="' + y + '" width="' + js_num(size) + '" height="' + js_num(size) + '"/>'
+
+
+def iso_kit(ox, oy):
+    """An isometric kit placed at (ox, oy): ground x runs right and down, ground y left and down, z up. A square of
+    floor (grey and dashed for yours, yellow for the agent's), an icon standing on it, the agent, a laptop, and a
+    small machine of two slabs with a light on the front."""
+    def p(x, y, z=0):
+        return ox + (x - y) * 0.866, oy + (x + y) * 0.5 - z
+
+    def poly(points, attrs):
+        return '<polygon points="' + " ".join(js_fixed(a) + "," + js_fixed(b) for a, b in points) + '" ' + attrs + "/>"
+
+    def box(x, y, z, w, d, h, front="#efefe9"):
+        return ('<g class="sq-b">'
+                + poly([p(x, y + d, z + h), p(x + w, y + d, z + h), p(x + w, y + d, z), p(x, y + d, z)], 'fill="' + front + '"')
+                + poly([p(x + w, y, z + h), p(x + w, y + d, z + h), p(x + w, y + d, z), p(x + w, y, z)], 'fill="#e2e2db"')
+                + poly([p(x, y, z + h), p(x + w, y, z + h), p(x + w, y + d, z + h), p(x, y + d, z + h)], 'fill="#fff"') + "</g>")
+
+    def floor(s, agents=False):
+        return poly([p(0, 0), p(s, 0), p(s, s), p(0, s)], 'class="sq-floor' + (" open" if agents else "") + '"')
+
+    def badge(x, y, icon, pub=False):
+        cx, cy = p(x, y)
+        return ('<g class="sq-badge' + (" pub" if pub else "") + '"><ellipse class="sq-shadow" cx="' + js_fixed(cx) + '" cy="'
+                + js_fixed(cy) + '" rx="12" ry="5"/><rect x="' + js_fixed(cx - 13) + '" y="' + js_fixed(cy - 29) + '" width="26" '
+                'height="26" rx="8"/><g transform="translate(' + js_fixed(cx - 8.5) + " " + js_fixed(cy - 24.5) + ') scale(0.71)">'
+                + SAFE_ICON[icon] + "</g></g>")
+
+    def agent(x, y, z, size):
+        cx, cy = p(x, y, z)
+        return ('<ellipse class="sq-shadow" cx="' + js_fixed(cx) + '" cy="' + js_fixed(cy) + '" rx="' + js_fixed(size * 0.3)
+                + '" ry="' + js_fixed(size * 0.12) + '"/>' + drawn_avatar("ops", js_fixed(cx - size / 2), js_fixed(cy - size * 0.93), size))
+
+    def laptop(x, y):
+        w, d, t, h = 58, 40, 4, 38
+        face = [p(x + 5, y + 4, t + h - 4), p(x + w - 5, y + 4, t + h - 4), p(x + w - 5, y + 4, t + 5), p(x + 5, y + 4, t + 5)]
+        keys = [p(x + 7, y + 13, t), p(x + w - 7, y + 13, t), p(x + w - 7, y + 30, t), p(x + 7, y + 30, t)]
+        return (box(x, y, 0, w, d, t) + poly(keys, 'fill="#ecece6" stroke="none"') + box(x, y, t, w, 4, h, "#fff")
+                + poly(face, 'fill="#eeeee8" stroke="none"'))
+
+    def machine(x, y):
+        s, t, g = 46, 12, 4
+
+        def front(z):
+            led, a, b = p(x + 7, y + s, z), p(x + 16, y + s, z), p(x + 34, y + s, z)
+            return ('<circle class="sq-led" cx="' + js_fixed(led[0]) + '" cy="' + js_fixed(led[1]) + '" r="2.2"/><path class="sq-slot" '
+                    'd="M' + js_fixed(a[0]) + " " + js_fixed(a[1]) + "L" + js_fixed(b[0]) + " " + js_fixed(b[1]) + '"/>')
+        return box(x, y, 0, s, s, t) + box(x, y, t + g, s, s, t) + front(t + g + t / 2) + front(t / 2)
+
+    return floor, badge, agent, laptop, machine
+
+
+def no_way_across(x, y1, y2, yc):
+    """The line nothing crosses: dotted, struck out at yc."""
+    return ('<path class="sq-bar" d="M' + js_num(x) + " " + js_num(y1) + "V" + js_num(y2) + '"/><g class="sq-no"><circle cx="'
+            + js_num(x) + '" cy="' + js_num(yc) + '" r="10"/><path d="M' + js_fixed(x - 3.6) + " " + js_fixed(yc - 3.6) + "l7.2 7.2M"
+            + js_fixed(x + 3.6) + " " + js_fixed(yc - 3.6) + 'l-7.2 7.2"/></g>')
+
+
+def drawn_window(x, y, w, h, rows):
+    """A Buzz window facing the reader, as Buzz 1.0 draws a channel: the title bar, the channel's members and name, then
+    each message as a grey bubble under its author. People get round pictures, the agent a square one and Buzz's robot
+    mark. Each row's bw is its bubble's width until the page's script measures the words in the browser's font."""
+    def face(name, cx, cy, r):
+        return drawn_avatar(name, js_fixed(cx - r), js_fixed(cy - r), 2 * r)
+
+    def icon(name, ix, iy, k, dim=False):
+        return ('<g class="sq-wi' + (" dim" if dim else "") + '" transform="translate(' + js_fixed(ix) + " " + js_fixed(iy)
+                + ") scale(" + js_num(k) + ')">' + SAFE_ICON[name] + "</g>")
+    pill = 92
+    px = w - 13 - pill
+    body = ""
+    for i, row in enumerate(rows):
+        ry = 59 + i * 44
+        when = row["who"] + '<tspan class="tm" dx="5">' + row["time"] + "</tspan></text>"
+        if row.get("av"):
+            who = face(row["av"], 22, ry + 25, 10) + '<text class="sq-wt nm" x="41" y="' + js_num(ry + 9) + '">' + when
+        else:
+            who = ('<rect class="sq-w-tile" x="12" y="' + js_num(ry + 15) + '" width="20" height="20" rx="6"/>'
+                   + drawn_avatar("ops", "14", js_num(ry + 17), 16) + icon("robot", 41, ry + 0.6, 0.4)
+                   + '<text class="sq-wt nm" x="53" y="' + js_num(ry + 9) + '">' + when)
+        chip = ""
+        if row.get("chip"):
+            chip = ('<rect class="sq-w-chip" x="44" y="' + js_num(ry + 17.5) + '" width="38" height="15" rx="4.5"/>'
+                    + icon("robot", 47, ry + 20.3, 0.4) + '<text class="sq-wt ch" x="59" y="' + js_num(ry + 29) + '">'
+                    + row["chip"] + "</text>")
+        body += (who + '<g class="sq-bub"><rect class="sq-w-bub" x="38" y="' + js_num(ry + 14) + '" width="' + js_num(row["bw"])
+                 + '" height="22" rx="11"/>' + chip + '<text class="sq-wt" x="' + ("86" if row.get("chip") else "47") + '" y="'
+                 + js_num(ry + 29) + '">' + row["text"] + "</text></g>")
+    return ('<g class="sq-win" transform="translate(' + js_num(x) + " " + js_num(y) + ')">'
+            '<rect class="sq-w-body" width="' + js_num(w) + '" height="' + js_num(h) + '" rx="13"/>'
+            + "".join('<circle class="sq-w-light" cx="' + js_num(d) + '" cy="11" r="3.2"/>' for d in (14, 24, 34))
+            + '<rect class="sq-w-panel" x="5" y="21" width="' + js_num(w - 10) + '" height="' + js_num(h - 26) + '" rx="10"/>'
+            '<circle class="sq-w-ring" cx="20" cy="37" r="8"/>' + face("maya", 20, 37, 7)
+            + '<circle class="sq-w-ring" cx="30" cy="37" r="8"/>' + face("leo", 30, 37, 7)
+            + '<text class="sq-wt ttl" x="44" y="41">release</text>'
+            '<rect class="sq-w-pill" x="' + js_num(px) + '" y="28.5" width="' + js_num(pill) + '" height="17" rx="8.5"/>'
+            + icon("world", px + 6.5, 32, 0.42, True) + '<text class="sq-wt pl" x="' + js_num(px + 20) + '" y="40.4">Open '
+            'community</text><path class="sq-w-rule" d="M5.5 53H' + js_num(w - 5.5) + '"/>' + body + "</g>")
+
+
+SAY_AGENT = ("Your computer, with your files, keys and logins, set apart by a dotted line that nothing crosses. Beside it, a "
+             "Buzz window: Maya asks the agent Ops to draft the notes, and Ops answers. A line runs from the agent's message to "
+             "a small machine on a yellow floor, where the agent runs with one project.")
+# The bubbles' widths until the script measures their words: wide enough for the fonts the page falls back to without
+# Inter (Avenir Next, Segoe UI, a phone's own), a little roomier than the guide's, which measures Inter
+WIDE_BUBBLES, TALL_BUBBLES = (142, 48), (184, 194)
+
+
+def agent_wide():
+    """On a wide drawing, left to right: your computer, the line nothing crosses, the community, the agent's machine."""
+    width, height, mine, its = 560, 204, 88, 80
+    a_floor, a_badge, _, a_laptop, _ = iso_kit(80, 46)
+    c_floor, c_badge, c_agent, _, c_machine = iso_kit(483, 50)
+    wx, wy, ww, wh = 186, 12, 206, 156
+    oy, cy, cx, ex = wy + 59 + 44 + 25, 50 + its // 2, 483 - its * 0.866 - 2, wx + ww + 11
+    return ('<svg class="sq-iso sq-wide" viewBox="0 0 ' + js_num(width) + " " + js_num(height) + '" role="img" aria-label="'
+            + SAY_AGENT + '">' + a_floor(mine) + a_laptop(13, 6) + a_badge(10, 70, "folder") + a_badge(42, 76, "key")
+            + a_badge(74, 70, "lock") + no_way_across(170, 10, height - 34, 90)
+            + '<text class="sq-note" x="170" y="' + js_num(height - 14) + '">no way across</text>'
+            + drawn_window(wx, wy, ww, wh, [
+                dict(av="maya", who="Maya", time="10:02 AM", chip="Ops", text="draft the notes?", bw=WIDE_BUBBLES[0]),
+                dict(who="Ops", time="10:03 AM", text="On it.", bw=WIDE_BUBBLES[1])])
+            + '<path class="sq-wire" d="M' + js_num(wx + ww) + " " + js_num(oy) + "H" + js_num(ex - 5) + "Q" + js_num(ex) + " "
+            + js_num(oy) + " " + js_num(ex) + " " + js_num(oy - 5) + "V" + js_num(cy + 5) + "Q" + js_num(ex) + " " + js_num(cy)
+            + " " + js_num(ex + 5) + " " + js_num(cy) + "H" + js_fixed(cx) + '"/><circle class="sq-dot" cx="' + js_num(wx + ww)
+            + '" cy="' + js_num(oy) + '" r="3"/><circle class="sq-dot" cx="' + js_fixed(cx) + '" cy="' + js_num(cy) + '" r="3"/>'
+            + c_floor(its, True) + c_machine(17, 17) + c_agent(40, 40, 28, 54) + c_badge(72, 10, "folder", True) + "</svg>")
+
+
+def agent_tall():
+    """On a narrow drawing the window gets the full width, so its words stay readable. The agent's machine sits under
+    the agent's message, your computer apart beside it, and the labels are drawn in."""
+    width, height, mine, its = 340, 348, 88, 80
+    c_floor, c_badge, c_agent, _, c_machine = iso_kit(84, 222)
+    a_floor, a_badge, _, a_laptop, _ = iso_kit(254, 216)
+    wx, wy, ww, wh = 8, 6, 324, 156
+    ax, by = wx + 22, wy + wh
+    ty, head = by + 12, 222 + its // 2 - 28 - 47
+    return ('<svg class="sq-iso sq-tall" viewBox="0 0 ' + js_num(width) + " " + js_num(height) + '" role="img" aria-label="'
+            + SAY_AGENT + '">'
+            + drawn_window(wx, wy, ww, wh, [
+                dict(av="maya", who="Maya", time="10:02 AM", chip="Ops", text="can you draft the notes?", bw=TALL_BUBBLES[0]),
+                dict(who="Ops", time="10:03 AM", text="On it. Working from the app repo.", bw=TALL_BUBBLES[1])])
+            + '<path class="sq-wire" d="M' + js_num(ax) + " " + js_num(by) + "V" + js_num(ty - 6) + "Q" + js_num(ax) + " "
+            + js_num(ty) + " " + js_num(ax + 6) + " " + js_num(ty) + "H78Q84 " + js_num(ty) + " 84 " + js_num(ty + 6) + "V"
+            + js_num(head) + '"/><circle class="sq-dot" cx="' + js_num(ax) + '" cy="' + js_num(by) + '" r="3"/><circle '
+            'class="sq-dot" cx="84" cy="' + js_num(head) + '" r="3"/>'
+            + c_floor(its, True) + c_machine(17, 17) + c_agent(40, 40, 28, 54) + c_badge(72, 10, "folder", True)
+            + no_way_across(170, 186, 310, 262)
+            + a_floor(mine) + a_laptop(13, 6) + a_badge(10, 70, "folder") + a_badge(42, 76, "key") + a_badge(74, 70, "lock")
+            + '<text class="sq-cap" x="84" y="326">The agent\'s machine</text><text class="sq-sub" x="84" y="341">one project '
+            'only</text><text class="sq-cap" x="254" y="326">Your computer</text><text class="sq-sub" x="254" y="341">your '
+            "files, keys, logins</text></svg>")
+
+
+def safe_icon(name):
+    return '<svg viewBox="0 0 24 24" aria-hidden="true">' + SAFE_ICON[name] + "</svg>"
+
+
+AGENT_FIG = (
+    '<div class="sq"><figure class="sq-fig"><p class="sq-k"><i></i>What the agent can touch</p><span class="sq-rec">'
+    'Recommended</span><div class="sq-stage">' + agent_wide() + agent_tall()
+    + '<div class="sq-caps" aria-hidden="true"><p><b>Your computer</b><span>your files, keys, logins</span></p>'
+    "<p><b>Your community</b><span>the agent sees what is posted</span></p>"
+    "<p><b>The agent's machine</b><span>one project only</span></p></div></div></figure></div>"
+)
+
+
+def tray_items(items, pub):
+    return "".join('<li><span class="sq-b2' + (" pub" if pub else "") + '" aria-hidden="true">' + safe_icon(icon) + "</span>"
+                   + text + "</li>" for icon, text in items)
+
+
+# Two lists over one community: what's fine to share flows in, and what to keep out is struck through and stops short
+NEWCOMER = '<span class="sq-new">' + safe_icon("user") + "</span>"
+OPEN_FIG = (
+    '<div class="sq"><figure class="sq-fig"><p class="sq-k"><i></i>What anyone who joins can read</p><div class="sq-lists">'
+    '<div class="sq-tray"><p class="sq-h" id="sq-share">Fine to share</p><ul aria-labelledby="sq-share">'
+    + tray_items([("doc", "Public docs"), ("branch", "Open-source code"), ("horn", "Announcements")], True) + "</ul></div>"
+    '<div class="sq-tray sq-out"><p class="sq-h" id="sq-keep">Keep out</p><ul aria-labelledby="sq-keep">'
+    + tray_items([("users", "Customer data"), ("branch", "Private repositories"), ("key", "Keys and logins")], False)
+    + '</ul></div><span class="sq-flow" aria-hidden="true"></span><span class="sq-flow sq-stop" aria-hidden="true">'
+    '<i class="sq-x">' + safe_icon("x") + '</i></span><p class="sq-room"><span class="sq-faces" aria-hidden="true">'
+    '<svg class="sq-av"><use href="#sq-maya"/></svg><svg class="sq-av"><use href="#sq-leo"/></svg>' + NEWCOMER * 3
+    + '</span><span class="sq-name"><b>Open community</b><i>anyone can join</i></span></p></div></figure></div>'
+)
 
 
 def drawn_profile_menu():
@@ -2304,13 +2664,13 @@ def notifications_note(setup):
 
 
 def guide_frame(n, total, title, drawing, caption, more, ends, step_title):
-    """One drawing of a step: Buzz's screen, a stepper with its title, and what to do. ends says whether it's the
-    guide's first and last drawing, where Previous and Next stop. Without scripts, the stepper's buttons stay hidden
-    and every drawing shows."""
+    """One drawing of a step: Buzz's screen or the safety step's drawing, a stepper with its title, and what to do.
+    ends says whether it's the guide's first and last drawing, where Previous and Next stop. Without scripts, the
+    stepper's buttons stay hidden and every drawing shows."""
     first, last = ends
     return (
         '<div class="g-frame" data-say="' + esc(step_title + ", part " + str(n) + " of " + str(total) + ": " + title)
-        + '"><div class="mb" aria-hidden="true"><div class="mb-stage"><div class="mb-canvas">' + drawing + "</div></div></div>"
+        + '">' + drawing +
         '<div class="g-row"><span class="g-n" aria-hidden="true">' + "%02d / %02d" % (n, total) + "</span>"
         '<span class="vh">Part ' + str(n) + " of " + str(total) + ": </span>"
         '<span class="g-t">' + title + '</span><span class="g-btns">'
@@ -2321,11 +2681,68 @@ def guide_frame(n, total, title, drawing, caption, more, ends, step_title):
     )
 
 
+# The safety step, between inviting people and pairing a phone: what an agent can touch, what anyone who joins can
+# read, then notes on private channels, invite links and bans, for the owner to share with members. What they state,
+# from Buzz 1.0.0 and relay 0.3.0: in the relay's default media mode any member with a file's link can open it, one
+# from a private channel included; invite links last 3 days with no use limit by default, 30 days at most, and can't
+# be canceled; removing a member isn't a ban, and Buzz 1.0 offers the owner of a self-hosted community no ban unless
+# Moderation is on, which needs the owner's own domain.
+SAFE_INTRO = ("Opening your community to the internet exposes you to risk. So does adding agents with access to personal "
+              "data. Here are some tips to keep yourself and your community safe.")
+# The private network isn't on the internet
+SAFE_INTRO_PRIVATE = ("Adding agents with access to personal data exposes you to risk. Here are some tips to keep yourself "
+                      "and your community safe.")
+AGENT_CAPTION = ("Most agents made in Buzz run on their owner's computer. There they can run commands, change files and go "
+                 "online without asking first. They take requests only from their owner, but they read what others post, "
+                 "and a post can be written to trick them. Run agents on a separate computer with nothing private on it, "
+                 "under their own identity, not the one that owns this community. Don't connect them to your email, drives "
+                 "or code.")
+OPEN_CAPTION = ("If anyone can join, strangers can post, and members can bring their own agents without asking you. Anyone "
+                "who joins, and any agent they bring, can read every channel that isn't private, including its full "
+                "history. They can also open files shared there and see who's a member. Keep private work, personal "
+                "details and passwords out.")
+PRIVATE_NOTE = ("Anyone in a private channel can add people and agents to it, so keep these channels to people you trust. "
+                "Shared files are different: anyone in the community with a file's link can open it.")
+# While moderation is on, members' private messages aren't private from the owner and the staff they add: the note
+# leads with that
+MODERATED_NOTE = ("While Moderation is on, you and staff you add can open any message stored here by its ID, deleted ones "
+                  "included, even in private channels and direct messages.")
+INVITE_NOTE = ("A new link works for 3 days with no limit on uses unless you change it, and for 30 days at most. You can't "
+               "cancel a link yet, and someone you remove can rejoin with a link that still works.")
+# A ban covers one identity and the agents it brings; links can't be canceled, so a person can come back
+BAN_NOTE = {False: "To keep an identity out, turn on Moderation in Settings, then ban it in Buzz on a computer. The same "
+                   "person can still join under a new identity.",
+            True: "To keep an identity out, ban it in Moderation in Buzz on a computer. The same person can still join "
+                  "under a new identity."}
+
+
+def safe_steps():
+    return [("Give each agent its own machine", AGENT_FIG, AGENT_CAPTION, ""),
+            ("Treat an open community as public", OPEN_FIG, OPEN_CAPTION, "")]
+
+
+def safe_notes(setup):
+    """Under the safety step's drawings: private channels and invite links, and bans where moderation can be on, the
+    owner's own domain. While it's on, the first note says who can read private messages, and the last how to ban."""
+    on = moderation_on(setup)
+    notes = [("lock", "Private channels.", (MODERATED_NOTE + " " if on else "") + PRIVATE_NOTE),
+             ("link", "Invite links.", INVITE_NOTE)]
+    if setup["mode"] == "domain":
+        notes.append(("ban", "Bans.", BAN_NOTE[on]))
+    return (
+        '<div class="g-foot"><ul class="g-notes">' + "".join(
+            '<li><span class="g-ni">' + ti(icon) + "</span><p><b>" + lead + "</b> " + text + "</p></li>"
+            for icon, lead, text in notes)
+        + '</ul><p class="muted small">Share these with your members. <a href="' + SELF_HOST_SECURITY + '" target="_blank" '
+        'rel="noopener">More on security in the self-hosting guide</a></p></div>'
+    )
+
+
 def guide_part(setup, domain):
     """The live page's next steps, as a guide wider than the page: the steps down the left, with the self-hosting
-    guide under them, and on the right one step at a time, its drawings of Buzz 1.0.0 one at a time with a stepper.
-    Without scripts every step shows, one after the other, and the links on the left jump to them. #join, #invite
-    and #phone open a step."""
+    guide under them, and on the right one step at a time, its drawings one at a time with a stepper. Without scripts
+    every step shows, one after the other, and the links on the left jump to them. #join, #invite, #safe and #phone
+    open a step."""
     private = setup["mode"] == "private"
     address = "https://" + domain
     # Buzz 1.0's own link for a community's address (docs/deep-links.md in block/buzz-app): it opens the join
@@ -2336,29 +2753,34 @@ def guide_part(setup, domain):
                '<p class="muted small">Opens Buzz on this computer with the address filled in, once Buzz is set up.</p>')
     stores = ('<a href="' + APP_STORE + '" target="_blank" rel="noopener">App Store</a> or <a href="' + GOOGLE_PLAY
               + '" target="_blank" rel="noopener">Google Play</a>')
+    # Each step: its link's title and line, its kicker and heading, a sentence, what comes before its drawings, the
+    # drawings, and what comes after them
     steps = [
-        ("join", "login", "Join your community", "First, as the owner", "Step 1 of 3",
+        ("join", "login", "Join your community", "First, as the owner", "Step 1 of 4", "Join your community",
          "Join in Buzz with this address, as the identity you entered as the owner.", actions, join_steps(domain),
          # Buzz's first run with a key of one's own (Other options, then Use an existing key): the guide shows it
          '<div class="g-foot"><p class="muted small">Made your own key? <a href="' + SELF_HOST_GUIDE + '" target="_blank" '
          'rel="noopener">The self-hosting guide</a> shows how to join with it.</p></div>'),
-        ("invite", "user-plus", "Invite people", "With an invite link", "Step 2 of 3",
+        ("invite", "user-plus", "Invite people", "With an invite link", "Step 2 of 4", "Invite people",
          "Send an invite link from Buzz. Whoever opens it joins in one step.", "", member_steps(domain),
          private_members_note() if private else ""),
-        ("phone", "device-mobile", "Pair your phone", "Optional", "Step 3 of 3 &middot; Optional",
+        # before its drawings, the people and the agent in them, drawn once for both
+        ("safe", "shield-check", "Keep it safe", "Agents and open communities", "Step 3 of 4", "Keep your community safe",
+         SAFE_INTRO_PRIVATE if private else SAFE_INTRO, SAFE_DEFS, safe_steps(), safe_notes(setup)),
+        ("phone", "device-mobile", "Pair your phone", "Optional", "Step 4 of 4 &middot; Optional", "Pair your phone",
          "Get Buzz on the " + stores + ", then pair it with Buzz on your computer."
          + (" The phone needs Tailscale too." if private else ""), "", phone_steps(domain),
          '<div class="g-foot">' + notifications_note(setup) + "</div>"),
     ]
     links, panes = [], []
-    for s, (key, icon, title, sub, kicker, sentence, acts, frames, foot) in enumerate(steps):
+    for s, (key, icon, title, sub, kicker, heading, sentence, before, frames, foot) in enumerate(steps):
         links.append('<a class="g-step" href="#' + key + '"><span class="g-tile">' + ti(icon) + '</span><span class="g-txt">'
                      "<b>" + title + "</b><small>" + sub + "</small></span></a>")
         drawn = "".join(guide_frame(n, len(frames), name, drawing, caption, more,
-                                    (s == 0 and n == 1, s == len(steps) - 1 and n == len(frames)), title)
+                                    (s == 0 and n == 1, s == len(steps) - 1 and n == len(frames)), heading)
                         for n, (name, drawing, caption, more) in enumerate(frames, 1))
-        panes.append('<section class="g-pane" id="' + key + '"><p class="eyebrow">' + kicker + '</p><h2 tabindex="-1">' + title + "</h2>"
-                     '<p class="muted">' + sentence + "</p>" + acts + '<div class="g-frames">' + drawn + "</div>" + foot
+        panes.append('<section class="g-pane" id="' + key + '"><p class="eyebrow">' + kicker + '</p><h2 tabindex="-1">' + heading
+                     + '</h2><p class="muted">' + sentence + "</p>" + before + '<div class="g-frames">' + drawn + "</div>" + foot
                      + "</section>")
     further = ('<p class="eyebrow g-further">Go further</p><a class="g-out" href="' + SELF_HOST_GUIDE + '" target="_blank" '
                'rel="noopener"><span class="g-tile">' + ti("book") + '</span><span class="g-txt"><b>The self-hosting guide</b>'
@@ -2405,63 +2827,6 @@ def address_change(setup, values, current):
     )
 
 
-SAFETY_TIPS = [
-    ("Agents work with what's on their computer.",
-     "Most agents made in the Buzz app run on their owner's computer. They can run commands, change files and go "
-     "online there without asking first. That's true in any community."),
-    ("Open communities bring in people you don't know.",
-     "If anyone can join, as with many open-source projects, strangers can post. Members can also bring their own "
-     "agents without asking you. Most agents made in Buzz take requests only from their owner, but they read what "
-     "others write, and a message can be written to mislead them."),
-    ("Keep agents on personal computers out of open communities.",
-     "If you want an agent there, run it on a separate computer with nothing private on it, signed in to Buzz with a "
-     "separate identity, not the one that owns your community. Don't connect it to your email, drives or code."),
-    ("Treat an open community as public.",
-     "Anyone who joins, and any agent they bring, can read every channel that isn't private, with its full history. "
-     "They can open the files shared there and see who's a member. Keep private work, personal details and "
-     "passwords out of it."),
-    ("Private channels and direct messages are for the people in them.",
-     "Anyone in a private channel can add other people and agents to it, so keep those channels to people you trust. "
-     "Files work differently for now: anyone in the community who has a file's link can open it."),
-    ("Invite links decide which people get in.",
-     "A new link works for 3 days with no limit on uses, unless you change <b>Expires after</b> or <b>Max uses</b>. "
-     "To invite one person, set <b>Max uses</b> to <b>1 use</b> before you copy the link. A link posted in public lets anyone "
-     "join until it expires, 30 days at most. Links can't be canceled yet, and someone you remove can rejoin with a "
-     "link that still works."),
-]
-PRIVATE_TIP, INVITE_TIP = SAFETY_TIPS[4][0], SAFETY_TIPS[5][0]
-# While moderation is on, members' private messages aren't private from the owner and the staff they add: the tip
-# leads with that, and says how
-MODERATED_PRIVATE_TIP = "Private channels and direct messages are for the people in them, but moderation can read them."
-MODERATION_TIP = ("While Moderation is on, the owner and staff they add can open any message stored here by its ID, "
-                  "deleted ones included, even in private channels and direct messages.")
-# A ban covers one identity and the agents it brings; links can't be canceled, so a person can come back
-BAN_TIP = {False: "To keep an identity out, even with a link, turn on Moderation in Settings and ban it. A person can "
-                  "still join under a new identity.",
-           True: "To keep an identity out, even with a link, ban it in Moderation in Buzz. A person can still join under "
-                 "a new identity."}
-
-
-def safety_part(setup):
-    """The live page's tips for owners, to share with members, most of all when anyone can join: collapsed,
-    between the next steps and Settings. On the owner's own domain they say how to ban, and while moderation is
-    on, who can read private messages."""
-    on = moderation_on(setup)
-    tips = []
-    for lead, text in SAFETY_TIPS:
-        if lead == PRIVATE_TIP and on:
-            lead, text = MODERATED_PRIVATE_TIP, text + " " + MODERATION_TIP
-        if lead == INVITE_TIP and setup["mode"] == "domain":
-            text += " " + BAN_TIP[on]
-        tips.append("<li><b>" + lead + "</b> " + text + "</li>")
-    return (
-        '<details class="alt"><summary>Keeping your community safe</summary><div class="inner">'
-        "<p class=\"muted small\">Most of this is common sense. It matters more when people you don't know can join. "
-        'Share it with your members.</p><div class="panel"><ul>' + "".join(tips)
-        + '</ul></div><p class="muted small">Block is working on more protections for agents.</p></div></details>'
-    )
-
-
 # Relay 0.3.0 lets a relay operator rename a listed open channel without its admin API (operator_may_rename in
 # handlers/side_effects.rs): staff with that role keep this one power while moderation is off
 OPERATOR_RENAME = "Even while it's off, staff with the operator role can rename public channels."
@@ -2469,13 +2834,15 @@ STAFF_RETURN = ("Staff added before get their access back when you turn it on. "
                 "staff in Buzz under Moderation, then Staff.")
 
 
-def moderation_points(domain):
-    """What turning moderation on means, for the owner."""
+def moderation_points(domain, live):
+    """What turning moderation on means, for the owner. Members learn who can read their private messages from the
+    guide's safety step, which a live page has above Settings."""
+    share = ('The <a href="#safe">Keep it safe</a> step above says it, so share it.' if live else
+             "Once your community is live, the Keep it safe step on this page says it, so share it.")
     return (
         "<ul><li>You, and staff you add in Buzz, can read reports, with who sent them, and the feedback members send. "
         "You and your staff can also open any message stored here by its ID, deleted ones included, even in private "
-        "channels and direct messages. Members don't see this in Buzz. The safety tips on this page say it, so share "
-        "them.</li>"
+        "channels and direct messages. Members don't see this in Buzz. " + share + "</li>"
         "<li>Moderation gets its own address on the internet, <code>" + esc(admin_origin(domain)) + "</code>. It "
         "accepts only requests signed by you or your staff.</li>"
         "<li>A ban keeps one identity out of this community, and the agents that join through it. It can't rejoin "
@@ -2502,11 +2869,11 @@ def moderation_part(setup, live, current, error, values):
         inner = '<p class="muted small">' + what + " You can turn it on here once your community is live.</p>" + staff
     elif not on:
         inner = ('<form method="post" action="moderation"><p class="muted small">' + what + " When it's on:</p>"
-                 '<div class="panel">' + moderation_points(current) + "</div>" + staff + box
+                 '<div class="panel">' + moderation_points(current, live) + "</div>" + staff + box
                  + '<p class="muted small">Saving restarts Buzz for a few seconds.</p>' + save_button)
     elif not live:
         inner = ('<form method="post" action="moderation"><div class="panel"><p>While it\'s on:</p>'
-                 + moderation_points(current) + "</div>" + box + '<p class="muted small">It starts working once your '
+                 + moderation_points(current, live) + "</div>" + box + '<p class="muted small">It starts working once your '
                  "community is live. To turn it off, clear the box and save.</p>" + save_button)
     else:
         # Buzz keeps Moderation out of Settings without a word when its check fails, and says why only under
@@ -2518,7 +2885,7 @@ def moderation_part(setup, live, current, error, values):
             "community in Buzz on your computer, then open Settings. A Moderation group appears in the sidebar, with "
             "Reports, Feedback, Communities and Staff. If Settings was already open, close it and open it again. Use "
             "the identity you entered as the owner.</p>"
-            '<div class="panel"><p>While it\'s on:</p>' + moderation_points(current) + "</div>"
+            '<div class="panel"><p>While it\'s on:</p>' + moderation_points(current, live) + "</div>"
             '<div class="panel"><p><b>Moderation doesn\'t show in Buzz?</b> Buzz says why in Settings, under Plugins, '
             "Manage plugins, then Moderation. If it says Unavailable, point at its button to see the reason.</p><ul>"
             "<li><b>Could not check access.</b> Buzz couldn't reach <code>" + esc(admin_origin(current)) + "</code> "
@@ -2613,7 +2980,339 @@ def main_page(setup, error="", values=None):
         + copy_button("https://" + domain, "Copy", "btn") + "</div>"
         + status + guide_part(setup, domain)
     )
-    return layout(body + safety_part(setup) + settings_part(setup, error, values, live))
+    return layout(body + settings_part(setup, error, values, live))
+
+
+# The safety drawings' people and agent, each drawn once and used wherever it shows: #sq-maya and #sq-leo, cut round,
+# and #sq-ops. Maya and Leo are Notionists by Zoish (CC0 1.0), made with DiceBear, as the self-hosting guide has them
+# (site/src/assets/avatars on main), less their metadata. Ops, the agent, is a Fuzzy from Buzz 1.0's agent avatar
+# packs (block/buzz-app, src/features/agents/avatar-packs, Apache 2.0), resized to 112 pixels, as WebP.
+AVATAR_MAYA = (
+    '<rect fill="#c0aede" width="1744" height="1744"/><g transform="translate(531 487)"><path d="M554 727.7c-99.2 297'
+    '-363.8 388.6-503.7 19.8-19.3-50.7 31-69.5 66.2-91.9 24.1-15.3 36.8-28.5 35.3-42.2-7-64.4-36.9-243.8-36.9-243.8l-'
+    '3-5.8s.7-1.6-2.2 1.2c-3 3-9.9 34.2-37 34.2-24.5 0-49.2-10.9-61-86.3C7.2 285.6 9.6 214 40 201c12.5-5.3 24-7.2 35.'
+    '2-.8 11.3 6.4-13-22 112-126C268.4 6.4 396.7-3.5 448.5 8 500.3 19.5 552 44.8 574.9 98.5c27.8 65-25.9 114.3-14 262'
+    '.5-2.2 53.6.8 171.2-146.6 210.6-28 7.5-19.3 48.4 22.7 58.4 67 21 117 72.3 117 97.9" fill="#fff"/><path fill-rule'
+    '="evenodd" clip-rule="evenodd" d="m554 266.2.1-1.4c4.1-36.4 8.2-71.7 27.1-103.4 6.5 4.4 5.7 10 3.7 15.2-19.9 51.'
+    '2-18 104.4-16.2 157.6l.4 14c2.1 66.4-14.5 126.8-58.7 177.5-15.4 17.6-35.8 29.8-56.5 40.3-21.4 11-25.9 20.1-19.2 '
+    '43.6l.8 2.6c1.4 3.9 2.8 7.9-1 11.8-4.5 4.6-9.5 3.3-14.8 1.8l-.6-.1a406.4 406.4 0 0 1-137-68.3c-6-4.4-10.8-10.3-1'
+    '5.5-16.1l-.3-.4c-2.5-3-3-7.8.5-10.4 3.3-2.5 5.8-.5 8.7 1.8l1 .9a145.5 145.5 0 0 0 76.3 31.7c13.4 1.4 26.6.9 40 .'
+    '4 7.4-.3 14.8-.6 22.3-.5 10.2 0 18.7-4.7 26.7-9.2l2.8-1.6c27.8-15.5 54.3-32.8 72.2-60.7 16.1-25 25.9-52.2 31.6-8'
+    '0.9 7.2-36.1 6.6-72.7 6-109.8-.3-12-.5-24.2-.5-36.4ZM50.6 190.8c21.9-1.7 34 11.2 44.3 26.3a140.4 140.4 0 0 1 22.'
+    '4 61.5c.5 3.7 1 7.6-1.2 11.3-4.5.6-4.9-3-5-5.6-.5-20.7-9.7-38.7-18.9-56.1-6.6-12.5-16.2-24.6-31.4-27.6-17.2-3.5-'
+    '33 12-40.8 32.2-14.5 37.6-12 74.6 1.4 111 5.8 15.9 13.1 32.1 27.8 43.2 14.8 11.3 32.7 9.3 43.6-5.7l2-2.5c2-2.6 4'
+    '-5.1 5-8 2.1-5.8 5.4-11.2 11.3-10.4 6.8 1 8 8.3 8.7 14a3661 3661 0 0 0 22 156.7l5.9 38.8c2.6 17.1 5.6 41.7 3.6 5'
+    '2.1a28 28 0 0 0-.3 2.2c-.4 2.8-.6 5-4.2 5.5-4.9.8-7-2-7.7-6.4-2.3-17-3-23.6-4-49.6-.9-25.2-5.6-50-10.4-74.9l-5-2'
+    '7c-5.2-30.8-10.3-62-10.8-97l-2 3c-7.6 11.3-13.7 20.5-24.5 24a40.5 40.5 0 0 1-46.1-12.5 127.8 127.8 0 0 1-28.8-55'
+    '.8c-8.4-34-9.9-67.1.9-100.6 5.2-16.1 23.7-44.7 42.2-42Zm34.6 127.5c4.4 3.2 8.4 6 12-5.4-1.1-42.2-14.7-69.2-35.8-'
+    '70.3 11.2 14.6 22 28.8 23 48.5a32.3 32.3 0 0 1-10.7-8.8c-2-2.2-4-4.4-6.5-6l-3-2.4c-4.8-3.6-9.7-7.4-17.8-4.5 3.8 '
+    '5.8 9 10 14.3 14 6 4.7 12 9.3 15.6 16.5-10.6 7.7-15.2 17.7-9.7 29.9 4.8 10.5 11.9 19.2 25.9 19.8-.6-6.3-4.7-10.9'
+    '-8.8-15.4-5-5.4-9.7-10.6-7.5-18.6 3.2-1.5 6.2.7 9 2.7Z" fill="#000"/></g><g transform="translate(178 1057)"><pat'
+    'h d="M1308 692 16 688.7S53.7 481.5 111.3 360C237.7 93.7 491.2 44.3 513.3 56.7c32 18 62.4 40.7 152 40.7 91.4 0 14'
+    '9.3-39.5 149.3-39.5s135.8 32.3 201.4 69.5c83.4 47.4 177.7 187 221 295.9 46.2 115.6 71 268.7 71 268.7Z" fill="#ff'
+    'f"/><g fill="#000"><path d="M728.6 692c-4.3-25.7 12-38.5 31-49.3 10.9-6.2 27.6-3.2 39 6 7.7 6 8.4 15.2 11.3 23.4'
+    ' 1.7 4.7 2.4 9.8 3.6 14.7 6.4 3 13.7-.6 20.2 4.4a455 455 0 0 1-49.2-.2c-1.3-7.2-2.2-13.2-8.8-15.6-6.1-2.1-10.4 2'
+    '.2-14.3 6-2.9 2.7-3.1 6.7-3.3 10.6-3.2 0-6.3-.3-9.4-1-2-12.7 5.2-19 14.4-23 18.2-8 26.4 4.7 33.5 21.6 2.8-18.8-2'
+    '.6-35.2-11.6-36.7-12.8-2-25.8-3.2-36.6 8a54.2 54.2 0 0 0-13.1 31h-6.7ZM1182.7 692c4.9-29.4 27.1-45.5 56.5-41.7 1'
+    '4.7 2 26.7 19.7 26.5 40.6a25 25 0 0 1-11.8.3c-3.2-25.6-11.3-32.4-33.8-28.7-14 2.3-26.6 16.8-25.8 29.5h-11.6ZM477'
+    '.6 692a53 53 0 0 1 24.2-34.7c27.4-16.8 50-8.6 59 22.3 1 3.6 2.5 7.1 4.1 11.6-5.2.8-10.6.8-15.9 0 .6-15.7-5.5-27.'
+    '3-16.1-28.7-19.8-2.7-39.5 5.7-43.6 29.5h-11.7ZM107.4 692c-4.3-17.2-27.2-35.2-45.3-35-17.4.4-30.5 13-34.2 34-2.1 '
+    '1-4 1-6.9 1 .4-23 9.3-37.2 25.2-41.8 24.3-7 46.6.9 62 22 5.5 7.3 8.1 17.8 20.4 19-6.3.8-13.2.8-21.2.8Z"/><path d'
+    '="M498 692c12.7-17.4 23.2-21.3 35.8-15.2 6.1 3 7.4 8.8 11 14.3-15 .9-30.3.9-46.8.9ZM1203.1 692c15.3-23.6 31.4-24'
+    ' 46.6-.8-14.9.8-30.1.8-46.6.8ZM38.8 692c4.6-15.7 17.4-19.8 32-20.2 12.6-.2 21.4 5.9 25.4 19.2-2 1-3.9 1-7.3.3-17'
+    '.6-15-32.3-14.6-41 .7h-9ZM671.6 478.7c35.7 22.3 35.5 53.2 33.8 86.4-.1 3.3-1.5 5.9-5 6.3-3.4.3-5.7-1.6-7.1-4.4-2'
+    '-4-1.5-8.2-.7-12.5 3.5-17.5 0-33.8-8.5-49.2-7.2-12.6-32.2-22.1-50.7-19.2a55.6 55.6 0 0 0-47 52c-.2 3.5 1.3 8.9-4'
+    '.4 8.8-5.3 0-4.6-5.1-4.8-8.8a62.8 62.8 0 0 1 56.2-64.3c12.7-1 25.3-.4 38.2 4.9ZM906.3 348.4c-14.8-23-35.3-30-60.'
+    '6-26.3-20.7 3-37.3 24-38.9 50-.4 7.6.4 15.3 2.2 22.7 1.5 6.1-.6 12-6.9 13-6.8 1.2-7.9-5.4-8.4-10.3-2.6-26 2.6-50'
+    '.8 19.2-70.7 14-16.8 35-18.9 55.8-16.3 31 3.7 52 26 54.5 59.7.3 4.6.8 9.5-5.8 11.7-7-9.8-1.8-23.7-11-33.5ZM365.6'
+    ' 380.4c-17.1 16-20 36.2-17.7 57.4-8.2.6-8.9-4.2-9.7-8.1a66 66 0 0 1 28.6-64.9c24.2-14.5 57.4-14 75.7 3.4a90.8 90'
+    '.8 0 0 1 27.2 66.4c0 3.9-.2 8.2-5.5 8.2-5 0-7.7-3.5-8.4-8.1-1.2-8-2-16-3.1-24.1-6-46-57.7-54.8-87.1-30.2ZM1172.3'
+    ' 432.6c-.2 5.5-.2 10.3-6.5 9.5-6.5-.9-7.5-6.2-7.7-11.5-.4-15-2.8-29.4-10.3-42.7a37.5 37.5 0 0 0-25.5-19.2c-43.7-'
+    '8.9-73 19.5-72.1 58.6 0 3.7 1.4 7.7-2.6 11.3-6.9-1.2-7.5-7.4-7.5-12.3-.6-48.8 35.7-77.3 80.7-70 25.6 4.2 37.8 22'
+    '.6 45.5 44.3 3.4 9.6 7.7 20 6 32ZM561.1 270.8c20.9-18.4 42-14.7 62.6-2.3a49.1 49.1 0 0 1 26 47.5c-.3 5.4-.4 11.1'
+    '-6 14.5-6.3-2.3-4.6-7-4-11.6 3.4-28.6-30.3-58.8-57.3-50-13.2 4.5-20.7 17-23.5 31-1.8 8.7-2.1 17.7-3.1 26.6-.5 4.'
+    '1 0 9.9-5.8 9.6-6-.3-8-5.3-7.4-11.2 1.8-19.2 5.5-37.8 18.5-54.1ZM204.3 530c4.2 10 7 20.7 8 31.6.5 5 1 9.3-6 11.1'
+    '-3.1-11-6-21.5-9.3-31.8-4.2-12.7-21.6-24.6-34.3-24-17.3.6-25.9 11.2-25.4 30.8.2 10.4 5.2 20.7.5 31.7-6 .4-11.2-1'
+    '.4-11.8-7.1-1.2-11.8-4.3-23.4-1.6-35.4 7-30.7 36-41.9 64.9-21.8a49.7 49.7 0 0 1 15 15ZM895.9 217.6c-.6 5-1.3 9.4'
+    '-6.7 8-4.4-1.2-3.2-5.2-3-8.6 2.7-32.5-18.2-46.6-41.8-53.4-12-3.5-26.1 5.2-32.6 18.6a58.9 58.9 0 0 0-7.4 31.7c.2 '
+    '3 .1 6-.2 9-.3 4.7-.2 10.2-7 9.5-6-.6-7-5.6-6.6-10.5 1.7-17.2 3.7-33.8 13.6-49.4 13.8-21.8 46.8-20 63.5-10.5 20.'
+    '9 12 32 29.4 28.2 55.6ZM396.8 148.8c3.2 10.2 6.5 19.4 8.8 28.9 1.7 6.8.2 12.7-9.2 14l-8.8-33.1a48 48 0 0 0-9.7-1'
+    '9.1c-14.3-16.8-27-19.2-45.2-7-18.4 12.5-30 28.7-23.8 52.8.7 2.6.9 5-3 8.7-8.4-7.6-10.4-17.3-8.8-27.6a57.4 57.4 0'
+    ' 0 1 50.4-47.9c21.4-3 38.3 6.8 49.3 30.3ZM876.6 519c-26.6-4.5-40.6 9.8-35.9 36 1 5.9 2.5 11.6 2.2 17.6-.2 3.6-.8'
+    ' 7.4-5.3 7.2a7 7 0 0 1-6.8-6.5c-1.8-15.6-4-31.2.4-46.8 3.4-12.1 24-24.8 37.8-21.5 21 5 45.3 18.8 44.6 47.5-.2 6.'
+    '6 6.5 14-3 21-9.8-19.2-6.5-46.6-34-54.5ZM357 664.1c-4-30.4-35.2-50.7-61-40.6-14.4 5.7-22 23.3-18.4 43 .8 4.5 3.5'
+    ' 8.9-1.3 14.6-14.2-11.2-8.5-26.6-7.8-39.4.7-16.4 17-30 34.6-32.2 24-3 51.3 12.5 59.7 34.1 5.4 13.8 5 31-1 35.3-4'
+    '.9-3.4-4.2-8.8-4.8-14.8ZM991.9 628.3c-12 12.8-16.2 26.5-9.1 42.5 1.4 3.2 3 6.9-1.4 8.6-4.5 1.7-5.5-2-7-5.3-8.6-2'
+    '0-2.2-47.4 13.5-57.8 19.6-12.8 48.6-7.2 67.3 10.9 13 12.6 11.8 29.2 15.8 44.4a6 6 0 0 1-5.3 7.4c-3.8.4-4.7-3.2-5'
+    '.3-6-.8-3.7-.8-7.6-1.1-11.4a44.2 44.2 0 0 0-67.4-33.3Z"/><path d="M605.3 545.1c-1.4 3.2-1.9 6.2-5.2 6-3.6-.4-4.6'
+    '-3.3-5-6.4a43.8 43.8 0 0 1 10.1-33.1C618.6 495.4 638 491 658 494c9 1.4 14.8 10.8 18 18.5a60 60 0 0 1 2 41.2c-.8 '
+    '2.5-1.4 5-4.6 5.1-3.1.1-4-2.3-5.3-4.6-2.4-4.4-1.8-8.6-.7-13.4 2.5-10.9.8-21-7.9-29.1-8.5-8-17.6-5.3-27.2-2.5-17.'
+    '5 5.2-24.3 18.1-27 35.8ZM368.6 412.8c-1.5 10 2.3 19.5-3 28.2-8.8-6.7-11.2-23.8-6-38.5 4.8-14.4 25.6-25 45.9-26.5'
+    ' 16.6-1.2 27.4 10.2 33.5 30 3.2 10.3 6.3 20.8-3 29.8-6.5-2.7-5.9-7.3-5.9-11.4 0-8-2.2-15.3-5.3-22.2-6-13.6-18.2-'
+    '17.6-31.5-11-9.7 5-20 9.4-24.7 21.6ZM1114 388.4c-34 1-45.5 21.3-43.9 53.5a34.6 34.6 0 0 1-3.2-45.5c15.7-19.3 45.'
+    '8-26.8 60.2-15 15.6 12.9 22 39.7 11.7 53.7-11.2-14.2-4-37.8-24.7-46.8ZM903.5 374.3c-.8 4.9 1.8 11.2-4.5 11.1-5.8'
+    ' 0-4.4-6.1-4.8-10.1-2-19.1-25.3-36.6-43.7-32.2-11.6 2.9-17.2 11.2-18 23-.7 9.6 1.9 19.4-2.2 28.7-9.3-3.6-13.2-21'
+    '-9.3-39.1 3.6-16.7 21.4-28 42.4-25 19.3 2.8 41.6 16.6 40 43.6ZM129 380.3c.7 5.9-.2 10.3-3.6 14-11.7-8.4-12.4-34.'
+    '2-1.4-50.3 12.3-18.2 36.5-19 61.9-2.2 12.4 8.3 18.3 31.3 10.7 43.8-6.7-2.7-6-9.4-7.4-14.7-4.5-17.4-24.7-31.2-42-'
+    '28.2-13.6 2.2-21.5 18-18.2 37.6Z"/><path d="M216.1 352c-.2 6.2 2.4 10.8 3.9 15.6 1.6 5.6 1.2 10.6-6.3 15-7-46.8-'
+    '32-68.7-79-59.4-.6-9.3 4.3-12.2 9.6-12.7 31.1-3.1 56.2 5.3 71.8 41.4ZM884 536c13.3 15.8 14.8 21.7 9 33.5-7.2-5.3'
+    '-7.9-14.7-13.6-20.9-4.8-5.3-9.6-8.3-16.4-5.9-6.4 2.4-4.8 8.2-4.4 13.2l1.2 13.9c.4 3.7 2 8.3-3.3 9.4-4.7 1-7.8-2.'
+    '3-9.5-6.6-3.6-8.5-.3-31 5.8-36.2 9.7-8.2 20.2-6.2 31.3-.3ZM296.5 666.4c-2.4 2.1-3 6.3-7.1 6.6-6.8-10.9-5.3-23.4 '
+    '3.6-31.6a34.9 34.9 0 0 1 43.1-2.6c7.4 5.4 12.4 27 8.3 35-1.3 2.2-2.5 4.6-5.7 3.9-2.8-.6-4.2-2.7-4.5-5.5-.2-3.3-.'
+    '2-6.8-.3-10.2-.7-12.7-9.1-20.7-21-20-12.6.6-18.1 8-16.7 23.6l.3.8ZM629.5 318.8c-5.2 5.3-7.8 3.2-9-2.3-.7-3.3-.2-'
+    '7-1.7-9.9a23.8 23.8 0 0 0-20.2-13c-9.3-.6-11.3 6.8-15 13-3.8 6.6-1 15.4-7.8 21.4-12.6-4.2-7.2-14-5.2-20.8 5.6-19'
+    '.2 16.8-25.6 36.2-22.6 13 2.1 23.5 17.4 22.7 34.2ZM166.6 530.8c20 5.6 31.2 24.2 22.7 39.2-3.3-9-9-15.4-13.7-22.4'
+    '-4.4-6.4-10.6-7.3-16.8-4.7-6 2.4-6.3 8.5-5.4 14.2.7 4.2 1.9 8.3 2.7 12.4.8 3.7 2.6 8.5-2.8 9.4-4.7.9-8.8-1.3-11-'
+    '6.5a30.3 30.3 0 0 1 24.3-41.6ZM316.5 174.9c2.7-16.6 9.6-27.5 27-30 18.4-2.6 36.2 12.9 35 31.7-.3 4-.4 8.3-5.5 8.'
+    '6-5 .3-6-3.6-6.4-7.8-.3-2.9-.4-6.1-1.8-8.6-4-7.7-6.8-17.5-17.7-17.7-8-.2-19.9 13-21.6 22.5-.7 3.5 1 7.7-2.6 10.7'
+    '-5-.6-5.2-4.9-6.4-9.4ZM1029.6 645.7c-26.6-11.3-31.4 7.2-35.7 26.8-5.2-11.7-4.7-22 2-30.7 6.2-8.2 26.4-11.7 36.6-'
+    '7.5 10.5 4.3 16 12.4 15.4 23.8-.4 6.6 4.2 18.4-3.8 18.8-9.8.6-4.1-11.1-5.2-17.3-1-6-3.8-10.2-9.3-14ZM857.7 183.2'
+    'c16.8 6.2 21.5 17.5 15.7 36-6.4-1-4.3-6.5-4.9-10-1.7-9.3-7-14.9-15.2-18.6-9.7-4.3-16.5-1-20.4 8.3-2.3 5.4-3.9 11'
+    '.1-4.8 17-.6 4.6-1.8 7.6-6.8 6.5-4.4-1-5.3-4.4-4.8-8.9 2.6-25.7 13.5-34 41.2-30.3ZM1016.5 152.4c-7.8 13.1-1.4 27'
+    '.4-5.4 40.4-11.3-5-14.5-25-7.1-38.7 11.7-21.4 15.7-24.4 25.4-18l-13 16.3ZM643.4 546.3c-.2-7 0-14.6-6.7-16.1-9.7-'
+    '2.1-10.5 9-15.4 14-6-6.4-4.7-16.4 2.4-22 8.3-6.7 19.7-6.3 24.5 2 3.4 5.7 4.7 12.6 6.3 19.1.7 2.8.4 6.3-3 7.7-3.7'
+    ' 1.5-6.5.4-8-4.7ZM877.8 379.4a82.1 82.1 0 0 1-4.6-8.3c-2-3.6-4.7-6.3-9-5.2-3.6.8-5.6 3.6-6.1 7.3-.4 3.3-.4 6.7-1'
+    ' 10a4.8 4.8 0 0 1-4.2 4c-3 .5-4.6-1.6-5.6-4-3.3-7.8 3.9-24.5 12-27.9 9-3.8 20 2 23.8 12.8 1.6 4.8 3.4 10.3-5.3 1'
+    '1.3ZM393.4 402c14.4 1.7 20.7 8.7 21.7 22.5.3 3.1.7 6.2-3.2 7-4 1-6.5-.7-7-5-.3-2.5-.2-5.3-1.2-7.5-1.8-4-5.8-6.6-'
+    '10.1-6.5-4.2 0-4.9 4-6.3 7.1-1.7 3.6.1 8.9-5 10.9-10.6-10.3-6.4-22.3 11-28.4ZM1248.8 517.4c-4.6 12.5-1.5 25.9-8.'
+    '8 37.7-10-29.2.2-61 25.8-61.8-2.5 10.2-13.8 13.7-17 24ZM1112.4 408.9c3.6 4.9 6 9.3 7.2 14.3 1 3.6 1.3 7-3.1 8.2-'
+    '4 1-6.4-1.1-7.4-5-1.7-6.2-3.4-13.7-10.9-13.8-9.3 0-7.3 10.8-12.1 16.8-7.5-8.1-5.3-17 .2-22.6 7.7-7.6 17.5-7.2 26'
+    '.1 2ZM166.8 366.2c-10.8-2-13.7 3.8-14 12.6-.3 4 .2 9.8-6.2 8.4-5-1-5.2-5.7-4.5-10.3 2.7-19.5 17.1-28.5 30.1-18.7'
+    ' 7.4 5.5 7 12.5 5 20.8-7.7-1.2-4.6-10-10.4-12.8ZM1045.8 147c.8.9 1.2 1.5 1 1.6-11 9.6-19.4 20.6-18 38.1-11-5.9-8'
+    '.4-13.9-7.1-20 2.5-12.2 10-20 24-19.7ZM1261.2 544.3c-.8 3-1 5.2-3.8 5.4-5.5-11.7-1.3-29.4 8.5-35.8 2.7-1.8 5.5-2'
+    ' 7.8.9 2.2 2.7 2 5.6-.5 7.9-6.5 5.4-8.4 13.4-12 21.6Z"/><path d="M869.2 571c-10.7 0-8.3-7-7-12.4 1.4-5.2 5.2-9.7'
+    ' 11.1-8 8.4 2.2 10.5 8.7 9.1 16.5-3.5 4.7-9.6-2-13.2 4ZM296.4 666.5c10.5-13.2 19.8-14.2 26.5-2.5 2.4 4.3 4.2 9.6'
+    '-.7 12.5-5.8 3.6-8-1.4-9.5-6.3-.4-1-1.5-2-2.1-2.8-4.5-2.3-8.6 5.4-13.5-.4-.6-.6-.6-.5-.7-.5ZM160 555c4.5-5.8 9.5'
+    '-5.7 13.9-2.5 5 3.6 5 9.2 3.4 14.8-19.4 3.2-19.4 3.2-17.2-12.2ZM1005.4 659.5c7.2-4.8 13.6-5.7 18.3 1.7 3.1 5 7.6'
+    ' 10.9.2 16-6.2-1-5.4-7.9-10.6-10.4l-9.5 2.6c-4-4-1.2-6.6 1.6-9.9ZM335.8 170.2c5-4.8 10-4.4 14.7-2.5 5 2 7.7 6.4 '
+    '8.4 11.7.3 2.2-.9 4.4-3 5.2-6.5 2.6-6.4-5.2-10.3-7-4.6-1.4-5.4 5.1-9.9 4.5-4.2-3.4-2-7.3.1-12ZM850.1 214.5c-4 2.'
+    '7-6 10.5-11.2 5.2-4.3-4.5-1.3-11 2.9-14.5 4.7-4 11-5 15.6.5 2 2.7 4.2 6.4 3 10.8-4.3 3.7-5.9-4.2-10.3-2ZM590.7 3'
+    '22.8c-1.8-10.3 3-17 11.9-17.3 8-.3 12 6 10.6 14.4-5.3 3-6.5-3.6-10.3-3.5-3.7 2.7-4.6 10-12.2 6.4ZM1045.4 166.8c6'
+    '-.1 11.2-.7 13.6 5.7 1.2 3.4 5 6.8 1.3 10.3-4 3.8-7 0-9-3.1-4.3-6.7-7.9 2.4-12.5.2-.5-5.3-2-10.8 6.6-13ZM1082.8 '
+    '176c0 5.2-1.6 9-6 9.2-4.9.1-5.8-4.4-6.4-8.2-.6-4-3.4-7.8-1.9-13.2 6.8 1.5 11.1 5.4 14.3 12.2ZM95.9 393.3c1.8-3.3'
+    ' 2.6-6.4 6.9-7 2.3 6.2 6.7 12.2.5 18.8-2 2.1-4.8 4.1-7.6 1.8-4.7-4-1-8.4.2-13.6ZM1269 537.6c9.3-7.8 10.2-7.2 14 '
+    '9.3-4.6-1.5-8.7-.3-12.2 1.2-4-3-3-6.4-1.8-10.5Z"/></g><path fill-rule="evenodd" clip-rule="evenodd" d="M1301.7 6'
+    '92c-6.3-26-11.8-51.9-17.4-77.9l-8.4-39c-8-36.6-18.6-72.3-30.1-107.6a677 677 0 0 0-42.2-102.8l-7.1-13.7a804.1 804'
+    '.1 0 0 0-27.6-50.7c-27.6-45.3-58.4-88.3-97.4-124a336.4 336.4 0 0 0-102.8-65c-7-2.8-13.9-6-20.8-9.1-8-3.7-15.9-7.'
+    '3-24.1-10.5-10.6-4-14.4-.7-18.9 7.3-8 14.7-18 28-33 36-40.4 21.6-82.6 33.2-127 13.6-18.3-8.1-35.3-20-48.8-35.4-6'
+    '-7-12.2-8.3-20.5-9.5-22-3.3-36.8 4.7-49.3 23.1C610 151 584 160 556.6 162.6c-39.9 3.8-76-6.6-108.4-31.8a203.6 203'
+    '.6 0 0 1-44.8-44.3l-9.7 4.5c-7 3.1-13.7 6.2-20 10-9.6 6-19.7 11-29.8 16-11.6 6-23.2 11.7-34.1 18.9-32 20.8-60 45'
+    '.8-85.8 73.7a604 604 0 0 0-86.7 122.8 867.4 867.4 0 0 0-50 108.1 1213.2 1213.2 0 0 0-34.2 102 560 560 0 0 0-20.3'
+    ' 102.2c-.6 6.8-2.1 13.6-3.7 20.4-1.9 8.3-3.8 16.8-4.1 25.8-5.5 1-10.7 1-17 1 4.6-32.9 9.8-66 16-98.8 2.4-12 5.4-'
+    '23.7 8.4-35.4l5.3-21.5c5.2-22.6 12.7-44.6 20-66.6l.1-.1.9-2.6a835.3 835.3 0 0 1 83.3-179c17-27.2 36.2-53 57.3-77'
+    ' 37.5-43 79.4-80.3 130.6-105.9l10.8-5.4c36.1-18.2 72.3-36.4 112.5-44.2 11-2.1 22.2-4.6 33-7.6 12.8-3.5 15.2-9.1 '
+    '10.4-21.1l-1-2.2c-.7-1.6-1.5-3.3-1.7-5v-.4c-.6-3.6-1.3-7.8 3.8-8.9 4.3-1 5.5 1.6 7 5l.6 1.1c1.6 3.2 3 6.5 4.5 9.'
+    '7 4.8 10.8 9.6 21.7 18.7 30.6 17 16.6 38 24.2 59.9 27.2l5.3.7c25 3.3 50 6.7 75.4 5.4 35.4-1.8 70.4-5.5 104.3-16.'
+    '5 5.2-1.7 9.8-4.8 14.1-8.3 7-5.8 6.5-10.6.5-16.8-9-9.2-11-20.6-10.4-32.6 4-1.5 7.1-.5 7.7 1.8 7 30.4 29.7 36 56 '
+    '39 34 3.8 66.4 14.3 98.9 25a399.8 399.8 0 0 1 71.4 34.6l18.7 10.5a271.8 271.8 0 0 1 67.1 53.2c22.8 24.3 44.1 50 '
+    '62.7 77.6a762 762 0 0 1 45.1 74.5 1005 1005 0 0 1 86.8 242c5.7 25.4 10 51.3 14.3 77.5 2.2 13.2 4.3 26.4 6.7 39.7'
+    '-3.2.9-6.7.9-11.3.9ZM575.3 143a84 84 0 0 0 49.9-37.7c-2.9-2.4-6-3-9.2-3.5l-3-.5c-6.5-1.5-13.2-2.7-19.9-3.9-27-4.'
+    '8-54.1-9.7-74.2-32.8-1.4-1.5-4.7-1.7-7.1-1.8-27.6-.5-53.6 6.9-79.6 14.3l-11.3 3.2c.8 5.6 2.6 9 5.8 12.2 12 12.3 '
+    '25.3 23.2 39.7 32.5 33 21 68.2 30.7 108.9 18Zm224.8.3c-31.6 4.3-57.3-9-81.2-27.6-1.6-1.7-3.3-3-5-4.2-3-2.4-5.7-4'
+    '.5-6.9-8.4 10.1-3.8 20.7-5.8 31.2-7.9a178 178 0 0 0 33.2-8.6l5.3-1.8c4.4-1.4 8.8-2.8 11.9-5.8 16.8-16.2 36.3-15.'
+    '6 56.5-10.6 13 3.3 26 7 39.6 11l19 5.6-5.6 6.5c-14.2 16.6-26.7 31.3-47 38.5-16.8 6-33.4 11-51 13.3Z" fill="#000"'
+    '/><path d="M1119.6 692c-9.1-36.9-12.1-74.7-22-111.2-7.7-28.1-13.9-56.8-23.8-84-7-19.4-13.7-39-23-57.8-12.7-25-23'
+    '.1-51.2-34.4-77-1.3-3-2.9-6.3 1.3-8.8 4.3-2.6 7.4-.5 9.8 2.6 3.8 5 7.8 10.2 10.6 15.9 10 20.4 19.4 41.1 29.1 61.'
+    '6A612.7 612.7 0 0 1 1101 529c9 31.6 17.5 63.6 21.5 96.6 2.6 21.4 7 42.7 8.6 65.4-3.3 1-6.8 1-11.4 1ZM221.2 692c-'
+    '.6-3 .4-5.8.4-8.7 0-49.6 9.7-98 16.8-146.7 5.1-35 13.4-69 22.8-102.9 6.8-24.4 18-47.5 32-69 2.3-3.6 4-10 10-6.9 '
+    '6.3 3.2 3.3 9 1.4 13.6-7.2 17.6-16 34.7-22 52.7a740.8 740.8 0 0 0-31.3 138.7c-1 8.5-2.8 16.8-5 25-7.5 28.5-3.8 5'
+    '8.4-11 87-1.2 4.7.2 10.1.2 16.2-4.5 1-8.9 1-14.3 1Z" fill="#000"/><path fill-rule="evenodd" clip-rule="evenodd" '
+    'd="M648.9 165.5c-9 6.6-10.5 15.7-3.6 28.3l4 2.7c2.3 1.5 4.3 3 6.5 3.6 9.5 3 17-2 21.6-9.1 4.7-7 5.5-16.9-1.9-22-'
+    '7.3-5.1-16.6-10.9-26.6-3.5Zm5.4 17.4Zm0 0c3.8 2.8 7.6 3.4 10.9-.5a3.4 3.4 0 0 0-1.2-5.3c-4.4-1.6-9.2-2.6-9.7 5.8'
+    'Z" fill="#000"/></g><g transform="translate(266 207)"><path d="M389 234.8A329 329 0 0 1 495 170.3c35-13.4 69.8-1'
+    '6.6 106.1-16.5 40.6.2 74.5 18.6 112.4 32 57.4 20 176.1 126 141.5 262.2-4.6 18-7.6 35.8-12.8 52.8-7 22.5-3.2 43.3'
+    '-1.6 65.2 3.8 49.7 46.1 114 51.6 163.2 3.9 34.6 6.2 68.6.7 102.8-4.4 27.9-21.6 71-29.9 97.5-5.5 17.8-39.4 4-54.3'
+    ' 17.3-5.3-2-6.5-4.6-7.2-9-2.6-17.8 3.2-33.3 10.4-49 6-13 7.5-27.4 11.8-41.1a190666.9 190666.9 0 0 1-31.2 56.5c-1'
+    '0 15-14 16.4-30.1 9.1-15-6.8-29-15.8-44.4-21.7-4.4-1.6-8.3-3.5-13.1-4-13.3-1.3-18.6-12.3-24.8-21.8-2.1-3.3 1.4-5'
+    '.7 4.2-8a277.8 277.8 0 0 1 56-34.8c30-15.5 44.8-41.6 57.8-69.8 13.2-28.3 19.2-58.7 24-89.2 5-32 .7-64.1-1-96.1-1'
+    '.3-21.6-5-43.1 3.3-64.2 1-2.6.8-6 .1-8.9a653 653 0 0 1-16-92.6c-2.8-30.5-44-150.6-116.4-102.7-21.5 14.2-30 31.3-'
+    '46.6 62.2-18 33.7-44 58.8-76.7 77.8-17.5 10.2-35.6 20.4-55.2 24.8-23.5 5.2-46.8 12.2-71.1 13.8a73.6 73.6 0 0 0-4'
+    '3.2 20.1c-24.5 21.4-20 44.7.5 72.5 24 32.5 45 67.1 51.2 106.6 5.2 33.4 6.4 68.2-5.7 102.2-7 19.7-16.9 37.5-25.3 '
+    '56.3-11 24.6-8.2 49.5 2.2 74.8-31.7 19.8-65 14.4-99.2 9.4 1.7 9.5-5.6 9.4-12.8 9-27.9-1.4-56-1.3-82.4-12.9-1.9-.'
+    '8-4.8-1.8-6-1-5.4 3.8-27.7 17.4-63-36.6-14-21.7-17.5-46-16.6-70.7.8-23.6 4.1-47.4 8.4-70.7 10.7-58.4 38.5-108.8 '
+    '76.1-154 25.6-30.7 43.6-65.2 49-104.6 3.3-23.5 5.2-47 11.3-70.2A339.3 339.3 0 0 1 348 280.9c12.6-16 25-32 41-46.'
+    '1Z" fill="#000"/></g><g transform="translate(791 871)"><path d="M182.3 95.7c-29.2 14-65.1 3-84.2-16-2.3-2.3-3.8-'
+    '5.6-5.3-8.6-1-2.3-1.6-5 .7-7.1 2.2-2.1 4.7-1.8 7.1-.7 2.6 1.3 5.6 2.5 7.5 4.5 12.1 13 28 16.4 44.7 19C162 88 169'
+    ' 82.3 177 80.2c5.3-1.4 11-9 15-.7 3.3 6.8-1.3 12.9-9.7 16ZM66.6 57.4C71 45.2 80.3 40.6 90.8 37.9c5-1.3 10.8-1.7 '
+    '13 4.3 2.4 7-3.2 10.9-8.3 12-7.3 1.4-12 4.6-15.4 11.2-2.2 4.3-5.7 9.7-11.7 7-7.2-3-3.8-9-1.8-15Z" fill="#000"/><'
+    '/g><g transform="translate(901 668)"><path d="M59.8 81.5c4.5-7.8 8-15.1 12.7-21.7 3-4.2 8-7.4 13-3.1 4.9 4 0 7.2'
+    '-2 10.7a227.9 227.9 0 0 0-31.3 82.3c13-2 25-1.4 30.4 11 5.6 12.7-2.5 23.2-10.6 31.8-7.3 7.7-16.6 13.5-29 7.7C42.'
+    '8 184 69.6 185 65.6 167c-2.6-2.6-4.5-1.7-6.6-1.2-19.7 4.3-22.8 2.4-20.3-18.2a214.6 214.6 0 0 1 21.1-66Z" fill="#'
+    '000"/></g><g transform="translate(610 680)"><path d="M407.4 122.5c13 .3 25.4 1.1 37.6 2.5 3 .4 5 3.3 5 6.7 0 3.3'
+    '-1.7 5.6-4.7 7-11.2 4.8-22 8.2-33.7.2-6.5-4.5-9-8.7-4.2-16.4ZM247.6 117c7 0 7.8 3.8 7 8.5-2 10.2-20 22.4-30.4 20'
+    '.5-5.9-1-10.5-4-10.7-10.5-.2-6.7 4.8-8.2 10.3-8.4 9-.3 15.8-5.2 23.8-10ZM215.1 76.6c5-12 9-29.4 24.1-22.5 20.7 9'
+    '.4 13.9 30.7 9.7 47.4-1.6 6.3-14.5 15.9-18.3 14.3-16.3-6.8-19.2-21.7-15.5-39.2ZM442 113.4c-8.6 7.5-17 7.6-22.2-1'
+    '.5-9-16-8.6-32.8 3.3-47.2 2.5-3 13.8-3.6 16.3-1 14 15 14.6 31.8 2.6 49.7Z" fill="#000"/></g><g transform="transl'
+    'ate(774 657)"><path d="M107.5 34.6c4.3 5.6 14.4 8.2 8.3 16.8-5.8 8.2-15.6 8.7-24.3 6.4C82 55.5 73 52 64.4 47.2c-'
+    '12.1-7-23.1-6.2-34.8.2-6.6 3.6-16 9.8-20.4 1.9-5-9.2 7-11.4 12.8-15.4 18-12.8 38.8-14 60-12.2 9.6.8 16.7 7.7 25.'
+    '5 13ZM231.2 44.2c15.9-7.4 30.7-14.8 48.2-12.7a47.6 47.6 0 0 1 30 15.2c2.9 3.1 5 7.5 1.4 11.4-3.6 3.7-8.6 4.5-12.'
+    '5.4-10-10.7-20.3-8.4-30.7-1.4-9 6.1-19.6 5.5-29.4 6.4-10.7 1-13.4-6.6-7-19.3Z" fill="#000"/></g>')
+
+AVATAR_LEO = (
+    '<rect fill="#b6e3f4" width="1744" height="1744"/><g transform="translate(531 487)"><path d="M554 727.7c-99.2 297'
+    '-363.8 388.6-503.7 19.8-19.3-50.7 31-69.5 66.2-91.9 24.1-15.3 36.8-28.5 35.3-42.2-7-64.4-36.9-243.8-36.9-243.8l-'
+    '3-5.8s.7-1.6-2.2 1.2c-3 3-9.9 34.2-37 34.2-24.5 0-49.2-10.9-61-86.3C7.2 285.6 9.6 214 40 201c12.5-5.3 24-7.2 35.'
+    '2-.8 11.3 6.4-13-22 112-126C268.4 6.4 396.7-3.5 448.5 8 500.3 19.5 552 44.8 574.9 98.5c27.8 65-25.9 114.3-14 262'
+    '.5-2.2 53.6.8 171.2-146.6 210.6-28 7.5-19.3 48.4 22.7 58.4 67 21 117 72.3 117 97.9" fill="#fff"/><path fill-rule'
+    '="evenodd" clip-rule="evenodd" d="m554 266.2.1-1.4c4.1-36.4 8.2-71.7 27.1-103.4 6.5 4.4 5.7 10 3.7 15.2-19.9 51.'
+    '2-18 104.4-16.2 157.6l.4 14c2.1 66.4-14.5 126.8-58.7 177.5-15.4 17.6-35.8 29.8-56.5 40.3-21.4 11-25.9 20.1-19.2 '
+    '43.6l.8 2.6c1.4 3.9 2.8 7.9-1 11.8-4.5 4.6-9.5 3.3-14.8 1.8l-.6-.1a406.4 406.4 0 0 1-137-68.3c-6-4.4-10.8-10.3-1'
+    '5.5-16.1l-.3-.4c-2.5-3-3-7.8.5-10.4 3.3-2.5 5.8-.5 8.7 1.8l1 .9a145.5 145.5 0 0 0 76.3 31.7c13.4 1.4 26.6.9 40 .'
+    '4 7.4-.3 14.8-.6 22.3-.5 10.2 0 18.7-4.7 26.7-9.2l2.8-1.6c27.8-15.5 54.3-32.8 72.2-60.7 16.1-25 25.9-52.2 31.6-8'
+    '0.9 7.2-36.1 6.6-72.7 6-109.8-.3-12-.5-24.2-.5-36.4ZM50.6 190.8c21.9-1.7 34 11.2 44.3 26.3a140.4 140.4 0 0 1 22.'
+    '4 61.5c.5 3.7 1 7.6-1.2 11.3-4.5.6-4.9-3-5-5.6-.5-20.7-9.7-38.7-18.9-56.1-6.6-12.5-16.2-24.6-31.4-27.6-17.2-3.5-'
+    '33 12-40.8 32.2-14.5 37.6-12 74.6 1.4 111 5.8 15.9 13.1 32.1 27.8 43.2 14.8 11.3 32.7 9.3 43.6-5.7l2-2.5c2-2.6 4'
+    '-5.1 5-8 2.1-5.8 5.4-11.2 11.3-10.4 6.8 1 8 8.3 8.7 14a3661 3661 0 0 0 22 156.7l5.9 38.8c2.6 17.1 5.6 41.7 3.6 5'
+    '2.1a28 28 0 0 0-.3 2.2c-.4 2.8-.6 5-4.2 5.5-4.9.8-7-2-7.7-6.4-2.3-17-3-23.6-4-49.6-.9-25.2-5.6-50-10.4-74.9l-5-2'
+    '7c-5.2-30.8-10.3-62-10.8-97l-2 3c-7.6 11.3-13.7 20.5-24.5 24a40.5 40.5 0 0 1-46.1-12.5 127.8 127.8 0 0 1-28.8-55'
+    '.8c-8.4-34-9.9-67.1.9-100.6 5.2-16.1 23.7-44.7 42.2-42Zm34.6 127.5c4.4 3.2 8.4 6 12-5.4-1.1-42.2-14.7-69.2-35.8-'
+    '70.3 11.2 14.6 22 28.8 23 48.5a32.3 32.3 0 0 1-10.7-8.8c-2-2.2-4-4.4-6.5-6l-3-2.4c-4.8-3.6-9.7-7.4-17.8-4.5 3.8 '
+    '5.8 9 10 14.3 14 6 4.7 12 9.3 15.6 16.5-10.6 7.7-15.2 17.7-9.7 29.9 4.8 10.5 11.9 19.2 25.9 19.8-.6-6.3-4.7-10.9'
+    '-8.8-15.4-5-5.4-9.7-10.6-7.5-18.6 3.2-1.5 6.2.7 9 2.7Z" fill="#000"/></g><g transform="translate(178 1057)"><pat'
+    'h d="m1351 688-1369-3.3s11.4-97 44.3-189.1c41.2-115.2 107.2-232 125-246.1 20.8-16.8-11.6-18.2 3.4-41.2 33.5-51.1'
+    ' 147-97.5 179.8-114.1 58.7-29.8 164.8-47.8 164.8-47.8l27.2 53.5s63.5 21.9 138.6 24.4c40.5 1.3 134.4-29.5 134.4-2'
+    '9.5L788.3 37s169.5 34.8 253.3 85.6c48.3 29.3 108.5 75 110 101.2 2.2 39.8 1.7 36.7 24 51.9 53.5 36.2 98.8 122 121'
+    '.2 191.2C1314.4 521.1 1351 688 1351 688Z" fill="#fff"/><path d="m924.7 688-94.5-.3L843 482.6l-43.4-379.4s-110.1 '
+    '29-147 27c-31.4-1.5-123.7-22-123.7-22s51 280 55.9 374.4C587.3 533.9 576 688 576 688l-209.4-1.2L276 489s51-133.4 '
+    '101.5-206.7c9-13.1-22.8-16-64.1-14-42.2 2-164.2-13.8-162.4-44.5 3-51.3 150.5-113 183.4-129.6C393 64.4 499.2 46.4'
+    ' 499.2 46.4l27.3 53.5S590 121.8 665 124.3c40.5 1.3 134.4-29.5 134.4-29.5L788.3 37s169.6 34.8 253.4 85.6c48.3 29.'
+    '3 122 66.1 111.2 120.3-2.3 12-207 47-187.2 89.8 24.6 53 88.8 118.6 79 135-16 27-40.8 67.7-69.5 103.3-20.2 25-50.'
+    '5 117-50.5 117Z" fill="#000"/><path fill-rule="evenodd" clip-rule="evenodd" d="M301.5 563.4c20.5 40.6 41 81.3 56'
+    ' 124.6 6.6 0 12 0 17.7-1l-4.3-11a672.5 672.5 0 0 0-19.6-47.8 5876 5876 0 0 0-34.2-70.7c-9.4-19.2-18.8-38.3-28-57'
+    '.5-3.8-8-6-16.9-1.3-25.8 6.7-12.8 12.6-26 18.4-39.2l5.2-11.8c11-24.4 24.5-47.6 38-70.9 10.6-18.1 21.2-36.3 30.6-'
+    '55 8-16.3 5.6-24.5-12-30a48.4 48.4 0 0 0-10.5-2.3c-8.6-.7-17.2-1.2-25.9-1.7-26.4-1.5-52.9-3-78.6-10.8-8-2.4-16.3'
+    '-3.7-24.6-5-8-1.3-16-2.6-23.8-4.9l-4.6-1.3c-14.8-4.2-30-8.6-41.4-20.3l1.7-2.4c1-1.3 1.8-2.5 2.8-3.5 25.5-28.7 59'
+    '-47 92.3-65.1l20-11a963.1 963.1 0 0 1 62.6-31.4c7.9-3.7 15.8-7.4 23.7-11.3A394 394 0 0 1 423 71.5c10.6-3.1 21.4-'
+    '5.6 32.2-8 7.8-1.9 15.6-3.7 23.3-5.7 20.1-5.3 23.8-4 29 15.7l9.1 34.2a2051 2051 0 0 1 26.8 106.6c8.7 40.7 14.4 8'
+    '2 17.2 123.5a1480 1480 0 0 0 6.8 70.7c3.7 32.2 7.3 64.3 8 96.7.5 20.8-.1 41.6-.8 62.4l-.8 29c-.3 13.5-1.8 26.9-3'
+    '.3 40.2-2 17-4 34-3.3 51.2 6.7 0 12.2 0 17.8-1.2l.6-16.2c.2-10.2.5-20 1.6-29.6 5.7-51 4.8-102 3.7-153-.7-33.6-3.'
+    '6-67-8.4-100.2a605.8 605.8 0 0 1-4.6-52.8c-1.3-23-2.6-46.1-7.3-69a1627 1627 0 0 1-6.7-34.2 906 906 0 0 0-13-61.8'
+    'c-.2-1-.6-2-1-3-1.2-3-2.5-6 .6-8.9 4-3.8 9.1-2.7 14-1.4A373 373 0 0 0 690 167.3c31.6-2.4 62.8-5.8 91.8-19.5 8.7-'
+    '4 15.5-1.5 17.4 9 1 5.6 1.7 11.2 2.4 16.9 1 7.9 2.1 15.8 3.8 23.4 7.8 34.8 10 70 12 105.2 1 16.1 2 32.2 3.5 48.3'
+    ' 1.1 12 2 24.2 2.8 36.3 1 14.6 2 29.1 3.6 43.7 6.3 60.7 4.7 121.5 2.7 182.3l-.7 20c-.7 18.4-1.4 36.7-1.4 55 5.8 '
+    '0 10.4 0 15.4-1l.8-5.3c1-6.5 2-12.5 2-18.4l.3-44.7c.1-28 .3-56.2 1.6-84.2 1.7-37 .6-74-3.2-111-2.7-26.2-4.5-52.4'
+    '-6.3-78.7-1.7-24.1-3.4-48.3-5.7-72.4-4.5-46-10.5-92-20.5-137.3a2499.2 2499.2 0 0 1-13.8-68.7c-.5-2.4-.4-5-.4-7.4'
+    'v-4c-.3-6.4 2.7-8.5 9.1-7.2a642.2 642.2 0 0 1 79.2 18.8c21 6.9 41.7 15 62.3 23 7.3 3 14.7 5.8 22 8.6a446.7 446.7'
+    ' 0 0 1 141 84.8c13 11.7 24.1 25.1 31.8 40.6 4.5 9.3-.3 19.2-9.6 21l-9.2 1.9c-22.7 4.4-45.4 9-67.6 15.7a251.6 251'
+    '.6 0 0 0-92.9 50.8c-7.6 6.6-8.7 14.7-4.5 23.2 4 8 8.4 16 13.2 23.6 5.8 9.2 11.7 18.4 17.7 27.5a705.7 705.7 0 0 1'
+    ' 42 70c3.2 6.5 4 13-.3 18-9.4 10.8-16.8 22.9-24.3 35a360.3 360.3 0 0 1-16.9 25.7 486 486 0 0 0-53.6 90.3c-3.6 7.'
+    '9-6.6 16-9.7 24.2-4.8 13-9.7 25.8-16.5 37.7 7.5 0 14 0 20.6-1 10.7-33 23.5-64.2 41.5-93 23-37.1 47.5-73.3 72.3-1'
+    '09.3 6.3-9 9.7-18.8 3.8-31a589 589 0 0 0-27-48.5l-.4-.7c-13.9-23-28.7-45.6-43.7-68-4.7-7.2-2.2-12 3-16.8a158.1 1'
+    '58.1 0 0 1 41.7-26.7 355.4 355.4 0 0 1 102.9-29.7c12.8-1.7 22.3.7 32 7.6 34.6 24.3 64.6 51 82.6 90.3l8.7 18.7c12'
+    '.8 27.6 25.6 55.2 35.5 84a1107 1107 0 0 1 41 147.4c5.8 25.6 11.6 51.2 18.2 76.7 4.9 0 8.6 0 12-1-5.3-21.6-9-43.3'
+    '-12.8-65-4.7-27-9.4-54-17-80.4l-1.4-5.3c-6.6-23.2-13.2-46.4-21.1-69a882 882 0 0 0-52-121.3c-18.2-34.7-45.8-61.4-'
+    '77.7-84.9-1.4-1-3.2-1.9-5-2.8-6-3.1-12.7-6.5-9.7-16.8 5.2-17.6 1.8-33.7-13.7-46.3a86.8 86.8 0 0 1-9.6-9.7l-3-3.3'
+    'c-41.4-45.3-95.8-72.5-151.8-97-36.4-15.9-74.5-28.1-112.6-40-23.7-7.3-48-13.2-73-15-12.7-1-18 4.8-16.5 16.8.4 3 .'
+    '8 6 1 9 .8 6.7 1.5 13.5 3.1 20 2.8 11.2-3.2 17.2-12 21.2-22 9.8-45.4 17.3-69.4 18.8-52.8 3.3-105.4.7-156-16.9-8.'
+    '5-3-13.3-7.4-16.9-14.7-2.5-5-4.7-10.2-6.8-15.3a224 224 0 0 0-11-23c-5.4-9.6-11.8-11.8-21.6-8.6-6.4 2-12.8 3.7-19'
+    '.3 5C434.6 50.4 399.3 59 366.5 75c-46 22.4-91.7 45.1-136 70.3-30.3 17.2-60 34.8-82.7 61.3-6.2 7.3-7.5 14.5-2.5 2'
+    '2.2 4.2 6.5 3.9 11.5-2 17a139.2 139.2 0 0 0-22.8 30c-1.8 2.8-3.5 5.7-5.4 8.5-21 32-39.7 65.2-56 99.5A873.4 873.4'
+    ' 0 0 0 26.7 463l-1 2.8c-7.9 22-15.7 43.9-21.3 66.5a925 925 0 0 1-5.6 21.5 563.4 563.4 0 0 0-8.8 35.3c-6.6 32.9-1'
+    '2.2 66-17 98.9 6.7 0 12.1 0 18-1l8-46c2-12.3 4-24.5 6.2-36.6 11-63 32.6-123 57-182a838.3 838.3 0 0 1 91-160.9c4-'
+    '5.6 9-7.2 15.7-7.8 16.4-1.5 31.6 2.9 46.8 7.2 7.8 2.3 15.6 4.5 23.5 6l15.7 2.8c27 5 54 10 81.8 11.4 2.9.2 5.8.2 '
+    '8.7.2 8.1 0 16.5 0 25.3 3l-8.4 13.6-23.8 38.6a729.7 729.7 0 0 0-50 95.6 948.5 948.5 0 0 1-18.2 39.1c-3.8 7.6-4.9'
+    ' 14.6-1.7 22l1.3 3c6 14 11.9 27.8 18.6 41.4l13 25.8Zm476.8-452c4.8-2.6 10.3-5.4 11.2 3.7 1.8 10.6-5.4 14.2-11.5 '
+    '17.3l-1.8 1c-17.5 9.2-37 14-56.8 16.2a437 437 0 0 1-145.1-5.8c-9.6-2.2-18.8-5.6-27.4-10-5.6-2.7-8.1-6.8-6.8-12.5'
+    ' 1.5-6 5.5-5 9.5-4l2.4.6 19.4 3.8c16.5 3.3 33.1 6.6 49.9 9a293 293 0 0 0 103.8-2.9l1-.1c18-3.8 35.8-7.5 52.2-16.'
+    '2Z" fill="#000"/><path d="M200 688c3-35 7-69.8 11.4-104.7 3.6-29.7 4-60 17.4-88 1-2.4 2.3-4.6 3.8-6.7 2.3-3.1 5-'
+    '6.8 9.7-5.2 5.3 1.7 3.6 6.4 2.7 9.9-8 32.1-13.3 64.8-17.7 97.5-4.1 31.5-6.2 63.3-9.4 96-5.8 1.2-11.2 1.2-18 1.2Z'
+    'M1150.9 688c-9.8-36.3-12.8-73.7-23.3-109.7-6.2-21-9.8-42.8-17.9-63.4-1.6-4.2-.5-9 4-11.2 4.4-2.3 7.4 1.3 9.9 4.3'
+    'a55.4 55.4 0 0 1 9.9 22.1c11.5 43.4 20.8 87.4 27.6 131.7 1.2 8 1.2 16 1.9 25.2-3.5 1-7.3 1-12.1 1Z" fill="#000"/'
+    '></g><g transform="translate(266 207)"><path d="M312.7 272.6c3.8-10.5 11.7-7.8 18.6-6.8 16 2.3 31.4 3.5 47.8.4 1'
+    '8.7-3.5 31.6-13.7 43.2-26.4 19.8-21.5 38.8-44 63.8-59.6 45.7-28.6 94.5-40 148.3-27.4 22.8 5.3 44.4 13.9 66.9 19.'
+    '5 24 6 49.7 11 69.8-11.7 12.4-13.9 16.5-31 19-48.8.6-4.5-1-10.1 5-11.9 4.8-1.4 9.2.8 13 3.8 16.5 13.2 33.7 25.9 '
+    '40 47.9 1.4 4.5 3.8 8.6 7 12 24.8 26.3 18.7 53.8 2 80.5-6.4 10.4-12 21.3-25.6 29.7 11.1-2 19.6-9.2 34.9-28.5 9-1'
+    '1.4 10.8-26.8 21.4-38.7a52.8 52.8 0 0 1 9.9 49.3c-3.3 12.6-.2 24.3-.7 36.4 0 1.2.1 3.1.9 3.6 14.6 9.6 6.2 22 3.4'
+    ' 33-2.4 9.5-2 18.6-1.9 28a63 63 0 0 1-23.8 51c-11 9.6-18.3 23.5-24.9 37.1-5 10.5-7.6 22.3-17.8 34.1-4.5-38-5.5-7'
+    '5.3-48.1-93.3 15.8-6.2 29.5.4 42.7-6-8.4-5.8-17.6-2.4-25.2-7.2-7.3-4.5-13.5-9.4-16.6-16.8a25.5 25.5 0 0 0-19.1-1'
+    '6.7c-8.3-2-16.3-4.9-23.9-8.7-24.7-12.3-50.6-8.5-76.2-4.6-27.8 4.2-55.2 1.1-82.7-1.6-30.1-3-113-33.4-153.2 85-9 2'
+    '6.6-9 54.5-10.2 82a32.2 32.2 0 0 1-7.6 21.4 102 102 0 0 0-23.7 44.4c-1.1 3.8-2 9.2-7.4 9-6.6 0-5.2-6.1-6.4-10.5-'
+    '8.3-28-16.2-56.7-42.5-74.4a27 27 0 0 1-12.8-23.5c0-13.7-7.3-24-14.4-34.6-4.6-6.8-10.6-13.7-5.3-23 .4-.6.8-2 .4-2'
+    '.4-9.7-9.6-3.3-23.7-9.5-34.2-4.7-8.1-9-15.7.1-23.9 2.4-2-1-6.7 2.5-10.2 14-5.3 24.3 15.6 42.1 6.3-16-5.9-23.5-18'
+    '-31.6-29.5-7.6-11-4-21.5 9.3-24l-1-9.5Z" fill="#000"/></g><g transform="translate(791 871)"><path d="M141.7 79c-'
+    '3.2 7-5.7 14.2-6.1 22-.2 4.6.8 9.8 6 11.6 5.4 1.9 9.1-1 12.8-5.6 6-7.5 7.4-16.2 7.5-25.1 0-5 1.3-11.8-6.1-13.7-7'
+    '.6-2-10.7 3.1-14 10.7Z" fill="#fff"/><path fill-rule="evenodd" clip-rule="evenodd" d="M140.4 59.5c-14.9 15-17.2 '
+    '33.4-14.1 54.3 5.4 10.8 14 11.2 23.4 9.9 21.3-2.9 39.6-34.7 26-58.5-9.4-16.3-22-19-35.3-5.7Zm-4.8 41.4c.4-7.7 2.'
+    '9-15 6.1-22 3.4-7.6 6.5-12.7 14-10.7 6.7 1.7 6.4 7.3 6.3 12v1.7a39.1 39.1 0 0 1-7.6 25.1c-3.7 4.6-7.4 7.5-12.8 5'
+    '.6-5.2-1.8-6.2-7-6-11.7Z" fill="#000"/></g><g transform="translate(901 668)"><path d="M99.8 182.6c-8.7 16.5-33.4'
+    ' 25.7-48.5 18.9-4.3-2-6.2-5.8-7-10-.5-2.7.9-5.3 3.3-6.5 4.6-2 5.8 2.3 8.6 4.8 7 6 13 .7 19-3.4 5.8-4 9.1-8.5 4.3'
+    '-14.7-10.5-13.1-14.8-29.2-21.8-44-3.1-6.5-5-13.5-3.8-21 .5-3.3 1.9-5.5 5.6-5.6 2.8 0 5 .8 5.9 3.8 7.5 26.3 23.3 '
+    '48.6 34.6 73.1.5 1 0 2.5-.2 4.6Z" fill="#000"/></g><g transform="translate(610 680)"><path d="M419.6 111c-4.2-9.'
+    '5-9.9-15.2-19.8-15.7-6-.3-7-5.1-8.9-9.8 2-1.5 3.5-3.7 5.3-3.8 21.1-1.7 42.4-1.8 63.5-.1 6 .4 9.3 8 3.2 10.4-10 4'
+    '-12.5 13.2-18.5 19.8-8.2 9-15.2 9.1-24.8-.8ZM228.6 81.4c12.2.7 23.1 1 34 2 3.6.3 8 1.8 8 6.7 0 5.6-4.6 5.2-8.3 5'
+    '.1-6.3 0-9.7 2.7-12.5 8.6-3.4 7.4-6.9 15.3-18 14.8-10.5-.5-15.1-7.2-18.1-15.2-2.2-5.7-5-8.4-11-8.2-3.4.1-7.1-.2-'
+    '7.5-4.9-.4-5 3-6 7-7.2a67.9 67.9 0 0 1 26.4-1.7Z" fill="#000"/></g><g transform="translate(774 657)"><path d="M1'
+    '31.2 43.2c-5.6 16.8-6.6 15.4-23 11.6-26.2-6-52.7-19.2-80.3-4.3-2 1.1-5 1-7.6.8-3.6-.2-8.2 1.3-10.1-3.3-2.1-5 1.5'
+    '-8.3 5.3-10.3C35.2 27.7 53 13.4 77.9 16c12.8 1.3 26-2.8 39.3-2.4 18.8.7 22.4 5.7 16 23.9l-2 5.8ZM298.7 21.8c9.6 '
+    '6.6 12.5 16.8 18.3 25a7 7 0 0 1-.6 9.4c-2.4 2.7-5.4 2.8-8.1 1.2-19.1-11-38.9-6.4-58-1.2-10.2 2.7-14.6-.8-17.2-9.'
+    '2-1.7-5.7-2.9-11.5-3.6-17.4-1.3-9.8 6.9-11.9 13-12.2 18.5-.9 37.4-4.5 56.2 4.4Z" fill="#000"/></g>')
+
+AVATAR_OPS = (
+    "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"
+    "IYEUChHiw1QNn4zfQACgz/8b/4sgwAAAAAA=")
+
+SAFE_DEFS = (
+    '<svg class="sq-defs" aria-hidden="true"><defs><clipPath id="sq-round"><circle cx="872" cy="872" r="872"/></clipPath>'
+    '<symbol id="sq-maya" viewBox="0 0 1744 1744"><g clip-path="url(#sq-round)" fill="none" stroke="none">' + AVATAR_MAYA
+    + '</g></symbol><symbol id="sq-leo" viewBox="0 0 1744 1744"><g clip-path="url(#sq-round)" fill="none" stroke="none">'
+    + AVATAR_LEO + '</g></symbol><symbol id="sq-ops" viewBox="0 0 112 112"><image href="data:image/webp;base64,' + AVATAR_OPS
+    + '" width="112" height="112"/></symbol></defs></svg>'
+)
 
 
 # ---------------------------------------------------------------- the server

@@ -627,8 +627,10 @@ try:
     links = re.findall(r"<a [^>]*>", loaded())
     blank = [a for a in links if 'target="_blank"' in a]
     ok(blank and all('rel="noopener"' in a for a in blank) and
-       sorted({re.search(r'href="([^"]*)"', a).group(1) for a in blank if "self-host" in a}) == ["https://self-host.buzz/"],
-       "every link that opens a new tab has rel=noopener (%d), and the self-hosting guide's is its homepage alone" % len(blank))
+       sorted({re.search(r'href="([^"]*)"', a).group(1) for a in blank if "self-host" in a})
+       == ["https://self-host.buzz/", "https://self-host.buzz/#security"],
+       "every link that opens a new tab has rel=noopener (%d), and the self-hosting guide's are its homepage and its "
+       "Security section on it" % len(blank))
     copies = re.findall(r'<button [^>]*onclick="([^"]*)"[^>]*>(Copy[^<]*)</button>', text)
     ok({"Copy", "Copy the address"} <= {label for _, label in copies} and {call for call, _ in copies} == {"copyText(this, this.dataset.copy)"},
        "the address reaches both copy buttons through a data attribute, never inside script")

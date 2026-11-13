@@ -2,7 +2,8 @@
  * The section nav in the header. It appears once the headline scrolls away, marks the section
  * being read, and lands every in-page jump on the section's label, right under the header.
  */
-const SECTIONS = ["how", "where", "guide", "security", "operations", "ask"];
+// "ask" joins this list again when A place to ask comes back (docs/decisions.md, 2026-11-13)
+const SECTIONS = ["how", "where", "guide", "security", "operations"];
 const HEADER = 56;
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 

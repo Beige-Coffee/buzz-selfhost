@@ -1,7 +1,7 @@
 # Decisions
 
 What was decided for the guide and the skill, and why. Facts behind these are in
-[research.md](research.md). Last updated 2026-11-12.
+[research.md](research.md). Last updated 2026-11-13.
 
 ## The public domain moves (2026-11-11)
 
@@ -39,8 +39,10 @@ deployment. Those remain separate gates.
 The owner answered the review's open questions one at a time. These are decisions, not yet all
 done: the work they call for is listed where it is still owed.
 
-- **Block.** No answer yet on the name, the marks and who hosts the guide. Nothing changes, and
-  publishing waits on it.
+- **Block.** No answer yet on the name, the marks and who hosts the guide. Nothing changes. On
+  2026-11-13 the owner chose to publish without waiting, since the live site pointed readers at
+  older relay images, and to hold back only A place to ask, the one section that needs Block's
+  agreement (below).
 - **Nothing about Block's plans.** The Security section's sentence about more advanced security
   features is out, as recorded below.
 - **App wording was checked in the running app**, a preview build one day newer than 1.0.0.
@@ -70,7 +72,9 @@ done: the work they call for is listed where it is still owed.
   round follow: pasting the invite into Join a community, and a GitHub issue for someone who
   would rather not join. Joining needs no Builderlab sign-in for someone who already has a Buzz
   identity: the community's public settings say so and Buzz 1.0.0 follows them
-  ([research.md](research.md)), so the section does not ask for one. Owed before publishing: the
+  ([research.md](research.md)), so the section does not ask for one. Held back from the page on
+  2026-11-13: the section, its menu entries and `ask` in `site/src/lib/nav.ts` came out in one
+  commit, and its code stays, so reverting that commit brings it back. Owed before it returns: the
   channel's real name (`CHANNEL` in `site/src/scenes/ask.ts` is a placeholder, since the channel
   does not exist yet) and Block's agreement to send readers there.
 - **Agents get their own group in Running your relay.** People asked what to tell an agent, which

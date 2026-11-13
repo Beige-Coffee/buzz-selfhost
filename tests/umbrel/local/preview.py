@@ -3,10 +3,12 @@
   python3 preview.py <port> <scenario>    then open http://127.0.0.1:<port>
 
 Scenarios: login, setup, domain-dns (the Cloudflare sign-in), domain-uploaded (signed in with the file Cloudflare
-saved), domain-530 (the tunnel set up, not connected), funnel-login, funnel-consent, private-live, domain-live,
-domain-moderation (moderation on and reachable), domain-moderation-blocked (on, and Cloudflare turns it away).
+saved), domain-working (signed in, the tunnel being set up), domain-530 (the tunnel set up, not connected),
+funnel-login, funnel-consent, private-consent (signed in, Tailscale asks to allow HTTPS), private-live, domain-live,
+domain-moderation (moderation on and reachable), domain-moderation-blocked (on, and Cloudflare turns it away),
+domain-moderation-starting (on, while Buzz restarts with it: a check still waiting on a live page).
 Everything except "login" skips the sign-in. Mocked: relay and public checks, moderation's address, Tailscale
-status files.
+status files. On a live page, #join, #invite and #phone open that step of the next steps.
 """
 import http.server, importlib.machinery, importlib.util, json, os, sys, tempfile
 
@@ -59,11 +61,22 @@ if scenario in ("domain-dns", "domain-uploaded"):
         open(m.CLOUDFLARE_UPLOAD, "w").write("stands in for the file the owner uploaded\n")
     m.resolves = lambda name: []
     m.request = fake_request(lambda path, h: (None, b"Name or service not known"))
+elif scenario == "domain-working":
+    setup("domain", "buzz.yourteam.com")
+    open(m.CLOUDFLARE_STATE, "w").write("creating\n")
+    m.resolves = lambda name: []
+    m.request = fake_request(lambda path, h: (None, b"Name or service not known"))
 elif scenario == "domain-530":
     setup("domain", "buzz.yourteam.com")
     open(m.CLOUDFLARE_STATE, "w").write("running\n")
     m.resolves = lambda name: ["104.21.32.1"]
     m.request = fake_request(lambda path, h: (530, b"error code: 1033"))
+elif scenario == "private-consent":
+    setup("private", "buzz.tail1234.ts.net")
+    m.tailscale_watcher = lambda: None
+    tailscale("Running", name="buzz.tail1234.ts.net")
+    open(d + "/tailscale-publish.log", "w").write("Serve is not enabled on your tailnet.\nTo enable, visit:\n\n https://login.tailscale.com/f/serve?node=nPREVIEWCNTRL\n")
+    m.request = fake_request(lambda path, h: (None, b"unreachable"))
 elif scenario in ("funnel-login", "funnel-consent"):
     setup("funnel", "")
     m.tailscale_watcher = lambda: None
@@ -79,11 +92,14 @@ elif scenario == "private-live":
     setup("private", "buzz.tail1234.ts.net")
     tailscale("Running", name="buzz.tail1234.ts.net", serve="https://buzz.tail1234.ts.net (tailnet only)\n|-- / proxy http://buzz-gateway:80\n")
     m.request = fake_request(lambda path, h: (None, b"unreachable"))
-elif scenario in ("domain-live", "domain-moderation", "domain-moderation-blocked"):
+elif scenario in ("domain-live", "domain-moderation", "domain-moderation-blocked", "domain-moderation-starting"):
     setup("domain", "buzz.yourteam.com")
     m.resolves = lambda name: ["104.21.32.1"]
     info = {"self": "aa" * 32}
-    if scenario != "domain-live":
+    if scenario == "domain-moderation-starting":
+        # turned on, and the relay doesn't advertise it yet: it restarts with it
+        m.save(OWNER, m.owner_hex(OWNER), "domain", "buzz.yourteam.com", moderation=True)
+    elif scenario != "domain-live":
         m.save(OWNER, m.owner_hex(OWNER), "domain", "buzz.yourteam.com", moderation=True)
         info["admin_api"] = "https://buzz.yourteam.com:8443"
         # The relay's admin host, or Cloudflare's Browser Integrity Check refusing a client with no User-Agent

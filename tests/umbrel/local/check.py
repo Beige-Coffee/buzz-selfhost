@@ -51,6 +51,11 @@ def call(path, data=None, opener=browser, headers=None):
         return e.code, e.read().decode(errors="replace"), e.headers
 
 
+def you(page):
+    """The progress bar's stages that wait on the owner, by label."""
+    return re.findall(r'<li class="you"[^>]*><span class="tr"></span><span class="lb"><span>(.*?)</span>', page)
+
+
 def settings(name):
     # Tailscale's and Cloudflare's files are in folders the page shares with each helper alone
     folder = "/tailscale/" if name.startswith("tailscale-") else "/cloudflare/" if name.startswith("cloudflare-") else "/settings/"
@@ -150,6 +155,10 @@ for _ in range(40):
 ok(bool(cf_link), "the app's own Cloudflare tunnel waits for a sign-in, with Cloudflare's link")
 s, body, _ = call("/")
 ok("Sign in to Cloudflare" in body and html.escape(cf_link) in body, "the page shows that sign-in link")
+s, data, _ = call("/status.json")
+data = json.loads(data) if s == 200 else {}
+ok(you(body) == ["Sign in to Cloudflare"] and data.get("html", "-") in body and 'data-sig="' + data.get("sig", "-") + '"' in body,
+   "the progress bar marks Cloudflare's sign-in as the owner's turn, and status.json sends the same bar")
 
 print("== Persistence across a restart of every container")
 sh("docker", "compose", "-p", "buzzlocal", "--env-file", os.path.join(L, "run/.env"), "-f", os.path.join(L, "run/compose.yml"), "restart")
@@ -213,6 +222,7 @@ for _ in range(30):
 ok(bool(link), "Tailscale is waiting for a sign-in, with a link")
 s, body, _ = call("/")
 ok("Sign in to Tailscale" in body and link in body, "the page shows that sign-in link")
+ok(you(body) == ["Sign in to Tailscale"], "and the progress bar marks Tailscale's sign-in as the owner's turn")
 ok(settings("relay.env") == "", "the relay waits: no address until Tailscale names the machine")
 s, body, _ = call("/address", {"mode": "private"})
 ok(s == 400 and "Tick the box" in body, "with no address to type, a change needs the box ticked")

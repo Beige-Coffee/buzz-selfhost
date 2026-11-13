@@ -6,7 +6,7 @@ for caddy and tailscale.
   python3 tests/umbrel/local/security.py
 """
 import base64, html, http.client, http.server, importlib.machinery, importlib.util, io, json, os, shutil, signal
-import socket, subprocess, sys, tempfile, threading, time
+import re, socket, subprocess, sys, tempfile, threading, time
 import signin_files as sf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -611,6 +611,28 @@ try:
     m.reconcile()
     ok(m.read_text(m.RELAY_ENV) == before and not os.path.exists(m.CLOUDFLARE_ON),
        "a setup.json this page didn't write, with a mode it doesn't know, is left alone")
+
+    print("== The checks the page refreshes, and the live page's links")
+    fresh("domain", "buzz.example.com")
+    m.request, m.resolves = community(""), lambda name: ["104.16.0.1"]
+    text, first, again = loaded(), status_json(), status_json()
+    box = re.search(r'<div class="checks" data-poll data-phase="([^"]*)" data-sig="(\w+)">', text)
+    ok(box and first["phase"] == box.group(1) and first["sig"] == box.group(2) and (box.group(0) + first["html"] + "</div>") in text
+       and again["sig"] == first["sig"] and "Everything works" in first["html"],
+       "status.json sends the live page's own checks and signature, the same while nothing changes: an open list stays open")
+    form("/moderation", "moderation=on", session)
+    turning = status_json()
+    ok(turning["sig"] != first["sig"] and "Turning on moderation" in turning["html"] and "Everything else works" in turning["html"],
+       "when a check changes, so does the signature, and the refresh draws the card again")
+    links = re.findall(r"<a [^>]*>", loaded())
+    blank = [a for a in links if 'target="_blank"' in a]
+    ok(blank and all('rel="noopener"' in a for a in blank) and
+       sorted({re.search(r'href="([^"]*)"', a).group(1) for a in blank if "self-host" in a}) == ["https://self-host.buzz/"],
+       "every link that opens a new tab has rel=noopener (%d), and the self-hosting guide's is its homepage alone" % len(blank))
+    copies = re.findall(r'<button [^>]*onclick="([^"]*)"[^>]*>(Copy[^<]*)</button>', text)
+    ok({"Copy", "Copy the address"} <= {label for _, label in copies} and {call for call, _ in copies} == {"copyText(this, this.dataset.copy)"},
+       "the address reaches both copy buttons through a data attribute, never inside script")
+    m.request, m.resolves = real_request, real_resolves
 finally:
     printed, sys.stderr = sys.stderr.getvalue(), stderr
 ok(printed == "", "nothing reached the page's error output in all of this%s" % (": " + printed[:300] if printed else ""))

@@ -8,8 +8,12 @@
 # python3, and the buzz CLI built from block/buzz (cargo build --release -p buzz-cli --bin buzz).
 #
 # Usage: BUZZ_CLI=path/to/buzz bash smoke.sh <server-ip> <domain> [image-tag [upgrade-tag]]
+#   image-tag          sha-<7 hex> or a release such as 0.3.0 (default: tested-image in SKILL.md).
+#                      Any other tag needs EXPECTED_DIGEST, and a release also EXPECTED_COMMIT, the
+#                      40-character block/buzz commit it was built from.
 #   upgrade-tag        a newer tag to upgrade to at the end, after a fresh backup (default: run.sh
-#                      upgrade on the same tag). From a tag before 2026-10-07 to a later one, this moves
+#                      upgrade on the same tag), with UPGRADE_EXPECTED_DIGEST and UPGRADE_EXPECTED_COMMIT
+#                      the same way. From a tag before 2026-10-07 to a later one, this moves
 #                      uploaded files from MinIO to Silo (block/buzz#8023).
 #   SSH_KEY=path       key for root@<server-ip> (default: ssh's own)
 #   KNOWN_HOSTS=path   known_hosts file to use (default: ssh's own)
@@ -18,13 +22,16 @@ set -uo pipefail
 
 IP=${1:?usage: smoke.sh <server-ip> <domain> [image-tag [upgrade-tag]]}
 DOMAIN=${2:?domain}
-TAG=${3:-sha-744f394}
-UPGRADE_TAG=${4:-}
 HERE=$(cd "$(dirname "$0")" && pwd)
 source "$HERE/lib/image.sh"
-EXPECTED_DIGEST=$(expected_image_digest "$TAG" "${EXPECTED_DIGEST:-}" "$HERE/../skills/self-host-buzz/SKILL.md") || exit 2
+SKILL_FILE=$HERE/../skills/self-host-buzz/SKILL.md
+TAG=${3:-$(default_image_tag "$SKILL_FILE")} || exit 2
+UPGRADE_TAG=${4:-}
+EXPECTED_DIGEST=$(expected_image_digest "$TAG" "${EXPECTED_DIGEST:-}" "$SKILL_FILE") || exit 2
+EXPECTED_COMMIT=$(expected_image_commit "$TAG" "${EXPECTED_COMMIT:-}" "$SKILL_FILE") || exit 2
 if [[ -n $UPGRADE_TAG ]]; then
-  UPGRADE_EXPECTED_DIGEST=$(expected_image_digest "$UPGRADE_TAG" "${UPGRADE_EXPECTED_DIGEST:-}" "$HERE/../skills/self-host-buzz/SKILL.md") || exit 2
+  UPGRADE_EXPECTED_DIGEST=$(expected_image_digest "$UPGRADE_TAG" "${UPGRADE_EXPECTED_DIGEST:-}" "$SKILL_FILE") || exit 2
+  UPGRADE_EXPECTED_COMMIT=$(expected_image_commit "$UPGRADE_TAG" "${UPGRADE_EXPECTED_COMMIT:-}" "$SKILL_FILE") || exit 2
 fi
 source "$HERE/lib/log.sh" && run_logged vps "$TAG" "$0" "$@"
 BZ=${BUZZ_CLI:-buzz}
@@ -43,12 +50,13 @@ section() { printf '\n===== %s\n' "$*"; }
 
 # server PHASE ARGS...: run a phase of smoke-vps.sh and fold its PASS/FAIL lines into ours.
 server() {
-  local rc=0 check_tag=$TAG check_digest=$EXPECTED_DIGEST
+  local rc=0 check_tag=$TAG check_digest=$EXPECTED_DIGEST check_commit=$EXPECTED_COMMIT
   if [[ $1 == upgrade && -n $UPGRADE_TAG ]]; then
     check_tag=$UPGRADE_TAG
     check_digest=$UPGRADE_EXPECTED_DIGEST
+    check_commit=$UPGRADE_EXPECTED_COMMIT
   fi
-  ssh "${SSH_OPTS[@]}" "root@$IP" EXPECTED_TAG="$check_tag" EXPECTED_DIGEST="$check_digest" bash /root/smoke-vps.sh "$@" >"$TMP/phase.log" 2>&1 || rc=$?
+  ssh "${SSH_OPTS[@]}" "root@$IP" EXPECTED_TAG="$check_tag" EXPECTED_DIGEST="$check_digest" EXPECTED_COMMIT="$check_commit" bash /root/smoke-vps.sh "$@" >"$TMP/phase.log" 2>&1 || rc=$?
   cat "$TMP/phase.log"
   PASS=$((PASS + $(grep -ac '^PASS' "$TMP/phase.log")))
   FAIL=$((FAIL + $(grep -ac '^FAIL' "$TMP/phase.log")))
@@ -143,10 +151,12 @@ fetch_pic() {
 fetch_pic && pass "owner downloads it intact" || fail "owner downloads the file"
 info "the file's URL without auth answers HTTP $(curl -s -o /dev/null -w '%{http_code}' "$PIC_URL")"
 
-section "Phones can reach the pairing service"
+section "Phones can reach the pairing service, and the relay offers notifications"
 PAIR_URL=$(nip11 | field pairing_relay_url)
 [[ $PAIR_URL == "wss://$DOMAIN/pair" ]] && pass "the relay names its pairing service, $PAIR_URL" || fail "pairing_relay_url is [$PAIR_URL], not wss://$DOMAIN/pair"
 [[ $(ws_status "https://$DOMAIN/pair") == 101 ]] && pass "WebSocket upgrade at https://$DOMAIN/pair" || fail "no WebSocket at https://$DOMAIN/pair"
+# compose.md step 8 turns notifications on; the relay then offers buzz-push-v1. Delivery to a phone is checked by hand.
+has_ext buzz-push-v1 && pass "the relay offers phone notifications (buzz-push-v1)" || fail "the relay doesn't offer phone notifications (buzz-push-v1)"
 
 section "Invites: the relay API behind Buzz 1.0's Add or invite people (Buzz 0.X: Settings, Invites)"
 STATUS=$(signed_post "$OWNER_SK" /api/invites '{}')

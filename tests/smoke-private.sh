@@ -7,15 +7,18 @@
 # file, python3, and the buzz CLI (cargo build --release -p buzz-cli --bin buzz).
 #
 # Usage: BUZZ_CLI=path/to/buzz TS_AUTHKEY_FILE=path bash smoke-private.sh <server-ip> [machine-name] [image-tag]
-#   SSH_KEY, KNOWN_HOSTS as in smoke.sh; JOIN_NPUB=npub1… adds that person as a member at the end
+#   image-tag, EXPECTED_DIGEST, EXPECTED_COMMIT, SSH_KEY and KNOWN_HOSTS as in smoke.sh;
+#   JOIN_NPUB=npub1… adds that person as a member at the end
 set -uo pipefail
 
 IP=${1:?usage: smoke-private.sh <server-ip> [machine-name] [image-tag]}
 NAME=${2:-buzz-test}
-TAG=${3:-sha-744f394}
 HERE=$(cd "$(dirname "$0")" && pwd)
 source "$HERE/lib/image.sh"
-EXPECTED_DIGEST=$(expected_image_digest "$TAG" "${EXPECTED_DIGEST:-}" "$HERE/../skills/self-host-buzz/SKILL.md") || exit 2
+SKILL_FILE=$HERE/../skills/self-host-buzz/SKILL.md
+TAG=${3:-$(default_image_tag "$SKILL_FILE")} || exit 2
+EXPECTED_DIGEST=$(expected_image_digest "$TAG" "${EXPECTED_DIGEST:-}" "$SKILL_FILE") || exit 2
+EXPECTED_COMMIT=$(expected_image_commit "$TAG" "${EXPECTED_COMMIT:-}" "$SKILL_FILE") || exit 2
 BZ=${BUZZ_CLI:-buzz}
 KEYFILE=${TS_AUTHKEY_FILE:?set TS_AUTHKEY_FILE to a file holding a Tailscale auth key}
 source "$HERE/lib/log.sh" && run_logged private "$TAG" "$0" "$@"
@@ -32,8 +35,8 @@ fail() { echo "FAIL  $1"; FAIL=$((FAIL + 1)); }
 info() { echo "INFO  $1"; }
 section() { printf '\n===== %s\n' "$*"; }
 server() {
-  local rc=0 check_tag=$TAG check_digest=$EXPECTED_DIGEST
-  ssh "${SSH_OPTS[@]}" "root@$IP" EXPECTED_TAG="$check_tag" EXPECTED_DIGEST="$check_digest" bash /root/smoke-vps.sh "$@" >"$TMP/phase.log" 2>&1 || rc=$?
+  local rc=0 check_tag=$TAG check_digest=$EXPECTED_DIGEST check_commit=$EXPECTED_COMMIT
+  ssh "${SSH_OPTS[@]}" "root@$IP" EXPECTED_TAG="$check_tag" EXPECTED_DIGEST="$check_digest" EXPECTED_COMMIT="$check_commit" bash /root/smoke-vps.sh "$@" >"$TMP/phase.log" 2>&1 || rc=$?
   cat "$TMP/phase.log"
   PASS=$((PASS + $(grep -ac '^PASS' "$TMP/phase.log")))
   FAIL=$((FAIL + $(grep -ac '^FAIL' "$TMP/phase.log")))
@@ -96,10 +99,14 @@ PIC_URL=$(field url <"$TMP/upload.json")
 as "$OWNER_SK" media get "$PIC_URL" -o "$TMP/got.png" >/dev/null 2>&1 &&
   [[ $(shasum -a 256 "$TMP/got.png" | cut -c1-64) == "$PIC_SHA" ]] && pass "download intact" || fail "download"
 
-section "Phones can reach the pairing service, over the tailnet"
-PAIR_URL=$(curl -fsS -m 10 -H 'Accept: application/nostr+json' "https://$HOST/" 2>/dev/null | field pairing_relay_url)
+section "Phones can reach the pairing service, over the tailnet, and the relay offers notifications"
+NIP11=$(curl -fsS -m 10 -H 'Accept: application/nostr+json' "https://$HOST/" 2>/dev/null)
+PAIR_URL=$(printf '%s' "$NIP11" | field pairing_relay_url)
 [[ $PAIR_URL == "wss://$HOST/pair" ]] && pass "the relay names its pairing service, $PAIR_URL" || fail "pairing_relay_url is [$PAIR_URL], not wss://$HOST/pair"
 [[ $(ws_status "https://$HOST/pair") == 101 ]] && pass "WebSocket upgrade at https://$HOST/pair" || fail "no WebSocket at https://$HOST/pair"
+# compose.md step 8 turns notifications on; the relay then offers buzz-push-v1. Delivery to a phone is checked by hand.
+printf '%s' "$NIP11" | python3 -c "import json,sys; sys.exit(0 if 'buzz-push-v1' in (json.load(sys.stdin).get('supported_extensions') or []) else 1)" 2>/dev/null &&
+  pass "the relay offers phone notifications (buzz-push-v1)" || fail "the relay doesn't offer phone notifications (buzz-push-v1)"
 
 if [[ -n ${JOIN_NPUB:-} ]]; then
   section "A person to try Buzz Desktop and a phone"

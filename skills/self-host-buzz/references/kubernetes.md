@@ -4,7 +4,8 @@ Chart `0.1.10`, quickstart profile: Postgres, Redis and MinIO run in the cluster
 replica. The chart calls this an evaluation profile, not a production or high-availability
 deployment. Backing it up does not change that. The advanced production profile uses managed
 Postgres, Redis and S3 and needs separate recovery and availability design; it is not tested here.
-Tell the user which profile they are getting. Tested on DigitalOcean
+Tell the user which profile they are getting. The quickstart is for a cluster with one node, as
+Block's chart says (step 1). Tested on one node of DigitalOcean
 Kubernetes 1.36 with Traefik (chart 41.6.1, Traefik 3.7) and cert-manager 1.21. Needs `kubectl`
 and `helm` pointed at the cluster, with `kubectl` within one minor version of it: keep the same
 `KUBECONFIG` or context for every command, including the ones the user runs. The quickstart's
@@ -20,7 +21,12 @@ first: it replaces steps 1, 2 and 6.
 four volumes wait forever. If there's none, ask the user which to use (on EKS, gp3 with the EBS CSI
 driver; on bare metal, a provisioner such as local-path). `kubectl get nodes -L kubernetes.io/arch`
 must show `amd64` for every node: the quickstart's file store image is x86 only, and nothing keeps
-it off an ARM node. Then
+it off an ARM node. It should also show one node: Block's chart calls the quickstart single-node.
+With more nodes, a restart or an upgrade of the relay can hang. The chart starts the new relay pod
+before it stops the old one, and the relay's volume attaches to one node at a time, so a new pod
+on another node waits in `Init:0/1` (tested on two nodes, where a restart hung). If the cluster
+has more than one node, tell the user before installing. For more nodes Block's chart points to
+`persistence.git.enabled: false`, which is not tested here. Then
 `kubectl get ingressclass; kubectl get clusterissuer` should show an ingress class and a ready
 issuer. On a fresh cluster the second command errors (`doesn't have a resource type`): there's no
 cert-manager yet. If the cluster has its own, use their names wherever this file says `traefik`
@@ -63,17 +69,22 @@ without a domain, `<the IP with dashes>.sslip.io` resolves to that IP with no re
 name from an IP, it only lives as long as the load balancer keeps it. Check:
 `python3 -c "import socket; print(socket.gethostbyname('$DOMAIN'))"` prints the same address.
 
-**3. Values.** Pin the image (the chart's default, `0.1.0`, dates from June 2026, before file
-reads required membership), replace the dead MinIO images (block/buzz#7880; note `:latest` can
-change under you), let Buzz 0.X in (block/buzz#2872; Buzz 1.0 doesn't need it), and turn on the
+**3. Values.** Pin the relay's image by digest (the chart's default, `0.1.0`, dates from June
+2026, before file reads required membership; with `image.digest` set the chart runs that exact
+image, and `image.tag` only says which one it is), replace the dead MinIO images with the build
+Block's own CI uses, pinned by digest too (block/buzz#7880), let Buzz 0.X in (block/buzz#2872;
+Buzz 1.0 doesn't need it), and turn on the
 phone pairing service, which the chart runs but doesn't route: the last block adds a `/pair` route
 to it on the same name and certificate. The file holds no secrets, and
 upgrades reuse it: ask the user where to keep it, such as their infrastructure repository, and run
-steps 3 and 4 from that folder (create it if needed; `cat >` replaces a file already there).
+steps 3 and 4 from that folder (create it if needed; `cat >` replaces a file already there). If the
+user chose the newest image, `DIGEST` is unset: delete the `digest:` line, so the chart follows the
+tag.
 ```bash
 cat > buzz-values.yaml <<YAML
 image:
   tag: $TAG
+  digest: $DIGEST
 relayUrl: wss://$DOMAIN
 ownerPubkey: $OWNER_HEX
 quickstart: true
@@ -83,8 +94,8 @@ redis:
   enabled: true
 minio:
   enabled: true
-  image: ghcr.io/block/buzz-minio:latest
-  mcImage: ghcr.io/block/buzz-minio:latest
+  image: ghcr.io/block/buzz-minio@sha256:71f235d6aa0c39517b9864d8524546607ccdde40b83742e0dd8d4fb52b3be6dd
+  mcImage: ghcr.io/block/buzz-minio@sha256:71f235d6aa0c39517b9864d8524546607ccdde40b83742e0dd8d4fb52b3be6dd
 relay:
   corsOrigins:
     - tauri://localhost
@@ -127,9 +138,9 @@ extraManifests:
                       number: 5000
 YAML
 ```
-Check: `grep -E '^(relayUrl|ownerPubkey):|^  tag:|^  url:' buzz-values.yaml` shows `$TAG`,
-`wss://$DOMAIN`, `$OWNER_HEX` and `wss://$DOMAIN/pair`, not empty values (a shell that lost the
-variables writes blanks).
+Check: `grep -E '^(relayUrl|ownerPubkey):|^  (tag|digest|url):' buzz-values.yaml` shows `$TAG`,
+`$DIGEST`, `wss://$DOMAIN`, `$OWNER_HEX` and `wss://$DOMAIN/pair`, not empty values (a shell that
+lost the variables writes blanks).
 
 **4. Install.** About 80 to 100 seconds in testing; run it in the background if your tool times
 out sooner. Helm's notes say "Buzz 0.1.0": that's the chart's app version, not the relay's.
@@ -154,8 +165,8 @@ Block's chart).
 **6. Checks.** `kubectl -n buzz get certificate` → `buzz-tls` `True` (if `False`, wait a minute
 and run it again);
 `kubectl -n buzz exec deploy/buzz -c relay -- /usr/local/bin/buzz-admin list-members` shows
-`$OWNER_HEX` with the role `owner`; the relay runs the image SKILL.md section 2 names (not tested;
-skip it for the newest image):
+`$OWNER_HEX` with the role `owner`; the relay runs the image SKILL.md section 2 names (skip it
+for the newest image):
 `kubectl -n buzz get pods -l app.kubernetes.io/component=relay -o jsonpath='{.items[*].status.containerStatuses[?(@.name=="relay")].imageID}'`
 ends with `@$DIGEST`; then SKILL.md section 3. To confirm the relay's own ports
 aren't exposed, give it a node's public IP (`kubectl get nodes -o wide`, EXTERNAL-IP) and
@@ -214,11 +225,13 @@ community's URL led to that machine. Pick another name.
 
 **P4. Values and install.** In the folder the user picked for the values file (step 3). Its
 `ingress:` takes the full name: Tailscale names the machine after its first part, and ignores the
-chart's rule unless the rule's host matches it exactly.
+chart's rule unless the rule's host matches it exactly. The image lines are step 3's, with the same
+note about `digest:`.
 ```bash
 cat > buzz-values.yaml <<YAML
 image:
   tag: $TAG
+  digest: $DIGEST
 relayUrl: wss://$DOMAIN
 ownerPubkey: $OWNER_HEX
 quickstart: true
@@ -228,8 +241,8 @@ redis:
   enabled: true
 minio:
   enabled: true
-  image: ghcr.io/block/buzz-minio:latest
-  mcImage: ghcr.io/block/buzz-minio:latest
+  image: ghcr.io/block/buzz-minio@sha256:71f235d6aa0c39517b9864d8524546607ccdde40b83742e0dd8d4fb52b3be6dd
+  mcImage: ghcr.io/block/buzz-minio@sha256:71f235d6aa0c39517b9864d8524546607ccdde40b83742e0dd8d4fb52b3be6dd
 relay:
   corsOrigins:
     - tauri://localhost
@@ -245,8 +258,9 @@ ingress:
     - hosts: [$DOMAIN]
 YAML
 ```
-Check: `grep -E '^(relayUrl|ownerPubkey):|^  tag:' buzz-values.yaml` shows `$TAG`, `wss://$DOMAIN`
-and `$OWNER_HEX`, not empty values. Then install, which takes 80 to 100 seconds:
+Check: `grep -E '^(relayUrl|ownerPubkey):|^  (tag|digest):' buzz-values.yaml` shows `$TAG`,
+`$DIGEST`, `wss://$DOMAIN` and `$OWNER_HEX`, not empty values. Then install, which takes 80 to 100
+seconds:
 ```bash
 helm install buzz oci://ghcr.io/block/buzz/charts/buzz --version 0.1.10 \
   --namespace buzz --create-namespace -f buzz-values.yaml --wait --timeout 10m
@@ -270,7 +284,8 @@ Never replace it, as step 5 says.
   `tailscale.com/funnel` (Funnel would publish the relay to the internet).
 - `kubectl -n buzz exec deploy/buzz -c relay -- /usr/local/bin/buzz-admin list-members` shows
   `$OWNER_HEX` with the role `owner`.
-- The relay's image ends with `@$DIGEST`, as in step 6 (not tested; skip it for the newest image).
+- The relay's image ends with `@$DIGEST`, as in step 6 (not tested on a private network; skip it
+  for the newest image).
 - SKILL.md section 3 from this machine, with a node's public IP (`kubectl get nodes -o wide`,
   EXTERNAL-IP) and `80 443 3000 8080`. The first request makes the certificate; the script waits.
 

@@ -59,7 +59,8 @@ def relay_version(prompt, tools):
     """The image the run installed, then any it upgraded to; else the tag it mentions most."""
     text = prompt + "\n" + "\n".join(f"{body}\n{output or ''}" for _, _, body, output in tools)
     installed = []
-    for m in re.finditer(r"ghcr\.io/block/buzz:(sha-[0-9a-f]{7})|\btag: (sha-[0-9a-f]{7})|\bimage\.tag=(sha-[0-9a-f]{7})", text):
+    tag = r"(sha-[0-9a-f]{7}|\d+\.\d+\.\d+)\b"  # an sha- tag, or a release such as 0.3.0
+    for m in re.finditer(rf"ghcr\.io/block/buzz:{tag}|\btag: {tag}|\bimage\.tag={tag}", text):
         tag = next(g for g in m.groups() if g)
         if tag not in installed:
             installed.append(tag)

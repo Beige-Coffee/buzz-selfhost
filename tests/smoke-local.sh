@@ -11,16 +11,20 @@
 # volumes left from an earlier local test.
 #
 # Usage: bash tests/smoke-local.sh [image-tag]
+#   image-tag        sha-<7 hex> or a release such as 0.3.0 (default: tested-image in SKILL.md). Any
+#                    other tag needs EXPECTED_DIGEST, and a release also EXPECTED_COMMIT
 #   BUZZ_BASE=path   the folder that stands for ~ in compose.md (default: ~/buzz-local-test); the
 #                    bundle goes in path/buzz, which must not exist yet
 #   KEEP=1           leave the relay running, to join it from Buzz 1.0 (prints how to remove it);
 #                    otherwise it stops the relay, removes its volumes and deletes the folder
 set -uo pipefail
 
-TAG=${1:-sha-744f394}
 HERE=$(cd "$(dirname "$0")" && pwd)
 source "$HERE/lib/image.sh"
-EXPECTED_DIGEST=$(expected_image_digest "$TAG" "${EXPECTED_DIGEST:-}" "$HERE/../skills/self-host-buzz/SKILL.md") || exit 2
+SKILL_FILE=$HERE/../skills/self-host-buzz/SKILL.md
+TAG=${1:-$(default_image_tag "$SKILL_FILE")} || exit 2
+EXPECTED_DIGEST=$(expected_image_digest "$TAG" "${EXPECTED_DIGEST:-}" "$SKILL_FILE") || exit 2
+COMMIT=$(expected_image_commit "$TAG" "${EXPECTED_COMMIT:-}" "$SKILL_FILE") || exit 2
 source "$HERE/lib/log.sh" && run_logged local "$TAG" "$0" "$@"
 BASE=${BUZZ_BASE:-$HOME/buzz-local-test}
 SKILL=$(cd "$HERE/../skills/self-host-buzz" && pwd)
@@ -97,10 +101,11 @@ run volumes 'docker volume ls -q | grep buzz-prod'
 section "4. The bundle"
 mkdir -p "$BASE" && cd "$BASE" || { fail "can't use $BASE"; finish; }
 run clone 'git clone https://github.com/block/buzz.git
-cd buzz && git checkout -q ${TAG#sha-} && cd deploy/compose
+cd buzz && git checkout -q $COMMIT && cd deploy/compose
 cp .env.example .env && chmod 600 .env' >/dev/null
 cd "$COMPOSE_DIR" || { fail "clone"; finish; }
-expect "bundle at the image's commit" "${TAG#sha-}" "$(git rev-parse HEAD | cut -c1-7)"
+run bundle-commit 'git rev-parse HEAD'
+expect "bundle at the image's commit" "1" "$(grep -c "^$COMMIT" "$OUT/bundle-commit.out")"
 run ls 'ls'
 for f in Caddyfile compose.caddy.yml compose.yml run.sh; do
   [[ -e $f ]] && pass "bundle has $f" || fail "bundle lacks $f"
@@ -126,6 +131,9 @@ else
   fail "the image does not have the expected digest"
   finish
 fi
+# compose.md step 6's last check, verbatim: the image names the commit it was built from
+run image-commit 'docker image inspect --format '"'"'{{index .Config.Labels "org.opencontainers.image.revision"}}'"'"' ghcr.io/block/buzz:$TAG'
+expect "the image was built from the commit the bundle is at" "$(git rev-parse HEAD)" "$(tail -1 "$OUT/image-commit.out")"
 
 section "7. Owner"
 run owner 'sed -i.bak "s/^RELAY_OWNER_PUBKEY=.*/RELAY_OWNER_PUBKEY=$OWNER_HEX/" .env && rm .env.bak'

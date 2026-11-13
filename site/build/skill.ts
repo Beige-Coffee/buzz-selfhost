@@ -47,10 +47,10 @@ export interface SkillData {
   home: string;
   preparation: string;
   /**
-   * the image the skill recommends, from SKILL.md's metadata (`tested-image` and `tested-digest`), and
-   * the Helm chart kubernetes.md installs
+   * the image the skill recommends, from SKILL.md's metadata (`tested-image`, `tested-digest` and
+   * `tested-commit`, the block/buzz commit it was built from), and the Helm chart kubernetes.md installs
    */
-  pin: { tag: string; digest: string; chart: string };
+  pin: { tag: string; digest: string; commit: string; chart: string };
 }
 
 const SERVER: Track[] = ["vps", "own-public"];
@@ -86,7 +86,7 @@ const HOME = "~/buzz-skill";
 const VARS: [RegExp, string][] = [
   [/\$SKILL\b/g, `${HOME}/self-host-buzz`],
   [/\$DIGEST\b/g, "{{DIGEST}}"],
-  [/\$\{TAG#sha-\}/g, "{{COMMIT}}"],
+  [/\$COMMIT\b/g, "{{COMMIT}}"],
   [/\$TAG\b/g, "{{TAG}}"],
   [/\$DOMAIN\b/g, "{{DOMAIN}}"],
   [/\$HOST\b/g, "{{HOST}}"],
@@ -389,14 +389,18 @@ export function parseSkill(dir: string): SkillData {
   const meta = (key: string) => readFileSync(join(dir, "SKILL.md"), "utf8").match(new RegExp(`^  ${key}: *"?([^"\\s]+)"?$`, "m"))?.[1];
   const tag = meta("tested-image");
   const digest = meta("tested-digest");
+  const commit = meta("tested-commit");
   if (!tag || !digest) fail("SKILL.md's metadata needs tested-image and tested-digest: every setup installs that image");
+  // a release tag such as 0.3.0 doesn't name its commit, so the bundle's checkout comes from here
+  if (!commit || !/^[0-9a-f]{40}$/.test(commit)) fail("SKILL.md's metadata needs tested-commit, the 40-character block/buzz commit tested-image was built from");
+  if (/^sha-/.test(tag!) && !commit!.startsWith(tag!.slice(4))) fail(`tested-commit ${commit} is not the commit ${tag} names`);
   // every chart version kubernetes.md and operations.md name must be the same one
   const charts = new Set(
     ["kubernetes.md", "operations.md"].flatMap((f) => [...readFileSync(join(dir, "references", f), "utf8").matchAll(/charts\/buzz --version (\S+)/g)].map((m) => m[1])),
   );
   if (charts.size !== 1) fail(`the skill installs ${charts.size ? [...charts].join(" and ") : "no"} chart version: the page shows one`);
   const chart = [...charts][0];
-  const data = { steps, fixes: fixes(dir), ops: ops(dir), mobile: referenceSections(dir, "mobile.md"), home: HOME, preparation: toHTML(readFileSync(join(dir, "references", "manual.md"), "utf8").replace(/^# .*\n/, ""), "references"), pin: { tag: tag!, digest: digest!, chart } };
+  const data = { steps, fixes: fixes(dir), ops: ops(dir), mobile: referenceSections(dir, "mobile.md"), home: HOME, preparation: toHTML(readFileSync(join(dir, "references", "manual.md"), "utf8").replace(/^# .*\n/, ""), "references"), pin: { tag: tag!, digest: digest!, commit: commit!, chart } };
   for (const text of [...data.steps.map((x) => x.html), ...data.ops.map((x) => x.html), ...data.fixes.flatMap((x) => [x.symptom, x.fix])]) {
     const old = text.match(OLD);
     if (old) fail(`the site would show "${old[0]}": add a rule to CURRENT in build/skill.ts (${text.replace(/<[^>]+>/g, "").slice(0, 80)})`);
@@ -413,6 +417,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   console.log(`fixes: ${data.fixes.length}`);
   console.log(`pin: ${data.pin.tag}@${data.pin.digest}`);
+  console.log(`commit: ${data.pin.commit}`);
   console.log(`chart: ${data.pin.chart}`);
   for (const t of TRACKS) console.log(`ops ${t}: ${data.ops.filter((o) => o.tracks.includes(t)).map((o) => `${o.kind}/${o.title}`).join(", ")}`);
 }

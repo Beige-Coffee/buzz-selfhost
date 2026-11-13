@@ -1,0 +1,118 @@
+# k8s on 0.3.0, 2026-11-12 16:31 PST
+# skill and tests at 4e6b233, plus uncommitted changes
+# smoke-k8s.sh <ip>.sslip.io 0.3.0
+
+===== Identities
+owner   <hex>
+
+===== 1. The values file (kubernetes.md step 3, run as written)
+image:
+  tag: 0.3.0
+  digest: sha256:<hex>
+relayUrl: wss://<ip>.sslip.io
+ownerPubkey: <hex>
+quickstart: true
+postgresql:
+  enabled: true
+redis:
+  enabled: true
+minio:
+  enabled: true
+  image: ghcr.io/block/buzz-minio@sha256:<hex>
+  mcImage: ghcr.io/block/buzz-minio@sha256:<hex>
+relay:
+  corsOrigins:
+    - tauri://localhost
+    - http://tauri.localhost
+    - https://<ip>.sslip.io
+  extraEnv:
+    - {name: BUZZ_PUSH_GATEWAY_DELIVERY_URL, value: "https://push.buzz.xyz/v1/deliveries/apns"}
+    - {name: BUZZ_PUSH_ENABLED, value: "true"}
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+  tls:
+    - hosts: [<ip>.sslip.io]
+      secretName: buzz-tls
+pairingRelay:
+  enabled: true
+  url: wss://<ip>.sslip.io/pair
+extraManifests:
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: buzz-pairing
+    spec:
+      ingressClassName: traefik
+      tls:
+        - hosts: [<ip>.sslip.io]
+          secretName: buzz-tls
+      rules:
+        - host: <ip>.sslip.io
+          http:
+            paths:
+              - path: /pair
+                pathType: Prefix
+                backend:
+                  service:
+                    name: buzz-pairing
+                    port:
+                      number: 5000
+PASS  the values name the tag, the digest, the address, the owner and the pairing address
+PASS  the values pin the file store's two images to one digest
+
+===== 2. Install
+PASS  helm install (82s)
+$ kubectl -n buzz get pods
+NAME                            READY   STATUS      RESTARTS      AGE
+buzz-bbf5585d6-tbjqs            1/1     Running     3 (34s ago)   81s
+buzz-minio-6974bc8449-pwmjf     1/1     Running     0             81s
+buzz-minio-init-1-7nb9d         0/1     Completed   0             81s
+buzz-pairing-78b85655bb-7227d   1/1     Running     0             81s
+buzz-postgresql-0               1/1     Running     0             81s
+buzz-redis-0                    1/1     Running     0             81s
+PASS  every pod ready
+INFO  relay deployment: deployment.apps/buzz
+PASS  relay is pinned to the expected digest for 0.3.0
+INFO  the running relay's image: ghcr.io/block/buzz@sha256:<hex>
+PASS  the running relay's image ends with the digest (step 6's check)
+PASS  the file store is pinned to its digest
+PASS  ownerPubkey became the owner
+
+===== 3. Certificate and liveness
+$ kubectl -n buzz get certificate
+NAME       READY   SECRET     AGE
+buzz-tls   True    buzz-tls   82s
+PASS  https://<ip>.sslip.io/_liveness answers ok
+PASS  Let's Encrypt certificate
+PASS  CORS lets Buzz Desktop in
+PASS  WebSocket upgrade and NIP-42 challenge through the ingress
+INFO  relay version 0.3.0
+PASS  the relay names its pairing service, wss://<ip>.sslip.io/pair
+PASS  phones reach the pairing service at /pair (WebSocket)
+
+===== 4. Members post and read; a non-member is refused
+PASS  owner creates a channel
+PASS  owner posts
+PASS  add-member through kubectl exec
+PASS  member joins and posts
+PASS  non-member refused
+PASS  upload lands at https://<ip>.sslip.io/media
+PASS  download intact
+PASS  the file's URL needs auth (401)
+
+===== 5. Back up the database
+PASS  pg_dump through kubectl exec (494732 bytes)
+
+===== 6. Upgrade (helm upgrade with the same values)
+PASS  helm upgrade
+PASS  relay restarted
+PASS  liveness after the restart
+PASS  messages survive a restart
+PASS  the file survives a restart
+
+===== RESULT
+relay: wss://<ip>.sslip.io
+passed: 28  failed: 0

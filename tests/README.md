@@ -25,12 +25,22 @@ resolves to it. `<ip>.sslip.io` works without any DNS setup, e.g. `203-0-113-10.
 BUZZ_CLI=path/to/buzz SSH_KEY=path/to/key bash tests/smoke.sh <server-ip> <domain> [image-tag [upgrade-tag]]
 ```
 
-Every script's `image-tag` defaults to the image the skill recommends (`tested-image` in SKILL.md).
-The expected digest comes from `tested-digest`. Local, VPS and private runs verify the pulled
-image; Kubernetes pins the workload to that digest through the chart's `image.digest` value.
-A different tag requires `EXPECTED_DIGEST=sha256:...`; a different `upgrade-tag` requires
-`UPGRADE_EXPECTED_DIGEST=sha256:...`. Missing or malformed digests stop the driver before it
-contacts a server. An override cannot change the recommended tag's digest.
+Every script's `image-tag` defaults to the image the skill recommends: it reads `tested-image` from
+SKILL.md, so a pin move is an edit there and nowhere in the scripts. A tag is `sha-` and seven
+hexadecimal characters, or a release such as `0.3.0`. The expected digest comes from
+`tested-digest`. Local, VPS and private runs verify the pulled image; Kubernetes pins the workload
+to that digest through the chart's `image.digest` value, by running kubernetes.md step 3's own
+values block. A different tag requires `EXPECTED_DIGEST=sha256:...`; a different `upgrade-tag`
+requires `UPGRADE_EXPECTED_DIGEST=sha256:...`. Missing or malformed digests stop the driver before
+it contacts a server. An override cannot change the recommended tag's digest.
+
+The Compose runs also check the bundle out at the commit the image was built from. `tested-commit`
+in SKILL.md gives it for the recommended image, and an `sha-` tag names its own. A release's name
+says nothing about its source, so any other release requires `EXPECTED_COMMIT=<40 characters>`
+(`UPGRADE_EXPECTED_COMMIT` for an `upgrade-tag`), and nothing guesses it. On the server, each run
+then checks that the pulled image names that same commit in its
+`org.opencontainers.image.revision` label, so a wrong commit fails the run instead of passing
+with a mismatched bundle.
 
 A failed server phase stops the driver. In particular, a failed backup cannot continue into
 wipe, and a failed ancestry or duplicate-name check cannot continue into an upgrade.
@@ -91,39 +101,77 @@ adds Traefik and cert-manager), and a domain at the ingress; `<ip>.sslip.io` wor
 KUBECONFIG=path/to/kubeconfig BUZZ_CLI=path/to/buzz bash tests/smoke-k8s.sh <domain> [image-tag]
 ```
 
-## Candidate validation, 2026-11-11
+## Results, 2026-11-12: relay 0.3.0
 
-Prepared, not run. The recommended tag and tested date remain unchanged. The current candidate
-is the published `ghcr.io/block/buzz:0.3.0`, source
-`75d38b6c2d5f357348288ded8c15aba15f765ea5`, with digest
-`sha256:84f34c5b801192665b1a05939518d746f25184babf4d6e927d0de7e12e9c5674`.
-Its manifest, provenance and deployment eligibility were verified. It replaces the earlier
-`sha-e5dee91` proposal; neither candidate has run this matrix.
+The five runs prepared on 2026-11-11, on the published `ghcr.io/block/buzz:0.3.0`: source
+`75d38b6c2d5f357348288ded8c15aba15f765ea5`, digest
+`sha256:84f34c5b801192665b1a05939518d746f25184babf4d6e927d0de7e12e9c5674`. Every run required that
+digest, and the Compose runs also that the pulled image names that commit. The owner approved the
+runs and their cost first. All ran on DigitalOcean in sfo3, driven from an Apple Silicon Mac, for
+about $0.39 in all. The skill still recommended `sha-744f394` while the first four ran, so each
+was given the release, its digest and its commit explicitly. The private run came after the pin
+moved and took all three from SKILL.md.
 
-**Do not pass `0.3.0` to the current harness yet.** Its preflight accepts seven-character SHA
-tags, and the skill derives the bundle checkout from those tags. Before adopting a semantic
-image, explicitly map it to the verified source commit in the skill/site and harness, and test
-that resolution. The separately built `sha-75d38b6` image has digest
-`sha256:2a8078b6f588b34dfd17687a442a1a52d8cb90e3bb06fa894eb4e01a6e03e18f`;
-using it would validate that artifact, not the `0.3.0` artifact above.
-
-After that preparation, use the exact candidate digest as `EXPECTED_DIGEST` for a fresh install
-or `UPGRADE_EXPECTED_DIGEST` for an old-pin upgrade. Get approval for servers and costs first.
-
-| Run | Evidence it can provide | Remaining manual coverage |
+| Run | Result | Record |
 | --- | --- | --- |
-| Local candidate | TLS, NIP-42, uploads, invites and pairing-service reachability | Launched desktop joins using the trusted certificate |
-| Public VPS candidate | Fresh install, backup, destructive restore, membership, files and pairing route | Desktop import by file, Staff and phone Codes match |
-| VPS old pin to candidate | Real migrations 0084-0086 on the small, seeded test database; preserved messages, files and identity | Busy or populated database rollout, concurrent index prebuild and exact verification |
-| Private candidate | Tailnet reachability, access controls, uploads and pairing route | Phone workflow with Tailscale enabled |
-| Kubernetes candidate | Fresh install and same-image Helm upgrade, backup dump, auth and file checks | Old-pin migration, complete restore and phone workflow |
+| Local | **Passed**, 55 of 55, on a Linux server | [log](runs/2026-11-12-1346-local-0.3.0.log) |
+| Public VPS, a fresh install | **Passed**, 112 of 112 | [log](runs/2026-11-12-1344-vps-0.3.0.log) |
+| The owner's checks on that server | **Passed**: Staff as owner, pairing with Codes match, two notifications on a locked iPhone | [record](runs/2026-11-12-1633-owner-checks-public-vps.md) |
+| VPS, an upgrade from `sha-744f394` | **Passed**, 134 of 134 | [log](runs/2026-11-12-1343-vps-sha-744f394.log) |
+| Private network | **Passed**, 55 of 55 | [log](runs/2026-11-12-1654-private-0.3.0.log) |
+| Kubernetes | **Passed**, 28 of 28, on one node. The first try, on two nodes, **failed**: 11 passed, 17 failed | [log](runs/2026-11-12-1631-k8s-0.3.0.log), [first try](runs/2026-11-12-1354-k8s-0.3.0.log) |
 
-The VPS upgrade exercises the inline 0086 index build on a tiny database. It does not run the
-concurrent prebuild or prove that migration's startup timeouts are safe for an existing large
-community. Follow the upstream `docs/private-media-index-deployment.md` from the candidate
-commit and the skill's upgrade stop gate for that separate rehearsal. Kubernetes's same-image
-Helm upgrade is not migration evidence. Chart 0.1.10 stays the default pending a separate review
-and test of 0.1.11's object-store and backup behavior.
+What each run showed, and what it did not:
+
+- **Local.** This Mac's ports 80 and 443 were in use, so `smoke-local.sh` ran over SSH on a fresh
+  Ubuntu 24.04 x86 server with Docker Engine 29 and Compose 5.7.1. It is the first run of the
+  `https://localhost` test on Linux. Docker Desktop on a Mac was not rerun on 0.3.0, and trusting
+  the local authority and joining from Buzz are still checked by hand.
+- **Public VPS.** A fresh install, a backup, losing the data, a restore onto a fresh checkout and a
+  same-image upgrade. `check-relay.sh` passed every line from the operator's computer, and the
+  partition audit said `ok`. New in this run: the bundle is checked out at the commit SKILL.md
+  records, the image names that commit, the restore reads the commit from the backup's image, and
+  compose.md step 8's notification line is run and the relay offers `buzz-push-v1`.
+- **The owner's checks.** After the scripted run, the owner became the relay's owner with
+  operations.md's steps, and compose.md's moderation console was turned on. He saw Reports,
+  Feedback, Communities and Staff under Moderation, with himself listed under Staff. His iPhone
+  asked for the six digits and paired with Codes match. Locked, it showed a DM and a mention from
+  a test member, each with its text, and Block's gateway accepted both wakes. Not shown: that
+  Reports, Feedback and Communities load their data.
+- **Upgrade.** Installed on the old pin, backed up, restored, backed up again and upgraded the way
+  operations.md says. The relay went from 0.2.1 to 0.3.0. Migrations 0084, 0085 and 0086 applied
+  at start: 0086 took 243 ms on a database of 36 events, 2 channels and 3 members, and its index,
+  `idx_events_media_edit_target`, is valid. No stored object went missing, a file from before read
+  back intact, and the partition audit said `ok`. This is the small-database case only. It does
+  not run Block's concurrent prebuild or show that 0086's time limits hold on a busy database.
+- **Private network.** The server joined the tailnet with an auth key, and the relay answered over
+  HTTPS at its tailnet name from this Mac, with members, files, the pairing service and the push
+  offer checked there. Public ports 80, 443, 3000 and 5000 were closed. Not covered: a phone on
+  Tailscale, which was last paired on 2026-10-05.
+- **Kubernetes.** Chart 0.1.10 on DigitalOcean Kubernetes 1.36.5, with Traefik (chart 41.6.1,
+  Traefik 3.7.13) and cert-manager 1.21.2. The test now runs kubernetes.md step 3's own values
+  block, so both images are pinned by digest in the test exactly as in the steps. The relay ran
+  at the pinned digest, the running pod's image ended with it (step 6's check, run for the first
+  time), and the file store ran at its pinned digest. A same-image `helm upgrade` and a restart
+  kept the messages and the file. Not covered, as before: an upgrade from the old pin, a complete
+  restore, and phones.
+- **Why the first Kubernetes try failed.** Two separate causes, neither of them the relay or the
+  pins, which had already passed. First, DigitalOcean's new control plane dropped connections
+  while Helm installed Traefik and cert-manager, the test's setup did not retry, and with no
+  issuer there was no certificate: 13 checks. Second, the relay's restart hung on a two-node
+  cluster: 4 checks. The chart starts the new relay pod before it stops the old one, the relay's
+  volume attaches to one node at a time, and the new pod landed on the other node. Block's chart
+  calls its quickstart "single-node" and says to turn that volume off for more nodes
+  (`persistence.git.enabled: false`). kubernetes.md step 1 now says the quickstart is for one
+  node; the setting for more nodes is not tested.
+
+The Kubernetes run used this Mac's `kubectl` 1.30.5 against a 1.36.5 cluster, outside the one
+minor version kubernetes.md asks for. kubectl warned and every command worked.
+
+Still not covered by any run on 0.3.0: Docker Desktop on a Mac, a desktop join over the trusted
+local certificate, importing a key file, Android, a populated or busy database through migration
+0086, Kubernetes from the old pin, a complete Kubernetes restore, and Kubernetes on more than one
+node.
 
 Offline harness safety checks need no server, keys or Docker:
 
@@ -132,9 +180,13 @@ python3 tests/test_smoke_preflight.py
 python3 tests/test_backup_commands.py
 ```
 
-The backup checks execute the documented Kubernetes export block with stubbed commands. They
-cover failure handling, private output permissions and refusal to overwrite an existing directory.
-They do not validate Kubernetes, archive contents or an actual restore.
+The preflight checks cover the image a driver will accept: its tag, its digest and, for a release,
+its commit, and that every driver refuses before it contacts a server. They also run
+kubernetes.md's values block with made-up values and check both digest pins, and they stub an
+upgrade to check that a failed prerequisite changes nothing. The backup checks execute the
+documented Kubernetes export block with stubbed commands. They cover failure handling, private
+output permissions and refusal to overwrite an existing directory. They do not validate
+Kubernetes, archive contents or an actual restore.
 
 ## Logs
 

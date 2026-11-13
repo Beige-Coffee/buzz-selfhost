@@ -6,15 +6,18 @@
 # cert-manager ClusterIssuer named $ISSUER; a domain that resolves to the ingress; the buzz CLI.
 #
 # Usage: BUZZ_CLI=path/to/buzz bash smoke-k8s.sh <domain> [image-tag]
+#   image-tag        sha-<7 hex> or a release such as 0.3.0 (default: tested-image in SKILL.md). Any
+#                    other tag needs EXPECTED_DIGEST. The chart needs no bundle, so no commit.
 #   INGRESS_CLASS (default traefik), ISSUER (default letsencrypt), CHART_VERSION (default 0.1.10)
 #   JOIN_NPUB=npub1… adds that person as a member at the end, to try Buzz Desktop and a phone
 set -uo pipefail
 
 DOMAIN=${1:?usage: smoke-k8s.sh <domain> [image-tag]}
-TAG=${2:-sha-744f394}
 HERE=$(cd "$(dirname "$0")" && pwd)
 source "$HERE/lib/image.sh"
-EXPECTED_DIGEST=$(expected_image_digest "$TAG" "${EXPECTED_DIGEST:-}" "$HERE/../skills/self-host-buzz/SKILL.md") || exit 2
+SKILL=$HERE/../skills/self-host-buzz
+TAG=${2:-$(default_image_tag "$SKILL/SKILL.md")} || exit 2
+EXPECTED_DIGEST=$(expected_image_digest "$TAG" "${EXPECTED_DIGEST:-}" "$SKILL/SKILL.md") || exit 2
 BZ=${BUZZ_CLI:-buzz}
 CLASS=${INGRESS_CLASS:-traefik}
 ISSUER=${ISSUER:-letsencrypt}
@@ -45,61 +48,30 @@ read -r STRANGER_SK _ <<<"$(python3 "$HERE/lib/keygen.py")"
 MEMBER_NPUB=$(python3 "$HERE/lib/npub.py" "$MEMBER_HEX")
 echo "owner   $OWNER_HEX"
 
-section "1. The values file (the guide's buzz-values.yaml)"
-cat >"$TMP/buzz-values.yaml" <<YAML
-image:
-  tag: $TAG
+section "1. The values file (kubernetes.md step 3, run as written)"
+# The guide's own block, so the test installs what the steps install: both images by digest, the
+# CORS origins, notifications and the pairing route. Only the ingress class and the issuer can
+# differ, when INGRESS_CLASS or ISSUER name the cluster's own.
+VALUES_BLOCK=$(awk '/^\*\*3\. Values\.\*\*/ {s=1} s && /^```bash$/ {f=1; next} f && /^```$/ {exit} f' "$SKILL/references/kubernetes.md")
+[[ $VALUES_BLOCK == "cat > buzz-values.yaml <<YAML"* ]] || { fail "kubernetes.md step 3 has no values block to run"; exit 1; }
+(cd "$TMP" && DIGEST=$EXPECTED_DIGEST && eval "$VALUES_BLOCK") || { fail "kubernetes.md step 3's values block failed"; exit 1; }
+if [[ $CLASS != traefik || $ISSUER != letsencrypt ]]; then
+  sed -i.bak -e "s|^\( *className: \)traefik$|\1$CLASS|" -e "s|^\( *ingressClassName: \)traefik$|\1$CLASS|" \
+    -e "s|^\( *cert-manager.io/cluster-issuer: \)letsencrypt$|\1$ISSUER|" "$TMP/buzz-values.yaml" && rm "$TMP/buzz-values.yaml.bak"
+fi
+cat "$TMP/buzz-values.yaml"
+# kubernetes.md step 3's check, verbatim
+VALUES_CHECK=$(grep -E '^(relayUrl|ownerPubkey):|^  (tag|digest|url):' "$TMP/buzz-values.yaml")
+VALUES_EXPECTED="  tag: $TAG
   digest: $EXPECTED_DIGEST
 relayUrl: wss://$DOMAIN
 ownerPubkey: $OWNER_HEX
-quickstart: true
-postgresql:
-  enabled: true
-redis:
-  enabled: true
-minio:
-  enabled: true
-  image: ghcr.io/block/buzz-minio:latest
-  mcImage: ghcr.io/block/buzz-minio:latest
-relay:
-  corsOrigins:
-    - tauri://localhost
-    - http://tauri.localhost
-    - https://$DOMAIN
-ingress:
-  enabled: true
-  className: $CLASS
-  annotations:
-    cert-manager.io/cluster-issuer: $ISSUER
-  tls:
-    - hosts: [$DOMAIN]
-      secretName: buzz-tls
-pairingRelay:
-  enabled: true
-  url: wss://$DOMAIN/pair
-extraManifests:
-  - apiVersion: networking.k8s.io/v1
-    kind: Ingress
-    metadata:
-      name: buzz-pairing
-    spec:
-      ingressClassName: $CLASS
-      tls:
-        - hosts: [$DOMAIN]
-          secretName: buzz-tls
-      rules:
-        - host: $DOMAIN
-          http:
-            paths:
-              - path: /pair
-                pathType: Prefix
-                backend:
-                  service:
-                    name: buzz-pairing
-                    port:
-                      number: 5000
-YAML
-cat "$TMP/buzz-values.yaml"
+  url: wss://$DOMAIN/pair"
+[[ $VALUES_CHECK == "$VALUES_EXPECTED" ]] && pass "the values name the tag, the digest, the address, the owner and the pairing address" ||
+  { fail "the values file is not what step 3 describes: $VALUES_CHECK"; exit 1; }
+STORE_IMAGE=$(sed -n 's/^  image: \(ghcr\.io\/block\/buzz-minio@sha256:[0-9a-f]\{64\}\)$/\1/p' "$TMP/buzz-values.yaml")
+[[ -n $STORE_IMAGE && $(grep -c "^  mcImage: $STORE_IMAGE$" "$TMP/buzz-values.yaml") == 1 ]] && pass "the values pin the file store's two images to one digest" ||
+  { fail "the values don't pin the file store's images by digest"; exit 1; }
 
 section "2. Install"
 SECONDS=0
@@ -113,6 +85,14 @@ DEPLOY=$(kubectl -n buzz get deploy -o name | grep -v -E 'redis|postgres|minio|p
 info "relay deployment: $DEPLOY"
 IMG=$(kubectl -n buzz get "$DEPLOY" -o jsonpath='{.spec.template.spec.containers[0].image}')
 [[ $IMG == "ghcr.io/block/buzz@$EXPECTED_DIGEST" ]] && pass "relay is pinned to the expected digest for $TAG" || { fail "relay image is not the expected digest"; exit 1; }
+# kubernetes.md step 6's check, verbatim: what the running pod pulled ends with the digest
+IMAGE_ID=$(kubectl -n buzz get pods -l app.kubernetes.io/component=relay -o jsonpath='{.items[*].status.containerStatuses[?(@.name=="relay")].imageID}')
+info "the running relay's image: $IMAGE_ID"
+[[ $IMAGE_ID == *"@$EXPECTED_DIGEST" ]] && pass "the running relay's image ends with the digest (step 6's check)" || fail "the running relay's image doesn't end with the digest"
+STORE_RUNNING=$(kubectl -n buzz get deploy -o jsonpath='{range .items[*]}{.spec.template.spec.containers[0].image}{"\n"}{end}' | grep buzz-minio)
+[[ $STORE_RUNNING == "$STORE_IMAGE" ]] && pass "the file store is pinned to its digest" || fail "the file store's image is [$STORE_RUNNING], not the pinned one"
+show kubectl -n buzz exec "$DEPLOY" -c relay -- /usr/local/bin/buzz-admin list-members >"$TMP/members.out" 2>&1
+grep -qE "$OWNER_HEX +owner" "$TMP/members.out" && pass "ownerPubkey became the owner" || fail "the owner is not in the member list: $(tail -3 "$TMP/members.out")"
 
 section "3. Certificate and liveness"
 for _ in $(seq 1 30); do kubectl -n buzz get certificate buzz-tls -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -q True && break; sleep 6; done

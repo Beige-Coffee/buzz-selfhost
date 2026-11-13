@@ -116,10 +116,11 @@ harmless.
    Mac). `.env` will hold every secret, so it's private from the start.
    ```bash
    cd ~ && git clone https://github.com/block/buzz.git
-   cd buzz && git checkout -q ${TAG#sha-} && cd deploy/compose
+   cd buzz && git checkout -q $COMMIT && cd deploy/compose
    cp .env.example .env && chmod 600 .env
    ```
-   Check: `git rev-parse HEAD | cut -c1-7` prints the tag without `sha-`, and `ls` shows `Caddyfile`,
+   Check: `git rev-parse HEAD` → `$COMMIT`, the commit SKILL.md section 2 set (for the newest
+   image, it starts with the tag's seven characters), and `ls` shows `Caddyfile`,
    `compose.caddy.yml`, `compose.yml` and `run.sh` among others.
 5. **Random secrets.** They must never change after the first start.
    ```bash
@@ -139,7 +140,10 @@ harmless.
    `64`, and the image is the one SKILL.md section 2 names:
    `docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/block/buzz:$TAG` →
    `ghcr.io/block/buzz@$DIGEST`, the digest SKILL.md section 2 sets (skip this when the user chose
-   the newest image). Then tell the user to copy the key into a password manager two maintainers
+   the newest image). The image also names the commit it was built from, which must be the
+   bundle's:
+   `docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' ghcr.io/block/buzz:$TAG`
+   prints what `git rev-parse HEAD` prints. Then tell the user to copy the key into a password manager two maintainers
    can open, by running this in a terminal window of its own, not in the conversation or a terminal
    inside the agent's app, which some agents can read (through `ssh` for a server):
    `ssh <server> "grep '^BUZZ_RELAY_PRIVATE_KEY=' ~/buzz/deploy/compose/.env | cut -d= -f2"`.
@@ -310,7 +314,8 @@ and the off-machine copy succeed; do not delete the last known-good backup. This
 validated that unattended workflow yet.
 
 **Moderation console (`server`; optional, ask first).** Offer it for a community that strangers
-can join (not tested). Without it, members can report a message, but nobody sees reports in Buzz,
+can join (these steps and the Staff screen were tested on 2026-11-12; reports, bans and timeouts
+were not). Without it, members can report a message, but nobody sees reports in Buzz,
 and nobody can ban someone, time them out or delete their messages. Remove isn't a ban: a removed
 person comes back with any invite link that hasn't expired. Buzz 1.0's Moderation screens do all of
 that once the relay serves its admin API at a second name, `admin.$DOMAIN`, which Buzz finds in the

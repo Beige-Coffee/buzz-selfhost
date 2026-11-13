@@ -61,7 +61,16 @@ Credit #5928 when we submit.
     `data/cloudflare`, which no other service mounts. The sign-in certificate (`cert.pem`) can
     create, route and delete tunnels in the owner's account, so the service deletes it once the
     name is routed, and Umbrel's backups skip its folder; changing the address later asks for a new
-    sign-in (asked for in Umbrel's review). Its image is the connector of
+    sign-in (asked for in Umbrel's review). If Cloudflare's page says the sign-in worked but saves
+    `cert.pem` in the browser instead
+    ([cloudflare/cloudflared#1252](https://github.com/cloudflare/cloudflared/issues/1252)), the owner
+    uploads that file on the page. The page checks it and passes it on unchanged, through the folder
+    it shares with the service, where Umbrel's backups skip it. The service checks it again, the same
+    way, and takes it as its sign-in within seconds. Both take exactly the same files: one ARGO TUNNEL
+    TOKEN block of base64 JSON with a zone, an account and an API token, and other fields as
+    Cloudflare adds them (`cloudflare_cert` in the page, `signin_file` in the service). From there it's
+    handled like any sign-in, deleted once the name is routed. The page never shows the file, and asks
+    the owner to delete their copy and, once live, its token in Cloudflare. Its image is the connector of
     Umbrel's Cloudflare Tunnel app (Radiokot/umbrel-cloudflared), Alpine with Cloudflare's own
     `cloudflared`; the official image has no shell to wait in, so it would restart every minute
     until set up. With another option chosen, the service waits. Owners who already run Umbrel's
@@ -595,9 +604,11 @@ edits before any image is published; the droplet runs use the published image.
   Tor's container, and one gets "name already in use". Install again a minute later;
   `droplet-run.sh` and `pre-submit.sh` retry once.
 - Cloudflare's sign-in can say it worked and save `cert.pem` in the browser instead of handing it to
-  `cloudflared`, which keeps logging "Waiting for login..."
-  ([cloudflare/cloudflared#1252](https://github.com/cloudflare/cloudflared/issues/1252)). Copied into
-  `data/cloudflare/.cloudflared/` as user 1000 with mode 600, it works like one that arrived.
+  `cloudflared`, which keeps logging "Waiting for login..." until its link runs out
+  ([cloudflare/cloudflared#1252](https://github.com/cloudflare/cloudflared/issues/1252)). It happened on
+  the first of two real sign-ins on 2026-11-12, and copying the file into `data/cloudflare/.cloudflared/`
+  by hand let the setup carry on. The page now takes that file as an upload, under "Cloudflare saved a
+  file named cert.pem instead?", and it works like one that arrived.
 - An install stuck on a failing service can't be uninstalled until its compose run is stopped.
 - `buzz-admin add-member` takes the key with `--pubkey`.
 - With `Referrer-Policy: no-referrer`, browsers send a page's own form posts with `Origin: null`.

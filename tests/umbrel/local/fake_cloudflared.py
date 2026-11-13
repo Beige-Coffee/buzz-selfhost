@@ -2,12 +2,24 @@
 """A stand-in for cloudflared, for the package's tunnel script. Its "Cloudflare" is a folder (FAKE_CF_CLOUD):
 accounts with tunnels, one DNS table, and a log of every call. Like the real one, every management command
 needs the sign-in at ~/.cloudflared/cert.pem, and `tunnel run --token-file` needs only the token. Messages
-follow cloudflared 2026.10.4 (cmd/cloudflared/tunnel/*.go, cfapi/hostname.go)."""
-import base64, json, os, secrets, signal, sys, time, uuid
+follow cloudflared 2026.10.4 (cmd/cloudflared/tunnel/*.go, cfapi/hostname.go, credentials/*.go).
+
+The owner's side of `tunnel login` is a file FAKE_CF_CLOUD/consent: "<account> <zone>" signs in, and
+"<account> <zone> download" is cloudflare/cloudflared#1252, where Cloudflare's page saves the sign-in in the
+browser (FAKE_CF_CLOUD/Downloads/cert.pem) and the login keeps waiting. FAKE_CF_CLOUD/give-up makes a waiting
+login run out, as its link does after about ten minutes."""
+import base64, hashlib, json, os, re, secrets, signal, sys, time, uuid
 
 CLOUD = os.environ["FAKE_CF_CLOUD"]
 HOME = os.environ["HOME"]
 CERT = os.path.join(HOME, ".cloudflared", "cert.pem")
+
+
+def pem(fields):
+    """A sign-in as cloudflared writes one (EncodeOriginCert): one block of base64 JSON in 64-character lines."""
+    encoded = base64.b64encode(json.dumps(fields, separators=(",", ":")).encode()).decode()
+    return ("-----BEGIN ARGO TUNNEL TOKEN-----\n" + "".join(encoded[i:i + 64] + "\n" for i in range(0, len(encoded), 64))
+            + "-----END ARGO TUNNEL TOKEN-----\n")
 
 
 def load(name, default):
@@ -36,13 +48,42 @@ def fail(message):
 
 
 def signed_in():
-    """The account and zone in cert.pem, or the real tool's refusal."""
+    """The account and zone in cert.pem, read the way cloudflared reads it (decodeOriginCert, credentials.Read):
+    older key and certificate blocks skipped, one token block of base64 JSON, or the real tool's refusal. Its
+    zoneID holds the zone's name here, where Cloudflare has an ID."""
     try:
-        with open(CERT) as f:
-            cert = json.loads(f.read().split("\n", 1)[1].rsplit("-----END", 1)[0])
-    except (OSError, ValueError, IndexError):
+        with open(CERT, "rb") as f:
+            text = f.read()
+    except OSError:
         fail("Cannot find a valid certificate for your origin at the path:\n\n    " + CERT)
-    return cert["account"], cert["zone"]
+    token = None
+    for kind, body in re.findall(rb"-----BEGIN ([A-Z ]+)-----\r?\n(.*?)-----END \1-----", text, re.S):
+        if kind in (b"PRIVATE KEY", b"CERTIFICATE"):
+            continue
+        if kind != b"ARGO TUNNEL TOKEN":
+            fail("Error decoding origin cert: unknown block %s in the certificate" % kind.decode())
+        if token is not None:
+            fail("Error decoding origin cert: found multiple tokens in the certificate")
+        try:
+            token = json.loads(base64.b64decode(b"".join(body.split())))
+        except ValueError:
+            token = {}
+    token = token if isinstance(token, dict) else {}
+    if not token.get("zoneID") or not token.get("apiToken"):
+        fail("Error decoding origin cert: missing token in the certificate")
+    if not token.get("accountID"):
+        fail("Origin certificate needs to be refreshed before creating new tunnels.\nDelete %s and run "
+             '"cloudflared login" to obtain a new cert.' % CERT)
+    return token["accountID"], token["zoneID"]
+
+
+def fingerprint():
+    """Which sign-in a call ran with, without the sign-in itself: a hash of cert.pem, or None."""
+    try:
+        with open(CERT, "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()[:16]
+    except OSError:
+        return None
 
 
 def tunnel(account, name):
@@ -53,7 +94,7 @@ def tunnel(account, name):
 args = sys.argv[1:]
 if args[:1] == ["--no-autoupdate"]:
     args = args[1:]
-note({"args": args, "cert": os.path.exists(CERT)})
+note({"args": args, "cert": os.path.exists(CERT), "signin": fingerprint()})
 
 if args[:2] == ["tunnel", "login"]:
     if os.path.exists(CERT) and os.path.getsize(CERT) > 0:
@@ -65,17 +106,36 @@ if args[:2] == ["tunnel", "login"]:
     print("Please open the following URL and log in with your Cloudflare account:\n\n"
           "https://dash.cloudflare.com/argotunnel?aud=&callback=https%3A%2F%2Flogin.cloudflareaccess.org%2Fsignin" + str(n)
           + "\n\nLeave cloudflared running to download the cert automatically.", flush=True)
-    consent = os.path.join(CLOUD, "consent")
-    while not os.path.exists(consent):  # the owner, in the browser
+    consent, give_up = os.path.join(CLOUD, "consent"), os.path.join(CLOUD, "give-up")
+    downloaded, polls = False, 0
+    while True:  # the owner, in the browser
+        if os.path.exists(give_up):
+            os.remove(give_up)
+            print("Failed to write the certificate.\n\nYour browser will download the certificate instead. You will "
+                  "have to manually\ncopy it to the following path:\n\n%s\n" % CERT, flush=True)
+            sys.exit(1)
+        if not downloaded and os.path.exists(consent):
+            said = open(consent).read().split()
+            os.remove(consent)
+            account, zone = said[:2]
+            # A new API token at each sign-in, as Cloudflare makes one
+            token = "local-test-" + secrets.token_hex(16)
+            if said[2:] == ["download"]:
+                os.makedirs(os.path.join(CLOUD, "Downloads"), exist_ok=True)
+                with open(os.path.join(CLOUD, "Downloads", "cert.pem"), "w") as f:
+                    f.write(pem({"zoneID": zone, "accountID": account, "serviceKey": "v1.0-local-test-" + secrets.token_hex(8),
+                                 "apiToken": token}))
+                downloaded = True  # this login never gets it
+                continue
+            with open(CERT, "w") as f:
+                f.write(pem({"zoneID": zone, "accountID": account, "apiToken": token}))
+            os.chmod(CERT, 0o600)
+            print("You have successfully logged in.", flush=True)
+            sys.exit(0)
+        if polls % 50 == 0:  # the real one polls Cloudflare's store about once a minute
+            print("Waiting for login...", flush=True)
+        polls += 1
         time.sleep(0.2)
-    account, zone = open(consent).read().split()
-    os.remove(consent)
-    with open(CERT, "w") as f:
-        f.write("-----BEGIN ARGO TUNNEL TOKEN-----\n" + json.dumps({"account": account, "zone": zone,
-                "apiToken": secrets.token_hex(8)}) + "\n-----END ARGO TUNNEL TOKEN-----\n")
-    os.chmod(CERT, 0o600)
-    print("You have successfully logged in.", flush=True)
-    sys.exit(0)
 
 if args[:2] == ["tunnel", "create"]:
     account, _ = signed_in()

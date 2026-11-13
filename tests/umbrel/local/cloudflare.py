@@ -1,11 +1,13 @@
-"""Cloudflare's sign-in, kept only until the name is set up: the cloudflared service's script from
-docker-compose.yml, run on this machine with a stand-in for cloudflared (fake_cloudflared.py), driven
-through the setup page's own forms. No Docker, no Cloudflare account.
+"""Cloudflare's sign-in, kept only until the name is set up, and the file Cloudflare's page can save
+instead, uploaded on the setup page: the cloudflared service's script from docker-compose.yml, run on this
+machine with a stand-in for cloudflared (fake_cloudflared.py), driven through the setup page's own forms. No
+Docker, no Cloudflare account.
 
   python3 tests/umbrel/local/cloudflare.py [<package dir>] [<an earlier package, to compare>]
 """
-import http.client, http.server, importlib.machinery, importlib.util, json, os, shutil, signal, subprocess
-import sys, tempfile, threading, time
+import base64, hashlib, html as htmllib, http.client, http.server, importlib.machinery, importlib.util, json, os
+import secrets, shutil, signal, subprocess, sys, tempfile, threading, time
+import signin_files
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PKG = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.normpath(os.path.join(HERE, "../../../umbrel/buzz"))
@@ -76,7 +78,7 @@ class Box:
 
     def start(self):
         env = dict(os.environ, HOME=self.home, FAKE_CF_CLOUD=self.cloud, PATH=self.bin + ":" + os.environ["PATH"])
-        self.log = open(os.path.join(self.root, "entrypoint.log"), "a")
+        self.log = open(self.log_path(), "a")
         self.proc = subprocess.Popen(["sh", "-c", self.script()], env=env, start_new_session=True,
                                      stdout=self.log, stderr=subprocess.STDOUT)
 
@@ -92,6 +94,10 @@ class Box:
         self.proc = None
 
     # what the test reads
+    def log_path(self):
+        """What the script printed: its container's log."""
+        return os.path.join(self.root, "entrypoint.log")
+
     def state(self):
         return read(os.path.join(self.control, "cloudflare-state")).strip()
 
@@ -123,10 +129,15 @@ class Box:
     def dns(self):
         return json.loads(read(os.path.join(self.cloud, "dns.json")) or "{}")
 
-    def sign_in(self, account, zone):
-        """The owner opens the page's link and picks an account and a domain."""
+    def sign_in(self, account, zone, download=False):
+        """The owner opens the page's link and picks an account and a domain. With download, Cloudflare's page
+        then saves the sign-in in the browser instead of passing it to the login (cloudflare/cloudflared#1252)."""
         with open(os.path.join(self.cloud, "consent"), "w") as f:
-            f.write(account + " " + zone)
+            f.write(account + " " + zone + (" download" if download else ""))
+
+    def downloaded(self):
+        """The cert.pem Cloudflare's page saved on the owner's computer."""
+        return os.path.join(self.cloud, "Downloads", "cert.pem")
 
 
 def page_file(pkg):
@@ -146,6 +157,7 @@ def page_module(pkg, d, control):
     m.TAILSCALE_ON, m.TAILSCALE_STATUS, m.TAILSCALE_SERVE = d + "/ts/tailscale-enabled", d + "/ts/tailscale-status.json", d + "/ts/tailscale-serve.txt"
     m.CLOUDFLARE_ON, m.CLOUDFLARE_STATE, m.CLOUDFLARE_LOGIN, m.CLOUDFLARE_SETUP, m.CLOUDFLARE_RESET = (
         control + "/" + n for n in ("cloudflare-enabled", "cloudflare-state", "cloudflare-login.log", "cloudflare-setup.log", "cloudflare-reset"))
+    m.CLOUDFLARE_UPLOAD = control + "/cloudflare-upload.pem"
     m.PASSWORD = "test-password"
     # no relay or internet here: the checks see nothing reachable yet
     m.request = lambda *a, **k: (None, b"unreachable")
@@ -342,6 +354,207 @@ try:
 finally:
     box.stop()
     server.shutdown()
+
+
+def page_call(port, module, session, method, path, form=None, file=None):
+    """A page's forms as the owner's browser posts them: (status, text). With file, the upload's form."""
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+    headers = {"Sec-Fetch-Site": "same-origin", "Cookie": module.COOKIE + "=" + session}
+    body = None
+    if file is not None:
+        headers["Content-Type"], body = signin_files.multipart([("cert", "cert.pem", file, b"")])
+    elif method == "POST":
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+        body = "&".join(k + "=" + v for k, v in (form or {}).items())
+    conn.request(method, path, body=body, headers=headers)
+    response = conn.getresponse()
+    text = response.read().decode(errors="replace")
+    conn.close()
+    return response.status, text
+
+
+def fingerprint(data):
+    """As the stand-in notes which sign-in a call ran with."""
+    return hashlib.sha256(data).hexdigest()[:16]
+
+
+def api_token(data):
+    """The API token in a sign-in file, to look for it where it mustn't be."""
+    return json.loads(base64.b64decode(b"".join(data.split(b"\n")[1:-2])))["apiToken"]
+
+
+def saved_file(account, zone):
+    """A sign-in for this account and domain, as Cloudflare's page saves one, with a new token."""
+    return signin_files.saved(account=account, zone=zone, token="local-test-" + secrets.token_hex(16))
+
+
+print("== Cloudflare's page saves the sign-in as a file instead, and the owner uploads it (cloudflare/cloudflared#1252)")
+ub = Box(os.path.join(root, "upload"), PKG)
+mu = page_module(PKG, os.path.join(root, "upload"), ub.control)
+userver = http.server.ThreadingHTTPServer(("127.0.0.1", 0), mu.Handler)
+threading.Thread(target=userver.serve_forever, daemon=True).start()
+USESSION = mu.new_session()
+UPLOAD = os.path.join(ub.control, "cloudflare-upload.pem")
+seen = []  # every page and status the owner was shown
+
+
+def u(method, path, form=None, file=None):
+    status, text = page_call(userver.server_address[1], mu, USESSION, method, path, form, file)
+    seen.append(text)
+    return status, text
+
+
+def waiting():
+    """The upload in the folder shared with the page, or None."""
+    try:
+        with open(UPLOAD, "rb") as f:
+            return f.read()
+    except OSError:
+        return None
+
+
+def signin_waits():
+    return ub.state() == "signin" and ub.link()
+
+
+U1, U2, U3, U4 = "buzz.uploadteam.com", "chat.uploadteam.com", "buzz.otherupload.org", "buzz.thirdupload.net"
+try:
+    status, _ = u("POST", "/save", {"owner": OWNER, "mode": "domain", "domain": U1, "ack": "yes"})
+    ub.start()
+    ok(status == 303 and wait_for(signin_waits, 15), "a new community on a domain waits for Cloudflare's sign-in")
+    _, page = u("GET", "/")
+    ok('action="cloudflare-upload"' in page and "Sign in to Cloudflare</a>" in page and "saved a file named cert.pem" in page,
+       "the page offers the upload beside the sign-in link")
+    ub.sign_in("acct-u", "uploadteam.com", download=True)
+    ok(wait_for(lambda: os.path.exists(ub.downloaded()), 10) and not wait_for(ub.cert, 4) and ub.state() == "signin",
+       "Cloudflare's page saves the file in the browser instead: the login keeps waiting, with no cert.pem")
+    logins = len(ub.calls("login"))
+    open(os.path.join(ub.cloud, "give-up"), "w").close()
+    ok(wait_for(lambda: len(ub.calls("login")) == logins + 1 and signin_waits(), 15)
+       and 'action="cloudflare-upload"' in u("GET", "/")[1],
+       "the link runs out: the login stops, a new link takes its place, and the upload is still offered")
+    ub.stop()
+    file = open(ub.downloaded(), "rb").read()
+    status, page = u("POST", "/cloudflare-upload", file=signin_files.KEY_BLOCK + file)
+    ok(status == 400 and htmllib.escape(mu.NOT_A_CERT) in page and waiting() is None,
+       "a file the page doesn't take (an older one with a key block) gets its sentence, and nothing waits")
+    status, _ = u("POST", "/cloudflare-upload", file=file)
+    ok(status == 303, "with the service stopped, the page takes the file saved during the old link")
+    mode = oct(os.stat(UPLOAD).st_mode & 0o777) if waiting() else ""
+    ok(waiting() == file and mode == "0o600",
+       "it waits in the shared folder as cloudflare-upload.pem, mode 600, byte for byte the file Cloudflare saved")
+    _, page = u("GET", "/")
+    _, status_json = u("GET", "/status.json")
+    ok("Signed in with your file" in page and "Sign in to Cloudflare</a>" not in page and 'action="cloudflare-upload"' not in page
+       and "My Profile, API Tokens" in page and json.loads(status_json)["phase"].endswith(":signin-upload"),
+       "the page says Signed in with your file, with no link or upload form, and asks to delete the token later")
+    logins = len(ub.calls("login"))
+    ub.start()
+    ok(wait_for(lambda: len(ub.runs()) == 1, 20) and len(ub.calls("login")) == logins and
+       [c.get("signin") for c in ub.calls("create") + ub.calls("token") + ub.calls("route")] == [fingerprint(file)] * 3,
+       "started, the service takes it before any new sign-in: create, token and route run once each, on the file as uploaded")
+    ok(waiting() is None and not ub.signin_folder() and nth(ub.runs(), 0).get("cert") is False and ub.state() == "running",
+       "the upload is gone from the shared folder, and cert.pem once the name is routed: the tunnel runs on its token")
+    shared = "".join(read(os.path.join(ub.control, n)) for n in os.listdir(ub.control))
+    token = api_token(file)
+    ok(all(token not in text for text in seen) and token not in shared and token not in read(ub.log_path()),
+       "the file's API token is in no page or status the owner was shown, the shared folder, or the service's output")
+    status, _ = u("POST", "/cloudflare-upload", file=file)
+    ok(status == 303 and waiting() is None, "once the tunnel runs, an upload is ignored: nothing is written")
+
+    print("== A sign-in that arrives both ways")
+    u("POST", "/address", {"mode": "domain", "domain": U2, "confirm": U1})
+    wait_for(signin_waits, 15)
+    ub.sign_in("acct-u", "uploadteam.com")
+    u("POST", "/cloudflare-upload", file=saved_file("acct-u", "uploadteam.com"))
+    ok(wait_for(lambda: len(ub.runs()) == 2, 20) and ub.dns().get(U2) == nth(ub.runs(), 1).get("tunnel")
+       and [c["args"][4] for c in ub.calls("route")].count(U2) == 1 and waiting() is None and not ub.signin_folder(),
+       "the login's and the page's at once, for a new address: the name is routed once, it runs, and neither copy stays")
+    if os.path.exists(os.path.join(ub.cloud, "consent")):  # the upload came first: no later login may read it
+        os.remove(os.path.join(ub.cloud, "consent"))
+
+    print("== A file for the wrong domain, then Sign in to Cloudflare again")
+    u("POST", "/address", {"mode": "domain", "domain": U3, "confirm": U2})
+    wait_for(signin_waits, 15)
+    status, _ = u("POST", "/cloudflare-upload", file=saved_file("acct-u", "uploadteam.com"))
+    ok(status == 303 and wait_for(lambda: ub.state() == "wrong-domain", 20) and ub.cert(),
+       "a file for another domain: wrong-domain, with the sign-in kept for the reset")
+    wrong = ub.file("tunnel-name")
+    u("POST", "/cloudflare-reset")
+    ok(wait_for(lambda: signin_waits() and ub.file("tunnel-name") not in ("", wrong), 25)
+       and ub.tunnels()["acct-u"][wrong]["deleted"] and waiting() is None and not ub.cert(),
+       "Sign in to Cloudflare again deletes that tunnel and starts a new sign-in, with no upload left")
+    u("POST", "/cloudflare-upload", file=saved_file("acct-u", "otherupload.org"))
+    ok(wait_for(lambda: len(ub.runs()) == 3, 25) and ub.dns().get(U3) == nth(ub.runs(), 2).get("tunnel") and not ub.signin_folder(),
+       "the right domain's file then: %s runs" % U3)
+
+    print("== A file for another account, at a new address")
+    u("POST", "/address", {"mode": "domain", "domain": U4, "confirm": U3})
+    wait_for(signin_waits, 15)
+    u("POST", "/cloudflare-upload", file=saved_file("acct-w", "thirdupload.net"))
+    ok(wait_for(lambda: len(ub.runs()) == 4, 25) and nth(ub.runs(), 3).get("account") == "acct-w"
+       and ub.dns().get(U4) == nth(ub.runs(), 3).get("tunnel") and not ub.signin_folder(),
+       "a new tunnel in that account runs %s, as after a sign-in through the link: the copied file is new" % U4)
+
+    print("== An upload not yet taken, then the address changes")
+    U5, U6 = "chat.thirdupload.net", "talk.thirdupload.net"
+    u("POST", "/address", {"mode": "domain", "domain": U5, "confirm": U4})
+    wait_for(signin_waits, 15)
+    ub.stop()
+    u("POST", "/cloudflare-upload", file=saved_file("acct-w", "thirdupload.net"))
+    had = waiting() is not None
+    u("POST", "/address", {"mode": "domain", "domain": U6, "confirm": U5})
+    gone = waiting() is None
+    logins = len(ub.calls("login"))
+    ub.start()
+    ok(had and gone and wait_for(lambda: len(ub.calls("login")) == logins + 1 and signin_waits(), 15) and not ub.cert(),
+       "a new address deletes an upload not yet taken at once, and the service starts a sign-in for it without the file")
+    ub.stop()
+    u("POST", "/cloudflare-upload", file=saved_file("acct-w", "thirdupload.net"))
+    had = waiting() is not None
+    u("POST", "/address", {"mode": "funnel", "confirm": U6})
+    gone = waiting() is None
+    ub.start()
+    ok(had and gone and wait_for(lambda: ub.state() == "" and not ub.signin_folder(), 15) and waiting() is None,
+       "so does a Tailscale option, and then the tunnel's folders hold no sign-in")
+
+    print("== What a compromised page could leave in the shared folder")
+    U7 = "buzz.fourthupload.net"
+    u("POST", "/address", {"mode": "domain", "domain": U7, "ack": "yes"})
+    ok(wait_for(signin_waits, 15), "back on a domain, the service waits for a sign-in")
+    logins, token_before = len(ub.calls("login")), ub.file("tunnel.token")
+    MARK = "zq-planted-4410"
+    end = b"-----END ARGO TUNNEL TOKEN-----\n"
+    planted = [
+        ("a link to the tunnel's own token", lambda: os.symlink(os.path.join(ub.home, "tunnel.token"), UPLOAD)),
+        ("a pipe", lambda: os.mkfifo(UPLOAD)),
+        ("a folder", lambda: os.mkdir(UPLOAD)),
+        ("20 KB shaped like a sign-in", lambda: open(UPLOAD, "wb").write(
+            b"-----BEGIN ARGO TUNNEL TOKEN-----\n" + (b"A" * 64 + b"\n") * 320 + end)),
+        ("plain text", lambda: open(UPLOAD, "w").write(MARK + "\n")),
+        ("a sign-in with no account", lambda: open(UPLOAD, "wb").write(
+            signin_files.pem({"zoneID": "fourthupload.net", "apiToken": MARK}))),
+        ("an older file with a key block", lambda: open(UPLOAD, "wb").write(
+            signin_files.KEY_BLOCK + signin_files.written(zone="fourthupload.net"))),
+    ]
+    dropped = []
+    for label, plant in planted:
+        count = read(ub.log_path()).count("Dropped an uploaded file")
+        plant()
+        dropped.append(wait_for(lambda: not os.path.lexists(UPLOAD) and read(ub.log_path()).count("Dropped an uploaded file") == count + 1, 10))
+    missed = [label for (label, _), done in zip(planted, dropped) if not done]
+    ok(not missed and not ub.cert() and len(ub.calls("login")) == logins and ub.state() == "signin"
+       and ub.file("tunnel.token") == token_before,
+       "%d kinds of file the page never writes are dropped within seconds: no cert.pem, the token untouched, the same "
+       "sign-in still waiting%s" % (len(planted), (": not " + ", ".join(missed)) if missed else ""))
+    u("POST", "/address", {"mode": "funnel", "confirm": U7})
+    ok(wait_for(lambda: ub.state() == "", 15), "and the service answers the next change: nothing held it up")
+    output = read(ub.log_path())
+    ok(output.count("Dropped an uploaded file that isn't a Cloudflare sign-in.") == len(planted) and MARK not in output
+       and token_before not in output, "its output says it dropped each one, with nothing from them")
+finally:
+    ub.stop()
+    userver.shutdown()
 
 print("\npassed: %d  failed: %d" % (PASSED, FAILED))
 sys.exit(1 if FAILED else 0)

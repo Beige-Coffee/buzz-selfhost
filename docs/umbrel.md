@@ -25,8 +25,9 @@ page saves `cert.pem` in the browser instead of passing it to the app, the owner
 on their own domain can turn on moderation (below). Both passed the page's local tests and the package's containers on Docker; the
 package still pins the 1.0.0 image. On 2026-11-13, also for 1.1.0 and from approved mockups, the live page's next steps became a
 guide and its checks one card, and while connecting the checks became a progress bar; they passed the same local tests, and so
-did the fixes from four reviews of them, the same day, with a new test in a browser (Tested, below). It lives on this `umbrel`
-branch, not on `main`, until Umbrel accepts it.
+did the fixes from four reviews of them, the same day, with a new test in a browser (Tested, below). Later that day the
+collapsed safety tips became a step of the guide, Keep it safe, with the self-hosting guide's two Security drawings, and
+passed the same tests. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package
 
@@ -50,11 +51,12 @@ Credit #5928 when we submit.
 - **For Buzz 1.0 only.** The package ships once Buzz 1.0 is out, so the page names its menus and
   no others. Drawings of Buzz 1.0.0's own screens, from its source (block/buzz-app v1.0.0), show
   where to find the public ID, in a dropdown under the owner's field. Once the community is live, a
-  guide of next steps shows how to join it, invite people and pair a phone: one step at a time, each
-  with two drawings and a caption under each, and Previous and Next between them. Redraw them when
-  Buzz's screens change. Buzz's next release already changes the invite dialog and drops adding
-  members by public ID ([block/buzz-app#3147](https://github.com/block/buzz-app/pull/3147)), so the
-  page leads with invite links.
+  guide of next steps shows how to join it, invite people, keep it safe and pair a phone: one step at
+  a time, each with two drawings and a caption under each, and Previous and Next between them. Redraw
+  Buzz's screens when they change; the safety step's drawings are the self-hosting guide's. Buzz's next
+  release already changes the invite dialog and drops adding members by public ID
+  ([block/buzz-app#3147](https://github.com/block/buzz-app/pull/3147)), so the page leads with invite
+  links.
 - **Reaching the community is separate from joining it.** Every option keeps the community
   members-only: the relay requires membership, so only people the owner invites, and the agents they
   bring, can read or post. The
@@ -152,8 +154,8 @@ Credit #5928 when we submit.
   as in Block's compose example). Buzz 1.0 never adds an agent as a member, so without it no agent
   could join, the owner's own included. Most agents made in Buzz 1.0 act only on their owner's
   mentions, but they run on that person's computer without approval prompts and read what others
-  post. So the live page's tips say to treat a community anyone can join as public and to keep
-  agents on personal computers out of it.
+  post. So the live page's guide has a step, Keep it safe, that says to run agents on a separate
+  computer under their own identity, and to treat a community anyone can join as public.
 - **The relay's health and metrics ports** listen on every interface, with no setting to change it
   yet ([block/buzz#7989](https://github.com/block/buzz/issues/7989); the fix is
   [block/buzz#8004](https://github.com/block/buzz/pull/8004)). Other apps on Umbrel's network can
@@ -189,18 +191,20 @@ Credit #5928 when we submit.
   short sentence when the checks change. Once live: the join address, and the checks as one card that
   says Everything works and opens to the full list. A problem shows above it with its hint, and a check
   still waiting shows there too, quietly. Then the next steps as a guide, wider than the page on a
-  computer: join, invite people and pair a phone down the left, with a link to the self-hosting guide's
-  homepage, and on the right one step at a time, its drawings one at a time with a stepper. Joining has
-  an Open in Buzz button (`buzz://connect?relay=wss://…`, Buzz 1.0's link that opens its join screen
-  with the address filled in, as Pavlenex's package did) and Copy the address, with a line under them
-  on what Open in Buzz does. The phone step says the phone needs Tailscale too on the private option,
-  and whether phones get notifications. When the page opens itself again at a new phase, the guide
-  stays at the reader's step and drawing. Without scripts every step shows, one after the other, and
-  the copy buttons hide; `#join`, `#invite` and `#phone` open a step. Then collapsed
-  tips for keeping a community safe, most of all one anyone can join. Settings: change the owner
-  (the old one becomes an admin), turn phone notifications off or on, turn moderation on or off on the
-  owner's own domain, change the address, and how moving servers works. Umbrel's rules require a page
-  like this for an app with no web interface of its own.
+  computer: join, invite people, keep it safe and pair a phone down the left, with a link to the
+  self-hosting guide's homepage, and on the right one step at a time, its drawings one at a time with a
+  stepper. Joining has an Open in Buzz button (`buzz://connect?relay=wss://…`, Buzz 1.0's link that
+  opens its join screen with the address filled in, as Pavlenex's package did) and Copy the address,
+  with a line under them on what Open in Buzz does. Keeping it safe has the self-hosting guide's two
+  drawings from its Security section, what an agent can touch and what anyone who joins can read, then
+  notes on private channels, invite links and, on the owner's own domain, bans, for the owner to share
+  with members (Moderation, below, and Security review). The phone step says the phone needs Tailscale
+  too on the private option, and whether phones get notifications. When the page opens itself again at
+  a new phase, the guide stays at the reader's step and drawing. Without scripts every step shows, one
+  after the other, and the copy buttons hide; `#join`, `#invite`, `#safe` and `#phone` open a step.
+  Settings: change the owner (the old one becomes an admin), turn phone notifications off or on, turn
+  moderation on or off on the owner's own domain, change the address, and how moving servers works.
+  Umbrel's rules require a page like this for an app with no web interface of its own.
 - **Relay:** waits for the settings, makes its own key on first start, and restarts itself when the
   settings change (it compares the file's content: two saves within a second share a modification
   time). The key is random, not derived from Umbrel's seed: Umbrel's rules forbid derived private
@@ -274,7 +278,8 @@ that turns it on. Built for the page's image 1.1.0, not yet published.
 - **What the owner and staff can read**, as the row says before it's turned on: reports with who sent
   them, feedback, and any message stored on this Umbrel by its ID, deleted ones included, in private
   channels and direct messages, in every community the relay keeps, earlier addresses' included.
-  Members don't see this in Buzz, so while it's on the safety tips say it, for the owner to share.
+  Members don't see this in Buzz, so while it's on the safety step's first note leads with it, for the
+  owner to share, and the row points to that step.
 - **Bans and staff outlive the switch.** Turning it off removes the line and the relay restarts
   without the admin API. Bans and timeouts stay enforced; lifting them needs moderation on again.
   Staff rows stay in the database and come back with it, also after Change the owner, where the new
@@ -344,14 +349,16 @@ with the tunnel's credentials file) is deleted once the name is routed, and Umbr
 its folder. Deleting the file doesn't revoke the token: it stays in the owner's Cloudflare profile
 (My Profile, API Tokens) until deleted there.
 
-What the live page's safety tips state, from Buzz 1.0.0 and relay 0.3.0: in the relay's default
+What the live page's safety step states, from Buzz 1.0.0 and relay 0.3.0: in the relay's default
 media mode any member with a file's link can open it, one from a private channel included
 ([block/buzz#9077](https://github.com/block/buzz/pull/9077) adds an enforce mode, off by default);
 invite links last 3 days with no use limit by default, 30 days at most, and can't be canceled;
 removing a member isn't a ban, and Buzz 1.0 offers the owner of a self-hosted community no ban unless
-Moderation is on, which the page offers on the owner's own domain. There the tips say how to ban an
-identity, and that a person can still join under a new one; while it's on, they say the owner and
-their staff can open any stored message by its ID, private ones included.
+Moderation is on, which the page offers on the owner's own domain. There its notes say how to ban an
+identity, and that a person can still join under a new one; while it's on, they say first that the owner
+and their staff can open any stored message by its ID, private ones included. On the private network, which
+isn't on the internet, its intro speaks of agents alone. Its drawings come from the self-hosting guide, so
+the two say the same.
 
 On 2026-11-12 a review of the designs for the page's image 1.1.0, the upload and moderation, found no
 hole another app on the Umbrel could use: both new forms sit behind the page's sign-in, its size limit
@@ -373,7 +380,7 @@ Left, with the reason:
 - While moderation is on, its admin API faces the internet. It honors staff signatures alone, but
   nothing limits how fast requests come, and Block hasn't confirmed this public use with NIP-98 yet.
 - The owner and staff can read any stored message by its ID while it's on; members learn it only if
-  the owner shares the tips.
+  the owner shares the safety step's notes.
 - Staff and bans outlive the switch and owner changes, and staff with the operator role can rename public
   channels while it's off. The page warns, but it can't list the staff.
 - Cloudflare accounts with stricter security settings may turn away Buzz's admin client, which sends
@@ -728,6 +735,25 @@ security), for the page's image 1.1.0 (not published), on this Mac at no cost
   3.13, now comparing the page with status.json only while the checks hold still.
 - Umbrel's linter with image checks: no issues. Screenshots 01 and 03 to 06 retaken; 02 didn't change.
 
+2026-11-13, the safety tips as a step of the guide, Keep it safe, from an approved mockup, with the self-hosting guide's
+two Security drawings, for the page's image 1.1.0 (not published), on this Mac at no cost
+([log](../tests/runs/2026-11-13-1535-umbrel-setup-page-safety-step-local.log)):
+
+- **Mocked:** `render.py` 2147 page states, also on the image's Python 3.13 on Linux: the guide on 86 live pages, each
+  with its 4 steps and 8 drawings, the safety step's texts word for word with each variant (moderation on, off or never
+  on, each option, the private network's intro), the pictures in the drawings defined once, and the drawings' rules
+  inside `.sq`, in the page's own colors. Each of 17 changes to the step, made in a copy of the page, made it fail.
+  `security.py` 110, the self-hosting guide's links now its homepage and its Security section. `cloudflare.py` 63.
+  `preview.py`'s 14 screens, with each live one's safety notes.
+- **Browser:** `browser.py` 27 of 27, six runs in a row: four steps across and back, `#safe` and a kept safety step drawn
+  from the start, the safety step's heading spoken on crossing, its drawings as tall as Buzz's screens on a computer
+  and the tall drawing at a phone's width with its bubbles fitted to their words, the notes on three options,
+  Moderation's link to the step, and without scripts at 1440 and 375 pixels every drawing whole, at 0.8 of its size or
+  more. On the page before this change, every check that touches the guide fails or can't run.
+- **Real:** `check.py` 80 of 80 on the package's containers on Docker Desktop, with the page on port 8789
+  (`BUZZ_LOCAL_PORT`).
+- Umbrel's linter with image checks: no issues. Screenshots 05 and 06 retaken; 01 to 04 didn't change.
+
 ## Not yet tested
 
 - The page's image 1.1.0 on umbrelOS: it isn't published yet. Then `pre-submit.sh`, whose `e2e.sh` now
@@ -736,7 +762,8 @@ security), for the page's image 1.1.0 (not published), on this Mac at no cost
   step adds admin settings to the relay's settings file.
 - The live page's guide and checks card, and the progress bar, behind Umbrel's proxy, in Safari and
   Firefox, on a real phone, and with a screen reader: so far a Chromium browser and headless Chrome on a
-  Mac, and the page's own tests.
+  Mac, and the page's own tests. The safety step only in headless Chrome so far, and its drawings in a
+  real contrast theme not at all: headless Chrome emulates forced colors without forcing them (Gotchas).
 - The private network's device check passing on a real tailnet, as the card shows it: so far its
   failure off the tailnet, and answers held back and let through in headless Chrome (`browser.py`).
 - An upload of a real `cert.pem` that Cloudflare saved in the browser, by hand: so far made-up files,
@@ -833,7 +860,7 @@ The setup page on this machine, with no umbrelOS and no cost (Docker, and a Pyth
 `make.py`):
 
 ```bash
-PYTHON=path/to/python bash tests/umbrel/local/up.sh   # the page at http://127.0.0.1:8090
+PYTHON=path/to/python bash tests/umbrel/local/up.sh   # the page at http://127.0.0.1:8090 (BUZZ_LOCAL_PORT for another)
 python3 tests/umbrel/local/check.py                   # real checks; leaves the community set up
 python3 tests/umbrel/local/render.py                  # mocked: every page state
 python3 tests/umbrel/local/security.py                # mocked: the page's limits, the relay's entrypoint
@@ -846,7 +873,9 @@ bash tests/umbrel/local/down.sh                       # removes the run, data in
 `preview.py`'s `domain-moderation` and `domain-moderation-blocked` show the live page with moderation on,
 reachable or turned away by Cloudflare, and `domain-moderation-starting` a check still waiting on a live
 page. `domain-working` and `private-consent` show the progress bar with a stage at work and with the private
-network's HTTPS consent. On a live page, `#join`, `#invite` and `#phone` open that step of the next steps.
+network's HTTPS consent. On a live page, `#join`, `#invite`, `#safe` and `#phone` open that step of the next steps.
+`browser.py` starts four previews on ports 8771 to 8774, or from `BROWSER_PORT`; with `BUZZ_LOCAL_PORT` set for
+`up.sh`, `check.py` needs it too.
 `check.py` turns moderation on and off with the page's form on
 the real relay image and asks its admin API through the gateway, with test keys it makes and keeps in
 memory.
@@ -910,6 +939,8 @@ edits before any image is published; the droplet runs use the published image.
   but draws it unscrolled, with everything above the scrolled view blank. Compositor flags don't help.
   `06-add-members.png` is cropped from a capture tall enough not to scroll, at the place Chrome scrolls
   to at 1440 by 900 (432 pixels down).
+- In headless Chrome 157, emulating `forced-colors: active` matches the media query but leaves the page's
+  colors as they are, so it shows the page's own forced-colors rules apply, not how a contrast theme draws it.
 - The submission's screenshots 01 to 03 come from DevTools on a Chrome started without `--disable-gpu`,
   and 04 to 06 from Chrome's `--screenshot` with it. Each way draws text a little differently, so to
   compare pixels, retake each the way it was taken. Without `--disable-gpu`, the setup page's numbered

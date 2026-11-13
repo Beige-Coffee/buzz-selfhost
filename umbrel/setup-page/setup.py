@@ -58,6 +58,8 @@ NAK = "https://github.com/fiatjaf/nak"
 TUNNEL_GUIDE = "https://github.com/Radiokot/umbrel-cloudflared/wiki/How-to-set-up-Cloudflare-Tunnel-on-your-Umbrel"
 TAILSCALE_ADMIN = "https://login.tailscale.com/admin/machines"
 TAILSCALE_ACCESS = "https://login.tailscale.com/admin/acls"
+# The self-hosting guide, by its homepage alone: its deeper paths can change
+SELF_HOST_GUIDE = "https://self-host.buzz/"
 
 PASSWORD = os.environ.get("APP_PASSWORD", "")
 SECRET = (os.environ.get("SETUP_SESSION_SECRET") or hashlib.sha256(("buzz-setup|" + PASSWORD).encode()).hexdigest()).encode()
@@ -639,7 +641,7 @@ def admin_known(key):
 
 
 def admin_item(setup, domain, advertised, key):
-    """The status list's row for moderation, on the owner's own domain while its NIP-11 loads, or None."""
+    """The checks' row for moderation, on the owner's own domain while its NIP-11 loads, or None."""
     shown = "<code>" + html.escape(admin_origin(domain)) + "</code>"
     if not moderation_on(setup):
         return item("admin", "wait", "Turning off moderation", "Buzz restarts for a few seconds.") if advertised else None
@@ -968,8 +970,43 @@ input[type=file]::file-selector-button:hover { border-color: var(--ink); }
 .status .bad .icon::after { content: "!"; font: 700 12px var(--sans); color: var(--bad); }
 .status .hint { grid-column: 2; font-size: 14px; color: var(--ink-2); }
 .status .bad .hint { color: var(--ink); }
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.ck-card { margin-top: 12px; }
+.ck-card.ck-alert, .ck-box.ck-alert { border-color: rgb(180 35 58 / 30%); }
+.ck-top { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 6px 12px; padding: 14px 16px; }
+.ck-top + .ck-top, .ck-top + .ck-all { border-top: 1px solid var(--line); }
+.ck-top.bad { background: rgb(180 35 58 / 5%); }
+.ck-top .icon { width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; }
+.ck-top.bad .icon { background: rgb(180 35 58 / 12%); }
+.ck-top.bad .icon::after { content: "!"; font: 700 12px var(--sans); color: var(--bad); }
+.ck-top.wait .icon { border: 2px solid var(--line-2); border-top-color: var(--ink-2); animation: spin 1s linear infinite; }
+.ck-top .text { font-size: 15px; font-weight: 500; }
+.ck-top.wait .text { font-weight: 400; }
+.ck-top .hint { grid-column: 2; font-size: 14px; line-height: 1.5; color: var(--ink); }
+.ck-top.wait .hint { color: var(--ink-2); }
+.ck-top .hint:empty { display: none; }
+.ck-ico { display: grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--ink); font-size: 12px; }
+.ck-ico .tb-i { stroke-width: 2.6; }
+.ck-all .status { margin-top: 0; }
+.ck-box { margin-top: 18px; }
+.bar { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 14px 8px; margin: 28px 0 0; padding: 0; list-style: none; }
+.bar > li { min-width: 0; }
+.bar .tr { display: block; height: 5px; border-radius: 999px; background: var(--line-2); }
+.bar .done .tr { background: var(--accent); }
+.bar .you .tr { background: linear-gradient(90deg, var(--ink) 0 40%, var(--line-2) 40% 100%); }
+.bar .work .tr { background: linear-gradient(90deg, var(--ink-3) 0 40%, var(--line-2) 40% 100%); }
+.bar .bad .tr { background: var(--bad); }
+.bar .lb { display: flex; align-items: flex-start; gap: 6px; margin-top: 10px; font-size: 13.5px; line-height: 1.35; color: var(--ink-2); }
+.bar .lb > span { min-width: 0; }
+.bar :is(.done, .work, .bad) .lb { color: var(--ink); }
+.bar .you .lb { flex-wrap: wrap; align-items: center; gap: 6px 8px; color: var(--ink); font-weight: 500; }
+.bar .lb .tb-i { margin-top: 2px; font-size: 14px; stroke-width: 2.4; }
+.bar .lb em { padding: 2px 7px; border-radius: 999px; background: var(--ink); color: #fff; font: 500 10px var(--mono); letter-spacing: 0.08em; }
+.bar .lb i { flex: none; width: 12px; height: 12px; margin-top: 3px; border: 1.5px solid var(--line-2); border-top-color: var(--ink-2); border-radius: 50%; animation: spin 1s linear infinite; }
+.bar .lb b { flex: none; display: grid; place-items: center; width: 14px; height: 14px; margin-top: 2px; border-radius: 50%; background: rgb(180 35 58 / 12%); color: var(--bad); font: 700 9.5px var(--sans); }
+@media (max-width: 560px) { .bar { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .status .wait .icon { animation: none; } * { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .status .wait .icon, .ck-top.wait .icon, .bar .lb i { animation: none; } * { transition: none !important; } }
 .address { display: flex; gap: 8px; align-items: center; margin-top: 16px; padding: 8px 8px 8px 16px; border: 1px solid var(--line-2);
   border-radius: 14px; background: #fff; box-shadow: var(--shadow-1); }
 .address code { flex: 1; min-width: 0; padding: 0; background: none; font-size: 15px; }
@@ -1007,9 +1044,52 @@ details.alt > summary { font-size: 14px; color: var(--ink-2); }
 details.how > summary { padding: 6px 13px 6px 11px; border: 1px solid var(--line-2); border-radius: 999px; background: #fff; font-size: 13.5px; color: var(--ink); }
 details.how > summary:hover { border-color: var(--ink); }
 details.how[open] > summary { background: var(--chip); }
-.next .step { margin-top: 26px; }
-.next .eyebrow + .step { margin-top: 14px; }
 .note { margin-top: 12px; font-size: 14px; color: var(--ink-2); }
+.next { --w: calc(min(1000px, 100vw) - 2 * clamp(16px, 4vw, 32px)); width: var(--w); margin: 52px 0 0 calc((100% - var(--w)) / 2); }
+.next + details.alt { margin-top: 52px; }
+.guide { display: grid; grid-template-columns: minmax(0, 1fr); margin-top: 14px; border: 1px solid var(--line-2); border-radius: 22px; background: #fff; box-shadow: var(--shadow-1); overflow: hidden; }
+.g-nav { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-bottom: 1px solid var(--line); }
+@media (min-width: 880px) { .guide { grid-template-columns: 250px minmax(0, 1fr); } .g-nav { border-bottom: 0; border-right: 1px solid var(--line); } }
+.g-nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 10px; border-radius: 14px; color: var(--ink); text-decoration: none; }
+.g-nav a:hover { background: var(--soft); }
+.g-nav a[aria-current] { background: var(--chip); }
+.g-nav a:focus-visible { border-radius: 14px; outline-offset: 0; }
+.g-tile { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 11px; background: var(--chip); font-size: 18px; }
+.g-nav a[aria-current] .g-tile { background: var(--accent); }
+.g-out .g-tile { border: 1px solid var(--line-2); background: #fff; }
+.g-txt { min-width: 0; }
+.g-txt b { display: block; font-size: 15px; font-weight: 500; line-height: 1.3; }
+.g-txt small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.35; color: var(--ink-2); }
+.g-out > .tb-i { margin-left: auto; font-size: 16px; color: var(--ink-3); }
+.g-nav .g-further { margin: 16px 10px 4px; padding-top: 14px; border-top: 1px solid var(--line); }
+.g-pane { padding: 26px 28px 28px; scroll-margin-top: 48px; }
+.g-pane + .g-pane { border-top: 1px solid var(--line); }
+.g-pane > .eyebrow { margin: 0; }
+.g-pane h2 { margin-top: 8px; font-size: 28px; font-weight: 400; letter-spacing: -0.04em; line-height: 1.15; }
+.g-pane > .muted { margin-top: 8px; }
+.g-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+.g-acts .btn { margin-top: 0; }
+.g-frame { margin-top: 22px; }
+.g-row { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.g-n { flex: none; font: 500 12px var(--mono); letter-spacing: 0.04em; white-space: nowrap; color: var(--ink-3); }
+.g-t { min-width: 0; font-size: 15px; font-weight: 500; }
+.g-btns { display: none; gap: 8px; margin-left: auto; }
+.g-btns button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line-2); border-radius: 50%; background: #fff; color: var(--ink); font-size: 17px; cursor: pointer; }
+.g-btns button:hover { border-color: var(--ink); }
+.g-btns button[aria-disabled="true"] { opacity: 0.35; cursor: default; border-color: var(--line-2); }
+.g-btns button:focus-visible { border-radius: 50%; }
+.g-frame > .g-cap { margin-top: 6px; }
+.g-more { margin-top: 10px; }
+.g-more > summary { font-size: 14px; font-weight: 400; color: var(--ink-2); }
+.g-more p { margin-top: 6px; font-size: 14px; color: var(--ink-2); }
+.g-foot { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.g-foot > p { margin-top: 0; }
+.g-pane > .panel { margin-top: 18px; }
+@media (max-width: 560px) { .g-pane { padding: 22px 16px 24px; } }
+.js .g-btns { display: flex; }
+.js .g-pane + .g-pane { border-top: 0; }
+[data-step="join"] .guide:not(.ready) .g-pane:not(#join), [data-step="invite"] .guide:not(.ready) .g-pane:not(#invite),
+[data-step="phone"] .guide:not(.ready) .g-pane:not(#phone), .js .guide:not(.ready) .g-frame:not(:first-child) { display: none; }
 .set-card { margin-top: 14px; border: 1px solid var(--line-2); border-radius: 14px; background: #fff; overflow: hidden; }
 .set-card details { margin: 0; }
 .set-card details + details { border-top: 1px solid var(--line); }
@@ -1171,10 +1251,20 @@ details.how[open] > summary { background: var(--chip); }
 
 # The poll opens the page again at each new step, except while a file is chosen but not yet uploaded: that
 # would drop it. It opens the page's own address, not a form's: after a refused form the browser is at the
-# form's address, and a reload would send the form again.
+# form's address, and a reload would send the form again. Between steps it swaps in the checks only when they
+# changed (their signature), so an open list stays open and this device's last answer stays shown.
+# The first lines run before the page is drawn: with scripts on, the guide shows one step from the start, the one
+# the address names (#join, #invite or #phone), so the browser scrolls to the right place.
 SCRIPT = """
+(function () {
+  var root = document.documentElement, step = location.hash.slice(1);
+  root.classList.add("js");
+  root.setAttribute("data-step", ["join", "invite", "phone"].indexOf(step) < 0 ? "join" : step);
+})();
 function copyText(button, text) {
-  var done = function () { button.textContent = "Copied"; setTimeout(function () { button.textContent = "Copy"; }, 1500); };
+  var label = button.getAttribute("data-label") || button.textContent;
+  button.setAttribute("data-label", label);
+  var done = function () { button.textContent = "Copied"; setTimeout(function () { button.textContent = label; }, 1500); };
   if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(done); return; }
   var area = document.createElement("textarea");
   area.value = text; document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove(); done();
@@ -1201,20 +1291,52 @@ function updateForm(form) {
       : "Clear the first box to use the domain on its own.";
   }
 }
+// The private network's check, from this browser. Its last answer for each address outlives a refresh of the checks.
+var reached = {};
 function reachFromHere(item) {
   var host = item.getAttribute("data-host");
-  var text = item.querySelector(".text"), hint = item.querySelector(".hint");
   var controller = new AbortController();
   var timer = setTimeout(function () { controller.abort(); }, 6000);
   fetch("https://" + host + "/_liveness", { mode: "no-cors", cache: "no-store", signal: controller.signal })
     .then(function () {
-      item.className = "ok"; text.textContent = "This device reaches Buzz over your Tailscale network"; hint.textContent = "";
+      reached[host] = ["ok", "This device reaches Buzz over your Tailscale network", ""];
     })
     .catch(function () {
-      item.className = "bad"; text.textContent = "This device can't reach Buzz";
-      hint.textContent = "Check that Tailscale is on here, signed in to the same Tailscale network, and allowed to reach the buzz machine. Devices outside your network can't connect, which keeps this option private.";
+      reached[host] = ["bad", "This device can't reach Buzz", "Check that Tailscale is on here, signed in to the same Tailscale network, and allowed to reach the buzz machine. Devices outside your network can't connect, which keeps this option private."];
     })
-    .finally(function () { clearTimeout(timer); });
+    .finally(function () { clearTimeout(timer); if (item.isConnected) { answer(item, reached[host]); } });
+}
+// The answer in the list, and on a live page above its fold, then the card's summary again
+function answer(item, said) {
+  var card = item.closest(".ck-card");
+  item.className = said[0];
+  item.querySelector(".text").textContent = said[1];
+  item.querySelector(".hint").textContent = card && said[0] !== "ok" ? "See above." : said[2];
+  if (card) { surface(card, said); settle(card); }
+}
+function surface(card, said) {
+  var top = card.querySelector('.ck-top[data-key="device"]');
+  if (said[0] === "ok") { if (top) { top.remove(); } return; }
+  if (!top) {
+    top = document.createElement("div");
+    top.setAttribute("data-key", "device");
+    top.innerHTML = '<span class="icon"></span><span class="text"></span><span class="hint"></span>';
+  }
+  top.className = "ck-top " + said[0];
+  top.querySelector(".text").textContent = said[1];
+  top.querySelector(".hint").textContent = said[2];
+  // problems first, then what still waits; this check is the last of the list
+  var before = said[0] === "bad" ? card.querySelector('.ck-top.wait:not([data-key="device"])') : null;
+  card.insertBefore(top, before || card.querySelector(".ck-all"));
+}
+function settle(card) {
+  var rows = card.querySelectorAll(".ck-all li"), ok = 0, bad = 0;
+  rows.forEach(function (row) { ok += row.className === "ok" ? 1 : 0; bad += row.className === "bad" ? 1 : 0; });
+  card.classList.toggle("ck-alert", bad > 0);
+  var all = ok === rows.length;
+  card.querySelector(".ck-sum").textContent = all ? "Everything works" : "Everything else works";
+  card.querySelector(".ck-all .val").textContent = all ? rows.length + (rows.length === 1 ? " check" : " checks")
+    : ok + " of " + rows.length + " checks";
 }
 function fileChosen() {
   return Array.prototype.some.call(document.querySelectorAll("input[type=file]"), function (input) {
@@ -1222,14 +1344,66 @@ function fileChosen() {
   });
 }
 function poll() {
-  var list = document.querySelector("[data-poll]");
-  if (!list) { return; }
-  var phase = list.getAttribute("data-phase");
+  var box = document.querySelector("[data-poll]");
+  if (!box) { return; }
+  var phase = box.getAttribute("data-phase");
   fetch("status.json", { cache: "no-store", credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (data) {
     if (data.phase !== phase && !fileChosen()) { location.replace("./"); return; }
-    list.innerHTML = data.html;
-    list.querySelectorAll("[data-host]").forEach(reachFromHere);
+    if (data.sig !== box.getAttribute("data-sig")) {
+      var open = box.querySelector("details[open]") !== null;
+      box.innerHTML = data.html;
+      box.setAttribute("data-sig", data.sig);
+      box.querySelectorAll("details").forEach(function (d) { d.open = open; });
+      box.querySelectorAll("[data-host]").forEach(function (item) {
+        var said = reached[item.getAttribute("data-host")];
+        if (said) { answer(item, said); }
+      });
+    }
+    box.querySelectorAll("[data-host]").forEach(reachFromHere);
   }).catch(function () {}).finally(function () { setTimeout(poll, 5000); });
+}
+// The live page's next steps: one step at a time, and in it one drawing at a time. The links on the left work
+// without scripts too, as links to each step.
+function guide(box) {
+  var links = box.querySelectorAll(".g-step"), panes = box.querySelectorAll(".g-pane"), say = box.querySelector(".g-say");
+  var ids = Array.prototype.map.call(panes, function (pane) { return pane.id; });
+  var at = [0, 0];
+  function frames(i) { return panes[i].querySelectorAll(".g-frame"); }
+  function show(i, j) {
+    at = [i, j];
+    links.forEach(function (link, k) { if (k === i) { link.setAttribute("aria-current", "step"); } else { link.removeAttribute("aria-current"); } });
+    panes.forEach(function (pane, k) { pane.hidden = k !== i; });
+    frames(i).forEach(function (frame, k) { frame.hidden = k !== j; });
+    howScale(frames(i)[j]);
+  }
+  function go(by) {
+    var i = at[0], j = at[1] + by;
+    if (j < 0) { if (i === 0) { return; } i -= 1; j = frames(i).length - 1; }
+    else if (j >= frames(i).length) { if (i === panes.length - 1) { return; } i += 1; j = 0; }
+    if (i !== at[0]) { history.replaceState(null, "", "#" + ids[i]); }
+    show(i, j);
+    var frame = frames(i)[j];
+    frame.querySelector('[data-go="' + by + '"]').focus();
+    if (say) { say.textContent = frame.getAttribute("data-say"); }
+  }
+  links.forEach(function (link, i) {
+    link.addEventListener("click", function (event) {
+      event.preventDefault();
+      history.replaceState(null, "", "#" + ids[i]);
+      show(i, 0);
+    });
+  });
+  box.querySelectorAll("[data-go]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      if (button.getAttribute("aria-disabled") !== "true") { go(Number(button.getAttribute("data-go"))); }
+    });
+  });
+  window.addEventListener("hashchange", function () {
+    var i = ids.indexOf(location.hash.slice(1));
+    if (i >= 0) { show(i, 0); panes[i].scrollIntoView(); }
+  });
+  box.classList.add("ready");
+  show(Math.max(0, ids.indexOf(document.documentElement.getAttribute("data-step"))), 0);
 }
 function howScale(how) {
   how.querySelectorAll(".mb-stage").forEach(function (stage) {
@@ -1248,7 +1422,8 @@ document.addEventListener("DOMContentLoaded", function () {
     how.addEventListener("toggle", function () { howScale(how); });
     howShow(how, 0);
   });
-  window.addEventListener("resize", function () { document.querySelectorAll("details.how[open]").forEach(howScale); });
+  document.querySelectorAll(".guide").forEach(guide);
+  window.addEventListener("resize", function () { document.querySelectorAll("details.how[open], .guide").forEach(howScale); });
   document.querySelectorAll("form[data-guided]").forEach(function (form) {
     form.addEventListener("input", function () { updateForm(form); });
     form.addEventListener("change", function () { updateForm(form); });
@@ -1408,6 +1583,11 @@ TABLER = {
     'brain': '<path d="M15.5 13a3.5 3.5 0 0 0 -3.5 3.5v1a3.5 3.5 0 0 0 7 0v-1.8"/><path d="M8.5 13a3.5 3.5 0 0 1 3.5 3.5v1a3.5 3.5 0 0 1 -7 0v-1.8"/><path d="M17.5 16a3.5 3.5 0 0 0 0 -7h-.5"/><path d="M19 9.3v-2.8a3.5 3.5 0 0 0 -7 0"/><path d="M6.5 16a3.5 3.5 0 0 1 0 -7h.5"/><path d="M5 9.3v-2.8a3.5 3.5 0 0 1 7 0v10"/>',
     'download': '<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 11l5 5l5 -5"/><path d="M12 4l0 12"/>',
     'layout-sidebar': '<path d="M4 6a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12"/><path d="M9 4l0 16"/>',
+    # The page's own icons, for the next steps' guide
+    'login': '<path d="M9 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2"/><path d="M3 12h13l-3 -3"/><path d="M13 15l3 -3"/>',
+    'user-plus': '<path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M16 19h6"/><path d="M19 16v6"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4"/>',
+    'book': '<path d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6l0 13"/><path d="M12 6l0 13"/><path d="M21 6l0 13"/>',
+    'arrow-up-right': '<path d="M17 7l-10 10"/><path d="M8 7l9 0l0 9"/>',
 }
 
 
@@ -1585,51 +1765,53 @@ def how_to(summary, steps, intro=""):
     )
 
 
+# The guide's drawings, each as (title, drawing, caption, more): more is HTML under the caption.
 def join_steps(domain):
     # Buzz 1.0.0: the community button sits at the foot of the left dock; with no community saved, Buzz opens
     # on a full-page Join a community instead. The join dialog asks Continue twice, then publishes the profile.
     return [
         ("Open Join a community", drawn_switcher(),
-         "In Buzz, click the community button at the bottom left, above your profile picture, then <b>Join a "
-         "community</b>. Don't choose <b>Create community</b>: it makes a new community that Block hosts. If Buzz "
-         "opens on a <b>Join a community</b> page instead, paste the address there and choose <b>Join</b>."),
+         "In Buzz, click the community button at the bottom left, then <b>Join a community</b>. Not <b>Create "
+         "community</b>: that makes a new community that Block hosts. If Buzz opens on a <b>Join a community</b> page "
+         "instead, paste the address there and choose <b>Join</b>.", ""),
         ("Paste the address", drawn_join("https://" + domain),
-         "Paste the address into <b>Community URL</b> and choose <b>Continue</b>. Buzz shows your community: "
-         "choose <b>Continue</b> again. Then set how you appear and choose <b>Publish profile &amp; open</b>."),
+         "Paste the address into <b>Community URL</b> and choose <b>Continue</b> twice. Then choose <b>Publish profile "
+         "&amp; open</b>.", ""),
     ]
 
 
 def member_steps(domain):
+    # Buzz 1.0.0 still adds members by public ID; its next release drops that (block/buzz-app#3147), and makes
+    # Invite a tab
     return [
         ("Open Membership", drawn_membership(domain),
-         "In Buzz, open <b>Settings</b>. Under <b>Community admin</b>, choose <b>Membership</b>. Then choose "
-         "<b>Invite members</b>, or the <b>Invite</b> tab in newer versions of Buzz."),
+         "In Buzz, open <b>Settings</b>. Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite "
+         "members</b>, or the <b>Invite</b> tab in newer versions of Buzz.", ""),
         ("Send an invite link", drawn_membership(domain, inviting=True),
-         "Copy the invite link and send it. Anyone with the link can join until it expires or runs out of uses. "
-         "To invite one person, set <b>Max uses</b> to <b>1 use</b> before you copy it. They open it and choose <b>Accept "
-         "invite in Buzz</b>, or paste it into Buzz. Buzz 1.0.0 can also add someone by their public ID: paste it "
-         "under <b>Add directly</b> and choose <b>Add member</b>."),
+         "Copy the link and send it. To invite one person, set <b>Max uses</b> to <b>1 use</b> first. In Buzz 1.0.0 "
+         "you can also paste someone's public ID under <b>Add directly</b>, then send them the address.", ""),
     ]
 
 
 def phone_steps(domain):
     return [
-        ("Pair a phone", drawn_pair(domain),
-         "In Buzz on your computer, open <b>Settings</b>, then <b>Mobile app</b>. On the phone, open Buzz and choose "
-         "<b>Scan a QR code</b>. If it already has a community, open its community switcher and choose <b>Add "
-         "Community</b> first. Then scan the code."
+        ("Scan the code", drawn_pair(domain),
+         "In Buzz on your computer, open <b>Settings</b>, then <b>Mobile app</b>. On the phone, choose <b>Scan a QR "
+         "code</b> and scan it. If the phone already has a community, choose <b>Add Community</b> in its community "
+         "switcher first.",
          # Signed in to Builderlab, the computer shows Get Buzz on your phone in place of the code, and the phone
          # restores only communities Block hosts
-         "</p><p>Signed in with Builderlab? Your computer may show <b>Get Buzz on your phone</b> instead of a code. "
-         "Then open Buzz on the phone and choose <b>or sign in with email</b>, with the same account. Your community "
-         "won't appear there by itself: choose <b>Enter a community link</b>, paste <code>https://" + esc(domain)
-         + "</code>, choose <b>Continue</b>, then your saved identity."),
+         '<details class="g-more"><summary>Signed in with Builderlab?</summary><p>Your computer may show <b>Get Buzz '
+         "on your phone</b> instead of a code. Then open Buzz on the phone and choose <b>or sign in with email</b>, "
+         "with the same account. Your community won't appear there by itself: choose <b>Enter a community link</b>, "
+         "paste <code>https://" + esc(domain) + "</code>, choose <b>Continue</b>, then your saved identity.</p>"
+         "</details>"),
         ("Check the code", drawn_pair(domain, verifying=True),
          # Once the digits match, the phone asks to protect your identity (Use Face ID, Use Touch ID or Use
          # biometrics, or Skip) and holds the identity until you choose. Block's docs/pairing.md finishes on
          # the phone before Codes match.
-         "Type the six digits your computer shows into the phone. When the phone asks to protect your identity, "
-         "choose <b>Use Face ID</b> or <b>Skip</b>. Then choose <b>Codes match</b> on your computer."),
+         "Type the six digits into the phone. When it asks to protect your identity, choose <b>Use Face ID</b> or "
+         "<b>Skip</b>. Then choose <b>Codes match</b> on your computer.", ""),
     ]
 
 
@@ -1763,6 +1945,126 @@ def status_html(items):
         out.append('<li class="' + entry["state"] + '"' + host + '><span class="icon"></span><span class="text">'
                    + entry["text"] + '</span><span class="hint">' + entry["hint"] + "</span></li>")
     return "".join(out)
+
+
+def check_block(entry):
+    """A check that isn't ok, with its hint, shown on its own: a problem tinted, a wait quiet. The script draws the
+    private network's device check the same way (surface)."""
+    return ('<div class="ck-top ' + entry["state"] + '" data-key="' + entry["key"] + '"><span class="icon"></span>'
+            '<span class="text">' + entry["text"] + '</span><span class="hint">' + entry["hint"] + "</span></div>")
+
+
+def check_card(items):
+    """The live page's checks, one card: what isn't ok above the fold, problems first, then what still waits; the
+    fold holds the whole list. The script's settle() counts it again after the device check."""
+    bad = [e for e in items if e["state"] == "bad"]
+    waiting = [e for e in items if e["state"] == "wait"]
+    ok = len(items) - len(bad) - len(waiting)
+    every = not bad and not waiting
+    count = (str(len(items)) + (" check" if len(items) == 1 else " checks") if every
+             else str(ok) + " of " + str(len(items)) + " checks")
+    listed = status_html([e if e["state"] == "ok" else dict(e, hint="See above.") for e in items])
+    return ('<div class="set-card ck-card' + (" ck-alert" if bad else "") + '">' + "".join(map(check_block, bad + waiting))
+            + '<details class="ck-all"><summary><span class="ck-ico">' + ti("check") + '</span><span class="ck-sum">'
+            + ("Everything works" if every else "Everything else works") + '</span><span class="val word">' + count
+            + '</span></summary><div class="inner"><ul class="status">' + listed + "</ul></div></details></div>")
+
+
+def bar_stages(setup, items):
+    """While connecting, the stages in order, from the checks, as [label, state, checks], with the checks the page
+    hasn't placed. A stage is done, bad, you (it waits on the owner, who can act now) or open. The device check
+    has no stage: it's for the live page, and before then a failure says nothing about this device."""
+    mode = setup["mode"]
+    by = {entry["key"]: entry for entry in items}
+    placed = {"device"}
+
+    def checks(*keys):
+        placed.update(keys)
+        return [by[key] for key in keys if key in by]
+
+    def ok(found, key):
+        return any(entry["key"] == key and entry["state"] == "ok" for entry in found)
+
+    def stage(label, found, done, you=False):
+        bad = any(entry["state"] == "bad" for entry in found)
+        return [label, "bad" if bad else "done" if done else "you" if you else "open", found]
+
+    relay = checks("relay")
+    stages = [stage("Set up on this Umbrel", relay, ok(relay, "relay"))]
+    if mode == "domain":
+        cf, tunnel = checks("cloudflare"), cloudflare_state()
+        # signed in: the tunnel is being set up, or runs, or the name already answers (no row for the tunnel then)
+        signed = (not cf or ok(cf, "cloudflare") or tunnel["state"] in ("creating", "routing")
+                  or (tunnel["state"] == "signin" and upload_waiting()))
+        stages.append(stage("Sign in to Cloudflare", cf, signed, tunnel["state"] == "signin" and bool(tunnel["link"])))
+        name = checks("dns", "reach")
+        stages.append(stage("Cloudflare publishes the name", name, ok(name, "reach")))
+    else:
+        step = tailscale_step(mode)
+        machine = checks("tailscale")
+        signed = ok(machine, "tailscale")
+        stages.append(stage("Approve buzz in Tailscale" if step == "approve" else "Sign in to Tailscale", machine, signed,
+                            step.startswith("login") or step == "approve"))
+        publish = checks("publish")
+        stages.append(stage("Allow Funnel" if mode == "funnel" else "Allow HTTPS", publish, ok(publish, "publish"),
+                            signed and step == "consent"))
+        if mode == "funnel":
+            name = checks("dns", "reach")
+            stages.append(stage("Tailscale publishes the address", name, ok(name, "reach")))
+    if mode != "private":
+        pair = checks("pair")
+        stages.append(stage("Phones can pair", pair, ok(pair, "pair")))
+    return stages, [entry for entry in items if entry["key"] not in placed]
+
+
+STAGE_WORDS = {"done": "done", "you": "your turn", "work": "in progress", "wait": "not yet", "bad": "needs your attention"}
+
+
+def spoken(found):
+    """A stage's checks as sentences, for screen readers: each text, and its hint unless it's a problem, whose hint
+    shows under the bar."""
+    parts = []
+    for entry in found:
+        parts.append(entry["text"].rstrip("."))
+        if entry["hint"] and entry["state"] != "bad":
+            parts.append(entry["hint"].rstrip("."))
+    return ". ".join(parts) + "." if parts else ""
+
+
+def progress_bar(setup, items):
+    """The connecting page's checks, as a bar: one segment per stage. The first stage not done is the current one,
+    at work if it waits on this Umbrel or a service; one that waits on the owner says YOU, even while an earlier
+    one works. Later stages wait. A problem turns its stage red and shows with its hint under the bar."""
+    stages, rest = bar_stages(setup, items)
+    first = next((i for i, s in enumerate(stages) if s[1] != "done"), None)
+    for i, s in enumerate(stages):
+        if s[1] == "open":
+            s[1] = "work" if i == first else "wait"
+    current = next((i for i, s in enumerate(stages) if s[1] == "you"), first)
+    segments = []
+    for i, (label, state, found) in enumerate(stages):
+        icon = {"done": ti("check"), "work": '<i aria-hidden="true"></i>', "bad": '<b aria-hidden="true">!</b>'}.get(state, "")
+        tag = '<em aria-hidden="true">YOU</em>' if state == "you" else ""
+        segments.append('<li class="' + state + '"' + (' aria-current="step"' if i == current else "") + '>'
+                        '<span class="tr"></span><span class="lb">' + icon + "<span>" + label + "</span>" + tag + "</span>"
+                        '<span class="vh">: ' + STAGE_WORDS[state] + ". " + spoken(found) + "</span></li>")
+    blocks = ([e for e in items if e["state"] == "bad" and e["key"] != "device"]
+              + [e for e in rest if e["state"] == "wait"])
+    said = spoken([e for e in rest if e["state"] == "ok"])
+    return ('<ol class="bar" style="--n:' + str(len(stages)) + '" aria-label="Progress">' + "".join(segments) + "</ol>"
+            + ('<div class="set-card ck-box' + (" ck-alert" if any(e["state"] == "bad" for e in blocks) else "") + '">'
+               + "".join(map(check_block, blocks)) + "</div>" if blocks else "")
+            + ('<p class="vh">' + said + "</p>" if said else ""))
+
+
+def checks_html(setup, live, items):
+    """What the 5-second refresh swaps in: the card on a live page, the bar while connecting. The phase says which,
+    and a change of phase opens the page again."""
+    return check_card(items) if live else progress_bar(setup, items)
+
+
+def checks_sig(text):
+    return hashlib.sha256(text.encode()).hexdigest()[:16]
 
 
 def tailscale_step(mode):
@@ -1912,7 +2214,73 @@ def private_members_note():
 def notifications_note(setup):
     if not push_on(setup):
         return '<p class="note">Phone notifications are off. You can turn them on in Settings.</p>'
-    return '<p class="note">Phone notifications are on for iPhone. Android doesn\'t get them yet.</p>'
+    return ('<p class="note">iPhones get notifications for direct messages and mentions. Android phones don\'t '
+            "yet.</p>")
+
+
+def guide_frame(n, total, title, drawing, caption, more, ends, step_title):
+    """One drawing of a step: Buzz's screen, a stepper with its title, and what to do. ends says whether it's the
+    guide's first and last drawing, where Previous and Next stop. Without scripts, the stepper's buttons stay hidden
+    and every drawing shows."""
+    first, last = ends
+    return (
+        '<div class="g-frame" data-say="' + esc(step_title + ", part " + str(n) + " of " + str(total) + ": " + title)
+        + '"><div class="mb" aria-hidden="true"><div class="mb-stage"><div class="mb-canvas">' + drawing + "</div></div></div>"
+        '<div class="g-row"><span class="g-n" aria-hidden="true">' + "%02d / %02d" % (n, total) + "</span>"
+        '<span class="vh">Part ' + str(n) + " of " + str(total) + ": </span>"
+        '<span class="g-t">' + title + '</span><span class="g-btns">'
+        '<button type="button" data-go="-1" aria-label="Previous"' + (' aria-disabled="true"' if first else "") + ">"
+        + ti("arrow-left") + '</button><button type="button" data-go="1" aria-label="Next"'
+        + (' aria-disabled="true"' if last else "") + ">" + ti("arrow-right") + "</button></span></div>"
+        '<p class="muted small g-cap">' + caption + "</p>" + more + "</div>"
+    )
+
+
+def guide_part(setup, domain):
+    """The live page's next steps, as a guide wider than the page: the steps down the left, with the self-hosting
+    guide under them, and on the right one step at a time, its drawings of Buzz 1.0.0 one at a time with a stepper.
+    Without scripts every step shows, one after the other, and the links on the left jump to them. #join, #invite
+    and #phone open a step."""
+    private = setup["mode"] == "private"
+    address = "https://" + domain
+    # Buzz 1.0's own link for a community's address (docs/deep-links.md in block/buzz-app): it opens the join
+    # screen with the address filled in, and joins nothing by itself
+    actions = ('<div class="g-acts"><a class="btn" href="buzz://connect?relay='
+               + esc(urllib.parse.quote("wss://" + domain, safe="")) + '">Open in Buzz</a>'
+               '<button class="btn ghost" type="button" data-copy="' + esc(address) + '" '
+               'onclick="copyText(this, this.dataset.copy)">Copy the address</button></div>')
+    stores = ('<a href="' + APP_STORE + '" target="_blank" rel="noopener">App Store</a> or <a href="' + GOOGLE_PLAY
+              + '" target="_blank" rel="noopener">Google Play</a>')
+    steps = [
+        ("join", "login", "Join your community", "First, as the owner", "Step 1 of 3",
+         "Join in Buzz with this address, as the identity you entered as the owner.", actions, join_steps(domain),
+         # Buzz's first run with a key of one's own (Other options, then Use an existing key): the guide shows it
+         '<div class="g-foot"><p class="muted small">Made your own key? <a href="' + SELF_HOST_GUIDE + '" target="_blank" '
+         'rel="noopener">The self-hosting guide</a> shows how to join with it.</p></div>'),
+        ("invite", "user-plus", "Invite people", "With an invite link", "Step 2 of 3",
+         "Send an invite link from Buzz. Whoever opens it joins in one step.", "", member_steps(domain),
+         private_members_note() if private else ""),
+        ("phone", "device-mobile", "Pair your phone", "Optional", "Step 3 of 3 &middot; Optional",
+         "Get Buzz on the " + stores + ", then pair it with Buzz on your computer."
+         + (" The phone needs Tailscale too." if private else ""), "", phone_steps(domain),
+         '<div class="g-foot">' + notifications_note(setup) + "</div>"),
+    ]
+    links, panes = [], []
+    for s, (key, icon, title, sub, kicker, sentence, acts, frames, foot) in enumerate(steps):
+        links.append('<a class="g-step" href="#' + key + '"><span class="g-tile">' + ti(icon) + '</span><span class="g-txt">'
+                     "<b>" + title + "</b><small>" + sub + "</small></span></a>")
+        drawn = "".join(guide_frame(n, len(frames), name, drawing, caption, more,
+                                    (s == 0 and n == 1, s == len(steps) - 1 and n == len(frames)), title)
+                        for n, (name, drawing, caption, more) in enumerate(frames, 1))
+        panes.append('<section class="g-pane" id="' + key + '"><p class="eyebrow">' + kicker + "</p><h2>" + title + "</h2>"
+                     '<p class="muted">' + sentence + "</p>" + acts + '<div class="g-frames">' + drawn + "</div>" + foot
+                     + "</section>")
+    further = ('<p class="eyebrow g-further">Go further</p><a class="g-out" href="' + SELF_HOST_GUIDE + '" target="_blank" '
+               'rel="noopener"><span class="g-tile">' + ti("book") + '</span><span class="g-txt"><b>The self-hosting guide</b>'
+               "<small>Roles, moderation, backups and agents</small></span>" + ti("arrow-up-right") + "</a>")
+    return ('<section class="next"><p class="eyebrow">Next steps</p><div class="guide"><nav class="g-nav" aria-label="Next '
+            'steps">' + "".join(links) + further + '</nav><div class="g-panes">' + "".join(panes) + "</div>"
+            '<p class="vh g-say" aria-live="polite"></p></div></section>')
 
 
 def address_change(setup, values, current):
@@ -2134,7 +2502,9 @@ def main_page(setup, error="", values=None):
     live, items = cached_check(setup, page_load=True)
     mode = setup["mode"]
     domain = relay_domain() or setup.get("domain") or ""
-    status = ('<ul class="status" data-poll data-phase="' + esc(phase_of(setup, live, items)) + '">' + status_html(items) + "</ul>")
+    checks = checks_html(setup, live, items)
+    status = ('<div class="checks" data-poll data-phase="' + esc(phase_of(setup, live, items)) + '" data-sig="'
+              + checks_sig(checks) + '">' + checks + "</div>")
     if not live:
         head = ('<p class="eyebrow">Connecting &middot; ' + MODE_NAMES[mode] + "</p><h1>Connect "
                 + ('<mark>' + esc(domain) + "</mark>" if domain else "your <mark>address</mark>") + "</h1>"
@@ -2156,32 +2526,7 @@ def main_page(setup, error="", values=None):
         "invite link, or in Buzz with this address, " + reach + ".</p>"
         '<div class="address"><code><span>https://' + esc(domain) + "</span></code>"
         '<button class="btn" type="button" data-copy="https://' + esc(domain) + '" onclick="copyText(this, this.dataset.copy)">Copy</button></div>'
-        + status +
-        '<section class="part next"><p class="eyebrow">Next steps</p>'
-        '<div class="step on"><span class="num">1</span><div class="step-body"><h2>Join your community</h2>'
-        "<p class=\"muted\">Join in Buzz with this address, using the same identity you entered as the owner.</p>"
-        # Buzz 1.0's own link for a community's address (docs/deep-links.md in block/buzz-app): it opens
-        # the join screen with the address filled in, and joins nothing by itself
-        + ('<a class="btn" href="buzz://connect?relay=' + esc(urllib.parse.quote("wss://" + domain, safe="")) + '">Open in Buzz</a>'
-           '<p class="muted small">Opens Buzz on this computer with the address filled in, once Buzz is set up.</p>' if domain else "")
-        + how_to("Show me how", join_steps(domain))
-        # Buzz's first run with a key of one's own: Other options, then Use an existing key, then the Join
-        # Community page and Set up your profile (Welcome.tsx, KeyImport.tsx, FindCommunity.tsx, ProfileStep.tsx)
-        + '<p class="muted small">Made your own key? Join as you set up Buzz. Choose <b>Other options</b>, paste '
-        "this address and choose <b>Continue</b>. Choose <b>Use an existing key</b>, paste your private key and "
-        "choose <b>Continue with this key</b>. Then choose <b>Join</b>, enter a name and choose <b>Continue</b>.</p>"
-        + ('<p class="muted small">Bought the domain recently? Your computer can take a while to find it. If Buzz '
-           "can't connect, try again in a few minutes.</p>" if mode == "domain" else "") + "</div></div>"
-        '<div class="step on"><span class="num">2</span><div class="step-body"><h2>Add members</h2>'
-        '<p class="muted">Send people an invite link, which lets them join in one step. In Buzz 1.0.0 you can also '
-        "add someone by their public ID, then send them this address.</p>"
-        + how_to("Show me how", member_steps(domain)) + (private_members_note() if mode == "private" else "")
-        + "</div></div>"
-        '<div class="step on"><span class="num">3</span><div class="step-body"><h2>Pair your phone</h2>'
-        '<p class="muted">Pair Buzz on your phone with Buzz on your computer. It\'s on the <a href="' + APP_STORE
-        + '" target="_blank" rel="noopener">App Store</a> and <a href="' + GOOGLE_PLAY + '" target="_blank" '
-        'rel="noopener">Google Play</a>.' + (" The phone needs Tailscale too." if mode == "private" else "") + "</p>"
-        + how_to("Show me how", phone_steps(domain)) + notifications_note(setup) + "</div></div></section>"
+        + status + guide_part(setup, domain)
     )
     return layout(body + safety_part(setup) + settings_part(setup, error, values, live))
 
@@ -2276,8 +2621,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not setup:
                 return self.send(200, json.dumps({"phase": "setup", "html": ""}), "application/json")
             live, items = cached_check(setup)
-            return self.send(200, json.dumps({"phase": phase_of(setup, live, items), "live": live, "html": status_html(items)}),
-                             "application/json")
+            checks = checks_html(setup, live, items)
+            return self.send(200, json.dumps({"phase": phase_of(setup, live, items), "live": live, "html": checks,
+                                              "sig": checks_sig(checks)}), "application/json")
         if path not in ("/", ""):
             return self.send(404, layout("<h1>Not found</h1>"))
         return self.send(200, main_page(setup) if setup else setup_page())

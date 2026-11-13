@@ -1,0 +1,239 @@
+# Fixes from four reviews of the setup page's guide, card and bar (correctness, accessibility, texts and security),
+# for the page's next image (1.1.0, not published). On an Apple Silicon Mac, Docker Desktop, no umbrelOS, no cost. The
+# page from this checkout; relay 0.3.0's image and the package's other images as pinned. The mocked suites, the new
+# browser test and the previews, then check.py on a fresh up.sh run, removed afterwards with down.sh, then Umbrel's
+# linter and the screenshots.
+
+$ python3 tests/umbrel/local/render.py
+rendered 1889 page states without errors
+# 39 connecting stages of the three options, each with its segments and what shows under the bar. The bar's rule,
+# tested from the segments: the first stage done, the current one the earliest not done and the only one at work or
+# the owner's turn, and every later one waiting or red with a problem of its own. Contrast, from its stylesheet
+# check: --ink-2, now every small text's, 5.31:1 on white, 5.16 on --soft and 5.06 on --chip; --ink-3, now marks
+# that aren't text and an option that can't be chosen, 3.43, 3.36 and 3.32.
+
+$ docker run --rm -v "$PWD:/repo:ro" -w /repo python:3.13.16-alpine3.24 sh -c 'python3 --version && python3 tests/umbrel/local/render.py'   # the image's Python, on Linux
+Python 3.13.16
+rendered 1889 page states without errors
+
+$ python3 tests/umbrel/local/security.py
+(its new lines and summary)
+== The checks the page refreshes, and the live page's links
+PASS  status.json sends the live page's own checks and signature, the same while nothing changes: an open list stays open
+PASS  when a check changes, so does the signature, and the refresh draws the card again
+PASS  every link that opens a new tab has rel=noopener (5), and the self-hosting guide's is its homepage alone
+PASS  the address reaches both copy buttons through a data attribute, never inside script
+PASS  without a session, status.json is refused: 401, with neither the checks nor their signature
+== Names in the page's own files that it never wrote
+PASS  a name with quotes, an element or a script in it shows as text everywhere, in 12 pages and their status.json: no element, script or handler from it
+== Bytes that aren't text in the helpers' files
+PASS  bytes that aren't UTF-8 in Cloudflare's sign-in and setup logs and Tailscale's log: the page still opens, with the links and the error line (200 200 200)
+PASS  nothing reached the page's error output in all of this
+passed: 110  failed: 0
+
+$ python3 tests/umbrel/local/cloudflare.py
+passed: 63  failed: 0
+
+$ python3 tests/umbrel/local/browser.py
+Chrome/157.0.8103.51
+== The step the address names
+PASS  before the script draws the guide, the page shows the one step the address names, or the one kept across a new phase (a hash still wins), at its drawing, and the script keeps it: 12 addresses, a hostile hash and unknown ones open the first step
+== Next and Previous with the keyboard
+PASS  Next walks every drawing and crosses into the next step, moving the address to it and focus to the new drawing's Next; at the guide's last drawing it's aria-disabled and does nothing
+PASS  Previous crosses back into the previous step's last drawing, and stops at the first
+PASS  crossing into a step says where the reader is
+== A step's link
+PASS  a step's link opens the step at its first drawing and moves focus to the step's heading, clicked or with Enter
+PASS  in forced colors, the current step's link has a border, the others none
+== The 5-second refresh on a live page
+PASS  a refresh with the same checks changes nothing: the same card, the list open, focus on its summary, and nothing said
+PASS  when the checks change, the card is drawn again with its list open and focus on its summary, the page doesn't move, and a screen reader hears the card's summary once
+PASS  the next refresh, with nothing new, says nothing
+PASS  while connecting, a change says the current stage
+== The private network's device check
+PASS  the page looks once from this device as it opens, and shows that it's checking
+PASS  a refresh during that look starts no other: one look at a time
+PASS  a late answer from an older look never replaces a newer one: the row shows the newest look's answer, here the first look running out of time
+PASS  the next look reaches Buzz: the problem goes from above the card, which says Everything works, 4 checks
+PASS  two more looks with the same answer leave the row and the card as they are: no writes at all
+PASS  drawn again while a look is out: the last answer shows in the new row at once, no second look starts, and a screen reader hears the card's summary
+PASS  that look's answer, that this device can't reach Buzz, goes to the row the page has now, and above the card
+== A new phase opens the page again
+PASS  a new phase opens the page again at the reader's step and drawing, drawn from the start, and keeps nothing after
+== Without scripts
+PASS  without scripts at 1440 pixels: every step and drawing, no stepper and no copy buttons, nothing cropped or wider than the page
+PASS  without scripts at 375 pixels: every step and drawing, no stepper and no copy buttons, nothing cropped or wider than the page
+
+passed: 20  failed: 0
+
+# Nine more runs: passed: 20  failed: 0 each time. The page's 5- and 6-second timers and the device check's requests
+# are held by the test, so nothing depends on timing. Against the page before these fixes (setup.py at f8f30d8, with
+# these tests), 15 of the 20 fail: the kept step; focus on a step's heading; forced colors; the refresh's focus and
+# sentence, and the connecting page's sentence; the device check's one look at a time, the reviewers' race (the first
+# look's late "can't reach" over the second look's "reaches"), 8 writes for answers that changed nothing, and an
+# answer lost to a redrawn row; the new phase; and without scripts, the copy buttons, and at 375 pixels all six
+# drawings cropped.
+
+# preview.py, each of its 14 scenarios in turn on a port from 8774 to 8779, its page and status.json fetched: a card
+# when live, the bar while connecting, with what shows under it and the sentence a screen reader hears, and the guide
+# on each live page
+PASS  login: the sign-in page
+PASS  setup: the setup steps, and status.json has nothing to refresh
+PASS  domain-dns: the bar done you wait wait, under it nothing, saying 'Sign in to Cloudflare: your turn.', the page's own checks in status.json
+PASS  domain-uploaded: the bar done done work wait, under it ['wait:cloudflare', 'wait:dns'], saying 'Cloudflare publishes the name: in progress.', the page's own checks in status.json
+PASS  domain-working: the bar done done work wait, under it ['wait:cloudflare', 'wait:dns'], saying 'Cloudflare publishes the name: in progress.', the page's own checks in status.json
+PASS  domain-530: the bar done done bad wait, under it ['bad:reach'], saying 'Cloudflare publishes the name: needs your attention.', the page's own checks in status.json
+PASS  funnel-login: the bar done you wait wait wait, under it nothing, saying 'Sign in to Tailscale: your turn.', the page's own checks in status.json
+PASS  funnel-consent: the bar done done you wait wait, under it ['wait:publish'], saying 'Allow Funnel: your turn.', the page's own checks in status.json
+PASS  private-consent: the bar done done you, under it ['wait:publish'], saying 'Allow HTTPS: your turn.', the page's own checks in status.json
+PASS  private-live: the card 'Everything else works, 3 of 4 checks', above it: Checking from this device..., and the guide's 3 steps and 6 drawings
+PASS  domain-live: the card 'Everything works, 3 checks', and the guide's 3 steps and 6 drawings
+PASS  domain-moderation: the card 'Everything works, 4 checks', and the guide's 3 steps and 6 drawings
+PASS  domain-moderation-blocked: the card 'Everything else works, 3 of 4 checks', above it: Moderation isn't reachable, and the guide's 3 steps and 6 drawings
+PASS  domain-moderation-starting: the card 'Everything else works, 3 of 4 checks', above it: Turning on moderation, and the guide's 3 steps and 6 drawings
+
+passed: 14  failed: 0
+
+$ bash -n tests/umbrel/e2e.sh tests/umbrel/pre-submit.sh tests/umbrel/local/up.sh tests/umbrel/local/down.sh   # none changed
+bash -n: tests/umbrel/e2e.sh ok
+bash -n: tests/umbrel/pre-submit.sh ok
+bash -n: tests/umbrel/local/up.sh ok
+bash -n: tests/umbrel/local/down.sh ok
+
+$ PYTHON=<a Python with PyYAML> bash tests/umbrel/local/up.sh   # 14:14 PST
+ Container buzz_silo_1  Healthy
+ Container buzz_relay_1  Starting
+ Container buzz_relay_1  Started
+cloudflared Up 6 seconds
+gateway Up 6 seconds
+pair Up 6 seconds
+postgres Up 6 seconds (healthy)
+redis Up 6 seconds (healthy)
+relay Up Less than a second (health: starting)
+silo Up 6 seconds (healthy)
+tailscale Up 6 seconds
+web Up 6 seconds
+
+$ cmp tests/umbrel/local/run/setup.py umbrel/setup-page/setup.py && echo identical   # the stack's page is this one
+identical
+
+$ python3 tests/umbrel/local/check.py
+== Sign-in
+PASS  the page sends a visitor without a session to sign in
+PASS  status.json refuses a visitor without a session (HTTP 401)
+== Another app on the same Docker network, going around Umbrel's proxy
+PASS  a direct request from another container can't save settings or read status (HTTP 401 401)
+PASS  nothing was saved by that request
+PASS  a wrong password is refused
+PASS  the app password signs in and sets a session cookie
+PASS  the session cookie is HttpOnly
+PASS  a form posted from another app's page on the same Umbrel is refused (HTTP 403)
+PASS  the page's own forms pass whatever Host the proxy forwards (reached validation)
+== Setup
+PASS  signed in, the page shows the setup steps
+PASS  creating without the acknowledgement is refused
+PASS  a bad public ID is refused
+PASS  a home-network-only name is refused
+PASS  the owner and the domain are saved (HTTP 303)
+PASS  the relay starts with the saved address (NIP-11 answers for buzz-one.local-test.invalid)
+PASS  the relay's owner is the page's owner
+PASS  phone notifications are on by default (NIP-11 offers buzz-push-v1)
+PASS  the page shows the Cloudflare steps, and that the name doesn't resolve
+PASS  the page gives the tunnel's service URL
+PASS  the app's own Cloudflare tunnel waits for a sign-in, with Cloudflare's link
+PASS  the page shows that sign-in link
+PASS  the progress bar marks Cloudflare's sign-in as the owner's turn, and status.json sends the same bar
+== Persistence across a restart of every container
+PASS  the relay comes back with the same identity
+PASS  the owner survives the restart
+PASS  the session survives the restart and the page remembers the setup
+== Phone notifications
+PASS  turning phone notifications off is saved
+PASS  the relay restarts without them
+PASS  the page shows them off
+== Changing the owner
+PASS  the new owner is saved
+PASS  the relay's owner is the new one
+PASS  the previous owner is now an admin
+PASS  phone notifications stay off through the owner change
+PASS  turning them back on offers them again
+== Changing the address, guarded
+PASS  a change without typing the current address is refused
+PASS  typing the current address confirms the change, with the new address in the two boxes
+PASS  the new address is a separate community: the owner, and none of the old members
+PASS  switching back to the first address brings its community back, admin included
+== The Tailscale modes, up to the sign-in
+PASS  choosing the free Tailscale address starts Tailscale in Funnel mode
+PASS  and turns the Cloudflare tunnel off: it waits, with no sign-in running
+PASS  Tailscale is waiting for a sign-in, with a link
+PASS  the page shows that sign-in link
+PASS  and the progress bar marks Tailscale's sign-in as the owner's turn
+PASS  the relay waits: no address until Tailscale names the machine
+PASS  with no address to type, a change needs the box ticked
+PASS  with no address yet, switching to the private network needs only the acknowledgement
+PASS  going back to the domain turns Tailscale off
+PASS  and the first address's community is back
+PASS  Tailscale stopped and cleared its state for the page
+PASS  switching to Tailscale again starts it again, with a sign-in link (private network)
+PASS  the page shows the private network's sign-in step
+== A sign-in Cloudflare saved as a file, uploaded
+PASS  the service's own check, in the real image, takes exactly the 14 made-up files the page takes, of 57
+PASS  back on the domain, the page takes a sign-in file while the service waits (HTTP 303)
+PASS  within seconds the real service took it: the upload is gone and the tunnel moved on (error)
+PASS  it's the service's cert.pem, byte for byte as uploaded, mode 600, owned by the app's user (600 1000)
+PASS  Cloudflare refuses the made-up token, and the page offers Sign in to Cloudflare again
+PASS  the reset deletes that sign-in and starts a new one, with a new link
+== Moderation: the relay's admin API at buzz-one.local-test.invalid:8443, from the real image
+PASS  a test owner whose key is held here becomes the owner
+PASS  moderation is off by default: no admin API advertised, and none at buzz-one.local-test.invalid:8443
+PASS  the page turns it on: its line in the relay's settings
+PASS  the relay restarts with it, and its NIP-11 advertises admin_api https://buzz-one.local-test.invalid:8443
+PASS  the relay process has that alone: no open mode, no other operators, no browser dashboard (BUZZ_ADMIN_HOST=buzz-one.local-test.invalid:8443)
+PASS  through the gateway, buzz-one.local-test.invalid:8443 is the relay's admin host: 404 with its own security policy (HTTP 404)
+PASS  a browser there gets no page: the dashboard is off (HTTP 404)
+PASS  an unsigned request to the admin API is refused (HTTP 401)
+PASS  another key's signature is refused (HTTP 403)
+PASS  the owner's signature gets in: the operator, as the relay's owner (HTTP 200)
+PASS  the same signature sent for the community's own address is refused (HTTP 403)
+PASS  a member posts (HTTP 200, 200)
+PASS  the owner bans the member through the admin API (HTTP 200)
+PASS  the banned member's posts are refused: banned from this community
+PASS  the banned identity can't come back with the owner's invite link (HTTP 403, invite_restricted), and a new identity joins with the same link (HTTP 200)
+PASS  the page turns it off: the line goes, and setup.json keeps "moderation": false
+PASS  the relay restarts without it: no admin API advertised
+PASS  and none at buzz-one.local-test.invalid:8443, for the owner either
+PASS  the ban holds with moderation off
+PASS  turned on again, the owner lifts the ban (HTTP 204), and the member posts again (HTTP 200)
+PASS  after a restart of every container it's still on: advertised, and the owner's signature still gets in
+PASS  after an owner change it stays on, and the previous owner's signature is refused (HTTP 403)
+PASS  choosing a Tailscale option turns it off
+PASS  and back on the domain, it stays off
+
+passed: 80  failed: 0
+
+$ bash tests/umbrel/local/down.sh
+ Volume buzzlocal_buzz-postgres  Removed
+ Volume buzzlocal_buzz-redis  Removed
+ Network umbrel_main_network_local  Removed
+
+# Umbrel's linter, on a copy of getumbrel/umbrel-apps with umbrel/buzz/ copied in as buzz/, without __pycache__
+$ npm run lint:apps -- buzz --check-images
+Linting buzz
+No issues found.
+
+# The screenshots, retaken the ways they were taken. 01 to 03 over DevTools from preview.py's setup screen, 1440 by
+# 900 at 2x, on a headless Chrome 157 started without --disable-gpu, with the same steps as before: 02 opens Where to
+# find your public ID at its second tab and scrolls to the Owner step; 03 chooses your own domain, types
+# yourteam.com and scrolls to How members reach it. 04 and 05 with --screenshot (--headless=new --disable-gpu
+# --hide-scrollbars --window-size=1440,900 --force-device-scale-factor=2 --virtual-time-budget=4000, a fresh profile
+# each) from domain-dns and domain-live. 06 the same from domain-live#invite at 1440 by 1800, cropped by the same
+# script from 432 pixels down: the step's top didn't move. Run on the page before these fixes, the same recipes gave
+# all six committed files pixel for pixel. Two captures of each: 04 to 06 came out the same both times; without
+# --disable-gpu, 01 and 03 vary by a few dozen pixels on the setup page's numbered circles, so each is the capture
+# whose only difference from the committed file is the one below.
+01-setup.png (2880, 1800): the eyebrow, now in --ink-2
+02-public-id.png: pixel for pixel the same, not retaken
+03-options.png (2880, 1800): the dot between the name and the domain, now in --ink-2
+04-cloudflare.png (2880, 1800): the eyebrow
+05-live.png (2880, 1800): the eyebrows, the self-hosting guide's arrow, and the line under Open in Buzz
+06-add-members.png (2880, 1800), cropped from 2880 by 3600: the eyebrows, the drawing's counter and the arrow

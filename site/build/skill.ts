@@ -38,11 +38,36 @@ export interface SkillOp {
   title: string;
   html: string;
 }
+/** A numbered step from agents.md: its bold title, then the rest as HTML, commands included. */
+export interface AgentStep {
+  title: string;
+  html: string;
+}
+/**
+ * agents.md, as the Agents answers in Running your relay show it (src/scenes/agents.ts). The page
+ * draws its own pictures and says its own recommendations; the steps, commands, tables and the
+ * example instruction come from here, so the page and the skill can't say different things.
+ */
+export interface SkillAgents {
+  /** the example instruction, one sentence a line; the page names what each line is for */
+  instruction: string[];
+  /** Harness, You need, Runs on */
+  harness: [string, string, string][];
+  /** keeping an agent answering: a computer that stays on, with Buzz open */
+  stayOn: AgentStep[];
+  /** an agent on your own server */
+  server: AgentStep[];
+  /** the messages a client of your own sends: step, what to send */
+  messages: [string, string][];
+  /** symptom, cause and fix */
+  symptoms: [string, string][];
+}
 export interface SkillData {
   steps: SkillStep[];
   fixes: SkillFix[];
   ops: SkillOp[];
   mobile: { title: string; html: string }[];
+  agents: SkillAgents;
   /** where the step-by-step view has a reader download the skill, so its scripts run by that path */
   home: string;
   preparation: string;
@@ -180,10 +205,16 @@ const PAGE: Record<string, string> = {
   "references/troubleshooting.md": "#fixes",
   "references/compose.md": "#commands",
   "references/kubernetes.md": "#commands",
+  // agents.md is six answers in Running your relay: the first leads to the others
+  "references/agents.md": "#to=fq-tab-agents&q=agents",
+  "references/agents.md#run-an-agent-on-your-own-server": "#to=fq-tab-agent-remote&q=agent-remote",
 };
 function pageLink(href: string, from: string): string {
   if (/^([a-z]+:|#)/.test(href)) return href;
   const path = posix.normalize(posix.join(from, href.replace(/#.*$/, "")));
+  // a link to a section that has a place of its own on the page goes there
+  const fragment = href.match(/#.+$/)?.[0];
+  if (fragment && `${path}${fragment}` in PAGE) return PAGE[`${path}${fragment}`];
   if (path in PAGE) return PAGE[path];
   if (path.endsWith(".md") || path.startsWith("..")) fail(`a link to ${href} from ${from || "SKILL.md"}: add it to PAGE in build/skill.ts`);
   return `skills/self-host-buzz/${path}`;
@@ -373,6 +404,72 @@ function securityClaims(dir: string): void {
   for (const claim of SECURITY_SAYS) if (!text.includes(claim)) fail(`security.md no longer says "${claim}", which the Security section rests on: change src/scenes/security.ts to match, then SECURITY_SAYS in build/skill.ts`);
 }
 
+/**
+ * agents.md's sections, by title, as the Agents answers place them (src/scenes/agents.ts). The
+ * answers' own words rest on the sentences in AGENTS_SAYS, so if the skill stops saying one, the
+ * build stops until the page is changed to match.
+ */
+const AGENT_SECTIONS = [
+  "Tell an agent its job",
+  "Pick a harness and model",
+  "Keep an agent answering",
+  "Run an agent on your own server",
+  "The messages",
+  "When it shows as a person, or never answers",
+];
+const AGENTS_SAYS = [
+  "They don't give it tools, logins or permissions",
+  "neither it nor Block's help and support pages recommend one over another",
+  "A local agent answers only while Buzz is open on its computer and that computer is awake",
+  "Buzz 1.0 has no built-in way to do this",
+  "A bot added as a member with no proof on its profile shows as a person",
+  "It has no expiry",
+  "has no way to revoke one",
+  "It isn't tied to one community either",
+  "the owner's own Buzz agents take requests from it",
+  "Removing the owner from the community cut off all of the owner's agents in the test",
+  "It answers only its owner unless started with `--respond-to anyone` or an allowlist",
+  "Buzz shows it as an agent, with no owner, and nothing it does acts for you",
+  "it keeps messages to the channel brief",
+];
+/** A Markdown table's rows, header and rule left out, as inline HTML cells. */
+function tableRows(markdown: string, cells: number, where: string): string[][] {
+  // the header row, then the rule row (|---|), then the rows
+  const rows = markdown.split("\n").filter((l) => l.startsWith("|")).slice(1).filter((l) => !/^\|[\s|:-]+\|$/.test(l));
+  if (!rows.length) fail(`${where}: no table`);
+  return rows.map((row) => {
+    const out = row.slice(2, -2).split(" | ");
+    if (out.length !== cells) fail(`${where}: a row without ${cells} cells: ${row.slice(0, 60)}`);
+    return out.map((cell) => links(md.parseInline(vars(current(presentation(cell)))) as string, "references"));
+  });
+}
+function agents(dir: string): SkillAgents {
+  const text = readFileSync(join(dir, "references", "agents.md"), "utf8");
+  const said = text.replace(/\s+/g, " ");
+  for (const claim of AGENTS_SAYS) if (!said.includes(claim)) fail(`agents.md no longer says "${claim}", which the Agents answers rest on: change src/scenes/agents.ts to match, then AGENTS_SAYS in build/skill.ts`);
+  const sections = new Map([...text.matchAll(/^## (.+)\n([\s\S]*?)(?=^## |(?![\s\S]))/gm)].map((s) => [s[1].trim(), s[2]]));
+  if ([...sections.keys()].join(" | ") !== AGENT_SECTIONS.join(" | ")) fail(`agents.md: the page expects the sections "${AGENT_SECTIONS.join(" | ")}", and found "${[...sections.keys()].join(" | ")}"`);
+  const section = (title: string) => sections.get(title)!;
+  const numbered = (title: string, count: number): AgentStep[] => {
+    const out = blocks(section(title))
+      .filter((b) => b.kind === "step")
+      .map((b) => ({ title: md.parseInline(readTitle(b.titleRaw).title) as string, html: toHTML(blockMarkdown(b), "references") }));
+    if (out.length !== count) fail(`agents.md "${title}": the page shows ${count} numbered steps, and found ${out.length}`);
+    return out;
+  };
+  // the page names what each line of the example is for, so it needs exactly these five
+  const example = section("Tell an agent its job").match(/```text\n([\s\S]*?)```/)?.[1].trim().split("\n") ?? fail('agents.md "Tell an agent its job": no ```text example');
+  if (example.length !== 5) fail(`agents.md: the example instruction has ${example.length} lines, and the page labels five`);
+  return {
+    instruction: example,
+    harness: tableRows(section("Pick a harness and model"), 3, "agents.md harness table") as [string, string, string][],
+    stayOn: numbered("Keep an agent answering", 4),
+    server: numbered("Run an agent on your own server", 7),
+    messages: tableRows(section("The messages"), 2, "agents.md messages table") as [string, string][],
+    symptoms: tableRows(section("When it shows as a person, or never answers"), 2, "agents.md symptoms table") as [string, string][],
+  };
+}
+
 export function parseSkill(dir: string): SkillData {
   securityClaims(dir);
   const steps = [...Object.keys(FILES).flatMap((f) => fileSteps(dir, f)), ...skillSections(dir)];
@@ -400,8 +497,9 @@ export function parseSkill(dir: string): SkillData {
   );
   if (charts.size !== 1) fail(`the skill installs ${charts.size ? [...charts].join(" and ") : "no"} chart version: the page shows one`);
   const chart = [...charts][0];
-  const data = { steps, fixes: fixes(dir), ops: ops(dir), mobile: referenceSections(dir, "mobile.md"), home: HOME, preparation: toHTML(readFileSync(join(dir, "references", "manual.md"), "utf8").replace(/^# .*\n/, ""), "references"), pin: { tag: tag!, digest: digest!, commit: commit!, chart } };
-  for (const text of [...data.steps.map((x) => x.html), ...data.ops.map((x) => x.html), ...data.fixes.flatMap((x) => [x.symptom, x.fix])]) {
+  const data = { steps, fixes: fixes(dir), ops: ops(dir), mobile: referenceSections(dir, "mobile.md"), agents: agents(dir), home: HOME, preparation: toHTML(readFileSync(join(dir, "references", "manual.md"), "utf8").replace(/^# .*\n/, ""), "references"), pin: { tag: tag!, digest: digest!, commit: commit!, chart } };
+  const agentText = [...data.agents.stayOn, ...data.agents.server].map((x) => x.html).concat(data.agents.instruction, data.agents.harness.flat(), data.agents.messages.flat(), data.agents.symptoms.flat());
+  for (const text of [...data.steps.map((x) => x.html), ...data.ops.map((x) => x.html), ...data.fixes.flatMap((x) => [x.symptom, x.fix]), ...agentText]) {
     const old = text.match(OLD);
     if (old) fail(`the site would show "${old[0]}": add a rule to CURRENT in build/skill.ts (${text.replace(/<[^>]+>/g, "").slice(0, 80)})`);
   }
@@ -420,4 +518,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   console.log(`commit: ${data.pin.commit}`);
   console.log(`chart: ${data.pin.chart}`);
   for (const t of TRACKS) console.log(`ops ${t}: ${data.ops.filter((o) => o.tracks.includes(t)).map((o) => `${o.kind}/${o.title}`).join(", ")}`);
+  const a = data.agents;
+  console.log(`agents: ${a.instruction.length} instruction lines, ${a.harness.length} harnesses, ${a.stayOn.length} stay-on steps, ${a.server.length} server steps, ${a.messages.length} messages, ${a.symptoms.length} symptoms`);
 }

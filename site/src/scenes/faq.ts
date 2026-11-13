@@ -1,6 +1,7 @@
 import skill from "virtual:skill-steps";
 import { linkButton } from "../lib/permalink";
 import { agentFlows } from "./agentflow";
+import { agentQuestions } from "./agents";
 import { identityFlows, lostFlows } from "./identity";
 import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members";
 import { promptText, runningOnHTML, taskHTML } from "./operations";
@@ -339,6 +340,11 @@ const GROUPS: [string, Question[]][] = [
           ct("remove") +
           note("Messages already on their devices stay there: Buzz can't wipe a device."),
       },
+    ],
+  ],
+  [
+    "Agents",
+    [
       {
         id: "agents",
         icon: "robot",
@@ -347,22 +353,12 @@ const GROUPS: [string, Question[]][] = [
           rec("Choose the agent's environment before connecting it. For a community anyone can join, use an isolated device or virtual machine with only that project's files and scoped credentials.") +
           note(`<a href="#security">See what an agent can touch</a>, drawn in Security. A Workspace folder is not a sandbox. Keep personal accounts, private repositories and production credentials off a machine whose agent reads an open community.`) +
           ct("agents") +
-          note("A shared bot with only a key of its own, such as one on the buzz command-line tool, is added like a member; keep its key in the shared vault. The relay's settings limit how fast agents post, apart from people.") +
-          // block/buzz-app v1.0.0: README (agents run while Buzz is open; Claude and Codex need macOS or Linux), the
-          // owner check (src/features/agents/owner-attestation.ts), the launches (codex/runtime.ts approvalPolicy
-          // "never" and sandbox "danger-full-access", claude-code/claude.ts bypassPermissions), builderlab/README
+          // block/buzz-app v1.0.0, src/features/agents/owner-attestation.ts: the owner's messages start an agent's work
           note(
-            "Agents answer only while their person's Buzz is open; for a bot that's always on, run it on a server with a key of its own, added as a member. An agent sends what it reads to its model's provider, such as Anthropic for Claude or OpenAI for Codex: use one your team has approved, or a local model through Goose. On Windows, Buzz runs Goose and Pi agents only.",
-          ) +
-          note(
-            "An agent takes requests from its owner, but it reads what others post, and that text can steer it. Buzz starts every local agent with no sandbox and no approval prompts, and has no setting for either, so the agent can do whatever its person's account can. Keep agents out of channels whose content shouldn't reach that computer or the model's provider.",
-          ) +
-          note("Agents hosted by Builderlab, Block's service, run on Block's machines, where what they read is processed. They can't open your files, and by default one person's hosted agents share a cloud computer.") +
-          // block/buzz-app v1.0.0: docs/plugin-architecture.md ("trusted code... not sandboxed"), docs/agent-protection.md
-          note(
-            `Install only plugins you trust. A plugin is unsandboxed code, and <a href="https://buzz.xyz/support">Block's support page</a> says one can reach your files and your Buzz private key. Buzz's <a href="https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/agent-protection.md">experimental protection feature</a> for macOS limits who can approve an agent's actions. It is not a sandbox.`,
+            `An agent made in Buzz answers its owner, not every member. Next: <a href="#operations" data-q-link="agent-brief">what to tell it</a>, <a href="#operations" data-q-link="agent-model">which harness and model</a>, <a href="#operations" data-q-link="agent-on">keeping it answering</a> and <a href="#operations" data-q-link="agent-safe">keeping it safe</a>.`,
           ),
       },
+      ...agentQuestions({ rec, note }),
     ],
   ],
   [

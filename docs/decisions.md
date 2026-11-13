@@ -73,6 +73,20 @@ done: the work they call for is listed where it is still owed.
   ([research.md](research.md)), so the section does not ask for one. Owed before publishing: the
   channel's real name (`CHANNEL` in `site/src/scenes/ask.ts` is a placeholder, since the channel
   does not exist yet) and Block's agreement to send readers there.
+- **Agents get their own group in Running your relay.** People asked what to tell an agent, which
+  harness to pick, how to keep one answering, how to keep it safe, and how to run one on a server
+  without Buzz, including one that showed as a person and never answered. The owner picked the
+  placement and the two drawings from mockups: six answers under Agents, the server answer led by
+  a drawing of the same bot with its owner's proof and without, and the instructions answer by a
+  labelled example. Their steps, commands and tables live in the skill's new
+  `references/agents.md`, which the build parses (`SkillAgents` in `site/build/skill.ts`), so the
+  page and the skill can't disagree. The server answer says it is not built into Buzz yet. It
+  rests on Block's source and a test on a local relay ([remote-agent-test.md](remote-agent-test.md)).
+  Two things are new guidance, flagged to the owner: the ownership proof's risk is stated where the
+  reader makes one (no expiry, no revoking, not tied to one community; ban the key if it leaks),
+  and a helper meant to answer everyone is set up without a proof, as a member whose profile
+  carries Buzz's agent flag. The old line "for a bot that's always on, run it on a server with a
+  key of its own, added as a member" is gone: that setup is the one that shows as a person.
 
 ## The relay moves to 0.3.0 (2026-11-12)
 

@@ -184,7 +184,8 @@ Credit #5928 when we submit.
   a domain chosen wrong stays with the sign-in, since its fix is a new one. The current stage is the
   earliest one not done, and only it shows it's at work, or YOU when it waits on the owner. A problem
   turns the stage it blocks red, with its hint under the bar, and the current stage's checks that still
-  wait show there quietly, as on the live card. Screen readers get each check's full sentence, and one
+  wait show there quietly, as on the live card, unless it's the owner's turn: then the section below
+  says what to do. Screen readers get each check's full sentence, and one
   short sentence when the checks change. Once live: the join address, and the checks as one card that
   says Everything works and opens to the full list. A problem shows above it with its hint, and a check
   still waiting shows there too, quietly. Then the next steps as a guide, wider than the page on a

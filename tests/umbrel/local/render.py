@@ -348,7 +348,8 @@ for items, tops_want, summary_want, alert in (
     count += 1
 
 # Every connecting stage of the three options, through the page's own checks: the bar's segments, which one is
-# current, YOU where the owner can act, and each problem's hint under the bar. Then each option live, as a card.
+# current, YOU where the owner can act (nothing of its own under the bar then: the section below says what
+# to do), and each problem's hint under the bar. Then each option live, as a card.
 DOMAIN, TS, PUBLIC = "buzz.example.com", "buzz.tail1234.ts.net", ["104.16.0.1"]
 SERVE = {"funnel": "https://" + TS + " (Funnel on)\n|-- / proxy http://buzz-gateway:80\n",
          "private": "https://" + TS + " (tailnet only)\n|-- / proxy http://buzz-gateway:80\n"}
@@ -438,8 +439,8 @@ PHASES = (
     ("funnel", "starting Tailscale", dict(backend="NoState", relay=False), "done work wait wait wait", ""),
     ("funnel", "Tailscale's sign-in link", dict(backend="NeedsLogin", relay=False), "done you wait wait wait", ""),
     ("funnel", "approving the machine", dict(backend="NeedsMachineAuth", relay=False), "done you wait wait wait", ""),
-    ("funnel", "Funnel to allow while Buzz starts", dict(backend="Running", named=True, consent=True, relay=False), "done done you wait wait", "publish"),
-    ("funnel", "Funnel to allow", dict(backend="Running", named=True, consent=True), "done done you wait wait", "publish"),
+    ("funnel", "Funnel to allow while Buzz starts", dict(backend="Running", named=True, consent=True, relay=False), "done done you wait wait", ""),
+    ("funnel", "Funnel to allow", dict(backend="Running", named=True, consent=True), "done done you wait wait", ""),
     ("funnel", "waiting for Tailscale to ask", dict(backend="Running", named=True), "done done work wait wait", "publish"),
     ("funnel", "Funnel on, the name not published", dict(backend="Running", named=True, serve="funnel"), "done done done work wait", "dns"),
     ("funnel", "Funnel on, nothing answers yet", dict(backend="Running", named=True, serve="funnel", addresses=PUBLIC,
@@ -454,8 +455,8 @@ PHASES = (
     ("private", "starting Tailscale", dict(backend="Starting", relay=False), "done work wait", ""),
     ("private", "Tailscale's sign-in link", dict(backend="NeedsLogin", relay=False), "done you wait", ""),
     ("private", "approving the machine", dict(backend="NeedsMachineAuth", relay=False), "done you wait", ""),
-    ("private", "HTTPS to allow while Buzz starts", dict(backend="Running", named=True, consent=True, relay=False), "done done you", "publish relay"),
-    ("private", "HTTPS to allow", dict(backend="Running", named=True, consent=True), "done done you", "publish"),
+    ("private", "HTTPS to allow while Buzz starts", dict(backend="Running", named=True, consent=True, relay=False), "done done you", ""),
+    ("private", "HTTPS to allow", dict(backend="Running", named=True, consent=True), "done done you", ""),
     ("private", "getting the certificate", dict(backend="Running", named=True), "done done work", "publish"),
     ("private", "on the network while Buzz starts", dict(backend="Running", named=True, serve="private", relay=False), "done done work", "relay"),
 )

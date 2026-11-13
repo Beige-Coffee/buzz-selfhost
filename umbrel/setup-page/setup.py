@@ -2053,10 +2053,12 @@ def bar_stages(setup, items):
         return all(any(entry["key"] == key and entry["state"] == "ok" for entry in found) for key in keys)
 
     def stage(label, found, done, you=False, quiet=True):
-        # A sign-in's one check says what its label says, so it stays out from under the bar
+        # A sign-in's one check says what its label says, and on the owner's turn the section below says what to do,
+        # so neither shows under the bar
         bad = any(entry["state"] == "bad" for entry in found)
-        return [label, "bad" if bad else "done" if done else "you" if you else "open", found,
-                [entry for entry in found if entry["state"] == "wait"] if quiet else []]
+        state = "bad" if bad else "done" if done else "you" if you else "open"
+        return [label, state, found,
+                [entry for entry in found if entry["state"] == "wait"] if quiet and state != "you" else []]
 
     stages = [stage("Set up on this Umbrel", [], True)]
     if mode == "domain":

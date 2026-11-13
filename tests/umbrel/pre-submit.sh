@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The longer test, for before submitting the package to Umbrel or an update to it. Unattended, on a
 # fresh DigitalOcean droplet that's deleted at the end whatever happens, about $0.10 a run:
-#   umbrelOS 2.0.0 with Buzz Relay installed through Umbrel, and its memory before setup;
+#   umbrelOS (2.0.0 by default) with Buzz Relay installed through Umbrel, and its memory before setup;
 #   e2e.sh, then memory with a community and under a load of 20 members sending 200 messages;
 #   a 20 MB image and a real 96 MB video up and back, and the size limits;
 #   what the community's public address shows, and secrets in the app's logs;
@@ -10,13 +10,16 @@
 #   an uninstall, then an install and e2e.sh again.
 # Needs what droplet-run.sh needs, and ffmpeg on this machine for the video (skipped without it).
 #   BUZZ_CLI=path/to/buzz bash tests/umbrel/pre-submit.sh
+#   UMBREL_VERSION=2.0.2 BUZZ_CLI=path/to/buzz bash tests/umbrel/pre-submit.sh   # another umbrelOS
 # UMBREL_LOCAL=1 runs it on this machine's umbrelOS instead, with the package already in its App Store
 # (install.sh puts it there), without the restart and the restore, and uninstalls the app at the end.
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 T=tests/umbrel; L=tests/lib
 BZ=${BUZZ_CLI:?set BUZZ_CLI to the buzz CLI}
-C=${UMBREL_CONTAINER:-umbrelos-test}; B=umbrelos-restored; VERSION=2.0.0
+# umbrelOS for the droplet, its reinstall and the restore (with UMBREL_LOCAL, the one install.sh started).
+# UMBREL_VERSION, not VERSION: Docker's install script reads that name as the Docker version to install.
+C=${UMBREL_CONTAINER:-umbrelos-test}; B=umbrelos-restored; VERSION=${UMBREL_VERSION:-2.0.0}
 TMP=$(mktemp -d)
 PASS=0 FAIL=0
 pass() { echo "PASS  $1"; PASS=$((PASS + 1)); }

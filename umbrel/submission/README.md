@@ -25,6 +25,6 @@ Buzz's own, from [block/buzz-app](https://github.com/block/buzz-app):
 4. [`04-cloudflare.png`](screenshots/04-cloudflare.png): connecting your own domain with one
    Cloudflare sign-in, with a bar that shows what's done and what's yours to do.
 5. [`05-live.png`](screenshots/05-live.png): the community live, its checks in one card, and the
-   next steps as a guide.
+   next steps as a guide: join, invite people, keep it safe and pair a phone.
 6. [`06-add-members.png`](screenshots/06-add-members.png): inviting people, a step of the guide, in a
    drawing of Buzz's own screens.

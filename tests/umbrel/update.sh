@@ -51,7 +51,8 @@ URL=$(field url < "$TMP/up.json")
 mkdir -p "$TMP/pkg"
 if [ -n "${PKG_DIR:-}" ]; then
   cp -R "$PKG_DIR" "$TMP/pkg/buzz"
-  TAG=$(grep -o -m1 -E 'ghcr\.io/block/buzz:sha-[0-9a-f]+' "$TMP/pkg/buzz/docker-compose.yml" | sed 's|.*:||')
+  # a tag of either style: sha-<commit> for a build of main, or a release such as 0.3.0
+  TAG=$(grep -o -m1 -E 'ghcr\.io/block/buzz:[A-Za-z0-9._-]+@' "$TMP/pkg/buzz/docker-compose.yml" | sed 's|.*:||; s|@$||')
 else
 cp -R "$HERE/../../umbrel/buzz" "$TMP/pkg/buzz"
 python3 - "$TMP/pkg/buzz" "$TAG" "$DIGEST" <<'PY'
@@ -59,7 +60,7 @@ import re, sys
 root, tag, digest = sys.argv[1:]
 p = root + "/docker-compose.yml"
 t = open(p).read()
-t = re.sub(r"ghcr\.io/block/buzz:sha-[0-9a-f]+@sha256:[0-9a-f]{64}", "ghcr.io/block/buzz:" + tag + "@" + digest, t)
+t = re.sub(r"ghcr\.io/block/buzz:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}", "ghcr.io/block/buzz:" + tag + "@" + digest, t)
 open(p, "w").write(t)
 p = root + "/umbrel-app.yml"
 t = open(p).read()

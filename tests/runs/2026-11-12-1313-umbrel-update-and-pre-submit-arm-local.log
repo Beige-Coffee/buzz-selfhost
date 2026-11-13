@@ -1,0 +1,338 @@
+# ARM: umbrelOS 2.0.2 in Docker Desktop on an Apple Silicon Mac (UMBREL_LOCAL=1). Last round's package (fork 5d03829: relay sha-744f394, the page bind-mounted) installed, set up with a quick tunnel and a test owner, updated to this round (relay 0.3.0, page image 1.0.0, package at cdf4a58) with update.sh, e2e.sh on the updated install, then pre-submit.sh on this round.
+
+## install.sh 2.0.2 with last round (first try: umbrelOS's own startup race, Tor's container created twice)
+}
+
+Node.js v22.23.5
+install.sh: failed at line 43 of the server script
+EXIT 1
+Thu Nov 12 13:14:41 PST 2026
+
+## the install, retried
+Thu Nov 12 13:16:27 PST 2026
+state: {"state":"ready","progress":0}
+buzz_relay_1 arm64
+buzz_web_1 arm64
+buzz_cloudflared_1 arm64
+Thu Nov 12 13:16:56 PST 2026
+
+## e2e.sh SETUP_ONLY=1 on last round's page
+Thu Nov 12 13:17:07 PST 2026
+== Tunnel
+PASS  relay address https://<quick-tunnel>
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+setup only: passed 6, failed 0
+EXIT 0
+Thu Nov 12 13:17:18 PST 2026
+
+## update.sh PKG_DIR=umbrel/buzz
+Thu Nov 12 13:18:00 PST 2026
+== Before the update
+INFO  relay image ghcr.io/block/buzz:sha-744f394
+PASS  member posts
+PASS  member uploads a file
+== Update through Umbrel to 0.3.0
+PASS  Umbrel updated the app and reports it ready
+PASS  the relay now runs 0.3.0
+== After the update
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://<quick-tunnel>/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the message from before the update is still there
+PASS  the file from before the update comes back intact
+PASS  the member still belongs and posts
+
+passed: 14  failed: 0
+EXIT 0
+Thu Nov 12 13:18:43 PST 2026
+
+## e2e.sh SKIP_SETUP=1 on the updated install
+Thu Nov 12 13:18:59 PST 2026
+== Tunnel
+PASS  relay address https://<quick-tunnel>
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://<quick-tunnel>/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://<quick-tunnel>/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 31  failed: 0
+community address: https://<quick-tunnel>
+EXIT 0
+Thu Nov 12 13:19:43 PST 2026
+
+## uninstalled, then pre-submit.sh UMBREL_LOCAL=1 on this round
+Thu Nov 12 13:20:20 PST 2026
+== Buzz Relay, installed through Umbrel
+== Memory, installed, before setup (after two minutes)
+buzz_cloudflared_1 0.19% 840KiB / 11.91GiB
+buzz_gateway_1 0.14% 12.76MiB / 11.91GiB
+buzz_pair_1 0.00% 1.402MiB / 11.91GiB
+buzz_postgres_1 0.03% 25.73MiB / 11.91GiB
+buzz_redis_1 0.59% 3.898MiB / 11.91GiB
+buzz_relay_1 0.01% 1.102MiB / 11.91GiB
+buzz_silo_1 0.16% 82MiB / 11.91GiB
+buzz_tailscale_1 0.12% 856KiB / 11.91GiB
+buzz_web_1 0.02% 16.16MiB / 11.91GiB
+TOTAL 145 MiB
+== End to end
+== Tunnel
+PASS  relay address https://<quick-tunnel>
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://<quick-tunnel>/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://<quick-tunnel>/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 36  failed: 0
+community address: https://<quick-tunnel>
+== What each service can reach, and how fast the page stops
+OWN cloudflared
+MOUNTS buzz_cloudflared_1
+SETTINGS buzz_relay_1 false
+TSCONTROL buzz_tailscale_1
+SETTINGS buzz_gateway_1 false
+CFCONTROL buzz_cloudflared_1
+SETTINGS buzz_web_1 true
+TSCONTROL buzz_web_1
+CFCONTROL buzz_web_1
+STOPPED 0
+PASS  Cloudflare's sign-in and tunnel files are in a folder only its own service mounts
+PASS  only the page writes the relay's settings, and each helper shares only its own folder with the page
+PASS  the page, relay, pairing, Tailscale and gateway services run under an init process
+PASS  the setup page stops in under 5 s
+== Another app on this Umbrel, trying the app's services directly
+PAGE_GET 303
+PAGE_SAVE 401
+PAGE_NEGLEN 413 0
+PAGE_FRAME DENY
+PAGE_IDLE 20 200
+RELAY_XPUBKEY 401
+GATEWAY_OTHER 404
+GATEWAY_OWN 200
+SILO_ANON 403
+METRICS 200
+PG refused
+REDIS NOAUTH Authentication required.
+PASS  another app can't use the setup page without its password
+PASS  a request with a bad length is refused at once, not read
+PASS  the setup page refuses to be shown inside another app's page
+PASS  20 half-sent requests are dropped after the time limit, and the page still answers
+PASS  the relay refuses a request that only claims to be the owner in a header
+PASS  the gateway answers the community's address and no other
+PASS  file storage refuses requests without its keys
+PASS  the database refuses a guessed password
+PASS  Redis refuses commands without its password
+INFO  the relay's metrics port answers other apps with HTTP 200: counts only, no keys or messages (block/buzz#7989, fix open in #8004)
+== The relay's settings, written to by something other than the page
+READY tampered
+ENV BUZZ_REQUIRE_RELAY_MEMBERSHIP=true
+READY again
+PASS  lines added to the relay's settings run nothing and can't turn off its checks
+PASS  the relay starts again with the page's own settings
+== Memory with a community
+buzz_cloudflared_1 0.28% 15.89MiB / 11.91GiB
+buzz_gateway_1 0.11% 13.24MiB / 11.91GiB
+buzz_pair_1 0.00% 1.406MiB / 11.91GiB
+buzz_postgres_1 0.10% 65.06MiB / 11.91GiB
+buzz_redis_1 0.47% 4.082MiB / 11.91GiB
+buzz_relay_1 1.92% 13.52MiB / 11.91GiB
+buzz_silo_1 0.04% 180.7MiB / 11.91GiB
+buzz_tailscale_1 0.00% 840KiB / 11.91GiB
+buzz_web_1 0.04% 16.19MiB / 11.91GiB
+TOTAL 311 MiB
+== Load: 20 members send 10 messages each, ten at a time
+PASS  20 members added
+INFO  memory under the load:
+buzz_cloudflared_1 0.00% 15.88MiB / 11.91GiB
+buzz_gateway_1 0.05% 16.19MiB / 11.91GiB
+buzz_pair_1 0.01% 1.406MiB / 11.91GiB
+buzz_postgres_1 4.64% 141.2MiB / 11.91GiB
+buzz_redis_1 2.09% 4.211MiB / 11.91GiB
+buzz_relay_1 0.42% 16.62MiB / 11.91GiB
+buzz_silo_1 2.32% 180.7MiB / 11.91GiB
+buzz_tailscale_1 0.10% 844KiB / 11.91GiB
+buzz_web_1 0.03% 16.19MiB / 11.91GiB
+TOTAL 393 MiB
+PASS  200 messages sent in 23s, and all 200 read back
+INFO  memory after the load:
+buzz_cloudflared_1 0.00% 15.88MiB / 11.91GiB
+buzz_gateway_1 0.01% 16.19MiB / 11.91GiB
+buzz_pair_1 0.00% 1.406MiB / 11.91GiB
+buzz_postgres_1 1.28% 141.6MiB / 11.91GiB
+buzz_redis_1 0.49% 4.211MiB / 11.91GiB
+buzz_relay_1 0.58% 16.86MiB / 11.91GiB
+buzz_silo_1 0.00% 180.7MiB / 11.91GiB
+buzz_tailscale_1 0.00% 844KiB / 11.91GiB
+buzz_web_1 0.07% 16.19MiB / 11.91GiB
+TOTAL 394 MiB
+INFO  the app's data: 73M
+== Files and videos
+PASS  a 20 MB image goes up, in 3s
+PASS  another member downloads it intact
+PASS  a 60 MB image is refused: images stop at 50 MiB, Buzz's default
+INFO  memory while it goes up:
+buzz_cloudflared_1 0.12% 15.91MiB / 11.91GiB
+buzz_gateway_1 0.18% 16.21MiB / 11.91GiB
+buzz_pair_1 0.01% 1.406MiB / 11.91GiB
+buzz_postgres_1 1.15% 142.5MiB / 11.91GiB
+buzz_redis_1 3.08% 4.211MiB / 11.91GiB
+buzz_relay_1 26.97% 161.2MiB / 11.91GiB
+buzz_silo_1 6.37% 185.2MiB / 11.91GiB
+buzz_tailscale_1 0.33% 844KiB / 11.91GiB
+buzz_web_1 0.02% 16.19MiB / 11.91GiB
+TOTAL 544 MiB
+PASS  a 96 MB video goes up, in 9s
+PASS  another member downloads it intact
+PASS  a 100.5 MB video is refused at the package's 100 MB limit (HTTP 413)
+== What the community's public address shows
+PASS  the public address never shows the setup page
+== Secrets in the app's logs
+settings checked: 16, log lines: 368
+PASS  no setting's secret value shows up in the app's logs
+== Cloudflare and Tailscale, up to their sign-in links, and what each can see
+PASS  your own domain: the app's Cloudflare tunnel waits for a sign-in, with Cloudflare's link
+PASS  switching to the free Tailscale address is accepted
+PASS  Tailscale waits for a sign-in, with a link (funnel)
+PASS  the Cloudflare tunnel turns off and waits
+PASS  switching to the private network is accepted
+PASS  the page shows the private network's sign-in
+PASS  the relay can't see Tailscale's status, and neither helper can see the relay's settings
+== Uninstall, then install again
+PASS  Umbrel uninstalls the app
+PASS  uninstalling removes the app's data
+PASS  installing again starts at a fresh setup page
+== Tunnel
+PASS  relay address https://<quick-tunnel>
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://<quick-tunnel>/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://<quick-tunnel>/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+
+passed: 36  failed: 0
+community address: https://<quick-tunnel>
+
+passed: 107  failed: 0
+EXIT 0
+Thu Nov 12 13:28:24 PST 2026

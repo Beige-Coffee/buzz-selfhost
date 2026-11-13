@@ -1,0 +1,128 @@
+# Intel: umbrelOS 2.0.2 in Docker on a DigitalOcean droplet. Last round's package installed and set up by its owner (a real person) on the owner's own Cloudflare domain at <name A>; Cloudflare's first sign-in came back as a browser download (cloudflare/cloudflared#1252), so the owner's cert.pem was copied into the cloudflared service's folder by hand; update.sh to this round (package at cdf4a58); the address moved to <name B> with a second sign-in (this one reached cloudflared normally); then owner moderation by hand (BUZZ_ADMIN_HOST=<name B>:8443 added to the installed compose file), probed from a Mac, and a ban made by the owner in Buzz Foundation 0.7.0-preview.270.2. Scripts: tests/umbrel/{server.py,install.sh,update.sh}; the session's page.sh, moderation.sh and member-post.sh.
+
+## droplet, install.sh 2.0.2 with last round
+Thu Nov 12 13:13:17 PST 2026
+created buzz-umbrel-test in sfo3
+buzz-umbrel-test at <ip>
+x86_64
+{
+  "state": "ready",
+  "progress": 0
+}
+EXIT 0
+Thu Nov 12 13:20:08 PST 2026
+
+## setup at name A on last round's page, and Cloudflare's sign-in link
+INFO  buzz_web_1 runs the old page, from the image python:3.13.16-alpine3.24
+PASS  the app password signs in to the old page (POST /login 303), and the session opens it (GET / 200)
+PASS  set up: owner <npub>, your own domain at <name A> (POST /save 303); setup.json, relay.env and cloudflare-enabled name it
+INFO  cloudflare-state is none, for <name A>
+PASS  Cloudflare's sign-in link for <name A>, as the page shows it (it works for about ten minutes, then a new one replaces it): <Cloudflare sign-in link>
+
+## after the owner authorized in Cloudflare: still waiting, cert.pem never arrived; Cloudflare had saved it to the owner's Downloads
+INFO  cloudflared kept logging 'Waiting for login...'; the owner's cert.pem (one ARGO TUNNEL TOKEN block: zoneID, accountID, serviceKey, apiToken) was copied in, the waiting login stopped
+
+## last round with the file
+PASS  cloudflare-state is running, for <name A> (after 6 s)
+INFO  ~/umbrel/app-data/buzz/data/cloudflare holds: .cloudflared/, .cloudflared/<tunnel-id>.json 175 B, .cloudflared/cert.pem 566 B, routed 27 B, tunnel-name 18 B, tunnel.token 181 B
+
+## update.sh to this round, on the real domain
+Thu Nov 12 13:51:04 PST 2026
+== Before the update
+INFO  relay image ghcr.io/block/buzz:sha-744f394
+PASS  member posts
+PASS  member uploads a file
+== Update through Umbrel to 0.3.0
+PASS  Umbrel updated the app and reports it ready
+PASS  the relay now runs 0.3.0
+== After the update
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://<name A>/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the message from before the update is still there
+PASS  the file from before the update comes back intact
+PASS  the member still belongs and posts
+
+passed: 14  failed: 0
+EXIT 0
+Thu Nov 12 13:51:55 PST 2026
+
+## after the update
+INFO  buzz_web_1 runs the new page, from the image ghcr.io/beige-coffee/buzz-umbrel-setup:1.0.0
+PASS  the session from the earlier sign-in still opens the new page (GET / 200), with no new sign-in
+PASS  cloudflare-state is running, for <name A> (after 0 s)
+PASS  no Cloudflare sign-in (.cloudflared/cert.pem) is kept. ~/umbrel/app-data/buzz/data/cloudflare holds: routed 27 B, tunnel-name 18 B, tunnel.token 181 B
+PASS  the app password signs in to the new page (POST /login 303), and the session opens it (GET / 200)
+PASS  the page says: Live
+
+## address change to name B (second sign-in reached cloudflared by itself)
+PASS  the app password signs in to the new page (POST /login 303), and the session opens it (GET / 200)
+PASS  before the change, Settings, Address says: On your own domain, moving to another address asks you to sign in to Cloudflare again.
+PASS  Settings, Address: your own domain moved from <name A> to <name B> (confirm=<name A>, POST /address 303); setup.json, relay.env and cloudflare-enabled name it
+PASS  cloudflare-state is signin, for <name B> (after 6 s)
+INFO  ~/umbrel/app-data/buzz/data/cloudflare holds: .cloudflared/, routed 27 B, tunnel-name 18 B, tunnel.token 181 B
+PASS  Cloudflare's sign-in link for <name B>, as the page shows it (it works for about ten minutes, then a new one replaces it): <Cloudflare sign-in link>
+PASS  cloudflare-state is running, for <name B> (after 0 s)
+PASS  no Cloudflare sign-in (.cloudflared/cert.pem) is kept. ~/umbrel/app-data/buzz/data/cloudflare holds: routed 27 B, tunnel-name 18 B, tunnel.token 181 B
+
+## moderation probes before any change (gate A)
+INFO  NIP-11 at https://<name B>/ has no admin_api: the admin API is off, so the rest is judged for that
+PASS  https://<name B>:8443/ reached the relay with Host <name B>:8443 (no community there): Cloudflare, cloudflared and the gateway keep the port
+PASS  https://<name B>:8443/api/admin/v1/probe, no credential: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  https://<name B>/api/admin/v1/probe, no credential: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  https://<name B>:8443/api/admin/v1/probe, no credential, no User-Agent: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  https://<name B>:8443/api/admin/v1/probe, signed by the member, no User-Agent: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+PASS  the same signature sent to https://<name B>/api/admin/v1/probe: an empty 404, no admin API yet (the relay's fallback, or the gateway's catch-all: port tells which)
+
+passed: 6  failed: 0
+
+## a member in community B
+NOT A MEMBER  channels create: the member isn't in the community at <name B>: run add-member <name B> <keys>
+added <hex> as member
+PASS  the member belongs to the community at <name B>
+
+passed: 1  failed: 0
+INFO  the member made channel fe215c6a-4e8e-4eb8-a807-433b0957e8a6: give it as the third argument next time
+POSTED  the member wrote in channel fe215c6a-4e8e-4eb8-a807-433b0957e8a6
+
+## BUZZ_ADMIN_HOST on, probes again
+150:      BUZZ_BIND_ADDR: <ip>:3000
+151:      BUZZ_ADMIN_HOST: "<name B>:8443"
+PASS  the relay's environment in the installed compose file has BUZZ_ADMIN_HOST: "<name B>:8443"
+PASS  Umbrel restarted the app and reports it ready
+PASS  the running relay has BUZZ_ADMIN_HOST=<name B>:8443
+PASS  https://<name B>/_liveness answers
+PASS  NIP-11 at https://<name B>/ advertises admin_api https://<name B>:8443: the admin API is on
+
+passed: 5  failed: 0
+
+PASS  NIP-11 at https://<name B>/ advertises admin_api https://<name B>:8443: the admin API is on
+PASS  https://<name B>:8443/ reached the relay with Host <name B>:8443: its admin host answered (404 with the admin CSP)
+PASS  https://<name B>:8443/api/admin/v1/probe, no credential: HTTP 401 unauthorized from the relay's admin API (WWW-Authenticate: Nostr)
+PASS  https://<name B>/api/admin/v1/probe, no credential: HTTP 401 unauthorized from the relay's admin API (WWW-Authenticate: Nostr)
+PASS  https://<name B>:8443/api/admin/v1/probe, no credential, no User-Agent: HTTP 401 unauthorized from the relay's admin API (WWW-Authenticate: Nostr)
+PASS  https://<name B>:8443/api/admin/v1/probe, signed by the member, no User-Agent: HTTP 403 forbidden from the relay's admin API
+PASS  the same signature sent to https://<name B>/api/admin/v1/probe: HTTP 403 forbidden from the relay's admin API
+
+passed: 7  failed: 0
+
+## the owner banned the member in Buzz Foundation (Settings, Moderation, Communities, Members, Ban); then a member who wasn't banned, and the banned one
+control member (not banned) post: HTTP 200 {"accepted":true,"event_id":"<hex>","message":""}
+control member (not banned) read: HTTP 200 [{"content":"posted by the control member (not banned) at 00:29:34","created_at":1794529774,"id":"abf380cae4da6239c5cd2a
+banned member post: HTTP 403 {"error":"blocked: you are banned from this community"}
+banned member read: HTTP 403 {"error":"blocked: you are banned from this community"}
+
+## carry-over facts and the end
+tunnel name: buzz-relay-<id>
+2026-11-12 21:20:02 ~/umbrel/app-data/buzz/data/secrets/relay.env
+2026-11-12 21:39:44 ~/umbrel/app-data/buzz/data/cloudflare/tunnel-name
+2026-11-12 21:50:47 ~/umbrel/app-data/buzz/data/cloudflare/tunnel.token
+2026-11-12 21:55:08 ~/umbrel/app-data/buzz/docker-compose.yml
+migrations applied: 86
+latest migration: 86
+deleted droplet buzz-umbrel-test
+deleted firewall buzz-umbrel-test-ssh-only

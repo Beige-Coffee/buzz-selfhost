@@ -455,11 +455,44 @@ pinned by digest: `pre-submit.sh` on a fresh DigitalOcean droplet (Intel) passed
 - Not run again on ARM: the image is built for both chips and the page is the same Python file.
   Umbrel's reviewer ran the previous round on ARM (umbrelOS 2.0.1).
 
+2026-11-12, the update from the PR's last push, on umbrelOS 2.0.2, Umbrel's newest (its reviewer
+ran 2.0.1). Last round's package (relay `sha-744f394`, the page bind-mounted) was installed through
+Umbrel and set up, then Umbrel updated it to this round.
+
+- ARM, umbrelOS 2.0.2 in Docker Desktop on an Apple Silicon Mac, with a quick tunnel and a test owner
+  ([log](../tests/runs/2026-11-12-1313-umbrel-update-and-pre-submit-arm-local.log)): `update.sh` 14 of
+  14 (the message, the file and the member from before), `e2e.sh` 31 of 31 on the updated install,
+  then `pre-submit.sh` 107 of 107 on this round, without the restart and the restore, which need a
+  droplet. Memory: 145 MiB before setup, 311 MiB with a community, 393 MiB while 20 members sent 200
+  messages in 23 s. A 96 MB video went up in 9 s. The first install failed inside umbrelOS: its own
+  startup and the install both created Tor's container. A retry installed it.
+- Intel, umbrelOS 2.0.2 on a droplet, on the owner's own domain with a real Cloudflare account
+  ([log](../tests/runs/2026-11-12-1313-umbrel-update-real-cloudflare-moderation-intel-droplet.log)):
+  `update.sh` 14 of 14. After the update, the page ran from its image and the owner's page session
+  still opened it, with no new sign-in. The Cloudflare service deleted `cert.pem` and the
+  credentials file at its first start, since the name was already routed, and the tunnel kept running
+  on its token. The relay's own key, the tunnel and its name carried over, and all 86 of relay
+  0.3.0's migrations had run.
+- An address change on that droplet: Settings, Address said first that moving asks for a new
+  Cloudflare sign-in. After the sign-in the new name was routed, `cert.pem` was deleted again, and the
+  old name answered 404.
+- Found: the first sign-in said it had worked, but Cloudflare saved `cert.pem` to the owner's Downloads
+  instead of handing it to `cloudflared`
+  ([cloudflare/cloudflared#1252](https://github.com/cloudflare/cloudflared/issues/1252)), so setup
+  waited. Copying the file into the service's folder by hand let it carry on. The second sign-in
+  reached `cloudflared` as it should.
+- Owner moderation, by hand on that droplet: with `BUZZ_ADMIN_HOST=<name>:8443` in the relay's
+  environment, requests to `https://<name>:8443` reached the relay with the port intact through
+  Cloudflare, the tunnel and the gateway, and Cloudflare let through a request with no User-Agent, as
+  Buzz's admin client sends it. Moderation showed in Buzz (a preview build with 1.0.0's admin client)
+  for the owner, who banned a test member. The relay then refused that member's posts and reads; a
+  member who wasn't banned still posted.
+- Umbrel's update left last round's `setup.py` and its template in the app's folder, unused.
+
 ## Not yet tested
 
-- An update from the previous package on umbrelOS: the setup should carry over, with one sign-in.
-- The new Cloudflare steps against a real account (deleting the sign-in once routed, a new
-  sign-in after an address change): so far only with a stand-in `cloudflared`.
+- "Sign in to Cloudflare again" after a failed step, with a real account: so far only with a
+  stand-in `cloudflared`.
 - Relay 0.3.0's migration 0086 on a large database on slow ARM storage: it builds an index with a
   5-second limit, and the relay won't start if that runs out.
 - A real Raspberry Pi: ARM itself passed on a Mac, but not the Pi's slower processor and storage.
@@ -558,6 +591,13 @@ edits before any image is published; the droplet runs use the published image.
   `install.sh` swaps in a rule that matches the container's network interfaces instead. Opening an
   app also needs port 2000, Umbrel's sign-in page for apps.
 - `docker inspect <name>` also finds a volume of that name, so `install.sh` asks for the container.
+- Installing right after umbrelOS starts can fail: umbrelOS's own startup and the install both create
+  Tor's container, and one gets "name already in use". Install again a minute later;
+  `droplet-run.sh` and `pre-submit.sh` retry once.
+- Cloudflare's sign-in can say it worked and save `cert.pem` in the browser instead of handing it to
+  `cloudflared`, which keeps logging "Waiting for login..."
+  ([cloudflare/cloudflared#1252](https://github.com/cloudflare/cloudflared/issues/1252)). Copied into
+  `data/cloudflare/.cloudflared/` as user 1000 with mode 600, it works like one that arrived.
 - An install stuck on a failing service can't be uninstalled until its compose run is stopped.
 - `buzz-admin add-member` takes the key with `--pubkey`.
 - With `Referrer-Policy: no-referrer`, browsers send a page's own form posts with `Origin: null`.

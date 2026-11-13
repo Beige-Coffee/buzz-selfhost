@@ -1977,7 +1977,9 @@ SAFETY_TIPS = [
      "link that still works."),
 ]
 PRIVATE_TIP, INVITE_TIP = SAFETY_TIPS[4][0], SAFETY_TIPS[5][0]
-# While moderation is on, members' private messages aren't private from the owner and the staff they add
+# While moderation is on, members' private messages aren't private from the owner and the staff they add: the tip
+# leads with that, and says how
+MODERATED_PRIVATE_TIP = "Private channels and direct messages are for the people in them, but moderation can read them."
 MODERATION_TIP = ("While Moderation is on, the owner and staff they add can open any message stored here by its ID, "
                   "deleted ones included, even in private channels and direct messages.")
 # A ban covers one identity and the agents it brings; links can't be canceled, so a person can come back
@@ -1995,7 +1997,7 @@ def safety_part(setup):
     tips = []
     for lead, text in SAFETY_TIPS:
         if lead == PRIVATE_TIP and on:
-            text += " " + MODERATION_TIP
+            lead, text = MODERATED_PRIVATE_TIP, text + " " + MODERATION_TIP
         if lead == INVITE_TIP and setup["mode"] == "domain":
             text += " " + BAN_TIP[on]
         tips.append("<li><b>" + lead + "</b> " + text + "</li>")
@@ -2007,8 +2009,11 @@ def safety_part(setup):
     )
 
 
-STAFF_RETURN = ("Staff added before get their access back when you turn it on. Review them in Buzz under Moderation, "
-                "then Staff.")
+# Relay 0.3.0 lets a relay operator rename a listed open channel without its admin API (operator_may_rename in
+# handlers/side_effects.rs): staff with that role keep this one power while moderation is off
+OPERATOR_RENAME = "Even while it's off, staff with the operator role can rename public channels."
+STAFF_RETURN = ("Staff added before get their access back when you turn it on. " + OPERATOR_RENAME + " Review your "
+                "staff in Buzz under Moderation, then Staff.")
 
 
 def moderation_points(domain):
@@ -2020,7 +2025,7 @@ def moderation_points(domain):
         "them.</li>"
         "<li>Moderation gets its own address on the internet, <code>" + esc(admin_origin(domain)) + "</code>. It "
         "accepts only requests signed by you or your staff.</li>"
-        "<li>A ban keeps that identity out of this community, and the agents that join through it. It can't rejoin "
+        "<li>A ban keeps one identity out of this community, and the agents that join through it. It can't rejoin "
         "with an invite link. A new identity can still join with a link that works.</li>"
         "<li>Buzz on a computer shows Moderation in its Settings. The phone apps don't have it.</li></ul>"
     )
@@ -2052,7 +2057,9 @@ def moderation_part(setup, live, current, error, values):
                  "community is live. To turn it off, clear the box and save.</p>" + save_button)
     else:
         # Buzz keeps Moderation out of Settings without a word when its check fails, and says why only under
-        # Manage plugins (src/app/Settings.tsx in block/buzz-app v1.0.0): its three messages, and what each means here
+        # Manage plugins, as the tooltip of the plugin's button beside "Unavailable" (src/app/Settings.tsx in
+        # block/buzz-app v1.0.0): its three messages, and what each means here. It shows the third for any 401 or 403
+        # that isn't an HTML page (relay-staff/staff.ts), Cloudflare's plain-text refusal and a lost port's included.
         inner = (
             '<form method="post" action="moderation"><p class="muted small">Moderation is on. To open it, choose this '
             "community in Buzz on your computer, then open Settings. A Moderation group appears in the sidebar, with "
@@ -2060,20 +2067,23 @@ def moderation_part(setup, live, current, error, values):
             "the identity you entered as the owner.</p>"
             '<div class="panel"><p>While it\'s on:</p>' + moderation_points(current) + "</div>"
             '<div class="panel"><p><b>Moderation doesn\'t show in Buzz?</b> Buzz says why in Settings, under Plugins, '
-            "Manage plugins, then Moderation.</p><ul>"
+            "Manage plugins, then Moderation. If it says Unavailable, point at its button to see the reason.</p><ul>"
             "<li><b>Could not check access.</b> Buzz couldn't reach <code>" + esc(admin_origin(current)) + "</code> "
             "from your computer. If this page shows no problem, the network your computer is on may block port 8443, "
             "or send the name to a local address. Try another network, then choose Check access again in Buzz.</li>"
             "<li><b>Access is unavailable in this build or on this relay.</b> Buzz doesn't see moderation at this "
             "address yet. Wait a minute after saving, then close Settings in Buzz and open it again, with this "
             "community chosen.</li>"
-            "<li><b>Select a community on a relay where you have staff access.</b> Buzz reached moderation with an "
-            "identity that isn't the owner's or a staff member's. Use the identity you entered as the owner, or ask "
-            "the owner to add you as staff. A computer clock that's off by more than a minute causes this too: set it "
-            "to update automatically.</li></ul>"
+            "<li><b>Select a community on a relay where you have staff access.</b> If this page shows a problem with "
+            "moderation, fix that first: Cloudflare turning Buzz away, or a request that lost its port, shows this "
+            "message as well. Otherwise, Buzz reached moderation with an identity that isn't the owner's or a staff "
+            "member's. Use the identity you entered as the owner, or ask the owner to add you as staff. A computer "
+            "clock that's off by more than a minute causes this too: set it to update automatically.</li></ul>"
             '<p class="muted small">If Moderation there says Enable, choose it.</p></div>' + box
             + '<p class="muted small">To turn it off, clear the box and save. Buzz restarts for a few seconds. Bans, '
-            "timeouts and your staff list stay as they are. Turn moderation on again to change them.</p>" + save_button)
+            "timeouts and your staff list stay as they are. Turn moderation on again to change them. Staff with the "
+            "operator role can still rename public channels while it's off, so remove staff you no longer trust "
+            "first.</p>" + save_button)
     return ("<details" + (" open" if opened else "") + '><summary>Moderation<span class="val word">' + summary
             + '</span></summary><div class="inner">' + inner + (error_box(error) if opened else "") + "</div></details>")
 
@@ -2083,10 +2093,17 @@ def settings_part(setup, error, values, live=False):
     owner = values.get("owner", "") if values.get("form") == "owner" else ""
     owner_now = setup["owner"]
     address_values = values if values.get("form") == "address" else {}
-    # Staff rows outlive the switch and owner changes: whenever moderation has been on, the new owner should look
-    staff = ('<p class="muted small">Staff added in Moderation stay staff after the change, whenever Moderation is on. '
-             "The new owner can review them in Buzz under Moderation, then Staff.</p>"
-             if setup.get("moderation") in (True, False) else "")
+    # Staff rows outlive the switch and owner changes: whenever moderation has been on, the new owner should look, on
+    # the owner's own domain, where Buzz can open it. The owner fallback follows the owner: the current one loses it.
+    staff = ""
+    if setup.get("moderation") in (True, False):
+        staff = "Staff added in Moderation stay staff after the change, whenever Moderation is on. " + OPERATOR_RENAME
+        if setup["mode"] == "domain":
+            staff += " The new owner can review the staff in Buzz under Moderation, then Staff."
+        if moderation_on(setup):
+            staff += (" You lose Moderation after the change, unless the new owner adds you as staff, so remove staff "
+                      "you no longer trust first.")
+        staff = '<p class="muted small">' + staff + "</p>"
     return (
         '<section class="part"><h2>Settings</h2><div class="set-card">'
         "<details" + (" open" if values.get("form") == "owner" else "") + "><summary>Owner<span class=\"val\">" + esc(owner_now[:10] + "\u2026" + owner_now[-4:]) + "</span></summary><div class=\"inner\">"

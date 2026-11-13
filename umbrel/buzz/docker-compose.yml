@@ -301,14 +301,16 @@ services:
         )
         # True once there's a sign-in: one already here came first and stays. Otherwise an upload becomes
         # cert.pem, byte for byte. The copy is what's checked, so what's checked is what's used. Only a
-        # plain file is read, at most 16 KB and a byte of it: a pipe would block, and a link could point at
-        # this service's own files. Anything else is dropped.
+        # plain file is read, at most 16 KB and a byte of it, and anything else is dropped. The folder is
+        # shared, so a pipe or a link could take the file's place after that test: the read gets 5 seconds,
+        # so a pipe can't hold this loop, and a link's target lands only in this service's own folder,
+        # where the check drops it.
         take() {
           [ -s "$$HOME/.cloudflared/cert.pem" ] && return 0
           [ -e "$$up" ] || [ -L "$$up" ] || return 1
           new=$$HOME/.cloudflared/cert.pem.tmp
           if [ -f "$$up" ] && [ ! -L "$$up" ] && mkdir -p "$$HOME/.cloudflared" && chmod 700 "$$HOME/.cloudflared" &&
-            (umask 077 && head -c 16385 "$$up" > "$$new") && signin_file "$$new" && mv -f "$$new" "$$HOME/.cloudflared/cert.pem"; then
+            (umask 077 && timeout 5 head -c 16385 "$$up" > "$$new") && signin_file "$$new" && mv -f "$$new" "$$HOME/.cloudflared/cert.pem"; then
             return 0
           fi
           echo "Dropped an uploaded file that isn't a Cloudflare sign-in."

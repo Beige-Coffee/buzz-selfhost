@@ -48,6 +48,18 @@ def lines(path):
     return [json.loads(line) for line in read(path).splitlines() if line.strip()]
 
 
+# The script reads an upload with timeout(1), which busybox has in the service's image and macOS lacks: there, this
+# stand-in, with the same exit status when time runs out
+TIMEOUT = """#!%s
+import subprocess, sys
+try:
+    sys.exit(subprocess.run(sys.argv[2:], timeout=float(sys.argv[1])).returncode)
+except subprocess.TimeoutExpired:
+    sys.exit(124)
+""" % sys.executable
+HEAD = shutil.which("head")
+
+
 def compose_script(pkg, service):
     """A service's entrypoint script from docker-compose.yml, with compose's $$ back to $ (as security.py)."""
     block = open(os.path.join(pkg, "docker-compose.yml")).read().split("\n  " + service + ":\n", 1)[1]
@@ -69,7 +81,15 @@ class Box:
             os.makedirs(d, exist_ok=True)
         shutil.copy(os.path.join(HERE, "fake_cloudflared.py"), os.path.join(self.bin, "cloudflared"))
         os.chmod(os.path.join(self.bin, "cloudflared"), 0o755)
+        if not shutil.which("timeout"):
+            self.tool("timeout", TIMEOUT)
         self.proc = None
+
+    def tool(self, name, text):
+        """A command the script finds before the system's, from its next start."""
+        with open(os.path.join(self.bin, name), "w") as f:
+            f.write(text)
+        os.chmod(os.path.join(self.bin, name), 0o755)
 
     def script(self):
         text = compose_script(self.pkg, "cloudflared")
@@ -552,6 +572,27 @@ try:
     output = read(ub.log_path())
     ok(output.count("Dropped an uploaded file that isn't a Cloudflare sign-in.") == len(planted) and MARK not in output
        and token_before not in output, "its output says it dropped each one, with nothing from them")
+
+    print("== A pipe in the upload's place after the service's test")
+    # Whatever can write the shared folder could swap a pipe in between take()'s test of the file and its read, and a
+    # read of a pipe waits for a writer. Here a head that never returns when it reads the upload stands in for that read.
+    U8 = "chat.fourthupload.net"
+    ub.stop()
+    ub.tool("head", '#!/bin/sh\nfor a; do :; done\ncase "$a" in */cloudflare-upload.pem) exec sleep 60 ;; esac\nexec %s "$@"\n' % HEAD)
+    u("POST", "/address", {"mode": "domain", "domain": U8, "ack": "yes"})
+    ub.start()
+    ok(wait_for(signin_waits, 15), "on a new address, the service waits for a sign-in again")
+    logins, count = len(ub.calls("login")), read(ub.log_path()).count("Dropped an uploaded file")
+    with open(UPLOAD, "wb") as f:
+        f.write(saved_file("acct-w", "fourthupload.net"))
+    planted_at = time.time()
+    dropped = wait_for(lambda: not os.path.lexists(UPLOAD) and read(ub.log_path()).count("Dropped an uploaded file") == count + 1, 15)
+    took = time.time() - planted_at
+    ok(dropped and not ub.cert() and ub.state() == "signin" and len(ub.calls("login")) == logins,
+       "a read of the upload that never returns ends after its time limit, and the file is dropped (in %.0f s): no "
+       "cert.pem, the same sign-in still waiting" % took)
+    u("POST", "/address", {"mode": "funnel", "confirm": U8})
+    ok(wait_for(lambda: ub.state() == "", 15), "and the service answers the next change")
 finally:
     ub.stop()
     userver.shutdown()

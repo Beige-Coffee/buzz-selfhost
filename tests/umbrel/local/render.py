@@ -14,10 +14,17 @@ UPLOAD_OPEN = '<details class="alt" open><summary>Cloudflare saved a file named 
 # stores it off whatever is asked, so it has no "on".
 MODERATION = (None, True, False)
 TICKED, UNTICKED = 'name="moderation" value="on" checked>', 'name="moderation" value="on">'
-POINTS = "A ban keeps that identity out of this community, and the agents that join through it."
+POINTS = "A ban keeps one identity out of this community, and the agents that join through it."
 MESSAGES = ("<b>Could not check access.</b>", "<b>Access is unavailable in this build or on this relay.</b>",
             "<b>Select a community on a relay where you have staff access.</b>")
 OWNER_STAFF = "Staff added in Moderation stay staff after the change, whenever Moderation is on."
+OWNER_REVIEW = "The new owner can review the staff in Buzz under Moderation, then Staff."
+OWNER_LOSES = "You lose Moderation after the change, unless the new owner adds you as staff"
+# Buzz's reason shows only as its button's tooltip, and its third message also comes from Cloudflare or a lost port
+WHERE = "If it says Unavailable, point at its button to see the reason."
+NOT_ONLY = "Cloudflare turning Buzz away, or a request that lost its port, shows this message as well."
+OPERATORS_STAY = "Staff with the operator role can still rename public channels while it's off"
+PRIVATE_LEAD = "<b>Private channels and direct messages are for the people in them.</b>"
 ADDRESS_LINES = ('data-for="domain">Moderation stays on, at the new address.',
                  'data-for="funnel private">Moderation turns off: it needs your own domain.')
 MODERATION_OPEN = '<details open><summary>Moderation<span class="val word">'
@@ -86,7 +93,8 @@ for mode in ("domain", "funnel", "private"):
                         assert TICKED in row and POINTS in row and m.STAFF_RETURN not in row
                         if live:
                             assert "Moderation doesn't show in Buzz?" in row and all(t in row for t in MESSAGES)
-                            assert "Bans, timeouts and your staff list stay as they are." in row
+                            assert WHERE in row and NOT_ONLY in row
+                            assert "Bans, timeouts and your staff list stay as they are." in row and OPERATORS_STAY in row
                         else:
                             assert "It starts working once your community is live." in row and MESSAGES[0] not in row
                     elif live:
@@ -96,6 +104,9 @@ for mode in ("domain", "funnel", "private"):
                         assert "You can turn it on here once your community is live." in row and 'name="moderation"' not in row
                     if mode == "domain":
                         assert (m.STAFF_RETURN in row) == (moderation is False and not on), (moderation, live)
+                    # Staff with the operator role keep renaming public channels while it's off: said wherever the page
+                    # says staff come back with it
+                    assert m.OPERATOR_RENAME in m.STAFF_RETURN
                     assert ('<span class="val word">' + ("On" if on else "Off" if mode == "domain" else "Own domain only")
                             + "</span>") in row
                     if values.get("form") == "moderation":
@@ -106,6 +117,10 @@ for mode in ("domain", "funnel", "private"):
                     # to moderation, only while it's on
                     owner_form = section(page, "<summary>Owner", "</form>")
                     assert (OWNER_STAFF in owner_form) == (moderation is not None), (mode, moderation)
+                    assert (m.OPERATOR_RENAME in owner_form) == (moderation is not None), (mode, moderation)
+                    # where Buzz can open moderation, the new owner reviews the staff; while it's on, the owner loses it
+                    assert (OWNER_REVIEW in owner_form) == (moderation is not None and mode == "domain"), (mode, moderation)
+                    assert (OWNER_LOSES in owner_form) == on, (mode, moderation)
                     address_form = section(page, 'action="address"', "</form>")
                     assert all((line in address_form) == on for line in ADDRESS_LINES), (mode, moderation)
                     # The safety tips, on the live page: how to ban on the owner's own domain, and who can read private
@@ -113,6 +128,8 @@ for mode in ("domain", "funnel", "private"):
                     if live:
                         tips = section(page, "<summary>Keeping your community safe", "</details>")
                         assert (m.MODERATION_TIP in tips) == on
+                        # and while it's on, the tip's lead promises no privacy from moderation
+                        assert ("<b>" + m.MODERATED_PRIVATE_TIP + "</b>" in tips) == on and (PRIVATE_LEAD in tips) == (not on)
                         assert (m.BAN_TIP[True] in tips) == on and (m.BAN_TIP[False] in tips) == (mode == "domain" and not on)
                     else:
                         assert "Keeping your community safe" not in page

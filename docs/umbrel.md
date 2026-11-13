@@ -23,7 +23,9 @@ and safety tips on the live page. `pre-submit.sh` passed 115 of 115 on an Intel 
 image. On 2026-11-12 the page gained two features for its next image, 1.1.0, not yet published: when Cloudflare's
 page saves `cert.pem` in the browser instead of passing it to the app, the owner can upload that file, and an owner
 on their own domain can turn on moderation (below). Both passed the page's local tests and the package's containers on Docker; the
-package still pins the 1.0.0 image. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
+package still pins the 1.0.0 image. On 2026-11-13, also for 1.1.0 and from approved mockups, the live page's next steps became a
+guide and its checks one card, and while connecting the checks became a progress bar; they passed the same local tests (Tested,
+below). It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package
 
@@ -95,8 +97,9 @@ Credit #5928 when we submit.
     alone with `tailscale serve`, with Tailscale's trusted certificate for the ts.net name. Nothing
     is reachable from the internet. Each member needs the Tailscale app on every device, access to
     the tailnet (an invite, or the `buzz` machine shared with them; port 443 allowed if the
-    tailnet's access rules aren't the default), and Buzz membership. The page checks, from the
-    browser, whether the device it's open on reaches Buzz.
+    tailnet's access rules aren't the default), and Buzz membership. Once the community is live, the
+    page checks, from the browser, whether the device it's open on reaches Buzz. Before then a failure
+    would say nothing about the device, so the progress bar leaves it out.
 - **The address is the community.** The relay keeps one community per address: at start it creates
   one for its address if there isn't one, and each request's Host picks the community. So an
   address the community hasn't used starts a separate, empty community, and the old messages, files
@@ -169,13 +172,21 @@ Credit #5928 when we submit.
   Connect to a community page has no skip, so a Buzz set up first can't reach Settings to copy
   its Buzz ID. Owners who already use Buzz with Builderlab can use that
   Buzz ID. Either way the page takes only the public ID, and Change the owner is the way back
-  from a lost key. Then a status list that refreshes every
-  five seconds, and the steps for the chosen option: the Cloudflare values, or Tailscale's sign-in,
-  machine approval and consent links. Once live: the join address, with an Open in Buzz button
-  (`buzz://connect?relay=wss://…`, Buzz 1.0's link that opens its join screen with the address filled
-  in, as Pavlenex's package did), adding members, pairing phones
-  (with Tailscale on, for the private option), phone notifications, and collapsed tips for keeping
-  a community safe, most of all one anyone can join. Settings: change the owner
+  from a lost key. Then the checks, which refresh every five seconds, and the steps for the chosen
+  option: the Cloudflare values, or Tailscale's sign-in, machine approval and consent links. While
+  connecting, the checks are a progress bar of the option's stages, such as Sign in to Cloudflare or
+  Phones can pair. YOU marks a stage that waits on the owner, the first stage still open shows it's at
+  work, and a problem turns its stage red, with its hint under the bar. Screen readers get each
+  check's full sentence. Once live: the join address, and the checks as one card that says Everything
+  works and opens to the full list. A problem shows above it with its hint, and a check still waiting
+  shows there too, quietly. Then the next steps as a guide, wider than the page on a computer: join,
+  invite people and pair a phone down the left, with a link to the self-hosting guide's homepage, and
+  on the right one step at a time, its drawings one at a time with a stepper. Joining has an Open in
+  Buzz button (`buzz://connect?relay=wss://…`, Buzz 1.0's link that opens its join screen with the
+  address filled in, as Pavlenex's package did) and Copy the address. The phone step says the phone
+  needs Tailscale too on the private option, and whether phones get notifications. Without scripts
+  every step shows, one after the other; `#join`, `#invite` and `#phone` open a step. Then collapsed
+  tips for keeping a community safe, most of all one anyone can join. Settings: change the owner
   (the old one becomes an admin), turn phone notifications off or on, turn moderation on or off on the
   owner's own domain, change the address, and how moving servers works. Umbrel's rules require a page
   like this for an app with no web interface of its own.
@@ -271,7 +282,7 @@ that turns it on. Built for the page's image 1.1.0, not yet published.
   options the row says why it isn't there: Buzz opens moderation only at addresses that resolve to
   public ones, and a ts.net name resolves to a tailnet address on the owner's own devices. Funnel on
   port 8443 is untested.
-- **The page's check.** The status list gets a row while the community's NIP-11 loads: turning on,
+- **The page's check.** The checks get a row while the community's NIP-11 loads: turning on,
   turning off, reachable, or not reachable with a hint. The NIP-11 the page already fetches every
   refresh says whether the relay advertises `https://<domain>:8443`. Once it does, the page asks that
   address once: `GET /` with the NIP-11 Accept and no User-Agent, as Buzz's admin client sends its
@@ -665,12 +676,38 @@ Later the same evening, after the review of the built code (Security review, abo
   the Cloudflare service took uploads, no longer holds the service: 25 takes each with `sh` and `dash`,
   the longest 6 s.
 
+2026-11-13, the live page's next steps as a guide and its checks as a card, and the checks while
+connecting as a progress bar, for the page's image 1.1.0 (not published), on this Mac at no cost
+([log](../tests/runs/2026-11-13-1255-umbrel-setup-page-guide-local.log)):
+
+- **Mocked:** `render.py` 1884 page states, also on the image's Python 3.13 on Linux: the guide on 86 live
+  pages, each with its 3 steps and 6 drawings (774 states), the card in 6 states, 34 connecting stages of the
+  three options through the page's own checks with the network mocked, and each option live. `security.py`
+  107, adding that status.json sends the page's own checks and their signature, which changes with a check,
+  that every link opening a new tab has `rel=noopener`, and that the address reaches both copy buttons
+  through a data attribute. `cloudflare.py` 63. `preview.py`'s 14 screens, three of them new.
+- **Browser:** headless Chrome 157 on the previews, with the page's script: `#join`, `#invite` and `#phone`
+  each open their step alone, and on the private network, off the tailnet, the device check shows as a
+  problem above the card. By hand in a Chromium browser: the stepper and the keyboard across steps, with
+  focus kept and each drawing announced; the device check's answer both ways; the refresh leaving an open
+  list open; a new phase opening the page again; no sideways scroll at 375 pixels. Without scripts, every
+  step shows.
+- **Real:** `check.py` 80 of 80 on the package's containers on Docker Desktop, with the page on the image's
+  Python 3.13, adding that the progress bar marks Cloudflare's and Tailscale's sign-ins as the owner's turn,
+  and that status.json sends the page's own bar.
+- Umbrel's linter with image checks: no issues. Screenshots 04 to 06 retaken (Gotchas, below).
+
 ## Not yet tested
 
 - The page's image 1.1.0 on umbrelOS: it isn't published yet. Then `pre-submit.sh`, whose `e2e.sh` now
   turns moderation on and off on the page, asks the admin API through the gateway, bans a member, checks
   the ban against an invite link, lifts it and keeps moderation on through a restart, and whose tamper
   step adds admin settings to the relay's settings file.
+- The live page's guide and checks card, and the progress bar, behind Umbrel's proxy, in Safari and
+  Firefox, on a real phone, and with a screen reader: so far a Chromium browser and headless Chrome on a
+  Mac, and the page's own tests.
+- The private network's device check passing on a real tailnet, as the card shows it: so far its
+  failure off the tailnet, and its answer driven through the page's own script.
 - An upload of a real `cert.pem` that Cloudflare saved in the browser, by hand: so far made-up files,
   in a browser and on the real Cloudflare service, which Cloudflare refused.
 - Umbrel's backup skipping an uploaded sign-in, the new `backupIgnore` line: `pre-submit.sh`'s markers
@@ -775,7 +812,10 @@ bash tests/umbrel/local/down.sh                       # removes the run, data in
 ```
 
 `preview.py`'s `domain-moderation` and `domain-moderation-blocked` show the live page with moderation on,
-reachable or turned away by Cloudflare. `check.py` turns moderation on and off with the page's form on
+reachable or turned away by Cloudflare, and `domain-moderation-starting` a check still waiting on a live
+page. `domain-working` and `private-consent` show the progress bar with a stage at work and with the private
+network's HTTPS consent. On a live page, `#join`, `#invite` and `#phone` open that step of the next steps.
+`check.py` turns moderation on and off with the page's form on
 the real relay image and asks its admin API through the gateway, with test keys it makes and keeps in
 memory.
 
@@ -834,3 +874,7 @@ edits before any image is published; the droplet runs use the published image.
 - Browsers send a host's cookies to all its ports, and count another port as the same site, so
   SameSite=Strict doesn't stop another Umbrel app's page from posting this page's forms.
   `Sec-Fetch-Site: same-site` marks those posts.
+- Headless Chrome 157's `--screenshot` of an address with an anchor, such as `#invite`, scrolls the page
+  but draws it unscrolled, with everything above the scrolled view blank. Compositor flags don't help.
+  `06-add-members.png` is cropped from a capture tall enough not to scroll, at the place Chrome scrolls
+  to at 1440 by 900 (432 pixels down).

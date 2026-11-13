@@ -20,18 +20,56 @@ def use(d):
     m.CLOUDFLARE_UPLOAD = d + "/cf-upload.pem"
 
 
-# The live page's next steps, as a guide: its steps, their drawings in order with what each shows, and what the
-# captions keep from the longer texts they replaced
-GUIDE_STEPS = (("join", "Join your community", "First, as the owner", "Step 1 of 3"),
-               ("invite", "Invite people", "With an invite link", "Step 2 of 3"),
-               ("phone", "Pair your phone", "Optional", "Step 3 of 3 &middot; Optional"))
+# The live page's next steps, as a guide: its steps (each link's title and line, the kicker and the heading), their
+# drawings in order with what each shows, and what the captions keep from the longer texts they replaced
+GUIDE_STEPS = (("join", "Join your community", "First, as the owner", "Step 1 of 4", "Join your community"),
+               ("invite", "Invite people", "With an invite link", "Step 2 of 4", "Invite people"),
+               ("safe", "Keep it safe", "Agents and open communities", "Step 3 of 4", "Keep your community safe"),
+               ("phone", "Pair your phone", "Optional", "Step 4 of 4 &middot; Optional", "Pair your phone"))
 GUIDE_FRAMES = {"join": (("Open Join a community", '<p class="on">', "If Buzz opens on a <b>Join a community</b> page instead"),
                          ("Paste the address", "<h6>Community URL</h6>", "choose <b>Continue</b> twice")),
                 "invite": (("Open Membership", 'dark hot">Invite members</span>', "the <b>Invite</b> tab in newer versions of Buzz"),
                            ("Send an invite link", "<b>Add or invite people</b>",
                             "Anyone with the link can join until it expires or runs out of uses.")),
+                "safe": (("Give each agent its own machine", '<svg class="sq-iso sq-wide" viewBox="0 0 560 204" role="img"',
+                          "Run agents on a separate computer with nothing private on it"),
+                         ("Treat an open community as public", '<ul aria-labelledby="sq-share">',
+                          "Keep private work, personal details and passwords out.")),
                 "phone": (("Scan the code", "Copy pairing code", "choose <b>Add Community</b> in its community switcher"),
                           ("Check the code", 'dark hot">Codes match</span>', "type the six digits your computer shows"))}
+# The safety step's texts as the owner approved them, word for word, and the variants: the private network isn't on the
+# internet, moderation on lets the owner and staff read private messages, and only the owner's own domain can ban
+SAFE_INTRO = ("Opening your community to the internet exposes you to risk. So does adding agents with access to personal "
+              "data. Here are some tips to keep yourself and your community safe.")
+SAFE_INTRO_PRIVATE = ("Adding agents with access to personal data exposes you to risk. Here are some tips to keep yourself "
+                      "and your community safe.")
+AGENT_CAPTION = ("Most agents made in Buzz run on their owner's computer. There they can run commands, change files and go "
+                 "online without asking first. They take requests only from their owner, but they read what others post, "
+                 "and a post can be written to trick them. Run agents on a separate computer with nothing private on it, "
+                 "under their own identity, not the one that owns this community. Don't connect them to your email, drives "
+                 "or code.")
+OPEN_CAPTION = ("If anyone can join, strangers can post, and members can bring their own agents without asking you. Anyone "
+                "who joins, and any agent they bring, can read every channel that isn't private, including its full "
+                "history. They can also open files shared there and see who's a member. Keep private work, personal "
+                "details and passwords out.")
+PRIVATE_NOTE = ("Anyone in a private channel can add people and agents to it, so keep these channels to people you trust. "
+                "Shared files are different: anyone in the community with a file's link can open it.")
+MODERATED_NOTE = ("While Moderation is on, you and staff you add can open any message stored here by its ID, deleted ones "
+                  "included, even in private channels and direct messages. " + PRIVATE_NOTE)
+INVITE_NOTE = ("A new link works for 3 days with no limit on uses unless you change it, and for 30 days at most. You can't "
+               "cancel a link yet, and someone you remove can rejoin with a link that still works.")
+BAN_NOTES = {False: "To keep an identity out, turn on Moderation in Settings, then ban it in Buzz on a computer. The same "
+                    "person can still join under a new identity.",
+             True: "To keep an identity out, ban it in Moderation in Buzz on a computer. The same person can still join "
+                   "under a new identity."}
+SHARE = ('<p class="muted small">Share these with your members. <a href="https://self-host.buzz/#security" target="_blank" '
+         'rel="noopener">More on security in the self-hosting guide</a></p>')
+NOTE = re.compile(r'<li><span class="g-ni">(<svg class="tb-i" viewBox="0 0 24 24" aria-hidden="true">.*?</svg>)</span>'
+                  r'<p><b>([^<]*)</b> (.*?)</p></li>')
+# Settings, Moderation: who can read private messages, which the safety step says on a live page
+SHARE_LIVE = 'Members don\'t see this in Buzz. The <a href="#safe">Keep it safe</a> step above says it, so share it.'
+SHARE_LATER = ("Members don't see this in Buzz. Once your community is live, the Keep it safe step on this page says it, so "
+               "share it.")
 # The invite caption keeps Add member for a public ID; the pairing caption has both ways the phone checks the code, the
 # protect prompt's three buttons and Skip, and then, on the computer, Codes match
 INVITE_ADD = "paste someone's public ID under <b>Add directly</b> and choose <b>Add member</b>, then send them the address."
@@ -46,9 +84,13 @@ OWN_KEY = ('Made your own key? <a href="https://self-host.buzz/" target="_blank"
 BUILDERLAB = '<details class="g-more"><summary>Signed in with Builderlab?</summary>'
 NOTIFY_ON = "iPhones get notifications for direct messages and mentions. Android phones don't yet."
 NOTIFY_OFF = "Phone notifications are off. You can turn them on in Settings, further down this page."
-# texts the guide dropped, or the old next steps had
+# texts the guide dropped, or the old next steps had, and the safety tips the safety step replaced
 GONE = ("Bought the domain recently?", "Show me how", "Join as you set up Buzz", "Phone notifications are on for iPhone",
-        "<h2>Add members</h2>", "You can turn them on in Settings.</p>", "choose <b>Use Face ID</b> or <b>Skip</b>")
+        "<h2>Add members</h2>", "You can turn them on in Settings.</p>", "choose <b>Use Face ID</b> or <b>Skip</b>",
+        "Keeping your community safe", "Most of this is common sense", "Block is working on more protections for agents",
+        "The safety tips on this page", "Agents work with what's on their computer.", "Private channels and direct messages "
+        "are for the people in them", "but moderation can read them", "Invite links decide which people get in.",
+        "Step 1 of 3", "Step 3 of 3")
 # the app's own Cloudflare tunnel, from waiting for a sign-in to running, and its errors; signin+upload is
 # a sign-in the owner uploaded, waiting for the tunnel to take it
 CLOUDFLARE = ("", "signin", "signin+upload", "creating", "routing", "taken", "wrong-domain", "error", "running")
@@ -68,7 +110,6 @@ OWNER_LOSES = "You lose Moderation after the change, unless the new owner adds y
 WHERE = "If it says Unavailable, point at its button to see the reason."
 NOT_ONLY = "Cloudflare turning Buzz away, or a request that lost its port, shows this message as well."
 OPERATORS_STAY = "Staff with the operator role can still rename public channels while it's off"
-PRIVATE_LEAD = "<b>Private channels and direct messages are for the people in them.</b>"
 ADDRESS_LINES = ('data-for="domain">Moderation stays on, at the new address.',
                  'data-for="funnel private">Moderation turns off: it needs your own domain.')
 MODERATION_OPEN = '<details open><summary>Moderation<span class="val word">'
@@ -78,41 +119,87 @@ def section(page, start, end):
     return page[page.index(start):page.index(end, page.index(start))]
 
 
-def check_guide(page, mode, domain, push):
-    """The live page's guide: three steps in order, each with two drawings, a stepper and its own notes. Returns the
+def check_safe(page, pane, mode, moderation):
+    """The safety step: its intro, its two drawings with what they say to screen readers, the pictures in them drawn once,
+    and its notes for each option and moderation state, then the line to share them, with the guide's Security section."""
+    on = moderation is True and mode == "domain"
+    assert pane.startswith('<p class="eyebrow">Step 3 of 4</p><h2 tabindex="-1">Keep your community safe</h2><p class="muted">'
+                           + (SAFE_INTRO_PRIVATE if mode == "private" else SAFE_INTRO) + '</p><svg class="sq-defs" aria-hidden="true">')
+    # The people and the agent, each drawn once on the page and used where they show, with no <img> anywhere: Maya twice
+    # in each drawing of the window and once in the open community, Leo once in each, the agent twice in each
+    assert page.count('<svg class="sq-defs"') == 1 and page.count("<symbol ") == 3 and page.count("data:image/webp;base64,") == 1
+    assert all(page.count('<symbol id="sq-' + name + '"') == 1 for name in ("maya", "leo", "ops")) and "<img" not in page
+    assert [page.count('href="#sq-' + name + '"') for name in ("maya", "leo", "ops")] == [5, 3, 4]
+    assert page.count('id="sq-round"') == 1 and page.count('clip-path="url(#sq-round)"') == 2
+    drawings, foot = pane[:pane.index('<div class="g-foot">')], pane[pane.index('<div class="g-foot">'):]
+    agent, public = drawings.split('<div class="g-frame" ')[1:]
+    # What an agent can touch: a picture with its description, wide and tall, the labels under the wide one kept from
+    # screen readers since the description says them
+    say = 'role="img" aria-label="' + m.SAY_AGENT + '"'
+    assert agent.count(say) == 2 and '<svg class="sq-iso sq-wide" viewBox="0 0 560 204" ' + say in agent
+    assert '<svg class="sq-iso sq-tall" viewBox="0 0 340 348" ' + say in agent
+    assert '<p class="sq-k"><i></i>What the agent can touch</p><span class="sq-rec">Recommended</span>' in agent
+    assert '<div class="sq-caps" aria-hidden="true"><p><b>Your computer</b>' in agent
+    assert agent.endswith('<p class="muted small g-cap">' + AGENT_CAPTION + "</p></div>")
+    # What anyone who joins can read: two lists, each named by its heading
+    lists = re.findall(r'<p class="sq-h" id="([\w-]+)">([^<]*)</p><ul aria-labelledby="([\w-]+)">(.*?)</ul>', public)
+    assert [(label, heading, named == label) for label, heading, named, _ in lists] == [
+        ("sq-share", "Fine to share", True), ("sq-keep", "Keep out", True)]
+    assert [re.findall(r"</span>([^<]+)</li>", items) for _, _, _, items in lists] == [
+        ["Public docs", "Open-source code", "Announcements"], ["Customer data", "Private repositories", "Keys and logins"]]
+    assert page.count('id="sq-share"') == page.count('id="sq-keep"') == 1
+    assert '<span class="sq-name"><b>Open community</b><i>anyone can join</i></span>' in public
+    assert public.endswith('<p class="muted small g-cap">' + OPEN_CAPTION + "</p></div></div>")
+    # The notes: who can read private messages leads while moderation is on, and bans only on the owner's own domain
+    notes = [("lock", "Private channels.", MODERATED_NOTE if on else PRIVATE_NOTE), ("link", "Invite links.", INVITE_NOTE)]
+    if mode == "domain":
+        notes.append(("ban", "Bans.", BAN_NOTES[on]))
+    assert NOTE.findall(foot) == [(m.ti(icon), lead, text) for icon, lead, text in notes], (mode, moderation)
+    assert foot.startswith('<div class="g-foot"><ul class="g-notes"><li>') and foot.endswith("</li></ul>" + SHARE + "</div>")
+
+
+def check_guide(page, mode, domain, push, moderation):
+    """The live page's guide: four steps in order, each with two drawings, a stepper and its own notes. Returns the
     number of steps and drawings checked."""
     guide = section(page, '<section class="next">', 'aria-live="polite"></p></div></section>')
     nav = section(guide, '<nav class="g-nav" aria-label="Next steps">', "</nav>")
     # the steps, in order, as links that work without scripts; none is current until the script picks one
     links = re.findall(r'<a class="g-step" href="#(\w+)">.*?<b>(.*?)</b><small>(.*?)</small>', nav)
-    assert links == [(key, title, sub) for key, title, sub, _ in GUIDE_STEPS], links
+    assert links == [(key, title, sub) for key, title, sub, _, _ in GUIDE_STEPS], links
     assert "aria-current" not in guide
     # Go further: the guide's homepage alone, in a new tab
     assert nav.count("self-host.buzz") == 1 and GUIDE_LINK in nav and ">Go further</p>" in nav
     assert "<b>The self-hosting guide</b><small>Roles, moderation, backups and agents</small>" in nav
-    assert re.findall(r'href="https://self-host\.buzz[^"]*"', guide) == ['href="https://self-host.buzz/"'] * 2
+    # the self-hosting guide's homepage from Go further and the own-key line, and its Security section from the safety step
+    assert re.findall(r'href="https://self-host\.buzz[^"]*"', guide) == ['href="https://self-host.buzz/"'] * 2 + [
+        'href="https://self-host.buzz/#security"']
     # each pane runs to its last </section>: Buzz's drawn screens have sections of their own
     parts = guide.split('<section class="g-pane" id="')[1:]
     panes = [(part[:part.index('"')], part[part.index('">') + 2:part.rindex("</section>")]) for part in parts]
-    assert [key for key, _ in panes] == ["join", "invite", "phone"]
+    assert [key for key, _ in panes] == ["join", "invite", "safe", "phone"]
     checked = 0
-    for (key, pane), (_, title, _, kicker) in zip(panes, GUIDE_STEPS):
+    for (key, pane), (_, _, _, kicker, heading) in zip(panes, GUIDE_STEPS):
         # the heading takes focus when its link opens the step
-        assert pane.startswith('<p class="eyebrow">' + kicker + '</p><h2 tabindex="-1">' + title + "</h2>"), key
+        assert pane.startswith('<p class="eyebrow">' + kicker + '</p><h2 tabindex="-1">' + heading + "</h2>"), key
         frames = pane.split('<div class="g-frame" ')[1:]
         assert len(frames) == 2, key
         for n, (frame, (name, drawn, kept)) in enumerate(zip(frames, GUIDE_FRAMES[key]), 1):
             assert '<span class="g-n" aria-hidden="true">0%d / 02</span>' % n in frame and '<span class="g-t">' + name + "</span>" in frame
             assert '<span class="vh">Part %d of 2: </span>' % n in frame
             assert drawn in frame and kept in frame, (key, n, drawn, kept)
-            assert 'data-say="' + html.escape(title + ", part %d of 2: " % n + name) + '"' in frame
+            # crossing into a drawing says the step's heading and the drawing's title
+            assert 'data-say="' + html.escape(heading + ", part %d of 2: " % n + name) + '"' in frame
+            # Buzz's screens are pictures alone, which the captions say in words; the safety step's drawings say what
+            # they show themselves, so nothing hides them from screen readers
+            assert ('<div class="mb" aria-hidden="true">' in frame) == (key != "safe") and ("sq-fig" in frame) == (key == "safe")
             # the stepper's buttons, with names, stopped only at the guide's ends
             assert 'data-go="-1" aria-label="Previous"' in frame and 'data-go="1" aria-label="Next"' in frame
             assert ('data-go="-1" aria-label="Previous" aria-disabled="true"' in frame) == (key == "join" and n == 1)
             assert ('data-go="1" aria-label="Next" aria-disabled="true"' in frame) == (key == "phone" and n == 2)
             checked += 1
         checked += 1
-    join, invite, phone = (pane for _, pane in panes)
+    check_safe(page, dict(panes)["safe"], mode, moderation)
+    join, invite, _, phone = (pane for _, pane in panes)
     # Join: the address to open or copy, kept in a data attribute, what Open in Buzz does under them, and the own-key line
     assert ('<a class="btn" href="buzz://connect?relay=wss%3A%2F%2F' + domain + '">Open in Buzz</a>') in join
     assert ('<button class="btn ghost" type="button" data-copy="https://' + domain + '" onclick="copyText(this, '
@@ -136,7 +223,7 @@ def check_guide(page, mode, domain, push):
 
 
 # The guide's look, from the stylesheet: about 1000px wide on a computer, stacked below 880px, 44px stepper buttons
-style = m.STYLE + m.HOW_STYLE
+style = m.STYLE + m.HOW_STYLE + m.SAFE_STYLE
 assert "min(1000px, 100vw)" in section(style, ".next {", "}") and "@media (min-width: 880px) { .guide { grid-template-columns: 250px" in style
 assert "width: 44px; height: 44px;" in section(style, ".g-btns button {", "}")
 
@@ -156,7 +243,19 @@ inks = dict(re.findall(r"--(ink-[23]): rgb\(35 30 30 / (\d+)%\)", style))
 for name, least in (("ink-2", 4.5), ("ink-3", 3)):
     assert all(contrast(int(inks[name]) / 100, bg) >= least for bg in ((255, 255, 255), (0xf7, 0xf7, 0xf4), (0xf2, 0xf2, 0xee))), name
 assert sorted(sel.strip() for sel, body in re.findall(r"([^{}]+)\{([^{}]*)\}", style) if "var(--ink-3)" in body) == [
-    ".bar .work .tr", ".opt:has(input:disabled) :is(b, small)", ".set-card details > summary::after"]
+    ".bar .work .tr", ".opt:has(input:disabled) :is(b, small)", ".set-card details > summary::after", ".sq .sq-new"]
+# The safety drawings' rules: every one inside .sq, where they are, but the hidden symbols' own; the page's colors, none
+# of their own; the tall drawing below 480 pixels of the drawing's width, as the guide has it on a phone; and at least
+# as tall as Buzz's screens, which are 340 pixels at 560 wide and scale down with the width
+safe = re.sub(r"@container sq \([^)]*\) \{|\n\}", "", m.SAFE_STYLE)
+loose = [sel.strip() for sel, _ in re.findall(r"([^{}]+)\{([^{}]*)\}", safe) if sel.strip() != ".sq-defs"
+         and not all(part.strip().startswith(".sq ") or part.strip() == ".sq" for part in sel.split(","))]
+assert safe.count("{") > 80 and not loose, loose
+tokens = set(re.findall(r"--([\w-]+):", m.STYLE.split("}")[0]))
+assert not re.search(r"--[\w-]+:", m.SAFE_STYLE) and set(re.findall(r"var\(--([\w-]+)\)", m.SAFE_STYLE)) <= tokens
+assert "@container sq (max-width: 479px) {\n  .sq .sq-wide, .sq .sq-caps { display: none; }\n  .sq .sq-tall { display: block; }" in m.SAFE_STYLE
+assert "min-height: min(340px, 100cqw * 340 / 560);" in section(m.SAFE_STYLE, ".sq .sq-fig {", "}")
+assert "height: calc(340px * var(--s));" in section(style, ".mb-stage {", "}")
 # A focus ring the card's rounded edge doesn't clip, a count that stays whole, a faded icon but not its button's ring,
 # the problem mark's "!" kept from screen readers, copy buttons only with scripts, and the current step in forced colors
 assert ".set-card summary:focus-visible { outline-offset: -3px; border-radius: 12px; }" in style
@@ -166,6 +265,7 @@ assert '.g-btns button[aria-disabled="true"] .tb-i { opacity: 0.35; }' in style
 assert style.count('content: "!"; content: "!" / "";') == 2 and style.count('content: "!"') == 4
 assert "html:not(.js) [data-copy] { display: none !important; }" in style
 assert "@media (forced-colors: active) { .g-nav a[aria-current] { border: 2px solid CanvasText;" in style
+assert "@media (forced-colors: active) { .sq .sq-fig { forced-color-adjust: none; } }" in style
 
 count = 0
 for mode in ("domain", "funnel", "private"):
@@ -201,7 +301,7 @@ for mode in ("domain", "funnel", "private"):
                     assert ('<div class="set-card ck-card' in page) == live and ('<ol class="bar"' in page) == (not live)
                     assert ('<section class="next">' in page) == live and page.count('<div class="checks" data-poll data-phase="') == 1
                     if live and named and not values:
-                        count += check_guide(page, mode, domain, push)
+                        count += check_guide(page, mode, domain, push, moderation)
                     # The upload, only while the tunnel waits for a sign-in and none was uploaded yet
                     if live or cf != "signin":
                         assert UPLOAD_FORM not in page, (mode, live, cf)
@@ -255,16 +355,12 @@ for mode in ("domain", "funnel", "private"):
                     assert (OWNER_LOSES in owner_form) == on, (mode, moderation)
                     address_form = section(page, 'action="address"', "</form>")
                     assert all((line in address_form) == on for line in ADDRESS_LINES), (mode, moderation)
-                    # The safety tips, on the live page: how to ban on the owner's own domain, and who can read private
-                    # messages while moderation is on
-                    if live:
-                        tips = section(page, "<summary>Keeping your community safe", "</details>")
-                        assert (m.MODERATION_TIP in tips) == on
-                        # and while it's on, the tip's lead promises no privacy from moderation
-                        assert ("<b>" + m.MODERATED_PRIVATE_TIP + "</b>" in tips) == on and (PRIVATE_LEAD in tips) == (not on)
-                        assert (m.BAN_TIP[True] in tips) == on and (m.BAN_TIP[False] in tips) == (mode == "domain" and not on)
-                    else:
-                        assert "Keeping your community safe" not in page
+                    # The safety step, on the live page alone: on the owner's own domain, Moderation's row says who can read
+                    # private messages and sends the owner to the step, to share it, or says it will be there once live
+                    assert ('<section class="g-pane" id="safe">' in page) == ('<a class="g-step" href="#safe">' in page) == live
+                    if mode == "domain" and POINTS in row:
+                        assert (SHARE_LIVE in row) == live and (SHARE_LATER in row) == (not live), (live, moderation)
+                    assert ('href="#safe"' in row) == (mode == "domain" and live and POINTS in row)
                     count += 1
 for values in ({}, {"owner": "x", "mode": "private", "ack": "yes"}):
     assert "<main>" in m.setup_page("e", values); count += 1

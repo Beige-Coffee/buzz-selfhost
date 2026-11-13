@@ -1,13 +1,14 @@
 """The setup page's scripts in headless Chrome, on the page's previews (preview.py), with nothing real behind them:
-the guide's stepper across steps and at its ends, a step opened by the address, the step drawn before the script runs,
-a step's link moving focus to it, the 5-second refresh keeping an open list open and focus where it was and saying
-what changed, the private network's device check against answers held back and let through in a chosen order, a new
-phase keeping the reader's step, and the page without scripts.
+the guide's stepper across its four steps and at its ends, a step opened by the address, the step drawn before the
+script runs, a step's link moving focus to it, the safety step's drawings and notes on each option, the 5-second
+refresh keeping an open list open and focus where it was and saying what changed, the private network's device check
+against answers held back and let through in a chosen order, a new phase keeping the reader's step, and the page
+without scripts, where every drawing fits from a computer's width to a phone's.
 
 Chrome runs over a pipe, with no port, and every name but 127.0.0.1 fails to resolve, so nothing leaves this machine.
 The page's 5-second refresh and the device check's 6-second limit are held, and fired by the test, and the device
 check's requests are held by Chrome until the test answers them: nothing depends on how long anything takes. The
-previews use ports 8771 to 8773. Without Chrome it says so and exits 0.
+previews use ports 8771 to 8774, or the four from BROWSER_PORT. Without Chrome it says so and exits 0.
 
   python3 tests/umbrel/local/browser.py
 """
@@ -15,8 +16,9 @@ import base64, fcntl, json, os, select, shutil, signal, socket, subprocess, sys,
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CHROME = os.environ.get("CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-PREVIEWS = {"domain-live": 8771, "private-live": 8772, "domain-dns": 8773}
-LIVE, PRIVATE, CONNECTING = ("http://127.0.0.1:%d/" % PREVIEWS[name] for name in PREVIEWS)
+PORT = int(os.environ.get("BROWSER_PORT", "8771"))
+PREVIEWS = {"domain-live": PORT, "private-live": PORT + 1, "domain-dns": PORT + 2, "domain-moderation": PORT + 3}
+LIVE, PRIVATE, CONNECTING, MODERATED = ("http://127.0.0.1:%d/" % PREVIEWS[name] for name in PREVIEWS)
 DEVICE = "buzz.tail1234.ts.net"  # the private-live preview's address
 PASSED = FAILED = 0
 
@@ -274,10 +276,10 @@ def first_paint_and_hash(chrome):
     same: a hash that isn't a step, a hostile one included, opens the first."""
     page = Page(chrome)
     hostile = '"><img src=x onerror="window.__pwned=1">'
-    cases = (("", None, "join:1"), ("#join", None, "join:1"), ("#invite", None, "invite:1"), ("#phone", None, "phone:1"),
-             ("#nope", None, "join:1"), ("#Invite", None, "join:1"), ("#" + hostile, None, "join:1"),
-             ("", "phone:2", "phone:2"), ("", "invite:1", "invite:1"), ("#invite", "phone:2", "invite:1"),
-             ("", "nope:2", "join:1"), ("", hostile, "join:1"))
+    cases = (("", None, "join:1"), ("#join", None, "join:1"), ("#invite", None, "invite:1"), ("#safe", None, "safe:1"),
+             ("#phone", None, "phone:1"), ("#nope", None, "join:1"), ("#Invite", None, "join:1"), ("#" + hostile, None, "join:1"),
+             ("", "phone:2", "phone:2"), ("", "invite:1", "invite:1"), ("", "safe:2", "safe:2"), ("#invite", "phone:2", "invite:1"),
+             ("#safe", "invite:2", "safe:1"), ("", "nope:2", "join:1"), ("", hostile, "join:1"))
     wrong = []
     for hash_, kept, want in cases:
         if kept is not None:
@@ -304,23 +306,25 @@ def stepper(chrome):
     page.goto(LIVE)
     page.eval("document.querySelector('#join .g-frame [data-go=\"1\"]').focus()")
     walk = []
-    for _ in range(7):
+    for _ in range(9):
         page.key("Enter")
         now = page.eval(GUIDE)
         walk.append((now["at"], now["hash"], now["focus"], now["disabled"]))
     forward = [("join:2", "", "go1@join:2", None), ("invite:1", "#invite", "go1@invite:1", None),
-               ("invite:2", "#invite", "go1@invite:2", None), ("phone:1", "#phone", "go1@phone:1", None),
+               ("invite:2", "#invite", "go1@invite:2", None), ("safe:1", "#safe", "go1@safe:1", None),
+               ("safe:2", "#safe", "go1@safe:2", None), ("phone:1", "#phone", "go1@phone:1", None),
                ("phone:2", "#phone", "go1@phone:2", "true"), ("phone:2", "#phone", "go1@phone:2", "true"),
                ("phone:2", "#phone", "go1@phone:2", "true")]
     ok(walk == forward, "Next walks every drawing and crosses into the next step, moving the address to it and focus "
        "to the new drawing's Next; at the guide's last drawing it's aria-disabled and does nothing", walk)
     page.key("Tab", shift=True)
     back = []
-    for _ in range(7):
+    for _ in range(9):
         page.key("Enter")
         now = page.eval(GUIDE)
         back.append((now["at"], now["hash"], now["focus"], now["disabled"]))
-    backward = [("phone:1", "#phone", "go-1@phone:1", None), ("invite:2", "#invite", "go-1@invite:2", None),
+    backward = [("phone:1", "#phone", "go-1@phone:1", None), ("safe:2", "#safe", "go-1@safe:2", None),
+                ("safe:1", "#safe", "go-1@safe:1", None), ("invite:2", "#invite", "go-1@invite:2", None),
                 ("invite:1", "#invite", "go-1@invite:1", None), ("join:2", "#join", "go-1@join:2", None),
                 ("join:1", "#join", "go-1@join:1", "true"), ("join:1", "#join", "go-1@join:1", "true"),
                 ("join:1", "#join", "go-1@join:1", "true")]
@@ -328,8 +332,15 @@ def stepper(chrome):
     page.eval("document.querySelector('#join .g-frame [data-go=\"1\"]').focus()")
     page.key("Enter")
     page.key("Enter")
-    ok(page.eval(GUIDE)["say"] == "Invite people, part 1 of 2: Open Membership",
-       "crossing into a step says where the reader is", page.eval(GUIDE)["say"])
+    said = [page.eval(GUIDE)["say"]]
+    page.key("Enter")
+    page.key("Enter")
+    said.append(page.eval(GUIDE)["say"])
+    page.key("Enter")
+    said.append(page.eval(GUIDE)["say"])
+    ok(said == ["Invite people, part 1 of 2: Open Membership", "Keep your community safe, part 1 of 2: Give each agent its own "
+                "machine", "Keep your community safe, part 2 of 2: Treat an open community as public"],
+       "crossing into a step says where the reader is, the safety step by its heading", said)
     page.close()
 
 
@@ -340,17 +351,22 @@ def step_links(chrome):
     page.goto(LIVE)
     page.click('.g-step[href="#phone"]')
     clicked = page.eval(GUIDE)
+    page.click('.g-step[href="#safe"]')
+    safe = page.eval(GUIDE)
     page.eval("document.querySelector('.g-step[href=\"#invite\"]').focus()")
     page.key("Enter")
     entered = page.eval(GUIDE)
     ok(clicked["at"] == "phone:1" and clicked["hash"] == "#phone" and clicked["focus"] == "h2@phone"
+       and safe["at"] == "safe:1" and safe["hash"] == "#safe" and safe["focus"] == "h2@safe" and safe["current"] == ["#safe"]
        and entered["at"] == "invite:1" and entered["focus"] == "h2@invite" and entered["current"] == ["#invite"],
        "a step's link opens the step at its first drawing and moves focus to the step's heading, clicked or with Enter",
-       (clicked, entered))
+       (clicked, safe, entered))
     borders = page.eval("[...document.querySelectorAll('.g-step')].map((a) => getComputedStyle(a).borderTopStyle + ' ' "
                         "+ getComputedStyle(a).borderTopWidth)")
-    ok(page.eval("matchMedia('(forced-colors: active)').matches") and borders == ["none 0px", "solid 2px", "none 0px"],
-       "in forced colors, the current step's link has a border, the others none", borders)
+    kept = page.eval("[...document.querySelectorAll('#safe .sq-fig')].map((f) => getComputedStyle(f).forcedColorAdjust)")
+    ok(page.eval("matchMedia('(forced-colors: active)').matches") and borders == ["none 0px", "solid 2px", "none 0px", "none 0px"]
+       and kept == ["none", "none"], "in forced colors, the current step's link has a border, the others none, and the "
+       "safety step's drawings keep their own colors", (borders, kept))
     page.close()
 
 
@@ -454,21 +470,113 @@ def new_phase(chrome):
     """A new phase opens the page again, at the reader's step and drawing."""
     page = Page(chrome)
     page.goto(LIVE)
-    page.click('.g-step[href="#invite"]')
-    page.eval("document.querySelector('#invite .g-frame [data-go=\"1\"]').click()")
+    page.click('.g-step[href="#safe"]')
+    page.eval("document.querySelector('#safe .g-frame [data-go=\"1\"]').click()")
     before = page.eval(GUIDE)
     page.eval("window.__old = true; document.querySelector('[data-poll]').setAttribute('data-phase', 'other')")
     page.eval("window.__fire(5000)")
     page.wait("!window.__old && document.readyState === 'complete' && document.querySelector('.guide.ready') !== null")
     after, first = page.eval(GUIDE), page.eval("window.__firstPaint")
-    ok(before["at"] == "invite:2" and after["at"] == "invite:2" and after["hash"] == "" and after["kept"] is None
-       and first["shown"] == ["invite:2"], "a new phase opens the page again at the reader's step and drawing, drawn "
+    ok(before["at"] == "safe:2" and after["at"] == "safe:2" and after["hash"] == "" and after["kept"] is None
+       and first["shown"] == ["safe:2"], "a new phase opens the page again at the reader's step and drawing, drawn "
        "from the start, and keeps nothing after", (before, after, first))
     page.close()
 
 
+# The safety step's drawings as the reader sees them: which drawing of the agent shows and its labels, the scale each is
+# drawn at (the guide allows itself 0.8 before it changes to the tall one), anything outside its drawing or wider than
+# its box, whether every person and the agent is drawn, and each drawing's height
+SAFE = """(() => {
+  const shown = (el) => getComputedStyle(el).display !== "none" && !el.closest("[hidden]");
+  const pane = document.getElementById("safe"), figs = [...pane.querySelectorAll(".sq-fig")].filter(shown);
+  const inside = (el, box) => { const a = el.getBoundingClientRect(), b = box.getBoundingClientRect();
+    return a.left >= b.left - 0.5 && a.right <= b.right + 0.5 && a.top >= b.top - 0.5 && a.bottom <= b.bottom + 0.5; };
+  const svgs = [...pane.querySelectorAll(".sq-iso")].filter(shown);
+  return {
+    figs: figs.length, agent: svgs.map((s) => s.classList.contains("sq-wide") ? "wide" : "tall").join(),
+    caps: [...pane.querySelectorAll(".sq-caps")].filter(shown).length,
+    scale: Math.min(...svgs.map((s) => Math.round(s.getBoundingClientRect().width / s.viewBox.baseVal.width * 100) / 100)),
+    cropped: figs.filter((f) => [...f.querySelectorAll(".sq-k, .sq-rec, .sq-iso, .sq-caps, .sq-tray, .sq-room")].filter(shown)
+      .some((el) => !inside(el, f))).length + [...pane.querySelectorAll(".sq-tray, .sq-tray li, .sq-room, .g-notes p")]
+      .filter(shown).filter((el) => el.scrollWidth > el.clientWidth + 0.5).length,
+    drawn: [...pane.querySelectorAll("use")].filter((u) => shown(u.closest("svg"))).map((u) => u.getBBox().width > 0)
+      .reduce((all, one) => all && one, true),
+    heights: figs.map((f) => Math.round(f.getBoundingClientRect().height)),
+    width: figs.length ? Math.round(figs[0].getBoundingClientRect().width) : 0,
+    // each chat bubble in the drawing that shows: where its words end, and where its padding starts
+    bubbles: [...pane.querySelectorAll(".sq-bub")].filter((g) => shown(g.closest("svg"))).map((g) => {
+      const words = [...g.querySelectorAll("text")].pop().getBBox(), bubble = g.querySelector(".sq-w-bub");
+      return Math.round((bubble.x.baseVal.value + bubble.width.baseVal.value - 10 - words.x - words.width) * 10) / 10;
+    }),
+    notes: [...pane.querySelectorAll(".g-notes li")].filter(shown).map((li) => li.textContent.slice(0, 40)),
+    intro: pane.querySelector("h2 + .muted").textContent.split(". ")[0],
+  };
+})()"""
+
+
+def safety_step(chrome):
+    """The safety step with scripts: its drawings as tall as Buzz's screens on a computer, so the stepper stays put, each
+    chat bubble as wide as its words, the people and the agent drawn, the tall drawing once the window is a phone's,
+    and the notes on each option."""
+    page = Page(chrome)
+    page.goto(LIVE + "#safe")
+    agent = page.eval(SAFE)
+    page.eval("document.querySelector('#safe .g-frame [data-go=\"1\"]').click()")
+    public = page.eval(SAFE)
+    # Buzz's screens are 340 pixels tall at 560 wide or more, and scale down with the width
+    screen = round(340 * min(1, agent["width"] / 560))
+    ok(agent["agent"] == "wide" and agent["caps"] == 1 and agent["heights"] == [screen] and public["heights"] == [screen]
+       and agent["drawn"] and public["drawn"] and agent["cropped"] == public["cropped"] == 0,
+       "on a computer, each drawing is as tall as Buzz's screens in the other steps (%d pixels), with the people and the "
+       "agent drawn and nothing outside it" % screen, (agent, public))
+    ok(len(agent["bubbles"]) == 2 and all(abs(gap) < 0.6 for gap in agent["bubbles"]),
+       "each chat bubble is as wide as its words in this browser's font", agent["bubbles"])
+    # the window narrows to a phone's: the tall drawing, measured as it shows
+    page.call("Emulation.setDeviceMetricsOverride", {"width": 375, "height": 812, "deviceScaleFactor": 1, "mobile": True})
+    page.eval("document.querySelector('#safe .g-frame [data-go=\"-1\"]').click()")
+    narrow = page.wait("(() => { const s = %s; return s.agent === 'tall' && s; })()" % SAFE)
+    ok(narrow and narrow["caps"] == 0 and narrow["scale"] >= 0.8 and narrow["cropped"] == 0 and narrow["drawn"]
+       and len(narrow["bubbles"]) == 2 and all(abs(gap) < 0.6 for gap in narrow["bubbles"]),
+       "at a phone's width the tall drawing shows, at %s of its size, with its bubbles fitted to their words" % (narrow or {}).get("scale"),
+       narrow)
+    page.close()
+    # The notes on each option: bans only on the owner's own domain, moderation's reading leading while it's on, and no
+    # first sentence about the internet on the private network
+    seen = {}
+    for name, url in (("domain", LIVE), ("moderation", MODERATED), ("private", PRIVATE)):
+        page = Page(chrome)
+        page.goto(url + "#safe")
+        found = page.eval(SAFE)
+        seen[name] = (found["intro"], [note.split(".")[0] + ": " + note.split(". ", 1)[1][:16] for note in found["notes"]])
+        page.close()
+    ok(seen == {"domain": ("Opening your community to the internet exposes you to risk",
+                           ["Private channels: Anyone in a priv", "Invite links: A new link works", "Bans: To keep an ident"]),
+                "moderation": ("Opening your community to the internet exposes you to risk",
+                               ["Private channels: While Moderation", "Invite links: A new link works", "Bans: To keep an ident"]),
+                "private": ("Adding agents with access to personal data exposes you to risk",
+                            ["Private channels: Anyone in a priv", "Invite links: A new link works"])},
+       "the notes on each option: bans on the owner's own domain alone, who can read private messages first while "
+       "moderation is on, and on the private network an intro without the internet", seen)
+
+
+def settings_link(chrome):
+    """Moderation's link to the safety step, in Settings: it opens the step in view and moves focus to its heading."""
+    page = Page(chrome)
+    page.goto(LIVE)
+    page.eval("[...document.querySelectorAll('.set-card details')].find((d) => d.querySelector('summary').textContent"
+              ".startsWith('Moderation')).open = true")
+    page.click('.set-card a[href="#safe"]')
+    now = page.wait("(() => { const g = %s; return g.at === 'safe:1' && g; })()" % GUIDE)
+    seen = page.eval("(() => { const r = document.getElementById('safe').getBoundingClientRect(); "
+                     "return r.top > -1 && r.top < innerHeight; })()")
+    ok(now and now["hash"] == "#safe" and now["focus"] == "h2@safe" and now["current"] == ["#safe"] and seen,
+       "Moderation's link to the safety step opens it in view and moves focus to its heading", (now, seen))
+    page.close()
+
+
 def without_scripts(chrome):
-    """Without scripts: every step and drawing, no stepper, no copy buttons, and at a phone's width the drawings fit."""
+    """Without scripts: every step and drawing, no stepper, no copy buttons, and from a computer's width to a phone's the
+    drawings fit, the safety step's legible and whole."""
     for width in (1440, 375):
         page = Page(chrome, width=width, height=900, scripts=False)
         page.goto(LIVE)
@@ -483,10 +591,16 @@ def without_scripts(chrome):
               s.querySelector(".mb-canvas").getBoundingClientRect().width > s.clientWidth + 0.5).length,
             sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth };
         })()""")
-        ok(seen == {"js": "", "copies": 2, "copiesShown": 0, "panes": "join,invite,phone", "frames": 6, "steppers": 0,
+        ok(seen == {"js": "", "copies": 2, "copiesShown": 0, "panes": "join,invite,safe,phone", "frames": 8, "steppers": 0,
                     "cropped": 0, "sideways": False},
            "without scripts at %d pixels: every step and drawing, no stepper and no copy buttons, nothing cropped or "
            "wider than the page" % width, seen)
+        safe = page.eval(SAFE)
+        drawing = "wide" if width > 600 else "tall"
+        ok(safe["figs"] == 2 and safe["agent"] == drawing and safe["caps"] == (drawing == "wide") and safe["scale"] >= 0.8
+           and safe["cropped"] == 0 and safe["drawn"],
+           "and the safety step's two drawings: the %s one of the agent at %s of its size, the people and the agent drawn, "
+           "nothing outside its drawing or wider than its box" % (drawing, safe["scale"]), safe)
         page.close()
 
 
@@ -509,7 +623,8 @@ def main():
                 time.sleep(0.1)
         chrome = Chrome()
         print(chrome.call("Browser.getVersion")["product"])
-        for test in (first_paint_and_hash, stepper, step_links, refresh_swap, device_check, new_phase, without_scripts):
+        for test in (first_paint_and_hash, stepper, step_links, safety_step, settings_link, refresh_swap, device_check,
+                     new_phase, without_scripts):
             print("== " + test.__doc__.split(":")[0].split(",")[0].strip().rstrip("."))
             try:
                 test(chrome)

@@ -67,8 +67,8 @@ for name, svc in services.items():
 services["web"]["image"] = "python:3.13.16-alpine3.24@sha256:2d9aefe2fef018a7eb2c13064c89c71929800fd2e5dccdbf52ea5da5bb8d929a"
 services["web"]["command"] = ["python3", "-u", "/app/setup.py"]
 services["web"]["volumes"] = ["${APP_DATA_DIR}/setup.py:/app/setup.py:ro"] + services["web"].get("volumes", [])
-# the setup page on this machine only, as Umbrel's proxy would publish it
-services["web"]["ports"] = ["127.0.0.1:8090:8080"]
+# the setup page on this machine only, as Umbrel's proxy would publish it, at 8090 or BUZZ_LOCAL_PORT
+services["web"]["ports"] = ["127.0.0.1:" + os.environ.get("BUZZ_LOCAL_PORT", "8090") + ":8080"]
 compose["volumes"] = volumes
 compose["networks"] = {"default": {"name": "umbrel_main_network_local"}}
 yaml.safe_dump(compose, open(os.path.join(out, "compose.yml"), "w"), sort_keys=False, width=200)

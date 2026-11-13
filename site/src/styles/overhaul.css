@@ -313,3 +313,104 @@
   .aq-bee { display: none; }
   .aq-addr code { font-size: 12px; }
 }
+
+/* ═══ Agents, in Running your relay (scenes/agents.ts) ═══ */
+:is(.ga-status, .ga-warn, .ga-sym, .ga-row) svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ga-status { display: inline-flex; align-items: center; gap: 7px; margin: 0 0 14px; padding: 4px 11px 4px 9px; border-radius: 999px; background: #f7ecd9; font: 500 12px var(--mono); color: #7a4d06; }
+.ga-status svg { width: 14px; height: 14px; }
+.ga-h { margin: 26px 0 0; font-size: 15px; font-weight: 600; }
+
+/* the skill's steps, commands included */
+.ga-flow .opx-flow-d.tl-md { font-size: 14.5px; }
+.ga-flow .opx-flow-d.tl-md > :last-child { margin-bottom: 0; }
+.ga-flow .opx-flow-d.tl-md p { margin: 0 0 8px; }
+.ga-flow .opx-flow-t code { font-size: 0.88em; }
+
+/* the instruction, each line's job named */
+.ga-ins-vis { display: grid; gap: 12px; }
+.ga-ins { padding: 16px 18px 18px; border-radius: 14px; background: #fff; border: 1px solid var(--line-2); box-shadow: 0 1px 2px rgb(24 20 14 / 5%); }
+.ga-ins-h { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; font-size: 13px; font-weight: 600; }
+.ga-ins-h em { font: 400 12px var(--sans); font-style: normal; color: var(--ink-3); }
+.ga-ins-box { display: grid; padding: 4px 12px; border: 1px solid var(--line-2); border-radius: 12px; background: #fbfbf9; }
+.ga-ins-l { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; margin: 0; padding: 8px 0; border-bottom: 1px dashed var(--line-2); font-size: 14px; line-height: 1.45; }
+.ga-ins-l:last-child { border-bottom: 0; }
+.ga-ins-j { justify-self: end; padding: 2px 9px; border-radius: 99px; background: var(--accent); font: 500 11px var(--mono); white-space: nowrap; }
+.ga-said ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ga-said li { padding: 4px 10px; border-radius: 99px; background: rgb(255 255 255 / 12%); font-size: 13px; }
+
+/* harnesses */
+.ga-har th, .ga-har td { text-align: left; }
+.ga-har td { font-size: 14px; }
+.ga-har td:first-child { color: var(--ink); font-weight: 600; white-space: nowrap; }
+
+/* where an agent can run */
+.ga-on { display: grid; gap: 8px; }
+.ga-on-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 4px 14px; align-items: center; padding: 13px 16px; border-radius: 14px; background: #fff; border: 1px solid var(--line-2); }
+.ga-on-row.pick { border-color: rgb(215 215 46 / 85%); box-shadow: 0 0 0 3px rgb(215 215 46 / 22%); }
+.ga-on-i { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: #f4f4f0; }
+.ga-on-row.pick .ga-on-i { background: var(--accent); }
+.ga-on-i svg { width: 20px; height: 20px; }
+.ga-on-row b { display: block; font-size: 15px; font-weight: 600; }
+.ga-on-row p { margin: 1px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
+.ga-on-s { display: grid; justify-items: end; gap: 5px; }
+.ga-chip { padding: 2px 9px; border-radius: 99px; background: #f4f4f0; font: 500 11.5px var(--mono); white-space: nowrap; }
+.ga-chip.yes { background: var(--accent); }
+.ga-chip.no { background: #f7ecd9; color: #7a4d06; }
+.ga-chip.rec { background: var(--ink); color: var(--accent); }
+
+/* an agent's profile, with the proof and without */
+.ga-mark { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ga-mk { display: grid; gap: 12px; align-content: start; padding: 14px 16px 16px; border-radius: 14px; background: #fff; border: 1px solid var(--line-2); }
+.ga-mk.good { border-color: rgb(215 215 46 / 85%); }
+.ga-mk.bad { border-color: #e7b3b1; }
+.ga-mk-h { display: flex; margin: 0; }
+.ga-row { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 9px; align-items: end; padding: 10px 12px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #e8e8e8; font-size: 13px; }
+.ga-row img, .ga-row .ga-face { display: block; width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+.ga-row img.sq { padding: 2px; border-radius: 9px; background: #efecf8; object-fit: contain; }
+.ga-row .ga-face { display: grid; place-items: center; background: #e9e9ea; color: #777; }
+.ga-row .ga-face svg { width: 16px; height: 16px; }
+.ga-row b { display: flex; align-items: center; gap: 5px; margin: 0 0 2px 2px; font-size: 12px; font-weight: 500; }
+.ga-row b svg { width: 14px; height: 14px; }
+.ga-row b time { margin-left: 2px; font-weight: 400; color: #5f5f5f; }
+.ga-row p { width: fit-content; margin: 0; padding: 6px 12px; border-radius: 16px; background: #f3f3f4; }
+.ga-ev { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--code); font: 11.5px/1.7 var(--mono); color: #e9e6df; white-space: pre-wrap; word-break: break-word; }
+.ga-ev i { font-style: normal; color: rgb(255 255 255 / 50%); }
+.ga-ev mark { padding: 1px 4px; border-radius: 4px; background: var(--accent); color: var(--ink); }
+.ga-ev s { padding: 1px 4px; border-radius: 4px; background: #f6dedd; color: #9e2f2a; text-decoration: none; }
+.ga-mk-f { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
+
+/* the messages, folded */
+.ga-fold { margin-top: 22px; padding-top: 12px; border-top: 1px solid var(--line); }
+.ga-fold > summary { font-size: 15px; font-weight: 500; color: var(--ink); }
+.ga-fold-b { margin-top: 10px; }
+.ga-msgs { width: 100%; min-width: 0; border-collapse: collapse; font-size: 13.5px; line-height: 1.5; }
+.ga-msgs th { padding: 6px 10px 6px 0; text-align: left; font: 600 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); border-bottom: 1px solid var(--line-2); }
+.ga-msgs td { padding: 9px 10px 9px 0; vertical-align: top; border-bottom: 1px solid var(--line); color: var(--ink-2); }
+.ga-msgs td:first-child { white-space: nowrap; font-weight: 600; color: var(--ink); }
+.ga-msgs code { font-size: 11.5px; overflow-wrap: anywhere; }
+
+/* what went wrong */
+.ga-sym { display: grid; gap: 8px; margin-top: 12px; }
+.ga-sym-row { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr); gap: 16px; padding: 12px 14px; border-radius: 12px; background: #fff; border: 1px solid var(--line-2); font-size: 14px; line-height: 1.45; }
+.ga-sym-row b { display: flex; gap: 9px; font-weight: 600; }
+.ga-sym-row b svg { flex: none; width: 17px; height: 17px; margin-top: 2px; color: #9e2f2a; }
+.ga-sym-row b code, .ga-sym-row p code { font-size: 0.86em; overflow-wrap: anywhere; }
+.ga-sym-row p { margin: 0; color: var(--ink-2); }
+
+.ga-warn { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 11px; margin-top: 18px; padding: 13px 16px; border-radius: 14px; background: #f7ecd9; font-size: 14.5px; line-height: 1.5; }
+.ga-warn svg { width: 20px; height: 20px; margin-top: 1px; color: #7a4d06; }
+.ga-warn p { margin: 0; }
+.ga-warn b { font-weight: 600; }
+
+@media (max-width: 640px) {
+  .ga-mark { grid-template-columns: minmax(0, 1fr); }
+  .ga-on-row { grid-template-columns: 40px minmax(0, 1fr); }
+  .ga-on-s { grid-column: 2; display: flex; flex-wrap: wrap; gap: 5px; }
+  .ga-ins-l { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .ga-ins-j { justify-self: start; }
+  .ga-sym-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .ga-msgs, .ga-msgs tbody, .ga-msgs tr, .ga-msgs td { display: block; }
+  .ga-msgs thead { display: none; }
+  .ga-msgs td { padding: 2px 0; border: 0; }
+  .ga-msgs tr { padding: 9px 0; border-bottom: 1px solid var(--line); }
+}

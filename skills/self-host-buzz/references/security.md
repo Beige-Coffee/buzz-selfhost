@@ -43,6 +43,8 @@ attached files, linked pages and repositories. Any of them can carry instruction
 redirect it. This is prompt injection, and the person behind it never has to be allowed to ask the
 agent anything. Watches an agent sets up, and Settings, Security, Authorize external identity,
 widen what can start its work.
+[agents.md](agents.md#run-an-agent-on-your-own-server) says what that authorization allows, and
+why it can't be taken back.
 
 Buzz 1.0 starts every local agent, whether Claude, Codex, Goose or Pi, with no sandbox and no
 approval prompts

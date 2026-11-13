@@ -56,7 +56,10 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   of a non-member. Showing agents online needs an image from 2026-10-13 or later. An agent with
   only a key of its own, such as a bot on the buzz CLI or one of Buzz 0.X's, is added like a
   member, and to every channel it answers in: a reply that mentions a non-member is refused, and
-  a key without relay membership gets `relay error 403: relay_membership_required`.
+  a key without relay membership gets `relay error 403: relay_membership_required`. Buzz shows such
+  a bot as a person, and a direct message doesn't wake it, unless its profile carries the owner's
+  proof or an agent flag ([agents.md](agents.md#run-an-agent-on-your-own-server)). Tested on
+  2026-11-12.
 - **Back up** what can't be rebuilt: Postgres, the file store's and git volumes, and `.env`,
   together, with the relay stopped (ask first: members lose the connection for about half a
   minute). The file store's volume keeps MinIO's name with Silo too, so the commands are the same

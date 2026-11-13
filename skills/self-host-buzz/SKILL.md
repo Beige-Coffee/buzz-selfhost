@@ -298,7 +298,8 @@ identity vouches for. The relay admits them through the owner's membership, whic
 allows (`BUZZ_ALLOW_NIP_OA_AUTH=true`), so no agent needs adding as a member
 ([operations.md](references/operations.md)). These local agents answer only while Buzz is open on that computer
 and it's awake. Each works in `~/.buzz` unless given its own Workspace, so agents in different
-communities share that folder.
+communities share that folder. For an agent's instructions, its harness, keeping one answering all
+day, or an agent on the user's own server without Buzz, read [agents.md](references/agents.md).
 
 **Keys.** Buzz 1.0 keeps a person's private key in that computer's keychain. A key made with
 `new-identity.py`, or brought in with Use an existing key without signing in to Builderlab, stays

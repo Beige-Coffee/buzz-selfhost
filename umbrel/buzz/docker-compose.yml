@@ -28,7 +28,8 @@ services:
 
   # What Cloudflare Tunnel and Tailscale point at: http://buzz-gateway:80. On the owner's own domain it
   # answers only the community's current address, so an old address that still points at the tunnel
-  # reaches nothing. It starts again when the address changes.
+  # reaches nothing. It starts again when the address changes. Caddy matches the name without its
+  # port, so moderation's requests, for <address>:8443, reach the relay with that Host.
   gateway:
     image: caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
     init: true
@@ -93,13 +94,25 @@ services:
         load() {
           while IFS= read -r line || [ -n "$$line" ]; do
             case "$${line%%=*}" in
-              BUZZ_RELAY_PRIVATE_KEY|RELAY_OWNER_PUBKEY|BUZZ_DOMAIN|RELAY_URL|BUZZ_MEDIA_BASE_URL|BUZZ_MEDIA_SERVER_DOMAIN|BUZZ_CORS_ORIGINS|BUZZ_PAIRING_RELAY_URL|BUZZ_PUSH_ENABLED)
+              BUZZ_RELAY_PRIVATE_KEY|RELAY_OWNER_PUBKEY|BUZZ_DOMAIN|RELAY_URL|BUZZ_MEDIA_BASE_URL|BUZZ_MEDIA_SERVER_DOMAIN|BUZZ_CORS_ORIGINS|BUZZ_PAIRING_RELAY_URL|BUZZ_PUSH_ENABLED|BUZZ_ADMIN_HOST)
                 export "$$line" ;;
             esac
           done < "$$1"
         }
+        # Moderation, the relay's admin API, comes from the setup page's switch alone: signed (nip98, the
+        # default), with the owner as the only built-in operator (the relay's owner fallback), and without
+        # the browser dashboard the image turns on
+        unset BUZZ_ADMIN_HOST BUZZ_ADMIN_AUTH BUZZ_ADMIN_TOKEN RELAY_OPERATOR_PUBKEYS BUZZ_ADMIN_WEB_DIR
         load "$$key"
         load "$$settings"
+        # and only at the address the gateway serves, on port 8443: its first BUZZ_DOMAIN line, with its
+        # own test, and the relay's own address too. So a Tailscale name, an old address or another host
+        # never gets one
+        site=$$(sed -n 's/^BUZZ_DOMAIN=//p' "$$settings" | head -n 1) || site=
+        case "$$site" in
+          ""|*[!a-z0-9.-]*|*.ts.net) unset BUZZ_ADMIN_HOST ;;
+          *) [ "$${BUZZ_ADMIN_HOST:-}" = "$$site:8443" ] && [ "$${BUZZ_DOMAIN:-}" = "$$site" ] || unset BUZZ_ADMIN_HOST ;;
+        esac
         /usr/local/bin/buzz-relay &
         pid=$$!
         trap 'kill -TERM "$$pid" 2>/dev/null || true; wait "$$pid" || true; exit 0' TERM INT

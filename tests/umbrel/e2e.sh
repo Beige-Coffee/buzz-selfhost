@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # End to end on the test Umbrel: a Cloudflare quick tunnel to the app's gateway, setup through the
 # app's page, then the relay checks, members posting and reading, a stranger refused, a file up and
-# down, invite links, Buzz 1.0's New chat with an agent, and the same after Umbrel restarts the app.
+# down, invite links, Buzz 1.0's New chat with an agent, moderation turned on and off on the page
+# (the admin API's answers, and a ban), and the same after Umbrel restarts the app.
 #
 # The owner is a test identity made here, unless OWNER_HEX names a real person, who joins from Buzz
-# afterwards. With a real owner the invite checks are skipped (they need the owner's key), and New
-# chat runs as a member, which Buzz 1.0 allows any member.
+# afterwards. With a real owner the invite checks, the owner's moderation checks and the ban are
+# skipped (they need the owner's key), and New chat runs as a member, which Buzz 1.0 allows any member.
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 U="bash $HERE/ssh.sh"
@@ -56,22 +57,23 @@ signed_post() {
     -H "Authorization: $auth" -H 'Content-Type: application/json' ${extra[@]+"${extra[@]}"} --data-binary "$3" 2>/dev/null
 }
 members() { umbrel "docker exec buzz_relay_1 bash -c 'set -a; . /data/settings/relay.env; . /data/secrets/relay.env; set +a; buzz-admin $1' 2>&1"; }
-
-if [ -z "${SKIP_SETUP:-}" ]; then
-echo "== Setup, through the app's page"
 # Requests from inside umbrelOS straight to the page, past Umbrel's proxy, as another app could
 # make them. post PATH FORM prints the HTTP status, with the session cookie once signed in.
 WEB="ip=\$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' buzz_web_1)"
 JAR=/tmp/buzz-e2e-jar
 post() { umbrel "$WEB; curl -s -o /dev/null -w '%{http_code}' -b $JAR -c $JAR --data '$2' http://\$ip:8080$1"; }
 saved() { umbrel 'docker exec buzz_web_1 cat /settings/setup.json 2>/dev/null'; }
+# The app password from the page's own environment, on stdin: never printed or in a process list
+signin() { umbrel "$WEB; docker exec buzz_web_1 printenv APP_PASSWORD | tr -d '\n' | curl -s -o /dev/null -w '%{http_code}' -c $JAR --data-urlencode password@- http://\$ip:8080/login"; }
+
+if [ -z "${SKIP_SETUP:-}" ]; then
+echo "== Setup, through the app's page"
 umbrel "rm -f $JAR"
 before=$(saved)
 code=$(post /save "owner=$OWNER_HEX&mode=domain&domain=evil.example.com&ack=yes")
 [ "$code" = 401 ] && [ "$(saved)" = "$before" ] &&
   pass "without the app password, a direct request can't save settings (HTTP 401)" || fail "a save without signing in got HTTP $code"
-# The app password from the page's own environment, on stdin: never printed or in a process list
-code=$(umbrel "$WEB; docker exec buzz_web_1 printenv APP_PASSWORD | tr -d '\n' | curl -s -o /dev/null -w '%{http_code}' -c $JAR --data-urlencode password@- http://\$ip:8080/login")
+code=$(signin)
 [ "$code" = 303 ] && pass "the app password signs in to the page (HTTP 303)" || fail "signing in got HTTP $code"
 code=$(post /save "owner=npub1notreal&mode=domain&domain=$DOMAIN&ack=yes")
 [ "$code" = 400 ] && pass "the page refuses a bad public ID (HTTP 400)" || fail "a bad public ID got HTTP $code"
@@ -176,6 +178,121 @@ else
   grep -q relay_membership_required "$TMP/noauth.json" && pass "the agent's key alone is refused" ||
     fail "the agent's key alone failed another way: $(head -c 200 "$TMP/noauth.json")"
 fi
+
+echo "== Moderation: the relay's admin API, turned on and off on the app's page"
+# The admin API is asked through the gateway from inside umbrelOS, with the Host a request for <name>:8443
+# has when the app's Cloudflare tunnel delivers it, so a quick tunnel that doesn't carry port 8443 changes
+# nothing here. Signatures (NIP-98) are made on this machine and reach the request on stdin, never on a
+# command line. The banned member posts with event.py, as Buzz does, without the buzz CLI.
+ORIGIN="https://$DOMAIN:8443"
+GATEWAY_PY='import http.client, json, sys
+host, method, path, accept = sys.argv[1:5]
+body = sys.argv[5].encode() if len(sys.argv) > 5 else None
+auth = sys.stdin.readline().strip()
+headers = {"Host": host, "Accept": accept}
+if auth:
+    headers["Authorization"] = auth
+if body is not None:
+    headers["Content-Type"] = "application/json"
+try:
+    c = http.client.HTTPConnection("buzz-gateway", 80, timeout=15)
+    c.request(method, path, body=body, headers=headers)
+    r = c.getresponse()
+    h = {k.lower(): v for k, v in r.getheaders()}
+    text = r.read(65536).decode(errors="replace")
+    print(json.dumps({"status": r.status, "csp": h.get("content-security-policy", ""), "type": h.get("content-type", ""), "www": h.get("www-authenticate", ""), "body": text[:4000]}))
+except Exception as e:
+    print(json.dumps({"status": 0, "body": type(e).__name__}))'
+# gateway HOST METHOD PATH ACCEPT [BODY] < AUTHORIZATION: one request through the gateway, from the page's
+# container on Umbrel's network. The answer goes to $TMP/gw.json: status, csp, type, www and body. The program
+# goes in single quotes, which any shell reads as they are, so it has none of its own.
+gateway() { $U "docker exec -i $C docker exec -i buzz_web_1 python3 -c '$GATEWAY_PY' $(printf '%q ' "$@")" > "$TMP/gw.json" 2> /dev/null; }
+gw() { python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], ''))" "$TMP/gw.json" "$1" 2>/dev/null; }
+# sign SECRET METHOD PATH [BODY]: a NIP-98 header for $ORIGIN$PATH, the URL the relay derives from its admin host
+sign() { python3 "$T/lib/nip98.py" "$2" "$ORIGIN$3" ${4+"$4"} <<<"$1"; }
+admin_api() { nip11 | python3 -c "import json,sys; print(json.load(sys.stdin).get('admin_api') or '<none>')" 2>/dev/null; }
+advertised() { for _ in $(seq 1 40); do [ "$(admin_api)" = "$1" ] && return 0; sleep 3; done; return 1; }
+admin_line() { umbrel "docker exec buzz_web_1 sed -n '/^BUZZ_ADMIN_HOST/p' /settings/relay.env"; }
+# relay_admin_env: the relay process's own admin settings, by name: the rest of its environment holds secrets
+relay_admin_env() {
+  $U "docker exec -i $C sh -s" <<'ENV'
+docker exec buzz_relay_1 bash -c 'for p in /proc/[0-9]*; do [ "$(cat $p/comm 2> /dev/null)" = buzz-relay ] && tr "\0" "\n" < $p/environ | grep -E "^(BUZZ_ADMIN_HOST|BUZZ_ADMIN_AUTH|BUZZ_ADMIN_TOKEN|RELAY_OPERATOR_PUBKEYS|BUZZ_ADMIN_WEB_DIR)="; done' 2> /dev/null
+ENV
+}
+# member_posts SECRET TEXT: a member's message in the channel, signed with event.py and posted as Buzz posts it
+member_posts() { signed_post "$1" /events "$(python3 "$T/lib/event.py" 9 "[[\"h\",\"$CH\"]]" "$2" <<<"$1")"; }
+banned() { for _ in $(seq 1 10); do [ "$(member_posts "$A_SK" "$1")" = 403 ] && grep -q banned "$TMP/post.json" && return 0; sleep 3; done; return 1; }
+umbrel "rm -f $JAR"
+[ "$(signin)" = 303 ] || fail "signing in to the page for moderation"
+if [ "$(saved | field mode)" != domain ]; then
+  # A Tailscale address: Buzz opens moderation only at addresses that resolve to public ones, so the page
+  # offers it on the owner's own domain alone
+  code=$(post /moderation "moderation=on")
+  [ "$code" = 400 ] && [ -z "$(admin_line)" ] && pass "on a Tailscale address the page refuses to turn moderation on (HTTP 400)" ||
+    fail "on a Tailscale address, turning moderation on got HTTP $code, and the relay's settings say [$(admin_line)]"
+  echo "INFO  the other moderation checks skipped: they need a domain, the owner's own or a quick tunnel's"
+else
+  [ "$(admin_api)" = "<none>" ] && pass "moderation is off by default: NIP-11 advertises no admin API" ||
+    fail "before it's turned on, NIP-11's admin_api is [$(admin_api)]"
+  gateway "$DOMAIN:8443" GET /api/admin/v1/probe application/json < /dev/null
+  [ "$(gw status)" = 404 ] && pass "and $DOMAIN:8443 has no admin API (HTTP 404)" || fail "before it's turned on, $DOMAIN:8443 answered HTTP $(gw status)"
+  code=$(post /moderation "moderation=on")
+  [ "$code" = 303 ] && [ "$(admin_line)" = "BUZZ_ADMIN_HOST=$DOMAIN:8443" ] &&
+    pass "the page turns it on: one line in the relay's settings, BUZZ_ADMIN_HOST=$DOMAIN:8443" ||
+    fail "turning it on got HTTP $code, and the relay's settings say [$(admin_line)]"
+  advertised "$ORIGIN" && pass "the relay restarts with it: NIP-11 advertises admin_api $ORIGIN" ||
+    fail "NIP-11 didn't advertise $ORIGIN within 2 minutes: [$(admin_api)]"
+  [ "$(relay_admin_env)" = "BUZZ_ADMIN_HOST=$DOMAIN:8443" ] &&
+    pass "the relay process has that alone: no open mode, no other operators, and no browser dashboard" ||
+    fail "the relay process's admin settings: [$(relay_admin_env | tr '\n' ' ')]"
+  code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' -H 'Accept: application/nostr+json' "$ORIGIN/" 2> /dev/null)
+  echo "INFO  from this machine, through Cloudflare, $ORIGIN/ answered HTTP $code (404 when Cloudflare carries port 8443 to it)"
+  gateway "$DOMAIN:8443" GET / application/nostr+json < /dev/null
+  [ "$(gw status)" = 404 ] && [[ $(gw csp) == "default-src 'none'"*"frame-ancestors 'none'"* ]] &&
+    pass "through the gateway, $DOMAIN:8443 is the relay's admin host (404 with its own security policy)" ||
+    fail "through the gateway, $DOMAIN:8443/ answered HTTP $(gw status), policy [$(gw csp)]"
+  gateway "$DOMAIN:8443" GET / text/html < /dev/null
+  [ "$(gw status)" = 404 ] && [ -z "$(gw body)" ] && pass "a browser there gets no page: the dashboard is off" ||
+    fail "a browser at $DOMAIN:8443/ got HTTP $(gw status), $(gw type)"
+  gateway "$DOMAIN:8443" GET /api/admin/v1/probe application/json < /dev/null
+  [ "$(gw status)" = 401 ] && [ "$(gw www)" = Nostr ] && pass "an unsigned request to the admin API is refused (HTTP 401)" ||
+    fail "an unsigned probe got HTTP $(gw status): $(gw body | head -c 200)"
+  sign "$A_SK" GET /api/admin/v1/probe | gateway "$DOMAIN:8443" GET /api/admin/v1/probe application/json
+  [ "$(gw status)" = 403 ] && pass "a member's signature is refused (HTTP 403)" || fail "a member's probe got HTTP $(gw status): $(gw body | head -c 200)"
+  if [ -n "$OWNER_SK" ]; then
+    sign "$OWNER_SK" GET /api/admin/v1/probe | gateway "$DOMAIN:8443" GET /api/admin/v1/probe application/json
+    role=$(gw body | python3 -c 'import json,sys; b = json.load(sys.stdin); print(b.get("role"), b.get("source"))' 2> /dev/null)
+    [ "$(gw status)" = 200 ] && [ "$role" = "operator owner_fallback" ] &&
+      pass "the owner's signature gets in (HTTP 200): the operator, as the relay's owner" ||
+      fail "the owner's probe got HTTP $(gw status) [$role]: $(gw body | head -c 200)"
+    sign "$OWNER_SK" GET /api/admin/v1/probe | gateway "$DOMAIN" GET /api/admin/v1/probe application/json
+    [ "$(gw status)" = 403 ] && pass "the same signature sent for the community's own address is refused (HTTP 403)" ||
+      fail "the owner's probe for $DOMAIN got HTTP $(gw status)"
+    BAN="/api/admin/v1/members/$A_HEX/ban?communityHost=$DOMAIN"
+    BODY="{\"requestId\":\"$(python3 -c 'import uuid; print(uuid.uuid4())')\"}"
+    sign "$OWNER_SK" POST "$BAN" "$BODY" | gateway "$DOMAIN:8443" POST "$BAN" application/json "$BODY"
+    case "$(gw status)" in 200|202) pass "the owner bans member A through the admin API (HTTP $(gw status))" ;;
+      *) fail "the ban got HTTP $(gw status): $(gw body | head -c 200)" ;; esac
+    banned "after the ban" && pass "member A's posts are refused: banned from this community" ||
+      fail "member A posted after the ban: HTTP $(member_posts "$A_SK" "after the ban, again") $(head -c 200 "$TMP/post.json")"
+    STATUS=$(member_posts "$B_SK" "member B, after A's ban")
+    [[ $STATUS == 200 && $(field accepted < "$TMP/post.json") == True ]] && pass "member B still posts" ||
+      fail "member B after A's ban: HTTP $STATUS $(head -c 200 "$TMP/post.json")"
+  else
+    echo "INFO  the owner's own checks and the ban skipped: the owner is a real person, whose key isn't here"
+  fi
+  code=$(post /moderation "")
+  [ "$code" = 303 ] && [ -z "$(admin_line)" ] && pass "the page turns it off: the line is gone from the relay's settings" ||
+    fail "turning it off got HTTP $code, and the relay's settings say [$(admin_line)]"
+  advertised "<none>" && pass "the relay restarts without it: NIP-11 advertises no admin API" ||
+    fail "NIP-11 still advertises [$(admin_api)] 2 minutes after turning it off"
+  gateway "$DOMAIN:8443" GET /api/admin/v1/probe application/json < /dev/null
+  [ "$(gw status)" = 404 ] && pass "and $DOMAIN:8443 has no admin API again (HTTP 404)" || fail "after turning it off, the probe got HTTP $(gw status)"
+  if [ -n "$OWNER_SK" ]; then
+    banned "with moderation off" && pass "the ban holds with moderation off" || fail "member A posted once moderation was off"
+  fi
+fi
+umbrel "rm -f $JAR"
 
 echo "== Restart through Umbrel"
 umbrel 'umbreld client apps.restart.mutate --appId buzz > /dev/null 2>&1'

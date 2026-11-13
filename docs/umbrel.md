@@ -24,8 +24,9 @@ image. On 2026-11-12 the page gained two features for its next image, 1.1.0, not
 page saves `cert.pem` in the browser instead of passing it to the app, the owner can upload that file, and an owner
 on their own domain can turn on moderation (below). Both passed the page's local tests and the package's containers on Docker; the
 package still pins the 1.0.0 image. On 2026-11-13, also for 1.1.0 and from approved mockups, the live page's next steps became a
-guide and its checks one card, and while connecting the checks became a progress bar; they passed the same local tests (Tested,
-below). It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
+guide and its checks one card, and while connecting the checks became a progress bar; they passed the same local tests, and so
+did the fixes from four reviews of them, the same day, with a new test in a browser (Tested, below). It lives on this `umbrel`
+branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package
 
@@ -47,12 +48,13 @@ Credit #5928 when we submit.
   Members, the owner included, chat in Buzz Desktop and the iPhone app. Block ships no browser
   version to run on Umbrel: the relay's own web pages are invite pages and a code browser.
 - **For Buzz 1.0 only.** The package ships once Buzz 1.0 is out, so the page names its menus and
-  no others. Dropdowns show Buzz 1.0.0's own screens, drawn from its source (block/buzz-app
-  v1.0.0): where to find the public ID, under the owner's field, and, once the community is live,
-  how to join it, add members and pair a phone. Redraw them when Buzz's screens change. Buzz's
-  next release already changes the invite dialog and drops adding members by public ID
-  ([block/buzz-app#3147](https://github.com/block/buzz-app/pull/3147)), so the page leads with
-  invite links.
+  no others. Drawings of Buzz 1.0.0's own screens, from its source (block/buzz-app v1.0.0), show
+  where to find the public ID, in a dropdown under the owner's field. Once the community is live, a
+  guide of next steps shows how to join it, invite people and pair a phone: one step at a time, each
+  with two drawings and a caption under each, and Previous and Next between them. Redraw them when
+  Buzz's screens change. Buzz's next release already changes the invite dialog and drops adding
+  members by public ID ([block/buzz-app#3147](https://github.com/block/buzz-app/pull/3147)), so the
+  page leads with invite links.
 - **Reaching the community is separate from joining it.** Every option keeps the community
   members-only: the relay requires membership, so only people the owner invites, and the agents they
   bring, can read or post. The
@@ -98,8 +100,9 @@ Credit #5928 when we submit.
     is reachable from the internet. Each member needs the Tailscale app on every device, access to
     the tailnet (an invite, or the `buzz` machine shared with them; port 443 allowed if the
     tailnet's access rules aren't the default), and Buzz membership. Once the community is live, the
-    page checks, from the browser, whether the device it's open on reaches Buzz. Before then a failure
-    would say nothing about the device, so the progress bar leaves it out.
+    page checks, from the browser, whether the device it's open on reaches Buzz: one look at a time,
+    and only the newest look's answer shows. Before then a failure would say nothing about the device,
+    so the progress bar leaves it out.
 - **The address is the community.** The relay keeps one community per address: at start it creates
   one for its address if there isn't one, and each request's Host picks the community. So an
   address the community hasn't used starts a separate, empty community, and the old messages, files
@@ -175,17 +178,24 @@ Credit #5928 when we submit.
   from a lost key. Then the checks, which refresh every five seconds, and the steps for the chosen
   option: the Cloudflare values, or Tailscale's sign-in, machine approval and consent links. While
   connecting, the checks are a progress bar of the option's stages, such as Sign in to Cloudflare or
-  Phones can pair. YOU marks a stage that waits on the owner, the first stage still open shows it's at
-  work, and a problem turns its stage red, with its hint under the bar. Screen readers get each
-  check's full sentence. Once live: the join address, and the checks as one card that says Everything
-  works and opens to the full list. A problem shows above it with its hint, and a check still waiting
-  shows there too, quietly. Then the next steps as a guide, wider than the page on a computer: join,
-  invite people and pair a phone down the left, with a link to the self-hosting guide's homepage, and
-  on the right one step at a time, its drawings one at a time with a stepper. Joining has an Open in
-  Buzz button (`buzz://connect?relay=wss://…`, Buzz 1.0's link that opens its join screen with the
-  address filled in, as Pavlenex's package did) and Copy the address. The phone step says the phone
-  needs Tailscale too on the private option, and whether phones get notifications. Without scripts
-  every step shows, one after the other; `#join`, `#invite` and `#phone` open a step. Then collapsed
+  Phones can pair. The first, Set up on this Umbrel, is done: the setup is saved by then. Each check
+  sits in the stage it blocks: Buzz starting, in the stage where the name or address answers, and
+  Cloudflare's tunnel and DNS record, which come after the sign-in, in Cloudflare publishes the name;
+  a domain chosen wrong stays with the sign-in, since its fix is a new one. The current stage is the
+  earliest one not done, and only it shows it's at work, or YOU when it waits on the owner. A problem
+  turns the stage it blocks red, with its hint under the bar, and the current stage's checks that still
+  wait show there quietly, as on the live card. Screen readers get each check's full sentence, and one
+  short sentence when the checks change. Once live: the join address, and the checks as one card that
+  says Everything works and opens to the full list. A problem shows above it with its hint, and a check
+  still waiting shows there too, quietly. Then the next steps as a guide, wider than the page on a
+  computer: join, invite people and pair a phone down the left, with a link to the self-hosting guide's
+  homepage, and on the right one step at a time, its drawings one at a time with a stepper. Joining has
+  an Open in Buzz button (`buzz://connect?relay=wss://…`, Buzz 1.0's link that opens its join screen
+  with the address filled in, as Pavlenex's package did) and Copy the address, with a line under them
+  on what Open in Buzz does. The phone step says the phone needs Tailscale too on the private option,
+  and whether phones get notifications. When the page opens itself again at a new phase, the guide
+  stays at the reader's step and drawing. Without scripts every step shows, one after the other, and
+  the copy buttons hide; `#join`, `#invite` and `#phone` open a step. Then collapsed
   tips for keeping a community safe, most of all one anyone can join. Settings: change the owner
   (the old one becomes an admin), turn phone notifications off or on, turn moderation on or off on the
   owner's own domain, change the address, and how moving servers works. Umbrel's rules require a page
@@ -697,6 +707,26 @@ connecting as a progress bar, for the page's image 1.1.0 (not published), on thi
   and that status.json sends the page's own bar.
 - Umbrel's linter with image checks: no issues. Screenshots 04 to 06 retaken (Gotchas, below).
 
+2026-11-13, fixes from four reviews of the guide, the card and the bar (correctness, accessibility, texts and
+security), for the page's image 1.1.0 (not published), on this Mac at no cost
+([log](../tests/runs/2026-11-13-1414-umbrel-setup-page-review-fixes-local.log)):
+
+- **Mocked:** `render.py` 1889 page states, also on the image's Python 3.13 on Linux: 39 connecting stages of
+  the three options, each with what shows under the bar, the bar's rule tested rather than restated, and the
+  texts brought back. `security.py` 110, adding names with quotes, an element or a script written straight into
+  the page's files, which show as text on a live page, while connecting and in status.json; status.json refusing
+  a visitor without a session with neither the checks nor their signature; and helpers' logs with bytes that
+  aren't UTF-8, which broke the page before. `cloudflare.py` 63. `preview.py`'s 14 screens, with what shows under
+  each bar.
+- **Browser:** `browser.py`, new, 20 of 20 in headless Chrome 157, ten runs in a row, with the page's timers and
+  the device check's requests held by the test: the stepper across steps and at its ends, a step opened by the
+  address or kept across a new phase, focus moving to a step's heading, the refresh keeping an open list open and
+  focus on it and saying what changed, the device check through the reviewers' race, and the page without
+  scripts. On the page before these fixes, 15 of its checks fail, the race among them.
+- **Real:** `check.py` 80 of 80 on the package's containers on Docker Desktop, with the page on the image's Python
+  3.13, now comparing the page with status.json only while the checks hold still.
+- Umbrel's linter with image checks: no issues. Screenshots 01 and 03 to 06 retaken; 02 didn't change.
+
 ## Not yet tested
 
 - The page's image 1.1.0 on umbrelOS: it isn't published yet. Then `pre-submit.sh`, whose `e2e.sh` now
@@ -707,7 +737,7 @@ connecting as a progress bar, for the page's image 1.1.0 (not published), on thi
   Firefox, on a real phone, and with a screen reader: so far a Chromium browser and headless Chrome on a
   Mac, and the page's own tests.
 - The private network's device check passing on a real tailnet, as the card shows it: so far its
-  failure off the tailnet, and its answer driven through the page's own script.
+  failure off the tailnet, and answers held back and let through in headless Chrome (`browser.py`).
 - An upload of a real `cert.pem` that Cloudflare saved in the browser, by hand: so far made-up files,
   in a browser and on the real Cloudflare service, which Cloudflare refused.
 - Umbrel's backup skipping an uploaded sign-in, the new `backupIgnore` line: `pre-submit.sh`'s markers
@@ -807,6 +837,7 @@ python3 tests/umbrel/local/check.py                   # real checks; leaves the 
 python3 tests/umbrel/local/render.py                  # mocked: every page state
 python3 tests/umbrel/local/security.py                # mocked: the page's limits, the relay's entrypoint
 python3 tests/umbrel/local/cloudflare.py              # the Cloudflare service, with a stand-in cloudflared
+python3 tests/umbrel/local/browser.py                 # the page's scripts in headless Chrome, on the previews
 python3 tests/umbrel/local/preview.py 8711 private-live   # mocked screens, one per port
 bash tests/umbrel/local/down.sh                       # removes the run, data included
 ```
@@ -878,3 +909,7 @@ edits before any image is published; the droplet runs use the published image.
   but draws it unscrolled, with everything above the scrolled view blank. Compositor flags don't help.
   `06-add-members.png` is cropped from a capture tall enough not to scroll, at the place Chrome scrolls
   to at 1440 by 900 (432 pixels down).
+- The submission's screenshots 01 to 03 come from DevTools on a Chrome started without `--disable-gpu`,
+  and 04 to 06 from Chrome's `--screenshot` with it. Each way draws text a little differently, so to
+  compare pixels, retake each the way it was taken. Without `--disable-gpu`, the setup page's numbered
+  circles also come out a few pixels different from one capture to the next.

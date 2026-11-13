@@ -1,7 +1,7 @@
 # Decisions
 
 What was decided for the guide and the skill, and why. Facts behind these are in
-[research.md](research.md). Last updated 2026-11-11.
+[research.md](research.md). Last updated 2026-11-12.
 
 ## The public domain moves (2026-11-11)
 
@@ -51,12 +51,13 @@ done: the work they call for is listed where it is still owed.
   day and is limited to the people expected. Adding by npub follows: from the server's command
   line, which works in every version, or with Add directly, which Buzz 1.0.0 has and preview
   builds after it hide.
-- **The relay moves to 0.3.0 before launch.** Owed: the test harness takes the release tag, and
-  the five prepared runs in [tests/README.md](../tests/README.md) are run. During the public
+- **The relay moves to 0.3.0 before launch.** Done on 2026-11-12, as recorded in the next section:
+  the test harness takes the release tag, and the five prepared runs in
+  [tests/README.md](../tests/README.md) were run. During the public
   server run the owner does the checks that need hands: pairing a phone (Codes match), a
   notification on a locked phone, and the Staff screen. Servers and costs are approved run by run.
-- **Kubernetes pins both images by digest.** Owed, in the same work: the relay and the file-store
-  image, so the steps match the test, proved by the Kubernetes run.
+- **Kubernetes pins both images by digest.** Done on 2026-11-12: the relay and the file-store
+  image, with the test running the steps' own values block, proved by the Kubernetes run.
 - **Upgrades into migration 0086 follow Block's note**, as corrected below.
 - **The launch gets a version tag.** Owed: one tag on the tested commit, made when the owner
   approves publishing.
@@ -72,6 +73,42 @@ done: the work they call for is listed where it is still owed.
   ([research.md](research.md)), so the section does not ask for one. Owed before publishing: the
   channel's real name (`CHANNEL` in `site/src/scenes/ask.ts` is a placeholder, since the channel
   does not exist yet) and Block's agreement to send readers there.
+
+## The relay moves to 0.3.0 (2026-11-12)
+
+Every setup now installs and upgrades to Block's relay release 0.3.0. This replaces "One relay
+image, by digest" in The launch review, which named `sha-744f394`. What ran, and what it found, is
+in [research.md](research.md).
+
+- **The pin is three lines in SKILL.md.** `tested-image: 0.3.0`, `tested-digest` and a new
+  `tested-commit`, the block/buzz commit the release was built from. A release's name does not say
+  its commit the way an `sha-` tag does, and the Compose bundle is checked out at that commit, so
+  the skill records it and checks it against the label the image carries.
+- **A pin move is one edit.** SKILL.md's metadata, with the old tag added to `OLD_DEFAULT_TAGS` in
+  `site/src/lib/values.ts`. The smoke scripts read their default from SKILL.md and hold no tag.
+- **Any other image names its own commit.** Before an upgrade the skill reads the running image's
+  commit from its label, and before a restore the backup's. This works for `sha-` tags and
+  releases alike, so the steps have one rule and no table of releases to keep.
+- **Kubernetes stays on chart 0.1.10**, with the relay pinned through `image.digest` and the file
+  store at the digest `ghcr.io/block/buzz-minio:latest` named on 2026-11-12. Chart 0.1.11, which
+  moves the file store to Silo with digests of its own, waits for a review of its backup steps and
+  a run.
+- **The tests turn notifications on**, as compose.md step 8 does. They had not.
+- **The upgrade guidance for migration 0086 is unchanged.** Small databases let the relay run it,
+  and large or busy ones do Block's prebuild first. Only its framing moved: 0086 now comes with
+  the recommended image, where before it came with a newer one.
+- **`tested` is 2026-11-12.** All five suites ran on the pin that day, the private and Kubernetes
+  ones among them, which the launch review's decision of 2026-11-06 was waiting for.
+
+- **Kubernetes says one node.** The quickstart hung on a restart with two nodes, and Block's chart
+  calls it single-node. The owner decided the same day that kubernetes.md says so: step 1 checks
+  for one node, says what happens with more, and names Block's setting for more nodes,
+  `persistence.git.enabled: false`, as not tested here.
+
+Open, for the owner:
+
+- **One line of site copy.** `site/src/scenes/faq.ts` says the image this guide installs is older
+  than the one that can limit files to their channels. With 0.3.0 that is no longer true.
 
 ## Security redrawn, and what an independent review corrected (2026-11-11, draft)
 

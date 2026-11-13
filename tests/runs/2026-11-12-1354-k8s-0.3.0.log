@@ -1,0 +1,120 @@
+# k8s on 0.3.0, 2026-11-12 13:54 PST
+# skill and tests at 4e6b233, plus uncommitted changes
+# smoke-k8s.sh <ip>.sslip.io 0.3.0
+
+===== Identities
+owner   <hex>
+
+===== 1. The values file (kubernetes.md step 3, run as written)
+image:
+  tag: 0.3.0
+  digest: sha256:<hex>
+relayUrl: wss://<ip>.sslip.io
+ownerPubkey: <hex>
+quickstart: true
+postgresql:
+  enabled: true
+redis:
+  enabled: true
+minio:
+  enabled: true
+  image: ghcr.io/block/buzz-minio@sha256:<hex>
+  mcImage: ghcr.io/block/buzz-minio@sha256:<hex>
+relay:
+  corsOrigins:
+    - tauri://localhost
+    - http://tauri.localhost
+    - https://<ip>.sslip.io
+  extraEnv:
+    - {name: BUZZ_PUSH_GATEWAY_DELIVERY_URL, value: "https://push.buzz.xyz/v1/deliveries/apns"}
+    - {name: BUZZ_PUSH_ENABLED, value: "true"}
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+  tls:
+    - hosts: [<ip>.sslip.io]
+      secretName: buzz-tls
+pairingRelay:
+  enabled: true
+  url: wss://<ip>.sslip.io/pair
+extraManifests:
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: buzz-pairing
+    spec:
+      ingressClassName: traefik
+      tls:
+        - hosts: [<ip>.sslip.io]
+          secretName: buzz-tls
+      rules:
+        - host: <ip>.sslip.io
+          http:
+            paths:
+              - path: /pair
+                pathType: Prefix
+                backend:
+                  service:
+                    name: buzz-pairing
+                    port:
+                      number: 5000
+PASS  the values name the tag, the digest, the address, the owner and the pairing address
+PASS  the values pin the file store's two images to one digest
+
+===== 2. Install
+PASS  helm install (91s)
+$ kubectl -n buzz get pods
+NAME                            READY   STATUS      RESTARTS      AGE
+buzz-559cdb494f-s2h9z           1/1     Running     3 (43s ago)   89s
+buzz-minio-6974bc8449-9794d     1/1     Running     0             89s
+buzz-minio-init-1-ljmbm         0/1     Completed   0             89s
+buzz-pairing-78b85655bb-xb4hs   1/1     Running     0             89s
+buzz-postgresql-0               1/1     Running     0             89s
+buzz-redis-0                    1/1     Running     0             89s
+PASS  every pod ready
+INFO  relay deployment: deployment.apps/buzz
+PASS  relay is pinned to the expected digest for 0.3.0
+INFO  the running relay's image: ghcr.io/block/buzz@sha256:<hex>
+PASS  the running relay's image ends with the digest (step 6's check)
+PASS  the file store is pinned to its digest
+PASS  ownerPubkey became the owner
+
+===== 3. Certificate and liveness
+$ kubectl -n buzz get certificate
+No resources found in buzz namespace.
+FAIL  no liveness over https
+FAIL  certificate issuer: issuer=CN=TRAEFIK DEFAULT CERT
+FAIL  CORS refuses Buzz Desktop's origin
+FAIL  WebSocket through the ingress: 
+INFO  relay version 
+FAIL  pairing_relay_url is []
+FAIL  no WebSocket at /pair: HTTP 000
+
+===== 4. Members post and read; a non-member is refused
+FAIL  owner creates a channel: {"error":"network_error","message":"network error: error sending request for url (https://<ip>.sslip.io/events): client error (Connect): invalid peer certificate: Other(OtherError(\"“TRAEFIK DEFAULT CERT” certificate is not trusted: -67843\"))","retryable":true}
+FAIL  owner posts
+PASS  add-member through kubectl exec
+FAIL  member joins and posts
+FAIL  non-member failed for another reason: {"error":"user_error","message":"invalid UUID: invalid length: expected length 32 for simple format, found 0","retryable":false}
+FAIL  upload: {"error":"network_error","message":"network error: error sending request for url (https://<ip>.sslip.io/upload): client error (Connect): invalid peer certificate: Other(OtherError(\"“TRAEFIK DEFAULT CERT” certificate is not trusted: -67843\"))","retryable":true}
+FAIL  download
+curl: option : blank argument where content is expected
+curl: try 'curl --help' or 'curl --manual' for more information
+FAIL  the file's URL is open without auth
+
+===== 5. Back up the database
+PASS  pg_dump through kubectl exec (490617 bytes)
+
+===== 6. Upgrade (helm upgrade with the same values)
+PASS  helm upgrade
+error: timed out waiting for the condition
+FAIL  relay restart
+FAIL  no liveness after the restart
+FAIL  messages lost in a restart
+FAIL  the file is gone after a restart
+
+===== RESULT
+relay: wss://<ip>.sslip.io
+passed: 11  failed: 17

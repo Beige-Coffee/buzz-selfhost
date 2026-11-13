@@ -103,8 +103,10 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   and `grep '^RELAY_URL=' "$BACKUP/env"` shows this community's address, as the user knows it:
   another install's backup would swap the relay's identity and owner. On a new machine: stop the
   old relay first if it still runs, copy the backup's folder to the same path there, run compose.md
-  steps 3, 4 and 9, with the backup's tag for step 4
-  (`TAG=$(grep '^BUZZ_IMAGE=' "$BACKUP/env" | cut -d: -f2)`), and point the domain's A record
+  steps 3, 4 and 9, with the commit of the backup's image for step 4, which the image names
+  (`IMAGE=$(grep '^BUZZ_IMAGE=' "$BACKUP/env" | cut -d= -f2)`, then `docker pull -q "$IMAGE"` and
+  `COMMIT=$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$IMAGE")`),
+  and point the domain's A record
   at the new machine before the restore below starts the relay, so Caddy gets its certificate
   there. On a private network a move to a new machine isn't covered: the community's address is
   the old machine's Tailscale name (compose.md step 2P). On this one, stop the relay and delete the
@@ -113,8 +115,9 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   BUZZ_COMPOSE_TLS=true ./run.sh stop
   docker volume rm buzz-prod_buzz-postgres-data buzz-prod_buzz-minio-data buzz-prod_buzz-git-data
   ```
-  If this one was upgraded since the backup, also move the bundle back to the backup's tag first,
-  the way Upgrade moves it (the two `git checkout` lines, then compose.md step 9). Wherever this
+  If this one was upgraded since the backup, also move the bundle back to the backup's image first,
+  the way Upgrade moves it (the two `git checkout` lines, with `COMMIT` read from the backup's
+  image as above, then compose.md step 9). Wherever this
   redoes step 9 and the backup's `env` has `BUZZ_ADMIN_HOST`, add the moderation console's Caddy
   route again too, and on a new machine move `admin.$DOMAIN`'s record with the domain's.
   Then check (not tested): `docker volume ls -q --filter name=buzz-prod_buzz-postgres-data` prints
@@ -149,15 +152,16 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   migrations can extend the outage. The relay migrates its database on start, so going
   back means restoring the backup with the old tag, which loses anything posted after that backup:
   back up right before upgrading, at a quiet time. Upgrade to the image this skill recommends, not
-  the newest, unless the user asks: set `TAG` and `DIGEST` on the agent's machine as SKILL.md
-  section 2 does, then on the server. If `grep '^BUZZ_IMAGE=' .env` already shows that tag, there's
-  nothing to do. Otherwise:
+  the newest, unless the user asks: set `TAG`, `DIGEST` and `COMMIT` on the agent's machine as
+  SKILL.md section 2 does, then on the server. If `grep '^BUZZ_IMAGE=' .env` already shows that
+  tag, there's nothing to do. Otherwise compare the two commits. The running image names the one
+  it was built from:
   ```bash
-  OLD=$(grep '^BUZZ_IMAGE=' .env | cut -d: -f2)
+  OLD=$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$(grep '^BUZZ_IMAGE=' .env | cut -d= -f2)")
   git fetch -q origin
-  git merge-base --is-ancestor ${OLD#sha-} ${TAG#sha-} && echo newer
+  git merge-base --is-ancestor "$OLD" "$COMMIT" && echo newer
   ```
-  Check: `newer`. If it prints nothing, stop: the tag is older than the running one, whose
+  Check: `newer`. If it prints nothing, stop: the image is older than the running one, whose
   migrations the old code can't read. Then check that no two open channels share a name, ignoring
   case and counting archived ones: images from 2026-11-05 on don't start on a database where they
   do (block/buzz#8787). The query works on the database of any image (not tested):
@@ -167,15 +171,16 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   It must print nothing. If it prints names, stop: ask the user to rename those channels in Buzz
   first, keeping each name on the open, unarchived channel (unarchive an archived one, rename it,
   and archive it again), then run it again.
-  **A newer image than the recommended one.** The recommended `sha-744f394` has no migration
-  0086. Newer images do, release 0.3.0 among them: it builds an index when the relay starts, with
+  **Migration 0086.** The recommended image, release 0.3.0, has migrations 0084 to 0086, so an
+  upgrade from an older image runs them when the relay starts. 0086 builds an index, with
   a one-second lock limit and a five-second statement limit.
   [Block's note on it](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/docs/private-media-index-deployment.md#L3)
   says small databases may let the relay run it. A build that runs out of time records nothing,
   so start the relay again at a quieter moment. Only a large or busy database needs the prebuild
   that note describes: stop and plan that with the user. Keep `BUZZ_MEDIA_READ_MODE=off`; limiting
-  files to their channels is a rollout of its own (SKILL.md). Not tested on a database with real
-  history.
+  files to their channels is a rollout of its own (SKILL.md). Tested on 2026-11-12 from
+  `sha-744f394` on a small test database, where 0086 took a quarter of a second. Not tested on a
+  database with real history.
   From a tag before 2026-10-07 to a later one, the upgrade
   also swaps MinIO for Silo (block/buzz#8023), which takes over MinIO's volume as it is, as Silo's
   [migration guide](https://silo.pgsty.com/compatibility/migration/) describes. Either way, list
@@ -190,7 +195,7 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   would block the checkout:
   ```bash
   git checkout compose.yml Caddyfile
-  git checkout -q ${TAG#sha-}
+  git checkout -q $COMMIT
   ```
   Then redo compose.md step 9; its greps say which edits are still needed. If `.env` has
   `BUZZ_ADMIN_HOST`, add the moderation console's Caddy route again too (compose.md). Settings the
@@ -204,7 +209,7 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   sed -i.bak "s|^BUZZ_IMAGE=.*|BUZZ_IMAGE=ghcr.io/block/buzz:$TAG|" .env && rm .env.bak
   BUZZ_COMPOSE_TLS=true ./run.sh upgrade
   ```
-  Check: `git rev-parse HEAD | cut -c1-7` prints the tag without `sha-`;
+  Check: `git rev-parse HEAD` → `$COMMIT`;
   `docker compose ps --format '{{.Service}} {{.Image}} {{.Status}}' relay minio` shows the new
   relay image, `pgsty/silo:…` for `minio` on a bundle from 2026-10-07 on, and both
   `Up … (healthy)` (the version in check-relay.sh often stays the same between commits);
@@ -274,14 +279,17 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   ```
   It must print nothing. If it prints names, stop: ask the user to rename those channels in Buzz
   first, keeping each name on the open, unarchived channel, then check again.
-  **A newer image than the recommended one.** The recommended `sha-744f394` has no migration
-  0086. Newer images do, release 0.3.0 among them: it builds an index when the new pod starts,
+  **Migration 0086.** The recommended image, release 0.3.0, has migrations 0084 to 0086, so an
+  upgrade from an older image runs them when the new pod starts. 0086 builds an index,
   with a one-second lock limit and a five-second statement limit.
   [Block's note on it](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/docs/private-media-index-deployment.md#L3)
   says small databases may let the relay run it, and that a build that runs out of time records
   nothing. Only a large or busy database needs the prebuild that note describes: stop and plan
-  that with the user. Keep `BUZZ_MEDIA_READ_MODE=off`. Not tested on a real cluster.
-  Then change `image.tag` in `buzz-values.yaml` to `$TAG`, and run
+  that with the user. Keep `BUZZ_MEDIA_READ_MODE=off`. Not tested on a real cluster: the
+  Kubernetes test installs the recommended image and upgrades it to itself.
+  Then change `image.tag` to `$TAG` and `image.digest` to `$DIGEST` in `buzz-values.yaml` (a file
+  from before these steps pinned the digest has no `digest:` line: add it under `tag:`, with the
+  same indent), and run
   `helm upgrade buzz oci://ghcr.io/block/buzz/charts/buzz --version 0.1.10 -n buzz -f buzz-values.yaml --wait`.
   If `helm upgrade` times out, don't run `helm rollback`: the database may already have changed.
   Stop and ask. If the new pod's log says migration 0086 timed out, nothing of it was recorded,

@@ -1,7 +1,84 @@
 # Research
 
 What the tests, the agent runs and the upstream research found. Decisions that follow from it are
-in [decisions.md](decisions.md). Last updated 2026-11-11.
+in [decisions.md](decisions.md). Last updated 2026-11-12.
+
+## Relay 0.3.0, run on 2026-11-12
+
+The pin moved to Block's relay release 0.3.0 after the five prepared runs. Where this section
+disagrees with the ones below about the pin, the Kubernetes gaps or what is tested, this one is
+current. Results by run, with logs: [tests/README.md](../tests/README.md).
+
+- **Results.** Local 55 of 55, on a Linux server. Public VPS 112 of 112. VPS upgrade from
+  `sha-744f394` 134 of 134. Kubernetes 28 of 28 on one node, after a first try on two nodes
+  failed. Private network 55 of 55. The owner's checks on the public server passed: Staff as owner, pairing with
+  Codes match, and two notifications on a locked iPhone. About $0.39 on DigitalOcean.
+- **The pin.** `ghcr.io/block/buzz:0.3.0` at
+  `sha256:84f34c5b801192665b1a05939518d746f25184babf4d6e927d0de7e12e9c5674`, built from
+  `75d38b6c2d5f357348288ded8c15aba15f765ea5`. Three sources agree on that commit: the image's
+  `org.opencontainers.image.revision` label, Block's git tag `relay-v0.3.0`, and the provenance
+  the launch review verified. `sha-75d38b6` is the same source in another build, with another
+  digest; it was not run.
+- **An image names its commit.** That label is on every relay image checked: all seven pins since
+  2026-09-30 and releases 0.1.1 to 0.3.0, where it matches Block's `relay-v*` tags. A release's
+  name says nothing about its source, so SKILL.md records the recommended image's commit
+  (`tested-commit`), and the skill reads any other image's commit from the image: the running one
+  before an upgrade, a backup's before a restore. Every Compose run checked that the pulled image
+  names the commit the bundle is at.
+- **The bundle did not change.** `deploy/compose` is byte-identical at `744f394` and `75d38b6`:
+  the same blob for each of its seven files. The release is 80 commits ahead of the old pin and
+  none behind, and adds migrations 0084 to 0086.
+- **Migration 0086, measured once.** On the upgrade run the relay went from 0.2.1 to 0.3.0 and
+  applied 0084, 0085 and 0086 at start, in 6, 6 and 243 ms, on 36 events, 2 channels and 3
+  members. `idx_events_media_edit_target` is valid and ready, `BUZZ_MEDIA_READ_MODE` was unset,
+  and the partition audit said `ok`. That is Block's small-database case. Nothing here ran the
+  concurrent prebuild or a database with real history.
+- **Kubernetes pins both images now.** Chart 0.1.10 renders `image.digest` as
+  `repository@digest`, and takes the file store's two images as whole strings. With the steps'
+  values, every image in the quickstart is a digest reference: the relay and its pairing service,
+  `ghcr.io/block/buzz-minio` three times, and the chart's own Postgres and Redis. The file store
+  is pinned at `sha256:71f235d6aa0c39517b9864d8524546607ccdde40b83742e0dd8d4fb52b3be6dd`, what
+  `:latest` has named since 2026-10-07. It is still one x86 manifest that Block builds for its
+  test runners. `tests/smoke-k8s.sh` runs kubernetes.md step 3's own block, so the test and the
+  steps cannot differ again, and the steps' push settings ran on a cluster for the first time.
+  This closes "Kubernetes gaps, not fixed here" below. Chart 0.1.11 is still not adopted.
+- **The quickstart is for one node, and kubernetes.md now says so.** It did not before this run. On a
+  two-node cluster the relay's restart hung: the chart rolls the relay with `maxSurge: 1` and
+  `maxUnavailable: 0`, so the new pod starts first, and its git volume is ReadWriteOnce, so a new
+  pod on the other node waits in `Init:0/1` with `FailedAttachVolume`. The same would happen on an
+  upgrade. Block's chart says both halves of the answer: its README calls the quickstart
+  "single-node", and its values say `persistence.git.enabled: false` is right for more than one
+  node, since that disk is scratch space. Neither was tested here. The rerun on one node passed.
+- **DigitalOcean.** From Kubernetes 1.36 on, `doctl kubernetes cluster create` makes a paid
+  highly available control plane unless given `--ha=false`. A new cluster's API server dropped
+  connections for a while after it reported running: Helm left Traefik and cert-manager
+  `pending-install`, which a second install fixed. Deleting the cluster with its associated
+  resources removed the load balancer and left all four volumes, as kubernetes.md already warns.
+- **Notifications on 0.3.0.** With compose.md step 8's line the relay offered `buzz-push-v1`, the
+  owner's iPhone published its lease 5 seconds after pairing, and Block's gateway accepted both
+  wakes in 0.21 and 0.10 seconds. The locked phone showed both with their text. Two details for
+  whoever tests this next: `buzz messages send` puts no `p` tag on a DM, so a DM sent that way to
+  a phone that has not yet seen the DM wakes nothing, and the relay refuses a mention of someone
+  who is not in the channel.
+- **The moderation console's steps work on 0.3.0.** The relay named its admin address, an
+  unsigned probe got 401, and the Staff list answered 200 to the owner's signed request. The owner
+  saw Reports, Feedback, Communities and Staff. Not shown: that the other three load. The only
+  Reports requests in the relay's log were unsigned and got 401.
+- **The harness.** Every driver reads its default image from SKILL.md, so no script holds a tag.
+  A release that is not the recommended image needs its digest and its 40-character commit, and
+  the offline checks cover both refusals. `smoke-vps.sh` now runs step 8's notification line,
+  which it had left out.
+- **The saved logs do not show the digest.** `redact.py --private` masks every 64-character hex
+  string, image digests included, so the committed logs read `sha256:<hex>`. The drivers refuse
+  any other digest, so a pass means the digest above, but a log cannot show that by itself.
+  Follow-up: keep `sha256:` digests readable.
+- **Tools.** This Mac's `kubectl` is 1.30.5, six minor versions behind the cluster. It warned and
+  worked. The `buzz` command line was the one inside the Buzz app, preview build
+  0.7.0-preview.270.2.
+- **Still open on 0.3.0.** Docker Desktop on a Mac; a desktop join over the trusted local
+  certificate; importing a key file; Android; a populated database through 0086; Kubernetes from
+  the old pin, on more than one node, and a complete restore there; the source links in
+  security.md and mobile.md, which still point at the old pin's commit.
 
 ## Independent review, checked on 2026-11-11
 

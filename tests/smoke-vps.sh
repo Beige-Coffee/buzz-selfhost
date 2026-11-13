@@ -22,8 +22,14 @@ case $PHASE in
   *) CHECK_TAG= ;;
 esac
 if [[ $PHASE == install || $PHASE == private || $PHASE == upgrade ]]; then
-  [[ $CHECK_TAG =~ ^sha-[0-9a-f]{7}$ && $CHECK_TAG == "${EXPECTED_TAG:-}" && ${EXPECTED_DIGEST:-} =~ ^sha256:[0-9a-f]{64}$ ]] || {
+  [[ ( $CHECK_TAG =~ ^sha-[0-9a-f]{7}$ || $CHECK_TAG =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ) && $CHECK_TAG == "${EXPECTED_TAG:-}" &&
+    ${EXPECTED_DIGEST:-} =~ ^sha256:[0-9a-f]{64}$ ]] || {
     echo 'FAIL  supply the exact EXPECTED_TAG and EXPECTED_DIGEST before an image phase' >&2
+    exit 2
+  }
+  # The commit the bundle is checked out at: all 40 characters, or the seven an sha- tag names.
+  [[ ${EXPECTED_COMMIT:-} =~ ^[0-9a-f]{40}$ || ( $CHECK_TAG == sha-* && ${EXPECTED_COMMIT:-} == "${CHECK_TAG#sha-}" ) ]] || {
+    echo 'FAIL  supply the exact EXPECTED_COMMIT, the commit the image was built from, before an image phase' >&2
     exit 2
   }
 fi
@@ -141,6 +147,19 @@ check_digest() {
     finish
   fi
 }
+# compose.md step 6's last check, verbatim: the image names the commit it was built from.
+IFS= read -r -d '' IMAGE_COMMIT <<'SNIP' || true
+docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' ghcr.io/block/buzz:$TAG
+SNIP
+# check_commit TAG: the image was built from the commit the bundle is at, which is the expected one.
+check_commit() {
+  local TAG=$1
+  run "commit-$1" "$IMAGE_COMMIT" || {
+    fail "could not read the commit the image names"
+    finish
+  }
+  expect "the image was built from the commit the bundle is at" "$(git rev-parse HEAD)" "$(tail -1 "$OUT/commit-$1.out")"
+}
 # pairing_edits MODE: the edits for server or private mode, with their checks
 pairing_edits() {
   run pair-service "$PAIR_EDIT"
@@ -160,14 +179,15 @@ wait_alive() { # up to 3 minutes: Caddy gets its certificate on the first reques
 # bundle IMAGE OWNER_HEX HOST RELAY_URL ORIGIN MODE: steps 4 to 9, shared by every path.
 bundle() {
   local IMAGE=$1 OWNER_HEX=$2 HOST=$3 RELAY_URL=$4 ORIGIN=$5 MODE=$6
-  local TAG=${IMAGE##*:}
+  local TAG=${IMAGE##*:} COMMIT=$EXPECTED_COMMIT
   section "4. Get the deploy bundle"
   cd /root
   run clone 'git clone https://github.com/block/buzz.git
-cd buzz && git checkout -q ${TAG#sha-} && cd deploy/compose
+cd buzz && git checkout -q $COMMIT && cd deploy/compose
 cp .env.example .env && chmod 600 .env' >/dev/null
   cd "$COMPOSE_DIR" || { fail "clone"; finish; }
-  expect "bundle at the image's commit" "${TAG#sha-}" "$(git rev-parse HEAD | cut -c1-7)"
+  run bundle-commit 'git rev-parse HEAD'
+  expect "bundle at the image's commit" "1" "$(grep -c "^$COMMIT" "$OUT/bundle-commit.out")"
   run ls 'ls'
   expect "ls" "Caddyfile README.md compose.caddy.yml compose.dev.yml compose.yml run.sh" "$(ls | tr '\n' ' ' | sed 's/ $//')"
 
@@ -184,6 +204,7 @@ sed -i.bak \"s/^BUZZ_RELAY_PRIVATE_KEY=.*/BUZZ_RELAY_PRIVATE_KEY=\${key}/\" .env
   grep -qE '^BUZZ_RELAY_PRIVATE_KEY=[0-9a-f]{64}$' .env && pass "relay key is hex" || fail "relay key is not hex"
   run generate-key-format "docker run --rm --entrypoint /usr/local/bin/buzz-admin $IMAGE generate-key | sed -E 's/[0-9a-f]{64}/<64 hex>/'"
   check_digest "$TAG"
+  check_commit "$TAG"
 
   section "7. Set the owner"
   run owner "sed -i.bak \"s/^RELAY_OWNER_PUBKEY=.*/RELAY_OWNER_PUBKEY=$OWNER_HEX/\" .env && rm .env.bak"
@@ -204,6 +225,11 @@ sed -i.bak \"s/^BUZZ_RELAY_PRIVATE_KEY=.*/BUZZ_RELAY_PRIVATE_KEY=\${key}/\" .env
   if [[ $MODE != local ]]; then
     run pair-url "grep -q '^BUZZ_PAIRING_RELAY_URL=' .env || echo \"BUZZ_PAIRING_RELAY_URL=wss://$HOST/pair\" >> .env"
     expect "pairing URL, one line" "BUZZ_PAIRING_RELAY_URL=wss://$HOST/pair" "$(grep '^BUZZ_PAIRING_RELAY_URL=' .env)"
+    # step 8's last command: iPhone notifications on, through the gateway the bundle already names
+    run push 'sed -i.bak "s/^BUZZ_PUSH_ENABLED=.*/BUZZ_PUSH_ENABLED=true/" .env && rm .env.bak'
+    run push-check "grep -E '^BUZZ_PUSH_(ENABLED|GATEWAY_DELIVERY_URL)=' .env"
+    expect "phone notifications on, through Block's gateway" "BUZZ_PUSH_ENABLED=true BUZZ_PUSH_GATEWAY_DELIVERY_URL=https://push.buzz.xyz/v1/deliveries/apns" \
+      "$(sort "$OUT/push-check.out" | tr '\n' ' ' | sed 's/ $//')"
   fi
 
   section "9. Bundle edits: MinIO images (bundles before Silo), phone pairing"
@@ -409,14 +435,21 @@ restore)
   BACKUP=$(ls -d ~/buzz-backup/20*/ | tail -1)
   BACKUP=${BACKUP%/}
   cd /root
-  run reclone 'TAG=$(grep '"'"'^BUZZ_IMAGE='"'"' "$BACKUP/env" | cut -d: -f2)
+  # operations.md: the backup's image names the commit it was built from, for compose.md step 4
+  run reclone 'IMAGE=$(grep '"'"'^BUZZ_IMAGE='"'"' "$BACKUP/env" | cut -d= -f2)
+docker pull -q "$IMAGE"
+COMMIT=$(docker image inspect --format '"'"'{{index .Config.Labels "org.opencontainers.image.revision"}}'"'"' "$IMAGE")
 git clone https://github.com/block/buzz.git
-cd buzz && git checkout -q ${TAG#sha-} && cd deploy/compose
+cd buzz && git checkout -q $COMMIT && cd deploy/compose
 cp .env.example .env && chmod 600 .env' >/dev/null && pass "fresh checkout" || fail "fresh checkout"
   cd "$COMPOSE_DIR" || exit 1
   object_store_edit
   pairing_edits server
-  expect "fresh checkout at the backup's commit" "$(grep '^BUZZ_IMAGE=' "$BACKUP/env" | cut -d: -f2 | sed 's/^sha-//')" "$(git rev-parse HEAD | cut -c1-7)"
+  [[ $COMMIT =~ ^[0-9a-f]{40}$ ]] && pass "the backup's image names its commit" || { fail "the backup's image names no commit"; finish; }
+  expect "fresh checkout at the commit the backup's image names" "$COMMIT" "$(git rev-parse HEAD)"
+  if [[ -n ${EXPECTED_COMMIT:-} && ${IMAGE##*:} == "${EXPECTED_TAG:-}" ]]; then
+    expect "that commit is the expected one" "1" "$(git rev-parse HEAD | grep -c "^$EXPECTED_COMMIT")"
+  fi
   # operations.md's checks before the block: the four files, this community's address, no database left
   run backup-complete 'for f in postgres.dump minio-data.tgz git-data.tgz env; do [ -s "$BACKUP/$f" ] || echo missing $f; done'
   expect "the backup has all four files" "" "$(cat "$OUT/backup-complete.out")"
@@ -444,22 +477,25 @@ upgrade)
   [[ $N =~ ^[0-9]+$ && $N -gt 0 ]] && pass "the store lists $N objects before the upgrade" || fail "the store lists no objects before the upgrade"
   if [[ -n $NEW_TAG ]]; then
     TAG=$NEW_TAG
-    run newer 'OLD=$(grep '"'"'^BUZZ_IMAGE='"'"' .env | cut -d: -f2)
+    COMMIT=$EXPECTED_COMMIT
+    # operations.md: the running image names the commit it was built from, and the new one must descend from it
+    run newer 'OLD=$(docker image inspect --format '"'"'{{index .Config.Labels "org.opencontainers.image.revision"}}'"'"' "$(grep '"'"'^BUZZ_IMAGE='"'"' .env | cut -d= -f2)")
 git fetch -q origin &&
-git merge-base --is-ancestor ${OLD#sha-} ${TAG#sha-} && echo newer' || {
+git merge-base --is-ancestor "$OLD" "$COMMIT" && echo newer' || {
       fail "could not prove the target descends from the installed image; stopping"
       finish
     }
     [[ $(cat "$OUT/newer.out") == newer ]] || { fail "ancestry check did not confirm the target; stopping"; finish; }
-    pass "the new tag descends from the installed image"
+    pass "the new image descends from the installed one"
     run channel-names "$NAME_CHECK" || { fail "channel-name query failed; stopping"; finish; }
     [[ ! -s $OUT/channel-names.out ]] || { fail "two open channels share a name; stopping"; finish; }
     pass "no two open channels share a name"
     run move-bundle 'git checkout compose.yml Caddyfile &&
-git checkout -q ${TAG#sha-}' && pass "bundle moved" || { fail "bundle move failed; stopping"; finish; }
+git checkout -q $COMMIT' && pass "bundle moved" || { fail "bundle move failed; stopping"; finish; }
     object_store_edit
     pairing_edits server
-    expect "bundle at the new tag's commit" "${TAG#sha-}" "$(git rev-parse HEAD | cut -c1-7)"
+    run bundle-commit 'git rev-parse HEAD'
+    expect "bundle at the new image's commit" "1" "$(grep -c "^$COMMIT" "$OUT/bundle-commit.out")"
     run new-settings 'comm -13 <(grep -oE '"'"'^[A-Z][A-Z0-9_]*='"'"' .env | sort) <(grep -oE '"'"'^[A-Z][A-Z0-9_]*='"'"' .env.example | sort)'
     expect "settings the new bundle added" "" "$(cat "$OUT/new-settings.out")"
     run set-image 'sed -i.bak "s|^BUZZ_IMAGE=.*|BUZZ_IMAGE=ghcr.io/block/buzz:$TAG|" .env && rm .env.bak'
@@ -471,6 +507,7 @@ git checkout -q ${TAG#sha-}' && pass "bundle moved" || { fail "bundle move faile
   [[ -n $NEW_TAG ]] && expect "relay runs the new image" "relay ghcr.io/block/buzz:$NEW_TAG healthy" \
     "$(docker compose ps --format '{{.Service}} {{.Image}} {{.Status}}' relay | sed -E 's/ Up .*\((healthy)\)$/ \1/')"
   [[ -n $NEW_TAG ]] && check_digest "$NEW_TAG"
+  [[ -n $NEW_TAG ]] && check_commit "$NEW_TAG"
   STORE_AFTER=$(store_image)
   echo "INFO  object store image: $STORE_BEFORE before, $STORE_AFTER after"
   if grep -q 'image: pgsty/silo' compose.yml; then

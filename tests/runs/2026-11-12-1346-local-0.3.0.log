@@ -1,0 +1,299 @@
+# local on 0.3.0, 2026-11-12 13:46 PST
+# skill and tests at 4e6b233, plus uncommitted changes
+# smoke-local.sh 0.3.0, run over SSH on a fresh Ubuntu 24.04 x86 server with Docker Engine,
+# because the Mac's ports 80 and 443 were in use. Docker Desktop on a Mac was not run.
+
+===== Identities
+owner   <hex>
+
+===== 1. Machine (local)
+
+----- docker-version
+$ docker version --format '{{.Server.Version}}'
+29.9.3
+(exit 0)
+PASS  Docker answers
+
+----- compose-version
+$ docker compose version
+Docker Compose version v5.7.1
+(exit 0)
+PASS  compose 5.7.1 >= 2.24.4
+
+----- ports
+$ python3 -c 'import socket; [print(p, "taken" if socket.socket().connect_ex(("127.0.0.1", p)) == 0 else "free") for p in (80, 443)]'
+80 free
+443 free
+(exit 0)
+PASS  ports 80 and 443 free
+
+----- volumes
+$ docker volume ls -q | grep buzz-prod
+(exit 1)
+PASS  no buzz-prod volumes left
+
+===== 4. The bundle
+
+----- bundle-commit
+$ git rev-parse HEAD
+75d38b6c2d5f357348288ded8c15aba15f765ea5
+(exit 0)
+PASS  bundle at the image's commit
+
+----- ls
+$ ls
+Caddyfile
+README.md
+compose.caddy.yml
+compose.dev.yml
+compose.yml
+run.sh
+(exit 0)
+PASS  bundle has Caddyfile
+PASS  bundle has compose.caddy.yml
+PASS  bundle has compose.yml
+PASS  bundle has run.sh
+
+===== 5. Random secrets
+
+----- secrets
+$ for name in $(grep 'CHANGE_ME_RANDOM' .env | cut -d= -f1); do
+$   sed -i.bak "s/^${name}=.*/${name}=$(openssl rand -hex 32)/" .env
+$ done && rm -f .env.bak
+(exit 0)
+PASS  no CHANGE_ME_RANDOM left
+PASS  each is 64 hex characters
+
+===== 6. Relay key
+PASS  relay key is 64 characters
+
+----- image-digest
+$ docker image inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' ghcr.io/block/buzz:0.3.0
+ghcr.io/block/buzz@sha256:<hex>
+
+(exit 0)
+PASS  the image has the expected digest
+
+----- image-commit
+$ docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' ghcr.io/block/buzz:$TAG
+75d38b6c2d5f357348288ded8c15aba15f765ea5
+(exit 0)
+PASS  the image was built from the commit the bundle is at
+
+===== 7. Owner
+
+----- owner
+$ sed -i.bak "s/^RELAY_OWNER_PUBKEY=.*/RELAY_OWNER_PUBKEY=$OWNER_HEX/" .env && rm .env.bak
+(exit 0)
+PASS  owner is 64 hex
+PASS  no CHANGE_ME value lines
+
+===== 8. URL and version
+
+----- url
+$ sed -i.bak \
+$   -e "s|^BUZZ_IMAGE=.*|BUZZ_IMAGE=ghcr.io/block/buzz:$TAG|" \
+$   -e "s|^BUZZ_DOMAIN=.*|BUZZ_DOMAIN=$HOST|" \
+$   -e "s|^RELAY_URL=.*|RELAY_URL=$RELAY_URL|" \
+$   -e "s|^BUZZ_MEDIA_BASE_URL=.*|BUZZ_MEDIA_BASE_URL=$ORIGIN/media|" \
+$   -e "s|^BUZZ_MEDIA_SERVER_DOMAIN=.*|BUZZ_MEDIA_SERVER_DOMAIN=$HOST|" \
+$   -e "s|^BUZZ_CORS_ORIGINS=.*|BUZZ_CORS_ORIGINS=tauri://localhost,http://tauri.localhost,$ORIGIN|" \
+$   .env && rm .env.bak
+(exit 0)
+
+----- url-check
+$ grep -E '^(BUZZ_IMAGE|BUZZ_DOMAIN|RELAY_URL|BUZZ_MEDIA_BASE_URL|BUZZ_MEDIA_SERVER_DOMAIN|BUZZ_CORS_ORIGINS)=' .env
+BUZZ_IMAGE=ghcr.io/block/buzz:0.3.0
+BUZZ_DOMAIN=localhost
+RELAY_URL=wss://localhost
+BUZZ_MEDIA_BASE_URL=https://localhost/media
+BUZZ_MEDIA_SERVER_DOMAIN=localhost
+BUZZ_CORS_ORIGINS=tauri://localhost,http://tauri.localhost,https://localhost
+(exit 0)
+PASS  six URL/version lines
+
+===== 8P. Localhost only (local: Caddy's ports)
+
+----- caddy-ports
+$ sed -i.bak -e "s/^CADDY_HTTP_PORT=.*/CADDY_HTTP_PORT=127.0.0.1:80/" \
+$   -e "s/^CADDY_HTTPS_PORT=.*/CADDY_HTTPS_PORT=127.0.0.1:443/" .env && rm .env.bak
+(exit 0)
+
+----- caddy-ports-check
+$ grep -E '^CADDY_HTTPS?_PORT=' .env
+CADDY_HTTP_PORT=127.0.0.1:80
+CADDY_HTTPS_PORT=127.0.0.1:443
+(exit 0)
+PASS  Caddy's ports on 127.0.0.1
+
+===== 9. Bundle edits (local: the MinIO check only)
+
+----- minio-grep
+$ grep -n 'image:.*quay.io/minio' compose.yml
+(exit 1)
+PASS  a Silo bundle: no MinIO edit, Silo's two images
+PASS  .env is private
+
+===== 10. Start
+PASS  run.sh start returned 0 (36s)
+
+----- status
+$ BUZZ_COMPOSE_TLS=true ./run.sh status
+NAME                   IMAGE                                                                                                             COMMAND                  SERVICE    CREATED          STATUS                    PORTS
+buzz-prod-caddy-1      caddy:2-alpine                                                                                                    "caddy run --config …"   caddy      23 seconds ago   Up 1 second               127.0.0.1:80->80/tcp, 127.0.0.1:443->443/tcp, 443/udp, 2019/tcp
+buzz-prod-minio-1      pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:<hex>   "/usr/bin/docker-ent…"   minio      23 seconds ago   Up 23 seconds (healthy)   9000/tcp
+buzz-prod-postgres-1   postgres:17-alpine                                                                                                "docker-entrypoint.s…"   postgres   23 seconds ago   Up 22 seconds (healthy)   5432/tcp
+buzz-prod-redis-1      redis:7-alpine                                                                                                    "docker-entrypoint.s…"   redis      23 seconds ago   Up 23 seconds (healthy)   6379/tcp
+buzz-prod-relay-1      ghcr.io/block/buzz:0.3.0                                                                                          "/usr/local/bin/buzz…"   relay      23 seconds ago   Up 16 seconds (healthy)   3000/tcp, 8080/tcp, 9102/tcp
+(exit 0)
+PASS  relay up (healthy)
+PASS  postgres up (healthy)
+PASS  redis up (healthy)
+PASS  minio up (healthy)
+PASS  caddy up
+PASS  Caddy's ports read 127.0.0.1:80 and 127.0.0.1:443
+PASS  443 isn't published on other addresses
+PASS  no pairing service (phones can't pair with a local test)
+
+===== 11. Checks
+
+----- list-members
+$ ./run.sh list-members < /dev/null
+pubkey                                                             role     added_by                                                           created_at
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+<hex>   owner    -                                                                  2026-11-12T21:47:23Z
+(exit 0)
+PASS  RELAY_OWNER_PUBKEY became the owner
+
+===== 12. The local certificate
+
+----- local-ca
+$ docker cp buzz-prod-caddy-1:/data/caddy/pki/authorities/local/root.crt local-ca.crt
+$ CA_FILE=local-ca.crt bash $SKILL/scripts/check-relay.sh https://localhost
+INFO  trusting only the certificate authority in local-ca.crt (CA_FILE)
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+SKIP  phone pairing: the relay names no pairing service
+SKIP  push capability not advertised; check relay version/configuration
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+(exit 0)
+PASS  local-ca.crt is Caddy's local authority (CN = Caddy Local Authority - 2026 ECC Root)
+PASS  check-relay.sh: no FAIL
+PASS  check-relay.sh: six PASS lines
+PASS  check-relay.sh skips phone pairing
+
+----- chain
+$ openssl s_client -connect 127.0.0.1:443 -servername localhost -CAfile local-ca.crt -verify_return_error < /dev/null 2>&1 | grep -E 'subject=|issuer=|Verify return code' | sort -u
+    Verify return code: 0 (ok)
+Verify return code: 0 (ok)
+issuer=CN = Caddy Local Authority - ECC Intermediate
+subject=
+(exit 0)
+PASS  the certificate for localhost chains to local-ca.crt
+
+----- untrusted
+$ curl -sS -m 10 -o /dev/null https://localhost/_liveness
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+(exit 60)
+INFO  without local-ca.crt, curl refuses the certificate, as expected until it's trusted
+
+===== Buzz 1.0 joins it: what it checks first
+PASS  NIP-11 names the relay's identity (self)
+PASS  NIP-11 lists NIPs 29 and 43 and channel labels (nip-cl)
+PASS  no join policy to accept (GET /api/join-policy: HTTP 200 {})
+
+===== The owner: a channel, a message, read back over HTTPS and over the live connection
+PASS  owner creates a channel
+PASS  owner posts
+PASS  owner reads it back (POST /query)
+
+----- websocket
+$ python3 "/root/buzz-selfhost/tests/lib/wscheck.py" wss://localhost 7b6b69d8-4335-47bd-a3fa-7030c9754991 "/root/buzz-local-test/buzz/deploy/compose/local-ca.crt" <<<"$OWNER_SK"
+TLS TLSv1.3, certificate for localhost, issued by Caddy Local Authority - ECC Intermediate
+WebSocket: HTTP/1.1 101 Switching Protocols
+NIP-42: the relay accepted AUTH for relay tag wss://localhost
+REQ: 1 message(s) in the channel, then EOSE
+  hello from the owner over https://localhost
+(exit 0)
+PASS  live connection: TLS, WebSocket and NIP-42 AUTH at wss://localhost
+PASS  live connection reads the channel
+PASS  a non-member is refused (HTTP 403)
+
+===== Files through https://localhost/media
+PASS  owner uploads a file to https://localhost/media
+PASS  owner downloads it intact
+
+===== Invites: Buzz 1.0's Invite with a link
+PASS  owner creates an invite
+PASS  the link is https://localhost/invite/<code>, which Buzz 1.0's first screen takes
+PASS  the invite page answers over HTTPS
+PASS  a new identity joins with it
+
+----- members-after
+$ ./run.sh list-members < /dev/null
+pubkey                                                             role     added_by                                                           created_at
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+<hex>   owner    -                                                                  2026-11-12T21:47:23Z
+<hex>   member   invite                                                             2026-11-12T21:47:49Z
+(exit 0)
+PASS  list-members shows the invited member
+
+===== Buzz 1.0: New chat (a chat labelled buzz.solo)
+PASS  owner starts a chat
+PASS  the relay keeps the chat's label (t tags: stream buzz.solo)
+
+===== Left running, or removed
+
+----- stop
+$ BUZZ_COMPOSE_TLS=true ./run.sh stop
+ Container buzz-prod-caddy-1 Stopping 
+ Container buzz-prod-caddy-1 Stopped 
+ Container buzz-prod-caddy-1 Removing 
+ Container buzz-prod-caddy-1 Removed 
+ Container buzz-prod-relay-1 Stopping 
+ Container buzz-prod-relay-1 Stopped 
+ Container buzz-prod-relay-1 Removing 
+ Container buzz-prod-relay-1 Removed 
+ Container buzz-prod-postgres-1 Stopping 
+ Container buzz-prod-redis-1 Stopping 
+ Container buzz-prod-minio-init-1 Stopping 
+ Container buzz-prod-minio-init-1 Stopped 
+ Container buzz-prod-minio-init-1 Removing 
+ Container buzz-prod-minio-init-1 Removed 
+ Container buzz-prod-minio-1 Stopping 
+ Container buzz-prod-minio-1 Stopped 
+ Container buzz-prod-minio-1 Removing 
+ Container buzz-prod-minio-1 Removed 
+ Container buzz-prod-redis-1 Stopped 
+ Container buzz-prod-redis-1 Removing 
+ Container buzz-prod-redis-1 Removed 
+ Container buzz-prod-postgres-1 Stopped 
+ Container buzz-prod-postgres-1 Removing 
+ Container buzz-prod-postgres-1 Removed 
+ Network buzz-prod_buzz-net Removing 
+ Network buzz-prod_buzz-net Removed 
+(exit 0)
+
+----- remove
+$ docker volume rm $(docker volume ls -q | grep '^buzz-prod_')
+buzz-prod_buzz-caddy-config
+buzz-prod_buzz-caddy-data
+buzz-prod_buzz-git-data
+buzz-prod_buzz-minio-data
+buzz-prod_buzz-postgres-data
+buzz-prod_buzz-redis-data
+(exit 0)
+PASS  no buzz-prod volumes left
+PASS  removed /root/buzz-local-test
+
+===== RESULT
+relay: wss://localhost
+passed: 55  failed: 0

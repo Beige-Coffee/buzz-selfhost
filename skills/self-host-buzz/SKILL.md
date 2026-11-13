@@ -9,9 +9,10 @@ description: >
 license: Apache-2.0
 compatibility: Runs from macOS or Linux (Windows isn't tested) with python3, bash and curl. Then Docker, or kubectl and helm, depending on the setup.
 metadata:
-  tested: "2026-10-23"
-  tested-image: sha-744f394
-  tested-digest: sha256:b67a32b7b2a274cdbd9a685fe996657fa544a3e981284ab3a8c660a128f36a3d
+  tested: "2026-11-12"
+  tested-image: 0.3.0
+  tested-digest: sha256:84f34c5b801192665b1a05939518d746f25184babf4d6e927d0de7e12e9c5674
+  tested-commit: 75d38b6c2d5f357348288ded8c15aba15f765ea5
 ---
 
 # Self-host a Buzz relay
@@ -131,19 +132,22 @@ an installer instead: ask the user to run `xcode-select --install` first.
   owner stays on as an admin (operations.md).
   `OWNER_HEX=$(python3 $SKILL/scripts/npub-to-hex.py <npub>)`. It checks the npub's checksum, so
   a mistyped or cut-off one fails instead of making a stranger the owner.
-- **Image.** Use the image this skill recommends, for installs and upgrades alike: `tested-image`
-  and `tested-digest` in this file's metadata, which some agents don't show, so read both from the
-  file. This guide pins a source image by digest. Newer releases, including the published 0.3.0
-  container, need compatibility and runtime validation before replacing that pin.
+- **Image.** Use the image this skill recommends, for installs and upgrades alike: `tested-image`,
+  `tested-digest` and `tested-commit` in this file's metadata, which some agents don't show, so
+  read all three from the file. It is Block's relay release 0.3.0, pinned by digest.
+  `tested-commit` is the block/buzz commit that release was built from, which its name doesn't
+  say. The Compose bundle is checked out there, so the two match (compose.md step 4).
   ```bash
   TAG=$(awk '/^  tested-image:/ {print $2}' "$SKILL/SKILL.md")
   DIGEST=$(awk '/^  tested-digest:/ {print $2}' "$SKILL/SKILL.md")
+  COMMIT=$(awk '/^  tested-commit:/ {print $2}' "$SKILL/SKILL.md")
   ```
-  Check: `echo $TAG $DIGEST` prints a tag like `sha-1a2b3c4` and a `sha256:` digest. Tell the user
-  which tag. Once the setup has pulled the image (compose.md step 6, kubernetes.md step 6 or P6),
-  its digest must be `DIGEST`; if it isn't, stop: the tag no longer names the image this skill
-  recommends. Only if the user asks for the newest image:
-  `TAG=$(python3 $SKILL/scripts/pick-tag.py)` prints the newest commit on main that has one, and
+  Check: `echo $TAG $DIGEST $COMMIT` prints the release, like `0.3.0`, a `sha256:` digest and a
+  40-character commit. Tell the user which release. Once the setup has pulled the image (compose.md
+  step 6, kubernetes.md step 6 or P6), its digest must be `DIGEST`; if it isn't, stop: the tag no
+  longer names the image this skill recommends. Only if the user asks for the newest image:
+  `TAG=$(python3 $SKILL/scripts/pick-tag.py)` prints the newest commit on main that has one, as a
+  tag like `sha-1a2b3c4`, `COMMIT=${TAG#sha-}` is that commit, and
   `DIGEST` stays unset. Tell them this skill hasn't run that image, and that the newest has broken
   upgrades before: images from 2026-10-30 to 2026-11-05 looped at start when they upgraded a relay
   with members (block/buzz#8802). Buzz 1.0's New chat needs an image from 2026-10-15 or later,
@@ -170,7 +174,7 @@ console, and its user is `ubuntu`. For a server the user created minutes ago,
 
 **One shell per command?** If each command runs in a fresh shell (one SSH call per command),
 nothing carries over: `cd ~/buzz/deploy/compose` in every call once it exists, and set `SKILL`,
-`TAG`, `DIGEST`, `DOMAIN`, `OWNER_HEX`, `HOST`, `RELAY_URL`, `ORIGIN` and, on Kubernetes,
+`TAG`, `DIGEST`, `COMMIT`, `DOMAIN`, `OWNER_HEX`, `HOST`, `RELAY_URL`, `ORIGIN` and, on Kubernetes,
 `KUBECONFIG` (without it, `kubectl` falls back to another cluster) again in every call that uses
 them, with the values this task started with (`pick-tag.py`, if used, can return a newer tag than
 the checkout mid-task). Send a server step as `ssh <server> 'bash -s' <<'EOF' … EOF`, with the
@@ -259,9 +263,10 @@ hasn't expired; a ban keeps them out, from Buzz 1.0's moderation screens on a pu
 files are shared with the whole community, not one channel. Any member with a file's link can open
 it, even from a private channel or a direct message they aren't in. Removing someone from a
 channel, or deleting a message, doesn't take its files back; removing them from the community does.
-Newer relay images include channel-scoped file reads (block/buzz#9077), controlled by
-`BUZZ_MEDIA_READ_MODE`, which defaults to `off`. This skill's pinned image predates that change.
-Before enabling it, follow [Block's rollout guide](https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/docs/operator-private-media.md),
+The recommended image can limit a file to its channel (block/buzz#9077), with
+`BUZZ_MEDIA_READ_MODE`, which defaults to `off`. These steps leave it off, and this skill has not
+tested it on.
+Before enabling it, follow [Block's rollout guide](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/docs/operator-private-media.md),
 including its app, mobile and editing compatibility checks. Until then, keep files that not every
 member may see out of Buzz. Ordinary conversations, DMs and uploaded files are not end-to-end
 encrypted: whoever runs the server, or holds a backup, can read that content. The relay's log names each member with what they read,
@@ -286,7 +291,7 @@ the gateway or Apple, because the phone fetches messages from this relay; but Bl
 this relay's public key, its server's address and when it wakes which phone, and Apple sees when a
 phone is woken. Each member's iPhone signs up on its own while push is on. Block calls push
 experimental, and delivery is best effort. `BUZZ_PUSH_ENABLED=false` turns it off. Tested on public
-VPSs on 2026-10-23 and 2026-10-27.
+VPSs on 2026-10-23 and 2026-10-27, and on release 0.3.0 on 2026-11-12.
 
 **Local agents.** Buzz 1.0 can run agents on the user's computer, each with its own key that the owner's
 identity vouches for. The relay admits them through the owner's membership, which every setup here

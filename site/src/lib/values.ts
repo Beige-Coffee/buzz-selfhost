@@ -25,11 +25,11 @@ export interface Values {
 
 /**
  * The relay image every setup installs and upgrades to: `tested-image` in SKILL.md, which also gives
- * its digest, so moving the pin is an edit there. Add the old tag to OLD_DEFAULT_TAGS when it moves.
- * Not every main commit gets an image.
+ * its digest and the commit it was built from, so moving the pin is an edit there. Add the old tag to
+ * OLD_DEFAULT_TAGS when it moves. Not every main commit gets an image.
  */
 export const DEFAULT_TAG = skill.pin.tag;
-const OLD_DEFAULT_TAGS = ["sha-53a1210", "sha-83aab8c", "sha-d1b7da4", "sha-30873ba", "sha-e8781ca"];
+const OLD_DEFAULT_TAGS = ["sha-53a1210", "sha-83aab8c", "sha-d1b7da4", "sha-30873ba", "sha-e8781ca", "sha-744f394"];
 const KEY = "buzz-selfhost-values-v2";
 const DEFAULTS: Values = { path: "vps", ownMode: "public", reach: "public", domain: "", npub: "", tag: "", mode: "agent" };
 const PATHS: Path[] = ["vps", "own", "k8s"];
@@ -194,8 +194,9 @@ export function derived(v: Values = state): Record<string, string> {
     TAG: tag,
     // the skill's checks compare the pulled image with its digest, which SKILL.md gives for its own tag only
     DIGEST: tag === skill.pin.tag && skill.pin.digest ? skill.pin.digest : "<that image's digest>",
-    // sha-<7> tags name the main commit the image was built from; the bundle is checked out there
-    COMMIT: /^sha-[0-9a-f]{7,40}$/.test(tag) ? tag.slice(4) : "main",
+    // the bundle is checked out at the commit the image was built from: SKILL.md gives it for its own
+    // tag, an sha-<7> tag names it, and any other release leaves it for the reader to fill in
+    COMMIT: tag === skill.pin.tag ? skill.pin.commit : /^sha-[0-9a-f]{7,40}$/.test(tag) ? tag.slice(4) : "<that image's commit>",
     IMAGE: `ghcr.io/block/buzz:${tag}`,
     // Caddy serves public servers and the local test (with its own local authority); Tailscale serves the private ones
     RUN: isPrivate(t) ? "./run.sh" : "BUZZ_COMPOSE_TLS=true ./run.sh",

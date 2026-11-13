@@ -1,11 +1,13 @@
 """The package's own defenses, checked on this machine with no Docker: the setup page's checks and limits,
-the relay's settings reader, the gateway's address, and Tailscale's switching. Mocked: no relay, Cloudflare
-or Tailscale behind it; the scripts run from docker-compose.yml with stand-ins for caddy and tailscale.
+an uploaded Cloudflare sign-in, the relay's settings reader, the gateway's address, and Tailscale's switching.
+Mocked: no relay, Cloudflare or Tailscale behind it; the scripts run from docker-compose.yml with stand-ins
+for caddy and tailscale.
 
   python3 tests/umbrel/local/security.py
 """
-import http.client, http.server, importlib.machinery, importlib.util, json, os, signal, socket, subprocess
-import sys, tempfile, threading, time
+import base64, html, http.client, http.server, importlib.machinery, importlib.util, io, json, os, shutil, signal
+import socket, subprocess, sys, tempfile, threading, time
+import signin_files as sf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PKG = os.path.normpath(os.path.join(HERE, "../../../umbrel/buzz"))
@@ -30,6 +32,10 @@ def page():
     m.TAILSCALE_ON, m.TAILSCALE_STATUS, m.TAILSCALE_SERVE = d + "/tailscale-enabled", d + "/tailscale-status.json", d + "/tailscale-serve.txt"
     m.CLOUDFLARE_ON, m.CLOUDFLARE_STATE, m.CLOUDFLARE_LOGIN, m.CLOUDFLARE_SETUP, m.CLOUDFLARE_RESET = (
         d + "/" + n for n in ("cloudflare-enabled", "cloudflare-state", "cloudflare-login.log", "cloudflare-setup.log", "cloudflare-reset"))
+    m.CLOUDFLARE_UPLOAD = d + "/cloudflare-upload.pem"
+    # no relay or internet here: the page's own checks see nothing reachable
+    m.request = lambda *a, **k: (None, b"unreachable")
+    m.resolves = lambda name: []
     return m, d
 
 
@@ -42,6 +48,13 @@ def compose_script(service):
             break
         lines.append(line[8:])
     return "\n".join(lines).replace("$$", "$")
+
+
+def shell_function(script, name):
+    """One function from a script, from its first line to the line that closes it."""
+    start = script.index("\n" + name + "() ") + 1
+    opener = script[start:script.index("\n", start)].rstrip()[-1]
+    return script[start:script.index("\n" + {"(": ")", "{": "}"}[opener] + "\n", start) + 3]
 
 
 def write(path, text):
@@ -168,6 +181,197 @@ for cf_state, expected in (("running", False), ("error", True)):
     call("POST", "/cloudflare-reset", "", session)
     ok(os.path.exists(m.CLOUDFLARE_RESET) == expected,
        "Sign in to Cloudflare again " + ("works after an error" if expected else "does nothing while the tunnel runs"))
+
+print("== A sign-in file, as the page and the tunnel check it")
+SENTENCES = {"choose": "Choose the cert.pem file Cloudflare saved, then upload it.",
+             "large": "That file is too large to be a Cloudflare sign-in. Choose the cert.pem file Cloudflare saved.",
+             "not": m.NOT_A_CERT,
+             "old": "That sign-in file is too old to set up a tunnel. Upload the cert.pem from your latest sign-in, "
+                    "or sign in with the button."}
+
+
+def verdict(data):
+    """What the page makes of a file: "ok", or which of its fixed sentences, or the unexpected message itself."""
+    try:
+        return "ok" if m.cloudflare_cert(data) is data else "changed"
+    except ValueError as error:
+        return next((k for k, s in SENTENCES.items() if str(error) == s), str(error))
+
+
+wrong = [name for name, data, want in sf.CASES if verdict(data) != want]
+taken = sum(want == "ok" for _, _, want in sf.CASES)
+ok(not wrong, "the page takes %d of %d made-up files unchanged, and refuses each other one with its own fixed sentence%s"
+   % (taken, len(sf.CASES), (": wrong for " + ", ".join(wrong)) if wrong else ""))
+corpus = d + "/corpus"
+os.makedirs(corpus)
+for name, data, _ in sf.CASES:
+    with open(os.path.join(corpus, name), "wb") as f:
+        f.write(data)
+check_file = shell_function(compose_script("cloudflared"), "signin_file")
+runner = check_file + '\nfor f in "$@"; do if signin_file "$f"; then echo "yes ${f##*/}"; else echo "no ${f##*/}"; fi; done\n'
+for shell in [s for s in ("sh", "dash", "bash") if shutil.which(s)]:
+    out = subprocess.run([shell, "-c", runner, "check"] + [os.path.join(corpus, n) for n, _, _ in sf.CASES],
+                         capture_output=True, text=True)
+    said = dict(reversed(line.split(" ", 1)) for line in out.stdout.splitlines())
+    differ = [n for n, _, want in sf.CASES if said.get(n) != ("yes" if want == "ok" else "no")]
+    ok(not differ and not out.stderr, "the tunnel's own check, in %s, takes exactly the files the page takes%s"
+       % (shell, (": differs for " + ", ".join(differ)) if differ else (": " + out.stderr[:200]) if out.stderr else ""))
+
+print("== Uploading a sign-in")
+m.save(OWNER, KEY, "domain", "buzz.example.com")
+write(m.CLOUDFLARE_STATE, "signin\n")
+GOOD = sf.saved()
+
+
+def upload(data=GOOD, signed_in=True, site="same-origin", origin=None, parts=None, form=None, timeout=10):
+    """Posts the upload form as a browser would, with this file, or these parts, or this whole form: (status, page)."""
+    kind, body = form or sf.multipart(parts or [("cert", "cert.pem", data, b"")])
+    headers = {"Content-Type": kind}
+    if site:
+        headers["Sec-Fetch-Site"] = site
+    if origin:
+        headers["Origin"] = origin
+    if signed_in:
+        headers["Cookie"] = m.COOKIE + "=" + session
+    conn = http.client.HTTPConnection("127.0.0.1", PORT, timeout=timeout)
+    conn.request("POST", "/cloudflare-upload", body=body, headers=headers)
+    response = conn.getresponse()
+    text = response.read().decode(errors="replace")
+    conn.close()
+    return response.status, text
+
+
+def waiting():
+    try:
+        with open(m.CLOUDFLARE_UPLOAD, "rb") as f:
+            return f.read()
+    except OSError:
+        return None
+
+
+pages = []
+stderr, sys.stderr = sys.stderr, io.StringIO()  # anything the server prints, a traceback included
+try:
+    status, text = upload(signed_in=False)
+    ok(status == 401 and waiting() is None, "an upload without a session is refused, and nothing is written")
+    refused = [upload(site="same-site")[0], upload(site="cross-site")[0], upload(site=None, origin="http://evil.example")[0]]
+    ok(refused == [403, 403, 403] and waiting() is None,
+       "from another app's page, another site, or another origin: refused like every form, nothing written")
+    ok(raw(b"POST /cloudflare-upload HTTP/1.1\r\nHost: x\r\nContent-Length: 30000\r\n\r\n").startswith(b"HTTP/1.0 413") and
+       raw(b"POST /cloudflare-upload HTTP/1.1\r\nHost: x\r\nCookie: " + (m.COOKIE + "=" + session).encode()
+           + b"\r\nContent-Length: 30000\r\n\r\n").startswith(b"HTTP/1.0 413"),
+       "an upload larger than the page's forms is refused before it's read, with a session or without")
+    answers = {}
+    for name, data, want in sf.CASES:
+        if want != "ok" and len(data) < 19000:
+            status, text = upload(data)
+            pages.append(text)
+            answers[name] = (status, want, html.escape(SENTENCES[want]) in text, waiting() is None)
+    bad = [n for n, (status, want, said, nothing) in answers.items() if not (status == 400 and said and nothing)]
+    ok(not bad, "each of %d files that aren't a sign-in gets 400 and its sentence, and nothing is written%s"
+       % (len(answers), (": not for " + ", ".join(bad)) if bad else ""))
+    status, text = upload(form=("application/x-www-form-urlencoded", b"cert=" + GOOD.replace(b"\n", b"%0A")))
+    status2, text2 = upload(b"")
+    ok(status == status2 == 400 and html.escape(SENTENCES["choose"]) in text and html.escape(SENTENCES["choose"]) in text2
+       and waiting() is None,
+       "a form that isn't multipart, or an empty file: asked to choose the file, nothing written")
+    pages += [text, text2]
+    forms = {"two files named cert": [("cert", "a.pem", GOOD, b""), ("cert", "b.pem", GOOD, b"")],
+             "the file and another part": [("cert", "cert.pem", GOOD, b""), ("other", "x.txt", b"x", b"")],
+             "another field only": [("other", "cert.pem", GOOD, b"")],
+             "a transfer encoding": [("cert", "cert.pem", base64.b64encode(GOOD), b"Content-Transfer-Encoding: base64\r\n")]}
+    results = {label: upload(parts=parts) for label, parts in forms.items()}
+    ok(all(s == 400 and html.escape(SENTENCES["choose"]) in t for s, t in results.values()) and waiting() is None,
+       "a form not shaped like the page's own (%s) is asked to choose the file, nothing written" % ", ".join(forms))
+    pages += [t for _, t in results.values()]
+    MARK = "zq-marker-7731"
+    marked = [(MARK + " plain text, no sign-in\n").encode(),
+              sf.pem({"zoneID": sf.ZONE, "apiToken": MARK}),                     # too old: no account
+              sf.pem({"zoneID": MARK, "accountID": sf.ACCOUNT, "apiToken": "a " + MARK})]
+    for data in marked:
+        pages.append(upload(data)[1])
+    pages.append(upload(parts=[("cert", '"><script>' + MARK + "</script>.pem", sf.pem({"zoneID": MARK}), b"")])[1])
+    ok(all(MARK not in text and sf.TOKEN not in text and "<script>" + MARK not in text for text in pages),
+       "no answer shows anything from a refused file, or its name: %d answers" % len(pages))
+    ok('<details class="alt" open><summary>Cloudflare saved a file named cert.pem instead?' in pages[0] and
+       pages[0].index("<details class=\"alt\" open>") < pages[0].index('role="alert"'),
+       "a refused file's sentence shows inside the upload's own section, opened")
+
+    status, text = upload()
+    mode = oct(os.stat(m.CLOUDFLARE_UPLOAD).st_mode & 0o777) if waiting() else ""
+    ok(status == 303 and waiting() == GOOD and mode == "0o600",
+       "the file Cloudflare saved is taken: 303, and it waits for the tunnel byte for byte as uploaded, mode 600")
+    for name in ("written-by-login", "indented-json", "at-the-limit"):
+        data = dict((n, d) for n, d, _ in sf.CASES)[name]
+        status, _ = upload(data)
+        ok(status == 303 and waiting() == data, "a sign-in written another way (%s) is kept as it is, not rewritten" % name)
+    m.drop_upload()
+
+    write(m.CLOUDFLARE_STATE, "running\n")
+    status, _ = upload()
+    ok(status == 303 and waiting() is None, "while the tunnel runs, an upload is ignored: nothing is written")
+    write(m.CLOUDFLARE_STATE, "signin\n")
+    real_write = m.write_secret
+
+    def write_then_move_on(path, data):
+        real_write(path, data)
+        write(m.CLOUDFLARE_STATE, "creating\n")  # the tunnel's own sign-in came first
+
+    m.write_secret = write_then_move_on
+    status, _ = upload()
+    m.write_secret = real_write
+    ok(status == 303 and waiting() is None and not os.path.exists(m.CLOUDFLARE_UPLOAD + ".tmp"),
+       "if the tunnel moves on while the page writes, the page deletes what it wrote")
+    write(m.CLOUDFLARE_STATE, "signin\n")
+
+    print("== What another service could leave in the shared folder")
+    target = m.SETUP_JSON
+    before = open(target, "rb").read()
+    os.symlink(target, m.CLOUDFLARE_UPLOAD + ".tmp")
+    status, _ = upload()
+    ok(status == 303 and open(target, "rb").read() == before and waiting() == GOOD and not os.path.islink(m.CLOUDFLARE_UPLOAD),
+       "a link at the temporary name is removed, not written through: the page's own settings stay as they were")
+    m.drop_upload()
+    os.symlink(target, m.CLOUDFLARE_UPLOAD)
+    status, _ = upload()
+    ok(status == 303 and open(target, "rb").read() == before and not os.path.islink(m.CLOUDFLARE_UPLOAD) and waiting() == GOOD,
+       "a link at the upload's own name is replaced by the file, not written through")
+    m.drop_upload()
+    os.mkfifo(m.CLOUDFLARE_UPLOAD + ".tmp")
+    start = time.time()
+    status, _ = upload(timeout=5)
+    ok(status == 303 and time.time() - start < 3 and waiting() == GOOD, "a pipe at the temporary name doesn't hold the page up")
+    m.drop_upload()
+    os.mkdir(m.CLOUDFLARE_UPLOAD + ".tmp")
+    status, text = upload()
+    ok(status == 503 and html.escape("This app couldn't save the file. Try again in a minute.") in text and waiting() is None,
+       "a folder in the way: 503, a fixed sentence, and no file")
+    os.rmdir(m.CLOUDFLARE_UPLOAD + ".tmp")
+    if os.geteuid() != 0:  # root writes anywhere
+        os.chmod(d, 0o555)
+        try:
+            status, text = upload()
+        finally:
+            os.chmod(d, 0o755)
+        ok(status == 503 and html.escape("This app couldn't save the file. Try again in a minute.") in text and waiting() is None
+           and not os.path.exists(m.CLOUDFLARE_UPLOAD + ".tmp"),
+           "a shared folder it can't write: 503, a fixed sentence, and no file left")
+finally:
+    printed, sys.stderr = sys.stderr.getvalue(), stderr
+ok(printed == "", "nothing reached the page's error output while it took all of these%s" % (": " + printed[:300] if printed else ""))
+
+print("== An upload that waits, and the address")
+upload()
+m.save(OWNER, KEY, "domain", "buzz.example.com", False)  # a notifications save keeps the address
+ok(waiting() == GOOD, "a save that keeps the address, like turning notifications off, keeps a waiting upload")
+m.save(OWNER, KEY, "domain", "chat.example.com")
+ok(waiting() is None, "another address deletes it: that address waits for its own sign-in")
+m.save(OWNER, KEY, "domain", "buzz.example.com")
+upload()
+m.save(OWNER, KEY, "funnel", "")
+ok(waiting() is None, "a Tailscale option deletes it")
+status, _ = upload()
+ok(status == 303 and waiting() is None, "and with a Tailscale option chosen, an upload is ignored")
 server.shutdown()
 
 print("== The relay's settings reader")

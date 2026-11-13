@@ -61,5 +61,6 @@ defaultPassword: ""
 deterministicPassword: true
 backupIgnore:
   - data/cloudflare/.cloudflared/*
+  - data/cloudflare-control/cloudflare-upload.pem*
 submitter: Beige-Coffee
 submission: https://github.com/getumbrel/umbrel-apps/pull/6291

@@ -51,7 +51,7 @@ for name, svc in services.items():
     fixed = []
     for v in svc.get("volumes", []):
         src, _, rest = v.partition(":")
-        m = re.fullmatch(r"\$\{APP_DATA_DIR\}/data/([a-z]+)", src)
+        m = re.fullmatch(r"\$\{APP_DATA_DIR\}/data/([a-z-]+)", src)
         if m:
             vol = "buzz-" + m.group(1)
             volumes[vol] = {}

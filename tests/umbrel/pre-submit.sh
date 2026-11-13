@@ -6,7 +6,7 @@
 #   a 20 MB image and a real 96 MB video up and back, and the size limits;
 #   what the community's public address shows, and secrets in the app's logs;
 #   a restart of the whole Umbrel;
-#   Umbrel's own backup, restored onto a second umbrelOS that was never set up;
+#   Umbrel's own backup, restored onto a second umbrelOS that was never set up, without the sign-ins it skips;
 #   an uninstall, then an install and e2e.sh again.
 # Needs what droplet-run.sh needs, and ffmpeg on this machine for the video (skipped without it).
 #   BUZZ_CLI=path/to/buzz bash tests/umbrel/pre-submit.sh
@@ -370,9 +370,20 @@ SHARE=$(uc $C files.addNetworkShare.mutate "$(js host localhost share "$NAME" us
 REPO=$(uc $C backups.createRepository.mutate "$(js path "$SHARE" password "$RPW")" | val)
 [ -n "$SHARE" ] && [ -n "$REPO" ] || { echo "FAIL  no backup share or repository"; exit; }
 BEFORE=$(counts $C); SETUP=$(setup_hash $C); STORED=$(stored $C)
+# backupIgnore in umbrel-app.yml: Umbrel's backups skip Cloudflare's sign-in and a sign-in the owner uploaded.
+# A marker in each of those places and one beside them that is backed up, with no secret in them, owned by
+# the app's user. Neither the page nor the Cloudflare service touches these names.
+A=/home/umbrel/umbrel/app-data/buzz/data
+MARKS="cloudflare-control/backup-check cloudflare-control/cloudflare-upload.pem.backup-check cloudflare/.cloudflared/backup-check"
+docker exec $C sh -c "mkdir -p $A/cloudflare/.cloudflared && chown 1000:1000 $A/cloudflare/.cloudflared && chmod 700 $A/cloudflare/.cloudflared &&
+  for f in $MARKS; do echo backup-check > $A/\$f && chown 1000:1000 $A/\$f; done"
+[ "$(docker exec $C sh -c "cd $A && ls $MARKS 2> /dev/null | wc -l" | tr -d ' ')" = 3 ] &&
+  echo "PASS  three markers wait for the backup: in the shared Cloudflare folder, as an uploaded sign-in, and as Cloudflare's sign-in" ||
+  echo "FAIL  the backup's markers aren't all in place"
 t0=$(date +%s); uc $C backups.backup.mutate "$(js repositoryId "$REPO")" > /dev/null
 n=$(uc $C backups.listBackups.query "$(js repositoryId "$REPO")" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null)
 [ "${n:-0}" -ge 1 ] && echo "PASS  Umbrel backs up the app, in $(( $(date +%s) - t0 ))s" || { echo "FAIL  the backup"; exit; }
+docker exec $C sh -c "cd $A && rm -f $MARKS"
 docker rm -f $B > /dev/null 2>&1; docker volume rm $B > /dev/null 2>&1
 docker create -it --name $B --hostname umbrel-restored --privileged --volume $B:/data "ghcr.io/getumbrel/umbrelos:$VERSION" /sbin/init > /dev/null
 for unit in NetworkManager.service NetworkManager-wait-online.service; do
@@ -406,6 +417,11 @@ AFTER=$(counts $B)
 [ "$(setup_hash $B)" = "$SETUP" ] && echo "PASS  the setup came back" || echo "FAIL  the setup differs"
 [ "$(ready $B)" = 200 ] && echo "PASS  the relay serves the community's address" || echo "FAIL  the relay doesn't serve the community's address"
 [ -n "$STORED" ] && [ "$(stored $B)" = "$STORED" ] && echo "PASS  the stored files are byte for byte the same" || echo "FAIL  the stored files differ"
+docker exec $B test -e $A/cloudflare-control/backup-check &&
+  ! docker exec $B test -e $A/cloudflare-control/cloudflare-upload.pem.backup-check &&
+  ! docker exec $B test -e $A/cloudflare/.cloudflared/backup-check &&
+  echo "PASS  the backup skipped Cloudflare's sign-in and an uploaded one, and kept the rest of the shared folder" ||
+  echo "FAIL  the backup's markers: the shared folder's is missing, or a sign-in's came back"
 log=$(docker exec $B docker logs buzz_postgres_1 2>&1)
 [ "$(printf '%s\n' "$log" | grep -c -E 'PANIC|corrupt|invalid page|could not read')" = 0 ] && echo "PASS  Postgres starts with no errors" || echo "FAIL  Postgres reports errors"
 echo "INFO  Postgres recovered as after a power cut, since Umbrel copies its files while it runs: $(printf '%s\n' "$log" | grep -c -E 'not properly shut down|redo done') lines"

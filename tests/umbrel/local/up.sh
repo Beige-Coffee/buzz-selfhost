@@ -18,7 +18,7 @@ export DOCKER_CONFIG=$PWD/dockercfg
 C=(docker compose -p buzzlocal --env-file .env -f compose.yml)
 "${C[@]}" pull -q
 args=()
-for v in git postgres redis secrets settings silo tailscale; do
+for v in git postgres redis secrets settings silo tailscale tailscale-control cloudflare cloudflare-control; do
   docker volume create "buzzlocal_buzz-$v" > /dev/null
   args+=(-v "buzzlocal_buzz-$v:/v/$v")
 done

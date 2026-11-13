@@ -1,8 +1,11 @@
 """Checks the setup page on the local run (up.sh), for real: sign-in, a request from
 another container on the shared network, setup, persistence across restarts, owner and address
-changes, switching back, and the Tailscale modes up to the sign-in link. Prints PASS/FAIL lines.
-The app password is read from run/.env and never printed."""
-import html, http.cookiejar, json, os, re, subprocess, sys, time, urllib.error, urllib.parse, urllib.request
+changes, switching back, the Tailscale modes up to the sign-in link, and a sign-in uploaded as the
+file Cloudflare saved, taken by the real Cloudflare service. Prints PASS/FAIL lines. The app password
+is read from run/.env and never printed. The upload is made up: Cloudflare refuses its token once."""
+import html, http.cookiejar, importlib.machinery, importlib.util, io, json, os, re, subprocess, sys, tarfile, time
+import urllib.error, urllib.parse, urllib.request
+import signin_files
 
 L = os.path.dirname(os.path.abspath(__file__))
 ENV = dict(line.strip().split("=", 1) for line in open(os.path.join(L, "run/.env")) if "=" in line)
@@ -231,6 +234,93 @@ ok(s == 303 and bool(link2), "switching to Tailscale again starts it again, with
 s, body, _ = call("/")
 ok("Connect your private network" in body, "the page shows the private network's sign-in step")
 call("/address", {"mode": "domain", "domain": D1, "ack": "yes"})
+
+print("== A sign-in Cloudflare saved as a file, uploaded")
+PKG = os.path.normpath(os.path.join(L, "../../../umbrel"))
+
+
+def compose_function(service, name):
+    """A function from a service's script in docker-compose.yml, with compose's $$ back to $."""
+    block = open(os.path.join(PKG, "buzz/docker-compose.yml")).read().split("\n  " + service + ":\n", 1)[1]
+    lines = []
+    for line in block.split("      - |\n", 1)[1].splitlines():
+        if line and not line.startswith("        "):
+            break
+        lines.append(line[8:])
+    script = "\n".join(lines).replace("$$", "$")
+    start = script.index("\n" + name + "() (") + 1
+    return script[start:script.index("\n)\n", start) + 3]
+
+
+loader = importlib.machinery.SourceFileLoader("page", os.path.join(PKG, "setup-page/setup.py"))
+page = importlib.util.module_from_spec(importlib.util.spec_from_loader("page", loader))
+loader.exec_module(page)
+
+
+def takes(data):
+    try:
+        page.cloudflare_cert(data)
+        return True
+    except ValueError:
+        return False
+
+
+# The same made-up files through the tunnel's own check, in the real image: busybox, as the service runs it
+archive = io.BytesIO()
+with tarfile.open(fileobj=archive, mode="w") as tar:
+    for name, data, _ in signin_files.CASES:
+        info = tarfile.TarInfo(name)
+        info.size = len(data)
+        tar.addfile(info, io.BytesIO(data))
+subprocess.run(["docker", "exec", "-i", "buzz_cloudflared_1", "sh", "-c", "rm -rf /tmp/corpus && mkdir /tmp/corpus && tar -x -C /tmp/corpus"],
+               input=archive.getvalue(), capture_output=True, env=DOCKER)
+runner = compose_function("cloudflared", "signin_file") + (
+    '\nfor f in /tmp/corpus/*; do if signin_file "$f"; then echo "yes ${f##*/}"; else echo "no ${f##*/}"; fi; done; rm -rf /tmp/corpus\n')
+said = dict(reversed(line.split(" ", 1)) for line in sh("docker", "exec", "buzz_cloudflared_1", "sh", "-c", runner).splitlines())
+differ = [n for n, data, _ in signin_files.CASES if said.get(n) != ("yes" if takes(data) else "no")]
+ok(len(said) == len(signin_files.CASES) and not differ,
+   "the service's own check, in the real image, takes exactly the %d made-up files the page takes, of %d%s"
+   % (sum(takes(d) for _, d, _ in signin_files.CASES), len(signin_files.CASES), (": differs for " + ", ".join(differ)) if differ else ""))
+signin = False
+for _ in range(40):
+    if settings("cloudflare-state").strip() == "signin" and "argotunnel" in settings("cloudflare-login.log"):
+        signin = True
+        break
+    time.sleep(3)
+made_up = signin_files.saved()  # zeros for the IDs and local-test-only-not-a-token: no account is involved
+kind, form = signin_files.multipart([("cert", "cert.pem", made_up, b"")])
+try:
+    s = browser.open(urllib.request.Request(BASE + "/cloudflare-upload", data=form, headers={"Content-Type": kind}), timeout=60).status
+except urllib.error.HTTPError as e:
+    s = e.code
+ok(signin and s == 303, "back on the domain, the page takes a sign-in file while the service waits (HTTP %s)" % s)
+moved = ""
+for _ in range(10):
+    moved = settings("cloudflare-state").strip()
+    if settings("cloudflare-upload.pem") == "" and moved not in ("", "signin"):
+        break
+    time.sleep(1)
+ok(moved not in ("", "signin") and settings("cloudflare-upload.pem") == "",
+   "within seconds the real service took it: the upload is gone and the tunnel moved on (%s)" % moved)
+cert = sh("docker", "exec", "buzz_cloudflared_1", "stat", "-c", "%a %u", "/cloudflare/.cloudflared/cert.pem").strip()
+same = sh("docker", "exec", "buzz_cloudflared_1", "cat", "/cloudflare/.cloudflared/cert.pem") == made_up.decode()
+ok(cert == "600 1000" and same, "it's the service's cert.pem, byte for byte as uploaded, mode 600, owned by the app's user (%s)" % cert)
+for _ in range(30):
+    if settings("cloudflare-state").strip() == "error":
+        break
+    time.sleep(3)
+s, body, _ = call("/")
+ok(settings("cloudflare-state").strip() == "error" and "Cloudflare refused a step" in body and "Sign in to Cloudflare again" in body
+   and signin_files.TOKEN not in body, "Cloudflare refuses the made-up token, and the page offers Sign in to Cloudflare again")
+s, body, _ = call("/cloudflare-reset", {})
+reset = False
+for _ in range(40):
+    if settings("cloudflare-state").strip() == "signin" and "argotunnel" in settings("cloudflare-login.log"):
+        reset = True
+        break
+    time.sleep(3)
+gone = sh("docker", "exec", "buzz_cloudflared_1", "sh", "-c", "test -e /cloudflare/.cloudflared/cert.pem || echo gone").strip()
+ok(s == 303 and reset and gone == "gone", "the reset deletes that sign-in and starts a new one, with a new link")
 print()
 print("passed: %d  failed: %d" % (passed, failed))
 sys.exit(1 if failed else 0)

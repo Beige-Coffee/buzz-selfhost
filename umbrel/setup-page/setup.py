@@ -8,7 +8,10 @@ browsers, but every app on an Umbrel shares one Docker network, so other apps co
 page directly; the password keeps them out. It ships as its own image, built from this folder by
 GitHub Actions (see README.md here).
 """
+import base64
 import concurrent.futures
+import email.parser
+import email.policy
 import hashlib
 import hmac
 import html
@@ -41,6 +44,10 @@ CLOUDFLARE_STATE = os.path.join(CLOUDFLARE_DIR, "cloudflare-state")
 CLOUDFLARE_LOGIN = os.path.join(CLOUDFLARE_DIR, "cloudflare-login.log")
 CLOUDFLARE_SETUP = os.path.join(CLOUDFLARE_DIR, "cloudflare-setup.log")
 CLOUDFLARE_RESET = os.path.join(CLOUDFLARE_DIR, "cloudflare-reset")
+# A sign-in the owner uploads when Cloudflare's page saves it in the browser instead of passing it to the
+# tunnel's login (cloudflare/cloudflared#1252). It waits here until the tunnel takes it, seconds at most, and
+# Umbrel's backups skip it.
+CLOUDFLARE_UPLOAD = os.path.join(CLOUDFLARE_DIR, "cloudflare-upload.pem")
 GATEWAY_URL = "buzz-gateway:80"
 RELAY_HOST = "buzz_relay_1"
 BUZZ_APP = "https://github.com/block/buzz-app/releases/latest"
@@ -133,6 +140,72 @@ def tailscale_name(text):
     return name if len(name) <= 253 and re.fullmatch(r"(" + LABEL + r"\.)+ts\.net", name) else ""
 
 
+# A sign-in file. The tunnel checks it again before using it (signin_file in docker-compose.yml), and both
+# take exactly the same files, so change them together. A cert.pem is about 600 bytes.
+CERT_MAX = 16384
+CERT_BEGIN, CERT_END = b"-----BEGIN ARGO TUNNEL TOKEN-----", b"-----END ARGO TUNNEL TOKEN-----"
+# Padded base64, with the unused bits of a short last group zero, as encoders write it: every decoder, the
+# tunnel's included, then reads the same bytes
+CERT_BASE64 = re.compile(rb"(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/][AQgw]==|[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=)?")
+# A flat JSON object of text values with no escapes, spaces allowed between its parts
+CERT_JSON = re.compile(r' *[{] *"[A-Za-z0-9_]+" *: *"[^"\\]*" *(?:, *"[A-Za-z0-9_]+" *: *"[^"\\]*" *)*[}] *')
+CERT_FIELD = re.compile(r'"([A-Za-z0-9_]+)" *: *"([^"\\]*)"')
+NOT_A_CERT = ("That isn't a Cloudflare sign-in file. Choose the cert.pem file Cloudflare saved. It's usually in your "
+              "Downloads folder.")
+
+
+def cert_fields(data):
+    """The fields in a sign-in file's one ARGO TUNNEL TOKEN block, or None: plain text with Unix line breaks, the
+    block alone, and in it base64 of a JSON object, as Cloudflare saves it."""
+    if not re.fullmatch(rb"[A-Za-z0-9+/= \n-]*", data):
+        return None
+    lines = (data[:-1] if data.endswith(b"\n") else data).split(b"\n")
+    if len(lines) < 2 or lines[0] != CERT_BEGIN or lines[-1] != CERT_END:
+        return None
+    if not all(re.fullmatch(rb"[A-Za-z0-9+/=]+", line) for line in lines[1:-1]):
+        return None
+    encoded = b"".join(lines[1:-1])
+    if not CERT_BASE64.fullmatch(encoded):
+        return None
+    decoded = base64.b64decode(encoded)
+    # JSON's tabs and line breaks count as spaces; nothing else that isn't plain text
+    if not re.fullmatch(rb"[\t\n\r\x20-\x7e]*", decoded):
+        return None
+    text = decoded.translate(bytes.maketrans(b"\t\n\r", b"   ")).decode("ascii")
+    if not CERT_JSON.fullmatch(text):
+        return None
+    pairs = CERT_FIELD.findall(text)
+    if len({name.lower() for name, _ in pairs}) != len(pairs):  # no name twice, in any case: which would count?
+        return None
+    return dict(pairs)
+
+
+def cloudflare_cert(data):
+    """The uploaded sign-in, unchanged, if it's one, or ValueError. A zone, an account and an API token are what
+    the tunnel needs; other fields, like the serviceKey Cloudflare adds, stay. The messages are fixed sentences
+    that never include anything from the file."""
+    if not data:
+        raise ValueError("Choose the cert.pem file Cloudflare saved, then upload it.")
+    if len(data) > CERT_MAX:
+        raise ValueError("That file is too large to be a Cloudflare sign-in. Choose the cert.pem file Cloudflare saved.")
+    try:
+        fields = cert_fields(data)
+    except Exception:
+        fields = None  # whatever went wrong, nothing from the file reaches a message or a log
+    if fields is None:
+        raise ValueError(NOT_A_CERT)
+
+    def has(name):  # a value with no spaces in it
+        return re.fullmatch(r'[^" \\]+', fields.get(name, "")) is not None
+
+    if not (has("zoneID") and has("apiToken")):
+        raise ValueError(NOT_A_CERT)
+    if not has("accountID"):  # cloudflared refuses these for new tunnels
+        raise ValueError("That sign-in file is too old to set up a tunnel. Upload the cert.pem from your latest "
+                         "sign-in, or sign in with the button.")
+    return data
+
+
 # ---------------------------------------------------------------- settings on disk
 
 
@@ -157,6 +230,35 @@ def write_atomic(path, text):
     with open(temporary, "w") as f:
         f.write(text)
     os.replace(temporary, path)
+
+
+def write_secret(path, data):
+    """Like write_atomic, for a secret: readable by this app's user alone from the moment it exists. The folder
+    is shared with another service, so whatever is already at the temporary name, a link or a pipe, is removed
+    first, never written into or through."""
+    temporary = path + ".tmp"
+    try:
+        os.remove(temporary)
+    except FileNotFoundError:
+        pass
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "wb") as f:
+        os.fchmod(f.fileno(), 0o600)
+        f.write(data)
+    os.replace(temporary, path)
+
+
+def drop_upload():
+    """Deletes an uploaded sign-in the tunnel hasn't taken, and a write of one that didn't finish."""
+    for path in (CLOUDFLARE_UPLOAD, CLOUDFLARE_UPLOAD + ".tmp"):
+        try:
+            os.remove(path)
+        except OSError:  # not there, or not a file this page wrote
+            pass
+
+
+def upload_waiting():
+    return os.path.isfile(CLOUDFLARE_UPLOAD)
 
 
 def norm_mode(mode):
@@ -214,11 +316,15 @@ def save(owner_text, key, mode, domain, push=None):
     if mode == "domain":
         if os.path.exists(TAILSCALE_ON):
             os.remove(TAILSCALE_ON)
+        # An uploaded sign-in belongs to the address it came with: another address waits for its own
+        if read_text(CLOUDFLARE_ON).strip() != domain:
+            drop_upload()
         write_atomic(CLOUDFLARE_ON, domain + "\n")
         write_relay_env(key, domain, push)
         return
     if os.path.exists(CLOUDFLARE_ON):
         os.remove(CLOUDFLARE_ON)
+    drop_upload()
     # The Tailscale machine starts (or switches between Funnel and tailnet only); the watcher
     # writes the relay's settings once the machine has its name.
     write_atomic(TAILSCALE_ON, mode + "\n")
@@ -298,6 +404,8 @@ def cloudflare_step():
     """Like tailscale_step: the page reloads when this changes, a new sign-in link included."""
     cf = cloudflare_state()
     if cf["state"] == "signin":
+        if upload_waiting():  # the tunnel takes it within seconds, then reports its next step
+            return "signin-upload"
         return "signin-" + (hashlib.sha256(cf["link"].encode()).hexdigest()[:8] if cf["link"] else "wait")
     return cf["state"] or "starting"
 
@@ -444,6 +552,8 @@ def check(setup):
                       "Phones can pair" if pair_ok else "Phone pairing isn't reachable yet"))
     if mode == "domain" and not reach_ok:
         cf = cloudflare_state()["state"]
+        if cf == "signin" and upload_waiting():
+            cf = "creating"  # signed in with the owner's file, which the tunnel is taking
         trouble = cf in ("taken", "wrong-domain", "error")
         items.insert(1, item("cloudflare", "ok" if cf == "running" else "bad" if trouble else "wait",
                              "This app's Cloudflare tunnel is set up" if cf == "running" else
@@ -479,7 +589,8 @@ CACHE_LOCK = threading.Lock()
 
 
 def cached_check(setup):
-    key = json.dumps(setup, sort_keys=True) + relay_domain() + read_text(TAILSCALE_SERVE)
+    # The tunnel's step too: right after an upload, the page shows the tunnel taking it, not the old wait
+    key = json.dumps(setup, sort_keys=True) + relay_domain() + read_text(TAILSCALE_SERVE) + cloudflare_step()
     with CACHE_LOCK:
         if CACHE["key"] == key and time.time() - CACHE["at"] < 3:
             return CACHE["value"]
@@ -586,6 +697,10 @@ input[type=text], input[type=password] { width: 100%; margin-top: 7px; padding: 
   letter-spacing: 0; color: var(--ink); background: #fff; border: 1px solid var(--line-2); border-radius: 12px; outline: none;
   transition: border-color 0.15s, box-shadow 0.15s; }
 input[type=text]:focus, input[type=password]:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgb(215 215 46 / 45%); }
+input[type=file] { display: block; width: 100%; margin-top: 7px; font: 14px var(--sans); color: var(--ink-2); }
+input[type=file]::file-selector-button { margin-right: 12px; padding: 7px 14px; border: 1px solid var(--line-2);
+  border-radius: 999px; background: #fff; color: var(--ink); font: 500 13.5px var(--sans); cursor: pointer; }
+input[type=file]::file-selector-button:hover { border-color: var(--ink); }
 .choices { display: grid; gap: 12px; margin-top: 16px; }
 .choice { position: relative; display: block; padding: 18px 20px; background: #fff; border: 1px solid var(--line-2);
   border-radius: 18px; box-shadow: var(--shadow-1); cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s, transform 0.3s var(--ease); }
@@ -852,6 +967,9 @@ details.how[open] > summary { background: var(--chip); }
 .hw-input em { margin-left: auto; padding: 2px 8px; border-radius: 999px; background: #eef5d0; font: normal 500 10px var(--sans); color: #55550a; }
 """
 
+# The poll opens the page again at each new step, except while a file is chosen but not yet uploaded: that
+# would drop it. It opens the page's own address, not a form's: after a refused form the browser is at the
+# form's address, and a reload would send the form again.
 SCRIPT = """
 function copyText(button, text) {
   var done = function () { button.textContent = "Copied"; setTimeout(function () { button.textContent = "Copy"; }, 1500); };
@@ -896,12 +1014,17 @@ function reachFromHere(item) {
     })
     .finally(function () { clearTimeout(timer); });
 }
+function fileChosen() {
+  return Array.prototype.some.call(document.querySelectorAll("input[type=file]"), function (input) {
+    return Boolean(input.files && input.files.length);
+  });
+}
 function poll() {
   var list = document.querySelector("[data-poll]");
   if (!list) { return; }
   var phase = list.getAttribute("data-phase");
   fetch("status.json", { cache: "no-store", credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (data) {
-    if (data.phase !== phase) { location.reload(); return; }
+    if (data.phase !== phase && !fileChosen()) { location.replace("./"); return; }
     list.innerHTML = data.html;
     list.querySelectorAll("[data-host]").forEach(reachFromHere);
   }).catch(function () {}).finally(function () { setTimeout(poll, 5000); });
@@ -928,6 +1051,14 @@ document.addEventListener("DOMContentLoaded", function () {
     form.addEventListener("input", function () { updateForm(form); });
     form.addEventListener("change", function () { updateForm(form); });
     updateForm(form);
+  });
+  document.querySelectorAll("input[type=file][data-max]").forEach(function (input) {
+    input.addEventListener("change", function () {
+      var file = input.files && input.files[0];
+      input.setCustomValidity(file && file.size > Number(input.getAttribute("data-max")) ?
+        "That file is too large to be a Cloudflare sign-in." : "");
+      input.reportValidity();
+    });
   });
   document.querySelectorAll("[data-host]").forEach(reachFromHere);
   setTimeout(poll, 5000);
@@ -1458,12 +1589,17 @@ def copy_button(text):
     return ('<button class="copy-mini" type="button" data-copy="' + esc(text) + '" onclick="copyText(this, this.dataset.copy)">Copy</button>')
 
 
-def connect_steps(setup, domain):
+def connect_steps(setup, domain, error=""):
     mode = setup["mode"]
     if mode == "domain":
         cf = cloudflare_state()
         state = cf["state"]
-        if state == "signin" and cf["link"]:
+        uploaded = state == "signin" and upload_waiting()
+        if uploaded:
+            action = ("<p class=\"muted\">Signed in with your file. Setting up the tunnel and the name <code>" + esc(domain)
+                      + "</code> in Cloudflare.</p><p class=\"muted small\">Delete the file from your computer and empty "
+                      "the trash. " + TOKEN_NOTE + "</p>")
+        elif state == "signin" and cf["link"]:
             action = ("<p>Sign in to Cloudflare, or create a free account. When it asks which domain to authorize, "
                       "choose the one <code>" + esc(domain) + "</code> is under. This app then sets up its tunnel and the "
                       "name in your Cloudflare account.</p>"
@@ -1494,8 +1630,9 @@ def connect_steps(setup, domain):
                       + cloudflare_reset_button())
         else:
             action = ""
-        # Only before the sign-in: for owners who already run Umbrel's Cloudflare Tunnel app
-        manual = "" if state != "signin" else (
+        # Only before the sign-in: for a sign-in Cloudflare saved as a file, and for owners who already run
+        # Umbrel's Cloudflare Tunnel app
+        manual = "" if state != "signin" or uploaded else cert_upload(error) + (
             "<details class=\"alt\"><summary>Already use Umbrel's Cloudflare Tunnel app?</summary><div class=\"inner\">"
             '<p class="muted small">Then add a public hostname to your tunnel with these values instead of signing in. '
             '<a href="' + TUNNEL_GUIDE + '" target="_blank" rel="noopener">The app\'s guide</a> shows each screen.</p>'
@@ -1529,6 +1666,29 @@ def connect_steps(setup, domain):
 def cloudflare_reset_button():
     return ('<form method="post" action="cloudflare-reset"><button class="btn small ghost" type="submit">'
             "Sign in to Cloudflare again</button></form>")
+
+
+# The tunnel runs on its own token, and the app deletes the sign-in once the name is set up, so nothing needs
+# the sign-in's API token after that
+TOKEN_NOTE = ("Once your community is live, also delete this sign-in's token in Cloudflare, under My Profile, API "
+              "Tokens. The tunnel doesn't need it.")
+
+
+def cert_upload(error=""):
+    """When Cloudflare's page says the sign-in worked but saves it as a file instead (cloudflare/cloudflared#1252),
+    the owner uploads that file here, and the tunnel takes it as its sign-in. Open with an error inside."""
+    return (
+        '<details class="alt"' + (" open" if error else "") + "><summary>Cloudflare saved a file named cert.pem "
+        'instead?</summary><div class="inner"><form method="post" action="cloudflare-upload" enctype="multipart/form-data">'
+        "<p class=\"muted small\">Sometimes Cloudflare says you're signed in but saves the sign-in as a file on your "
+        "computer. This page then keeps waiting. Upload that file here. It's usually in your Downloads folder.</p>"
+        '<label class="field" for="cert">The file Cloudflare saved (cert.pem)</label>'
+        '<input type="file" id="cert" name="cert" data-max="' + str(CERT_MAX) + '" required>'
+        '<button class="btn small ghost" type="submit">Upload it</button></form>' + error_box(error)
+        + '<p class="muted small">This app uses the file as your sign-in and deletes it once the name is set up. '
+        "Afterwards, delete it from your computer and empty the trash. Anyone who has the file can add names to "
+        "your domain and create or delete tunnels in your Cloudflare account. " + TOKEN_NOTE + "</p></div></details>"
+    )
 
 
 def private_members_note():
@@ -1665,7 +1825,7 @@ def main_page(setup, error="", values=None):
                     "funnel": "Your community is set up on this Umbrel. Next, Tailscale gives it a public address.",
                     "private": "Your community is set up on this Umbrel. Next, Tailscale puts it on your private network.",
                 }[mode] + "</p>")
-        body = head + status + connect_steps(setup, domain)
+        body = head + status + connect_steps(setup, domain, error if values.get("form") == "cert" else "")
         if mode == "private" and domain:
             body += '<section class="part"><h2>Who can connect</h2>' + private_members_note() + "</section>"
         return layout(body + settings_part(setup, error, values))
@@ -1750,6 +1910,27 @@ class Handler(http.server.BaseHTTPRequestHandler):
         fields = urllib.parse.parse_qs(self.rfile.read(self.length).decode(errors="replace"))
         return {name: values[0] for name, values in fields.items()}
 
+    def uploaded(self, name):
+        """The file a one-file form sends, as bytes, or b"" for anything else. The body has the same limit as every
+        form's. Python 3.13 has no cgi module: the email package reads the parts."""
+        body = self.rfile.read(self.length)
+        kind = self.headers.get("Content-Type") or ""
+        if not kind.lower().startswith("multipart/form-data"):
+            return b""
+        try:
+            message = email.parser.BytesParser(policy=email.policy.HTTP).parsebytes(
+                b"Content-Type: " + kind.encode("latin-1") + b"\r\n\r\n" + body)
+            parts = list(message.iter_parts()) if message.is_multipart() else []
+            # One part, as a browser sends this form: named for its field, and with no transfer encoding (browsers
+            # never send one), so the bytes are the file's own
+            if (len(parts) != 1 or parts[0].get_param("name", header="content-disposition") != name
+                    or parts[0].get("content-transfer-encoding") is not None):
+                return b""
+            data = parts[0].get_payload(decode=True)
+            return data if isinstance(data, bytes) else b""
+        except Exception:  # a broken form is no file, and nothing from it reaches a log
+            return b""
+
     def same_origin(self):
         """Refuses forms posted from other sites, and from other apps' pages on the same Umbrel (another
         port on the same host is "same-site"). Browsers say where a request comes from in Sec-Fetch-Site,
@@ -1808,9 +1989,34 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.redirect("./login", {"Set-Cookie": COOKIE + "=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0"})
         if not self.signed_in():
             return self.send(401, layout("<h1>Sign in first</h1><p><a href=\"./login\">Sign in</a></p>", signed_in=False))
+        if path == "/cloudflare-upload":
+            data = self.uploaded("cert")
+            with SETUP_LOCK:
+                return self.cloudflare_upload(data)
         values = self.form()
         with SETUP_LOCK:
             return self.change(path, values)
+
+    def cloudflare_upload(self, data):
+        setup = load_setup()
+        # Only while the tunnel waits for a sign-in, where the page offers it: at any other time nothing would
+        # take the file, and it would sit in the shared folder
+        if not setup or setup["mode"] != "domain" or cloudflare_state()["state"] != "signin":
+            return self.redirect("./")
+        try:
+            data = cloudflare_cert(data)
+        except ValueError as error:
+            return self.send(400, main_page(setup, str(error), {"form": "cert"}))
+        try:
+            write_secret(CLOUDFLARE_UPLOAD, data)  # as Cloudflare saved it, byte for byte
+        except OSError:
+            drop_upload()
+            return self.send(503, main_page(setup, "This app couldn't save the file. Try again in a minute.",
+                                            {"form": "cert"}))
+        # The tunnel moved on while this was written, with its own sign-in: nothing will take the file now
+        if cloudflare_state()["state"] != "signin":
+            drop_upload()
+        return self.redirect("./")
 
     def change(self, path, values):
         setup = load_setup()
@@ -1879,5 +2085,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
 if __name__ == "__main__":
     if not PASSWORD:
         print("APP_PASSWORD is not set: the setup page refuses every sign-in.", flush=True)
+    # A write of an uploaded sign-in that a stop cut short. One that finished waits for the tunnel.
+    try:
+        os.remove(CLOUDFLARE_UPLOAD + ".tmp")
+    except OSError:
+        pass
     threading.Thread(target=tailscale_watcher, daemon=True).start()
     http.server.ThreadingHTTPServer(("0.0.0.0", 8080), Handler).serve_forever()

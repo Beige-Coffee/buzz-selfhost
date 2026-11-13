@@ -28,18 +28,27 @@ GUIDE_STEPS = (("join", "Join your community", "First, as the owner", "Step 1 of
 GUIDE_FRAMES = {"join": (("Open Join a community", '<p class="on">', "If Buzz opens on a <b>Join a community</b> page instead"),
                          ("Paste the address", "<h6>Community URL</h6>", "choose <b>Continue</b> twice")),
                 "invite": (("Open Membership", 'dark hot">Invite members</span>', "the <b>Invite</b> tab in newer versions of Buzz"),
-                           ("Send an invite link", "<b>Add or invite people</b>", "then send them the address")),
+                           ("Send an invite link", "<b>Add or invite people</b>",
+                            "Anyone with the link can join until it expires or runs out of uses.")),
                 "phone": (("Scan the code", "Copy pairing code", "choose <b>Add Community</b> in its community switcher"),
-                          ("Check the code", 'dark hot">Codes match</span>', "choose <b>Use Face ID</b> or <b>Skip</b>"))}
+                          ("Check the code", 'dark hot">Codes match</span>', "type the six digits your computer shows"))}
+# The invite caption keeps Add member for a public ID; the pairing caption has both ways the phone checks the code, the
+# protect prompt's three buttons and Skip, and then, on the computer, Codes match
+INVITE_ADD = "paste someone's public ID under <b>Add directly</b> and choose <b>Add member</b>, then send them the address."
+PAIRING = ("If the phone asks for a code, type the six digits your computer shows. If it shows a code, check that the digits "
+           "match. When it asks to protect your identity, choose <b>Use Face ID</b>, <b>Use Touch ID</b> or <b>Use "
+           "biometrics</b>, or <b>Skip</b>. Then choose <b>Codes match</b> on your computer.")
+OPEN_NOTE = '<p class="muted small">Opens Buzz on this computer with the address filled in, once Buzz is set up.</p>'
+SAID = '<p class="vh" role="status" data-said></p>'
 GUIDE_LINK = ('<a class="g-out" href="https://self-host.buzz/" target="_blank" rel="noopener">')
 OWN_KEY = ('Made your own key? <a href="https://self-host.buzz/" target="_blank" rel="noopener">The self-hosting guide</a> '
            "shows how to join with it.")
 BUILDERLAB = '<details class="g-more"><summary>Signed in with Builderlab?</summary>'
 NOTIFY_ON = "iPhones get notifications for direct messages and mentions. Android phones don't yet."
-NOTIFY_OFF = "Phone notifications are off. You can turn them on in Settings."
+NOTIFY_OFF = "Phone notifications are off. You can turn them on in Settings, further down this page."
 # texts the guide dropped, or the old next steps had
-GONE = ("Bought the domain recently?", "Opens Buzz on this computer", "Show me how", "Join as you set up Buzz",
-        "Phone notifications are on for iPhone", "<h2>Add members</h2>")
+GONE = ("Bought the domain recently?", "Show me how", "Join as you set up Buzz", "Phone notifications are on for iPhone",
+        "<h2>Add members</h2>", "You can turn them on in Settings.</p>", "choose <b>Use Face ID</b> or <b>Skip</b>")
 # the app's own Cloudflare tunnel, from waiting for a sign-in to running, and its errors; signin+upload is
 # a sign-in the owner uploaded, waiting for the tunnel to take it
 CLOUDFLARE = ("", "signin", "signin+upload", "creating", "routing", "taken", "wrong-domain", "error", "running")
@@ -88,7 +97,8 @@ def check_guide(page, mode, domain, push):
     assert [key for key, _ in panes] == ["join", "invite", "phone"]
     checked = 0
     for (key, pane), (_, title, _, kicker) in zip(panes, GUIDE_STEPS):
-        assert pane.startswith('<p class="eyebrow">' + kicker + "</p><h2>" + title + "</h2>"), key
+        # the heading takes focus when its link opens the step
+        assert pane.startswith('<p class="eyebrow">' + kicker + '</p><h2 tabindex="-1">' + title + "</h2>"), key
         frames = pane.split('<div class="g-frame" ')[1:]
         assert len(frames) == 2, key
         for n, (frame, (name, drawn, kept)) in enumerate(zip(frames, GUIDE_FRAMES[key]), 1):
@@ -103,9 +113,12 @@ def check_guide(page, mode, domain, push):
             checked += 1
         checked += 1
     join, invite, phone = (pane for _, pane in panes)
-    # Join: the address to open or copy, kept in a data attribute, and the own-key line
+    # Join: the address to open or copy, kept in a data attribute, what Open in Buzz does under them, and the own-key line
     assert ('<a class="btn" href="buzz://connect?relay=wss%3A%2F%2F' + domain + '">Open in Buzz</a>') in join
-    assert ('data-copy="https://' + domain + '" onclick="copyText(this, this.dataset.copy)">Copy the address</button>') in join
+    assert ('<button class="btn ghost" type="button" data-copy="https://' + domain + '" onclick="copyText(this, '
+            'this.dataset.copy)">Copy the address</button></div>' + OPEN_NOTE + '<div class="g-frames">') in join
+    assert page.count(OPEN_NOTE) == 1
+    assert INVITE_ADD in invite.split('<div class="g-frame" ')[2] and PAIRING in phone.split('<div class="g-frame" ')[2]
     assert OWN_KEY in join and join.count("self-host.buzz") == 1
     # Invite: who can connect, on the private network alone
     assert (m.private_members_note() in invite) == (mode == "private") and m.private_members_note() not in join + phone
@@ -126,6 +139,33 @@ def check_guide(page, mode, domain, push):
 style = m.STYLE + m.HOW_STYLE
 assert "min(1000px, 100vw)" in section(style, ".next {", "}") and "@media (min-width: 880px) { .guide { grid-template-columns: 250px" in style
 assert "width: 44px; height: 44px;" in section(style, ".g-btns button {", "}")
+
+
+def contrast(alpha, background=(255, 255, 255)):
+    """The page's ink at this opacity, over a background, against that background (WCAG 2)."""
+    def luminance(rgb):
+        return sum(w * (c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)
+                   for w, c in zip((0.2126, 0.7152, 0.0722), (v / 255 for v in rgb)))
+    ink = tuple(i * alpha + b * (1 - alpha) for i, b in zip((35, 30, 30), background))
+    return (luminance(background) + 0.05) / (luminance(ink) + 0.05)
+
+
+# Small text in --ink-2, at least 4.5:1 on the page's white and its two greys; --ink-3 at least 3:1, and only for marks
+# that aren't text and for an option that can't be chosen
+inks = dict(re.findall(r"--(ink-[23]): rgb\(35 30 30 / (\d+)%\)", style))
+for name, least in (("ink-2", 4.5), ("ink-3", 3)):
+    assert all(contrast(int(inks[name]) / 100, bg) >= least for bg in ((255, 255, 255), (0xf7, 0xf7, 0xf4), (0xf2, 0xf2, 0xee))), name
+assert sorted(sel.strip() for sel, body in re.findall(r"([^{}]+)\{([^{}]*)\}", style) if "var(--ink-3)" in body) == [
+    ".bar .work .tr", ".opt:has(input:disabled) :is(b, small)", ".set-card details > summary::after"]
+# A focus ring the card's rounded edge doesn't clip, a count that stays whole, a faded icon but not its button's ring,
+# the problem mark's "!" kept from screen readers, copy buttons only with scripts, and the current step in forced colors
+assert ".set-card summary:focus-visible { outline-offset: -3px; border-radius: 12px; }" in style
+assert ".ck-all > summary .val { flex: none; }" in style
+assert "opacity" not in section(style, '.g-btns button[aria-disabled="true"] {', "}")
+assert '.g-btns button[aria-disabled="true"] .tb-i { opacity: 0.35; }' in style
+assert style.count('content: "!"; content: "!" / "";') == 2 and style.count('content: "!"') == 4
+assert "html:not(.js) [data-copy] { display: none !important; }" in style
+assert "@media (forced-colors: active) { .g-nav a[aria-current] { border: 2px solid CanvasText;" in style
 
 count = 0
 for mode in ("domain", "funnel", "private"):
@@ -361,51 +401,65 @@ def rendered(setup):
     page = m.main_page(setup)
     live, items = m.check(setup)
     checks = m.checks_html(setup, live, items)
-    # status.json's checks are the page's, with the same signature
-    assert ('data-sig="' + m.checks_sig(checks) + '">' + checks + "</div>") in page
+    # status.json's checks are the page's, with the same signature, and after them, outside what the refresh swaps,
+    # the one place a screen reader hears that they changed
+    assert ('data-sig="' + m.checks_sig(checks) + '">' + checks + "</div>" + SAID) in page and page.count(SAID) == 1
     return page, live, items, checks
 
 
+# Each stage, the states of the bar's segments, and what shows under it: problems (!) with their hints, then the current
+# stage's checks that wait
 PHASES = (
-    ("domain", "starting Cloudflare's sign-in while Buzz starts", dict(cf="", relay=False), "work wait wait wait"),
-    ("domain", "starting Cloudflare's sign-in", dict(cf=""), "done work wait wait"),
-    ("domain", "the sign-in, its link not there yet", dict(cf="signin", link=False), "done work wait wait"),
-    ("domain", "the sign-in link while Buzz starts", dict(cf="signin", relay=False), "work you wait wait"),
-    ("domain", "the sign-in link", dict(cf="signin"), "done you wait wait"),
-    ("domain", "signed in with the file Cloudflare saved", dict(cf="signin", upload=True), "done done work wait"),
-    ("domain", "creating the tunnel", dict(cf="creating"), "done done work wait"),
-    ("domain", "routing the name", dict(cf="routing"), "done done work wait"),
-    ("domain", "the tunnel runs, the name not published", dict(cf="running"), "done done work wait"),
-    ("domain", "published, nothing answers yet", dict(cf="running", addresses=PUBLIC, live=(None, b"timed out")), "done done work wait"),
-    ("domain", "published, no connected tunnel", dict(cf="running", addresses=PUBLIC, live=(530, b"error code: 1033")), "done done bad wait"),
-    ("domain", "published, the tunnel can't reach Buzz", dict(cf="running", addresses=PUBLIC, live=(502, b"")), "done done bad wait"),
-    ("domain", "another relay answers there", dict(cf="running", addresses=PUBLIC, live=(200, b"ok"), other=True), "done done bad wait"),
-    ("domain", "reachable, pairing not yet", dict(cf="running", addresses=PUBLIC, live=(200, b"ok")), "done done done work"),
-    ("domain", "the name is taken", dict(cf="taken"), "done bad wait wait"),
-    ("domain", "the wrong domain chosen", dict(cf="wrong-domain"), "done bad wait wait"),
-    ("domain", "Cloudflare refused a step", dict(cf="error"), "done bad wait wait"),
-    ("funnel", "starting Tailscale", dict(backend="NoState", relay=False), "work wait wait wait wait"),
-    ("funnel", "Tailscale's sign-in link", dict(backend="NeedsLogin", relay=False), "work you wait wait wait"),
-    ("funnel", "approving the machine", dict(backend="NeedsMachineAuth", relay=False), "work you wait wait wait"),
-    ("funnel", "Funnel to allow while Buzz starts", dict(backend="Running", named=True, consent=True, relay=False), "work done you wait wait"),
-    ("funnel", "Funnel to allow", dict(backend="Running", named=True, consent=True), "done done you wait wait"),
-    ("funnel", "waiting for Tailscale to ask", dict(backend="Running", named=True), "done done work wait wait"),
-    ("funnel", "Funnel on, the name not published", dict(backend="Running", named=True, serve="funnel"), "done done done work wait"),
+    ("domain", "starting Cloudflare's sign-in while Buzz starts", dict(cf="", relay=False), "done work wait wait", ""),
+    ("domain", "starting Cloudflare's sign-in", dict(cf=""), "done work wait wait", ""),
+    ("domain", "the sign-in, its link not there yet", dict(cf="signin", link=False), "done work wait wait", ""),
+    ("domain", "the sign-in link while Buzz starts", dict(cf="signin", relay=False), "done you wait wait", ""),
+    ("domain", "the sign-in link", dict(cf="signin"), "done you wait wait", ""),
+    ("domain", "signed in with the file Cloudflare saved", dict(cf="signin", upload=True), "done done work wait", "cloudflare dns"),
+    ("domain", "creating the tunnel", dict(cf="creating"), "done done work wait", "cloudflare dns"),
+    ("domain", "creating the tunnel while Buzz starts", dict(cf="creating", relay=False), "done done work wait", "cloudflare dns relay"),
+    ("domain", "routing the name", dict(cf="routing"), "done done work wait", "cloudflare dns"),
+    ("domain", "the tunnel runs, the name not published", dict(cf="running"), "done done work wait", "dns"),
+    ("domain", "published, nothing answers yet", dict(cf="running", addresses=PUBLIC, live=(None, b"timed out")), "done done work wait", "reach"),
+    ("domain", "published, no certificate yet", dict(cf="running", addresses=PUBLIC, live=(None, b"tls [SSL: CERTIFICATE_VERIFY_FAILED]")),
+     "done done work wait", "reach"),
+    ("domain", "published, no connected tunnel", dict(cf="running", addresses=PUBLIC, live=(530, b"error code: 1033")), "done done bad wait", "!reach"),
+    ("domain", "published, the tunnel can't reach Buzz", dict(cf="running", addresses=PUBLIC, live=(502, b"")), "done done bad wait", "!reach"),
+    ("domain", "another relay answers there", dict(cf="running", addresses=PUBLIC, live=(200, b"ok"), other=True), "done done bad wait", "!reach"),
+    ("domain", "the name answers while Buzz restarts", dict(cf="running", addresses=PUBLIC, live=(200, b"ok"), relay=False),
+     "done done work wait", "relay"),
+    ("domain", "pairing answers while Buzz restarts", dict(cf="running", addresses=PUBLIC, live=(200, b"ok"), relay=False, pair=True),
+     "done done work wait", "relay"),
+    ("domain", "reachable, pairing not yet", dict(cf="running", addresses=PUBLIC, live=(200, b"ok")), "done done done work", "pair"),
+    # after the sign-in, a name taken or a step refused blocks the name; a wrong domain needs a new sign-in
+    ("domain", "the name is taken", dict(cf="taken"), "done done bad wait", "!cloudflare dns"),
+    ("domain", "the wrong domain chosen", dict(cf="wrong-domain"), "done bad wait wait", "!cloudflare"),
+    ("domain", "Cloudflare refused a step", dict(cf="error"), "done done bad wait", "!cloudflare dns"),
+    ("funnel", "starting Tailscale", dict(backend="NoState", relay=False), "done work wait wait wait", ""),
+    ("funnel", "Tailscale's sign-in link", dict(backend="NeedsLogin", relay=False), "done you wait wait wait", ""),
+    ("funnel", "approving the machine", dict(backend="NeedsMachineAuth", relay=False), "done you wait wait wait", ""),
+    ("funnel", "Funnel to allow while Buzz starts", dict(backend="Running", named=True, consent=True, relay=False), "done done you wait wait", "publish"),
+    ("funnel", "Funnel to allow", dict(backend="Running", named=True, consent=True), "done done you wait wait", "publish"),
+    ("funnel", "waiting for Tailscale to ask", dict(backend="Running", named=True), "done done work wait wait", "publish"),
+    ("funnel", "Funnel on, the name not published", dict(backend="Running", named=True, serve="funnel"), "done done done work wait", "dns"),
     ("funnel", "Funnel on, nothing answers yet", dict(backend="Running", named=True, serve="funnel", addresses=PUBLIC,
-                                                      live=(None, b"timed out")), "done done done work wait"),
+                                                      live=(None, b"timed out")), "done done done work wait", "reach"),
     ("funnel", "Funnel on, an error answers", dict(backend="Running", named=True, serve="funnel", addresses=PUBLIC,
-                                                   live=(502, b"")), "done done done bad wait"),
+                                                   live=(502, b"")), "done done done bad wait", "!reach"),
+    ("funnel", "Funnel on, the address answers while Buzz starts", dict(backend="Running", named=True, serve="funnel",
+                                                                        addresses=PUBLIC, live=(200, b"ok"), relay=False),
+     "done done done work wait", "relay"),
     ("funnel", "reachable, pairing not yet", dict(backend="Running", named=True, serve="funnel", addresses=PUBLIC,
-                                                  live=(200, b"ok")), "done done done done work"),
-    ("private", "starting Tailscale", dict(backend="Starting", relay=False), "work wait wait"),
-    ("private", "Tailscale's sign-in link", dict(backend="NeedsLogin", relay=False), "work you wait"),
-    ("private", "approving the machine", dict(backend="NeedsMachineAuth", relay=False), "work you wait"),
-    ("private", "HTTPS to allow while Buzz starts", dict(backend="Running", named=True, consent=True, relay=False), "work done you"),
-    ("private", "HTTPS to allow", dict(backend="Running", named=True, consent=True), "done done you"),
-    ("private", "getting the certificate", dict(backend="Running", named=True), "done done work"),
-    ("private", "on the network while Buzz starts", dict(backend="Running", named=True, serve="private", relay=False), "work done done"),
+                                                  live=(200, b"ok")), "done done done done work", "pair"),
+    ("private", "starting Tailscale", dict(backend="Starting", relay=False), "done work wait", ""),
+    ("private", "Tailscale's sign-in link", dict(backend="NeedsLogin", relay=False), "done you wait", ""),
+    ("private", "approving the machine", dict(backend="NeedsMachineAuth", relay=False), "done you wait", ""),
+    ("private", "HTTPS to allow while Buzz starts", dict(backend="Running", named=True, consent=True, relay=False), "done done you", "publish relay"),
+    ("private", "HTTPS to allow", dict(backend="Running", named=True, consent=True), "done done you", "publish"),
+    ("private", "getting the certificate", dict(backend="Running", named=True), "done done work", "publish"),
+    ("private", "on the network while Buzz starts", dict(backend="Running", named=True, serve="private", relay=False), "done done work", "relay"),
 )
-for mode, what, files, want in PHASES:
+for mode, what, files, want, under in PHASES:
     setup = stage(mode, **files)
     page, live, items, checks = rendered(setup)
     assert not live and "<h1>Connect " in page and '<section class="next">' not in page and '<div class="set-card ck-card' not in page, what
@@ -417,19 +471,26 @@ for mode, what, files, want in PHASES:
     if files.get("backend") == "NeedsMachineAuth":
         labels[1] = "Approve buzz in Tailscale"
     assert [re.sub(r"<b[^>]*>!</b>|<em[^>]*>YOU</em>|<[^>]+>", "", label) for _, _, label, _ in segments] == labels, (mode, what)
-    # one current step: the owner's turn if there is one, else the first one not done
-    current = [i for i, (_, mark, _, _) in enumerate(segments) if mark]
-    first = next(i for i, s in enumerate(states) if s != "done")
-    assert current == [states.index("you") if "you" in states else first], (mode, what, current)
+    # The setup is saved, so the first stage is done. The current step is the earliest stage not done, and the only one
+    # at work or the owner's turn; every stage after it waits, or is red with a problem of its own: none waits before
+    # a stage that works or is done.
+    first = next(i for i, state in enumerate(states) if state != "done")
+    assert states[0] == "done" and [i for i, (_, mark, _, _) in enumerate(segments) if mark] == [first], (mode, what)
+    assert states[first] in ("work", "you", "bad") and set(states[first + 1:]) <= {"wait", "bad"}, (mode, what, states)
+    # and a screen reader hears that stage when the checks change
+    assert re.search(r'<ol class="bar" [^>]*data-say="([^"]*)"', checks).group(1) == labels[first] + ": " + m.STAGE_WORDS[states[first]] + "."
     for state, _, label, said in segments:
         assert ('<em aria-hidden="true">YOU</em>' in label) == (state == "you") and said.startswith(m.STAGE_WORDS[state] + ".")
         assert (m.ti("check") in label) == (state == "done") and ('<i aria-hidden="true"></i>' in label) == (state == "work")
-    # every check's sentence is there for screen readers, every problem shows under the bar with its hint, and the
-    # device check waits for the live page
+    # every check's sentence is there for screen readers, and the device check waits for the live page
     assert all(e["text"] in checks for e in items if e["key"] != "device") and 'data-host="' not in checks
-    problems = [e for e in items if e["state"] == "bad"]
-    assert TOP.findall(checks) == [("bad", e["key"], e["text"], e["hint"]) for e in problems], (mode, what)
-    assert ("ck-alert" in checks) == bool(problems) and checks.count('<b aria-hidden="true">!</b>') == states.count("bad")
+    # Under the bar, every problem with its hint, then the current stage's checks that wait, quietly
+    by = {e["key"]: e for e in items}
+    shown = [("bad" if key.startswith("!") else "wait", key.lstrip("!")) for key in under.split()]
+    assert [e["key"] for e in items if e["state"] == "bad"] == [key for state, key in shown if state == "bad"], (mode, what)
+    assert TOP.findall(checks) == [(state, key, by[key]["text"], by[key]["hint"]) for state, key in shown], (mode, what, TOP.findall(checks))
+    assert ("ck-alert" in checks) == any(state == "bad" for state, _ in shown)
+    assert checks.count('<b aria-hidden="true">!</b>') == states.count("bad")
     count += 1
 
 for mode, files, tops_want, summary_want in (

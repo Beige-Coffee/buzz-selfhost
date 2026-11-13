@@ -221,8 +221,9 @@ def read_json(path):
 
 
 def read_text(path):
+    # The helpers' logs can hold bytes that aren't UTF-8: they read as replacement characters, never as an error
     try:
-        with open(path) as f:
+        with open(path, encoding="utf-8", errors="replace") as f:
             return f.read()
     except OSError:
         return ""
@@ -516,6 +517,9 @@ def resolves(name):
 
 
 def item(key, state, text, hint=""):
+    """One check. Its text and hint are trusted HTML: the page puts them in as they are, in the card, the bar and
+    status.json. Any value from the settings, a helper's files or the network must be escaped before it gets here,
+    as the domain is with html.escape."""
     return {"key": key, "state": state, "text": text, "hint": hint}
 
 
@@ -856,7 +860,7 @@ BEE = (
 )
 
 STYLE = """
-:root { --ink: #231e1e; --ink-2: rgb(35 30 30 / 66%); --ink-3: rgb(35 30 30 / 46%); --line: rgb(35 30 30 / 8%);
+:root { --ink: #231e1e; --ink-2: rgb(35 30 30 / 66%); --ink-3: rgb(35 30 30 / 52%); --line: rgb(35 30 30 / 8%);
   --line-2: rgb(35 30 30 / 14%); --accent: #d7d72e; --accent-soft: rgb(215 215 46 / 28%); --chip: #f2f2ee;
   --soft: #f7f7f4; --code: #171513; --bad: #b4233a; --olive: #55550a;
   --sans: "Inter Variable", Inter, "Avenir Next", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
@@ -869,7 +873,7 @@ a { color: inherit; text-decoration-color: var(--accent); text-decoration-thickn
 a:hover { text-decoration-color: var(--ink); }
 code { font: 0.86em var(--mono); letter-spacing: 0; background: var(--chip); border-radius: 6px; padding: 0.12em 0.38em; overflow-wrap: anywhere; }
 b { font-weight: 600; }
-[hidden] { display: none !important; }
+[hidden], html:not(.js) [data-copy] { display: none !important; }
 :is(a, button, input, summary):focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 8px; }
 .hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px clamp(16px, 4vw, 32px);
   border-bottom: 1px solid var(--line); }
@@ -880,7 +884,7 @@ b { font-weight: 600; }
   text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
 .link:hover { color: var(--ink); text-decoration-color: var(--ink); }
 main { max-width: 700px; margin: 0 auto; padding: 48px clamp(16px, 4vw, 32px) 96px; }
-.eyebrow { font: 500 11px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.eyebrow { font: 500 11px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
 h1 { margin: 10px 0 0; font-weight: 400; font-size: clamp(34px, 6vw, 52px); line-height: 1.02; letter-spacing: -0.05em; }
 h1 mark, .hl { background: none; color: inherit; background-image: linear-gradient(var(--accent), var(--accent));
   background-repeat: no-repeat; background-size: 100% 0.32em; background-position: 0 88%; }
@@ -896,7 +900,7 @@ p { margin: 10px 0 0; }
 .step.on .num { background: var(--accent); border-color: var(--accent); color: var(--ink); }
 .step-body > p:first-of-type { margin-top: 6px; }
 label.field { display: block; margin-top: 16px; font-size: 14px; font-weight: 500; }
-.tag { font: 500 10.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-left: 6px; }
+.tag { font: 500 10.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); margin-left: 6px; }
 input[type=text], input[type=password] { width: 100%; margin-top: 7px; padding: 12px 14px; font: 15px var(--mono);
   letter-spacing: 0; color: var(--ink); background: #fff; border: 1px solid var(--line-2); border-radius: 12px; outline: none;
   transition: border-color 0.15s, box-shadow 0.15s; }
@@ -939,14 +943,14 @@ input[type=file]::file-selector-button:hover { border-color: var(--ink); }
 .opt span { flex: 1; min-width: 0; }
 .opt b { display: block; font-size: 15px; font-weight: 500; }
 .opt small { display: block; font-size: 13px; color: var(--ink-2); }
-.opt em { font: 500 10.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; font-style: normal; color: var(--ink-3); }
+.opt em { font: 500 10.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; font-style: normal; color: var(--ink-2); }
 .opt:has(input:checked) { background: rgb(215 215 46 / 16%); }
 .opt:has(input:disabled) { cursor: default; }
 .opt:has(input:disabled) :is(b, small) { color: var(--ink-3); }
 .split { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .split input { flex: 1 1 auto; width: auto; min-width: 0; margin: 0; }
 .split input[name=subdomain] { flex: 0 0 28%; }
-.split span { font-size: 20px; color: var(--ink-3); }
+.split span { font-size: 20px; color: var(--ink-2); }
 .heads-up { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgb(215 215 46 / 32%); font-size: 13.5px; color: var(--ink); }
 .check { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-size: 15px; cursor: pointer; }
 .check input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--ink); flex: none; }
@@ -967,7 +971,7 @@ input[type=file]::file-selector-button:hover { border-color: var(--ink); }
   transform: translateY(-1px) rotate(-45deg); }
 .status .wait .icon { border: 2px solid var(--line-2); border-top-color: var(--ink-2); animation: spin 1s linear infinite; }
 .status .bad .icon { background: rgb(180 35 58 / 12%); }
-.status .bad .icon::after { content: "!"; font: 700 12px var(--sans); color: var(--bad); }
+.status .bad .icon::after { content: "!"; content: "!" / ""; font: 700 12px var(--sans); color: var(--bad); }
 .status .hint { grid-column: 2; font-size: 14px; color: var(--ink-2); }
 .status .bad .hint { color: var(--ink); }
 .vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
@@ -978,7 +982,7 @@ input[type=file]::file-selector-button:hover { border-color: var(--ink); }
 .ck-top.bad { background: rgb(180 35 58 / 5%); }
 .ck-top .icon { width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; }
 .ck-top.bad .icon { background: rgb(180 35 58 / 12%); }
-.ck-top.bad .icon::after { content: "!"; font: 700 12px var(--sans); color: var(--bad); }
+.ck-top.bad .icon::after { content: "!"; content: "!" / ""; font: 700 12px var(--sans); color: var(--bad); }
 .ck-top.wait .icon { border: 2px solid var(--line-2); border-top-color: var(--ink-2); animation: spin 1s linear infinite; }
 .ck-top .text { font-size: 15px; font-weight: 500; }
 .ck-top.wait .text { font-weight: 400; }
@@ -1027,10 +1031,10 @@ details .inner { margin-top: 8px; padding-left: 14px; }
 .cards { display: grid; gap: 12px; margin-top: 16px; }
 .card { padding: 18px 20px; border: 1px solid var(--line-2); border-radius: 18px; background: #fff; }
 .card p { font-size: 14.5px; color: var(--ink-2); }
-.foot { margin-top: 56px; font-size: 13px; color: var(--ink-3); }
+.foot { margin-top: 56px; font-size: 13px; color: var(--ink-2); }
 dl.values { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; align-items: center; margin: 10px 0 0;
   padding: 12px 14px; background: var(--soft); border: 1px solid var(--line); border-radius: 12px; font-size: 14px; }
-dl.values dt { font: 500 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+dl.values dt { font: 500 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
 dl.values dd { margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .copy-mini { padding: 3px 9px; border: 1px solid var(--line-2); border-radius: 999px; background: #fff; cursor: pointer;
   font: 500 11px var(--mono); color: var(--ink-2); }
@@ -1060,23 +1064,25 @@ details.how[open] > summary { background: var(--chip); }
 .g-txt { min-width: 0; }
 .g-txt b { display: block; font-size: 15px; font-weight: 500; line-height: 1.3; }
 .g-txt small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.35; color: var(--ink-2); }
-.g-out > .tb-i { margin-left: auto; font-size: 16px; color: var(--ink-3); }
+.g-out > .tb-i { margin-left: auto; font-size: 16px; color: var(--ink-2); }
 .g-nav .g-further { margin: 16px 10px 4px; padding-top: 14px; border-top: 1px solid var(--line); }
 .g-pane { padding: 26px 28px 28px; scroll-margin-top: 48px; }
 .g-pane + .g-pane { border-top: 1px solid var(--line); }
 .g-pane > .eyebrow { margin: 0; }
 .g-pane h2 { margin-top: 8px; font-size: 28px; font-weight: 400; letter-spacing: -0.04em; line-height: 1.15; }
+.g-pane h2:focus { outline: none; }
 .g-pane > .muted { margin-top: 8px; }
 .g-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
 .g-acts .btn { margin-top: 0; }
 .g-frame { margin-top: 22px; }
 .g-row { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
-.g-n { flex: none; font: 500 12px var(--mono); letter-spacing: 0.04em; white-space: nowrap; color: var(--ink-3); }
+.g-n { flex: none; font: 500 12px var(--mono); letter-spacing: 0.04em; white-space: nowrap; color: var(--ink-2); }
 .g-t { min-width: 0; font-size: 15px; font-weight: 500; }
 .g-btns { display: none; gap: 8px; margin-left: auto; }
 .g-btns button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line-2); border-radius: 50%; background: #fff; color: var(--ink); font-size: 17px; cursor: pointer; }
 .g-btns button:hover { border-color: var(--ink); }
-.g-btns button[aria-disabled="true"] { opacity: 0.35; cursor: default; border-color: var(--line-2); }
+.g-btns button[aria-disabled="true"] { cursor: default; border-color: var(--line-2); }
+.g-btns button[aria-disabled="true"] .tb-i { opacity: 0.35; }
 .g-btns button:focus-visible { border-radius: 50%; }
 .g-frame > .g-cap { margin-top: 6px; }
 .g-more { margin-top: 10px; }
@@ -1089,16 +1095,20 @@ details.how[open] > summary { background: var(--chip); }
 .js .g-btns { display: flex; }
 .js .g-pane + .g-pane { border-top: 0; }
 [data-step="join"] .guide:not(.ready) .g-pane:not(#join), [data-step="invite"] .guide:not(.ready) .g-pane:not(#invite),
-[data-step="phone"] .guide:not(.ready) .g-pane:not(#phone), .js .guide:not(.ready) .g-frame:not(:first-child) { display: none; }
+[data-step="phone"] .guide:not(.ready) .g-pane:not(#phone), .js:not([data-frame="2"]) .guide:not(.ready) .g-frame:not(:first-child),
+[data-frame="2"] .guide:not(.ready) .g-frame:not(:nth-child(2)) { display: none; }
+@media (forced-colors: active) { .g-nav a[aria-current] { border: 2px solid CanvasText; padding: 8px 10px 8px 8px; } }
 .set-card { margin-top: 14px; border: 1px solid var(--line-2); border-radius: 14px; background: #fff; overflow: hidden; }
 .set-card details { margin: 0; }
 .set-card details + details { border-top: 1px solid var(--line); }
 .set-card details > summary { display: flex; box-sizing: border-box; width: 100%; gap: 12px; padding: 14px 16px; }
+.set-card summary:focus-visible { outline-offset: -3px; border-radius: 12px; }
 .set-card details > summary::before { display: none; }
 .set-card details > summary::after { content: ""; flex: none; width: 6px; height: 6px; margin: 0 2px 0 4px; border-right: 1.5px solid var(--ink-3); border-bottom: 1.5px solid var(--ink-3); transform: rotate(-45deg); }
 .set-card details[open] > summary::after { transform: rotate(45deg); }
 .set-card summary .val { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 13px var(--mono); color: var(--ink-2); }
 .set-card summary .val.word { font: 400 14px var(--sans); }
+.ck-all > summary .val { flex: none; }
 .set-card .inner { margin: 0; padding: 0 16px 18px; }
 .how-b { margin-top: 12px; }
 .how-b > p { margin: 0; font-size: 14px; color: var(--ink-2); }
@@ -1165,6 +1175,13 @@ details.how[open] > summary { background: var(--chip); }
 .tb-i {width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .mb-stage {--s: 1; position: relative; height: calc(340px * var(--s)); overflow: hidden; border-radius: 16px; background: #ecece8; }
 .mb-canvas {position: absolute; top: 0; left: calc(50% - 280px * var(--s)); width: 560px; height: 340px; overflow: hidden; transform: scale(var(--s)); transform-origin: 0 0; color: #0f0f0f; font-size: 11px; line-height: 1.35; text-align: left; }
+.mb { container-type: inline-size; }
+@container (max-width: 559.98px) { .mb-stage { --s: 0.9; } }
+@container (max-width: 503.98px) { .mb-stage { --s: 0.8; } }
+@container (max-width: 447.98px) { .mb-stage { --s: 0.7; } }
+@container (max-width: 391.98px) { .mb-stage { --s: 0.6; } }
+@container (max-width: 335.98px) { .mb-stage { --s: 0.5; } }
+@container (max-width: 279.98px) { .mb-stage { --s: 0.4; } }
 .mb-canvas p {margin: 0; }
 .mb-app {position: absolute; inset: 14px 18px; overflow: hidden; border-radius: 14px; background: var(--b1-base); box-shadow: 0 0 0 1px #e3e3e5, 0 10px 30px rgb(24 20 14 / 10%); }
 .mb-head {display: flex; align-items: center; justify-content: center; height: 34px; }
@@ -1252,14 +1269,21 @@ details.how[open] > summary { background: var(--chip); }
 # The poll opens the page again at each new step, except while a file is chosen but not yet uploaded: that
 # would drop it. It opens the page's own address, not a form's: after a refused form the browser is at the
 # form's address, and a reload would send the form again. Between steps it swaps in the checks only when they
-# changed (their signature), so an open list stays open and this device's last answer stays shown.
+# changed (their signature), so an open list stays open, this device's last answer stays shown and focus stays where
+# it was; then a screen reader hears one sentence about them.
 # The first lines run before the page is drawn: with scripts on, the guide shows one step from the start, the one
-# the address names (#join, #invite or #phone), so the browser scrolls to the right place.
+# the address names (#join, #invite or #phone), so the browser scrolls to the right place. Without one, the step and
+# drawing the reader had open when the page opened itself again at a new phase, kept for that one load.
 SCRIPT = """
 (function () {
-  var root = document.documentElement, step = location.hash.slice(1);
+  var root = document.documentElement, steps = ["join", "invite", "phone"], step = location.hash.slice(1), kept = [];
   root.classList.add("js");
-  root.setAttribute("data-step", ["join", "invite", "phone"].indexOf(step) < 0 ? "join" : step);
+  try { kept = (sessionStorage.getItem("buzz-guide") || "").split(":"); sessionStorage.removeItem("buzz-guide"); } catch (e) {}
+  if (steps.indexOf(step) < 0 && steps.indexOf(kept[0]) >= 0) {
+    step = kept[0];
+    if (kept[1] === "2") { root.setAttribute("data-frame", "2"); }
+  }
+  root.setAttribute("data-step", steps.indexOf(step) < 0 ? "join" : step);
 })();
 function copyText(button, text) {
   var label = button.getAttribute("data-label") || button.textContent;
@@ -1291,27 +1315,40 @@ function updateForm(form) {
       : "Clear the first box to use the domain on its own.";
   }
 }
-// The private network's check, from this browser. Its last answer for each address outlives a refresh of the checks.
-var reached = {};
-function reachFromHere(item) {
-  var host = item.getAttribute("data-host");
+// The private network's check, from this browser: one look at a time for each address, and only the newest look's
+// answer counts, so a refresh during a slow look starts no other. The answer goes to the address's row as the page has
+// it then, since a refresh may have drawn the checks again. Its last answer outlives a refresh of the checks.
+var reached = {}, looking = {}, looks = {};
+function reachFromHere(host) {
+  if (looking[host]) { return; }
+  looking[host] = true;
+  var look = looks[host] = (looks[host] || 0) + 1;
   var controller = new AbortController();
   var timer = setTimeout(function () { controller.abort(); }, 6000);
   fetch("https://" + host + "/_liveness", { mode: "no-cors", cache: "no-store", signal: controller.signal })
-    .then(function () {
-      reached[host] = ["ok", "This device reaches Buzz over your Tailscale network", ""];
-    })
-    .catch(function () {
-      reached[host] = ["bad", "This device can't reach Buzz", "Check that Tailscale is on here, signed in to the same Tailscale network, and allowed to reach the buzz machine. Devices outside your network can't connect, which keeps this option private."];
-    })
-    .finally(function () { clearTimeout(timer); if (item.isConnected) { answer(item, reached[host]); } });
+    .then(function () { return ["ok", "This device reaches Buzz over your Tailscale network", ""]; },
+      function () { return ["bad", "This device can't reach Buzz", "Check that Tailscale is on here, signed in to the same Tailscale network, and allowed to reach the buzz machine. Devices outside your network can't connect, which keeps this option private."]; })
+    .then(function (said) {
+      clearTimeout(timer);
+      looking[host] = false;
+      if (look !== looks[host]) { return; }
+      reached[host] = said;
+      Array.prototype.forEach.call(document.querySelectorAll("[data-poll] [data-host]"), function (item) {
+        if (item.getAttribute("data-host") === host) { answer(item, said); }
+      });
+    });
 }
-// The answer in the list, and on a live page above its fold, then the card's summary again
+function lookFromHere(box) {
+  box.querySelectorAll("[data-host]").forEach(function (item) { reachFromHere(item.getAttribute("data-host")); });
+}
+// The answer in the list, and on a live page above its fold, then the card's summary again: only when it changes
 function answer(item, said) {
-  var card = item.closest(".ck-card");
+  var card = item.closest(".ck-card"), text = item.querySelector(".text"), hint = item.querySelector(".hint");
+  var note = card && said[0] !== "ok" ? "See above." : said[2];
+  if (item.className === said[0] && text.textContent === said[1] && hint.textContent === note) { return; }
   item.className = said[0];
-  item.querySelector(".text").textContent = said[1];
-  item.querySelector(".hint").textContent = card && said[0] !== "ok" ? "See above." : said[2];
+  text.textContent = said[1];
+  hint.textContent = note;
   if (card) { surface(card, said); settle(card); }
 }
 function surface(card, said) {
@@ -1343,14 +1380,16 @@ function fileChosen() {
     return Boolean(input.files && input.files.length);
   });
 }
+var CONTROLS = "summary, a[href], button";
 function poll() {
   var box = document.querySelector("[data-poll]");
   if (!box) { return; }
   var phase = box.getAttribute("data-phase");
   fetch("status.json", { cache: "no-store", credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (data) {
-    if (data.phase !== phase && !fileChosen()) { location.replace("./"); return; }
+    if (data.phase !== phase && !fileChosen()) { keepStep(); location.replace("./"); return; }
     if (data.sig !== box.getAttribute("data-sig")) {
       var open = box.querySelector("details[open]") !== null;
+      var focused = Array.prototype.indexOf.call(box.querySelectorAll(CONTROLS), document.activeElement);
       box.innerHTML = data.html;
       box.setAttribute("data-sig", data.sig);
       box.querySelectorAll("details").forEach(function (d) { d.open = open; });
@@ -1358,19 +1397,37 @@ function poll() {
         var said = reached[item.getAttribute("data-host")];
         if (said) { answer(item, said); }
       });
+      // Focus stays on the same control, the card's summary, and the page doesn't move
+      var again = focused < 0 ? null : box.querySelectorAll(CONTROLS)[focused];
+      if (again) { again.focus({ preventScroll: true }); }
+      announce(box);
     }
-    box.querySelectorAll("[data-host]").forEach(reachFromHere);
+    lookFromHere(box);
   }).catch(function () {}).finally(function () { setTimeout(poll, 5000); });
+}
+// One short sentence when the checks change, and only then: the card's summary on a live page, the current stage
+// while connecting
+function announce(box) {
+  var region = document.querySelector("[data-said]"), bar = box.querySelector(".bar"), card = box.querySelector(".ck-card");
+  if (!region) { return; }
+  region.textContent = bar ? bar.getAttribute("data-say")
+    : card ? card.querySelector(".ck-sum").textContent + ", " + card.querySelector(".ck-all .val").textContent + "." : "";
+}
+// The guide's step and drawing, for the page opened again at a new phase
+var guideAt = "";
+function keepStep() {
+  try { if (guideAt) { sessionStorage.setItem("buzz-guide", guideAt); } } catch (e) {}
 }
 // The live page's next steps: one step at a time, and in it one drawing at a time. The links on the left work
 // without scripts too, as links to each step.
 function guide(box) {
   var links = box.querySelectorAll(".g-step"), panes = box.querySelectorAll(".g-pane"), say = box.querySelector(".g-say");
   var ids = Array.prototype.map.call(panes, function (pane) { return pane.id; });
-  var at = [0, 0];
+  var at = [0, 0], root = document.documentElement;
   function frames(i) { return panes[i].querySelectorAll(".g-frame"); }
   function show(i, j) {
     at = [i, j];
+    guideAt = ids[i] + ":" + (j + 1);
     links.forEach(function (link, k) { if (k === i) { link.setAttribute("aria-current", "step"); } else { link.removeAttribute("aria-current"); } });
     panes.forEach(function (pane, k) { pane.hidden = k !== i; });
     frames(i).forEach(function (frame, k) { frame.hidden = k !== j; });
@@ -1391,6 +1448,8 @@ function guide(box) {
       event.preventDefault();
       history.replaceState(null, "", "#" + ids[i]);
       show(i, 0);
+      // Focus moves to the step, as the link's jump does without scripts
+      panes[i].querySelector("h2").focus();
     });
   });
   box.querySelectorAll("[data-go]").forEach(function (button) {
@@ -1403,7 +1462,8 @@ function guide(box) {
     if (i >= 0) { show(i, 0); panes[i].scrollIntoView(); }
   });
   box.classList.add("ready");
-  show(Math.max(0, ids.indexOf(document.documentElement.getAttribute("data-step"))), 0);
+  var first = Math.max(0, ids.indexOf(root.getAttribute("data-step")));
+  show(first, Math.min(frames(first).length, Number(root.getAttribute("data-frame")) || 1) - 1);
 }
 function howScale(how) {
   how.querySelectorAll(".mb-stage").forEach(function (stage) {
@@ -1437,7 +1497,7 @@ document.addEventListener("DOMContentLoaded", function () {
       input.reportValidity();
     });
   });
-  document.querySelectorAll("[data-host]").forEach(reachFromHere);
+  lookFromHere(document);
   setTimeout(poll, 5000);
 });
 """
@@ -1788,8 +1848,9 @@ def member_steps(domain):
          "In Buzz, open <b>Settings</b>. Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite "
          "members</b>, or the <b>Invite</b> tab in newer versions of Buzz.", ""),
         ("Send an invite link", drawn_membership(domain, inviting=True),
-         "Copy the link and send it. To invite one person, set <b>Max uses</b> to <b>1 use</b> first. In Buzz 1.0.0 "
-         "you can also paste someone's public ID under <b>Add directly</b>, then send them the address.", ""),
+         "Copy the link and send it. Anyone with the link can join until it expires or runs out of uses. To invite one "
+         "person, set <b>Max uses</b> to <b>1 use</b> first. In Buzz 1.0.0 you can also paste someone's public ID under "
+         "<b>Add directly</b> and choose <b>Add member</b>, then send them the address.", ""),
     ]
 
 
@@ -1807,11 +1868,13 @@ def phone_steps(domain):
          "paste <code>https://" + esc(domain) + "</code>, choose <b>Continue</b>, then your saved identity.</p>"
          "</details>"),
         ("Check the code", drawn_pair(domain, verifying=True),
-         # Once the digits match, the phone asks to protect your identity (Use Face ID, Use Touch ID or Use
-         # biometrics, or Skip) and holds the identity until you choose. Block's docs/pairing.md finishes on
-         # the phone before Codes match.
-         "Type the six digits into the phone. When it asks to protect your identity, choose <b>Use Face ID</b> or "
-         "<b>Skip</b>. Then choose <b>Codes match</b> on your computer.", ""),
+         # The phone either asks for the computer's code or shows its own to compare, as the drawing says
+         # (PairingSettings.tsx). Once the code is right, the phone asks to protect your identity (Use Face ID, Use
+         # Touch ID or Use biometrics, whichever it has, or Skip) and holds the identity until you choose. Block's
+         # docs/pairing.md finishes on the phone before Codes match.
+         "If the phone asks for a code, type the six digits your computer shows. If it shows a code, check that the "
+         "digits match. When it asks to protect your identity, choose <b>Use Face ID</b>, <b>Use Touch ID</b> or "
+         "<b>Use biometrics</b>, or <b>Skip</b>. Then choose <b>Codes match</b> on your computer.", ""),
     ]
 
 
@@ -1971,9 +2034,13 @@ def check_card(items):
 
 
 def bar_stages(setup, items):
-    """While connecting, the stages in order, from the checks, as [label, state, checks], with the checks the page
-    hasn't placed. A stage is done, bad, you (it waits on the owner, who can act now) or open. The device check
-    has no stage: it's for the live page, and before then a failure says nothing about this device."""
+    """While connecting, the stages in order, from the checks, as [label, state, checks, quiet], with the checks the
+    page hasn't placed. A stage is done, bad, you (it waits on the owner, who can act now) or open; quiet is its
+    checks that wait, to show under the bar while it's the current stage. The setup is saved by now, so the first
+    stage is done. Each check sits in the stage it blocks: Buzz itself where the name or address answers, which it
+    can't until Buzz runs, and the app's Cloudflare tunnel, set up after the sign-in, where Cloudflare publishes the
+    name. The device check has no stage: it's for the live page, and before then a failure says nothing about this
+    device."""
     mode = setup["mode"]
     by = {entry["key"]: entry for entry in items}
     placed = {"device"}
@@ -1982,35 +2049,44 @@ def bar_stages(setup, items):
         placed.update(keys)
         return [by[key] for key in keys if key in by]
 
-    def ok(found, key):
-        return any(entry["key"] == key and entry["state"] == "ok" for entry in found)
+    def ok(found, *keys):
+        return all(any(entry["key"] == key and entry["state"] == "ok" for entry in found) for key in keys)
 
-    def stage(label, found, done, you=False):
+    def stage(label, found, done, you=False, quiet=True):
+        # A sign-in's one check says what its label says, so it stays out from under the bar
         bad = any(entry["state"] == "bad" for entry in found)
-        return [label, "bad" if bad else "done" if done else "you" if you else "open", found]
+        return [label, "bad" if bad else "done" if done else "you" if you else "open", found,
+                [entry for entry in found if entry["state"] == "wait"] if quiet else []]
 
-    relay = checks("relay")
-    stages = [stage("Set up on this Umbrel", relay, ok(relay, "relay"))]
+    stages = [stage("Set up on this Umbrel", [], True)]
     if mode == "domain":
-        cf, tunnel = checks("cloudflare"), cloudflare_state()
-        # signed in: the tunnel is being set up, or runs, or the name already answers (no row for the tunnel then)
-        signed = (not cf or ok(cf, "cloudflare") or tunnel["state"] in ("creating", "routing")
-                  or (tunnel["state"] == "signin" and upload_waiting()))
-        stages.append(stage("Sign in to Cloudflare", cf, signed, tunnel["state"] == "signin" and bool(tunnel["link"])))
-        name = checks("dns", "reach")
-        stages.append(stage("Cloudflare publishes the name", name, ok(name, "reach")))
+        tunnel = cloudflare_state()
+        state = "creating" if tunnel["state"] == "signin" and upload_waiting() else tunnel["state"]  # an uploaded sign-in
+        # Signed in once the tunnel is being set up or runs, or the name already answers (no row for the tunnel then).
+        # The tunnel's errors come after the sign-in, a step Cloudflare refused or a name already taken, so they
+        # block the name; a wrong domain needs a new sign-in, so it stays with the sign-in.
+        tunnel_row = checks("cloudflare")
+        signed = not tunnel_row or state in ("creating", "routing", "running", "taken", "error")
+        stages.append(stage("Sign in to Cloudflare", [] if signed else tunnel_row, signed,
+                            state == "signin" and bool(tunnel["link"]), quiet=False))
+        name = (tunnel_row if signed else []) + checks("dns", "reach", "relay")
+        stages.append(stage("Cloudflare publishes the name", name, ok(name, "reach", "relay")))
     else:
         step = tailscale_step(mode)
         machine = checks("tailscale")
         signed = ok(machine, "tailscale")
+        # Tailscale starting, with no sign-in link yet, is this stage at work
         stages.append(stage("Approve buzz in Tailscale" if step == "approve" else "Sign in to Tailscale", machine, signed,
-                            step.startswith("login") or step == "approve"))
-        publish = checks("publish")
-        stages.append(stage("Allow Funnel" if mode == "funnel" else "Allow HTTPS", publish, ok(publish, "publish"),
-                            signed and step == "consent"))
+                            step.startswith("login") or step == "approve", quiet=False))
         if mode == "funnel":
-            name = checks("dns", "reach")
-            stages.append(stage("Tailscale publishes the address", name, ok(name, "reach")))
+            publish = checks("publish")
+            stages.append(stage("Allow Funnel", publish, ok(publish, "publish"), signed and step == "consent"))
+            name = checks("dns", "reach", "relay")
+            stages.append(stage("Tailscale publishes the address", name, ok(name, "reach", "relay")))
+        else:
+            # Three stages: the address answers once its certificate is there and Buzz runs, both in the last
+            publish = checks("publish", "relay")
+            stages.append(stage("Allow HTTPS", publish, ok(publish, "publish", "relay"), signed and step == "consent"))
     if mode != "private":
         pair = checks("pair")
         stages.append(stage("Phones can pair", pair, ok(pair, "pair")))
@@ -2020,38 +2096,43 @@ def bar_stages(setup, items):
 STAGE_WORDS = {"done": "done", "you": "your turn", "work": "in progress", "wait": "not yet", "bad": "needs your attention"}
 
 
-def spoken(found):
-    """A stage's checks as sentences, for screen readers: each text, and its hint unless it's a problem, whose hint
-    shows under the bar."""
+def spoken(found, shown=()):
+    """Checks as sentences, for screen readers: each text, and its hint unless the check shows under the bar."""
     parts = []
     for entry in found:
         parts.append(entry["text"].rstrip("."))
-        if entry["hint"] and entry["state"] != "bad":
+        if entry["hint"] and not any(entry is other for other in shown):
             parts.append(entry["hint"].rstrip("."))
     return ". ".join(parts) + "." if parts else ""
 
 
 def progress_bar(setup, items):
-    """The connecting page's checks, as a bar: one segment per stage. The first stage not done is the current one,
-    at work if it waits on this Umbrel or a service; one that waits on the owner says YOU, even while an earlier
-    one works. Later stages wait. A problem turns its stage red and shows with its hint under the bar."""
+    """The connecting page's checks, as a bar: one segment per stage, done up to the current one, the earliest not
+    done. The spinner and YOU sit there alone: it's at work while it waits on this Umbrel or a service, says YOU when
+    it waits on the owner, or turns red with a problem. Later stages wait, even one whose checks pass already, unless
+    a problem they have turns them red. Under the bar: each problem with its hint, then the current stage's checks
+    that still wait, quietly, as the live card shows a check that waits."""
     stages, rest = bar_stages(setup, items)
-    first = next((i for i, s in enumerate(stages) if s[1] != "done"), None)
+    current = next((i for i, s in enumerate(stages) if s[1] != "done"), None)
     for i, s in enumerate(stages):
-        if s[1] == "open":
-            s[1] = "work" if i == first else "wait"
-    current = next((i for i, s in enumerate(stages) if s[1] == "you"), first)
+        if i == current and s[1] == "open":
+            s[1] = "work"
+        elif current is not None and i > current and s[1] != "bad":
+            s[1] = "wait"
+    blocks = ([e for e in items if e["state"] == "bad" and e["key"] != "device"]
+              + (stages[current][3] if current is not None else []) + [e for e in rest if e["state"] == "wait"])
     segments = []
-    for i, (label, state, found) in enumerate(stages):
+    for i, (label, state, found, _) in enumerate(stages):
         icon = {"done": ti("check"), "work": '<i aria-hidden="true"></i>', "bad": '<b aria-hidden="true">!</b>'}.get(state, "")
         tag = '<em aria-hidden="true">YOU</em>' if state == "you" else ""
         segments.append('<li class="' + state + '"' + (' aria-current="step"' if i == current else "") + '>'
                         '<span class="tr"></span><span class="lb">' + icon + "<span>" + label + "</span>" + tag + "</span>"
-                        '<span class="vh">: ' + STAGE_WORDS[state] + ". " + spoken(found) + "</span></li>")
-    blocks = ([e for e in items if e["state"] == "bad" and e["key"] != "device"]
-              + [e for e in rest if e["state"] == "wait"])
+                        '<span class="vh">: ' + STAGE_WORDS[state] + ". " + spoken(found, blocks) + "</span></li>")
     said = spoken([e for e in rest if e["state"] == "ok"])
-    return ('<ol class="bar" style="--n:' + str(len(stages)) + '" aria-label="Progress">' + "".join(segments) + "</ol>"
+    # What a screen reader hears when the checks change: the current stage
+    say = stages[current][0] + ": " + STAGE_WORDS[stages[current][1]] + "." if current is not None else ""
+    return ('<ol class="bar" style="--n:' + str(len(stages)) + '" aria-label="Progress" data-say="' + esc(say) + '">'
+            + "".join(segments) + "</ol>"
             + ('<div class="set-card ck-box' + (" ck-alert" if any(e["state"] == "bad" for e in blocks) else "") + '">'
                + "".join(map(check_block, blocks)) + "</div>" if blocks else "")
             + ('<p class="vh">' + said + "</p>" if said else ""))
@@ -2091,8 +2172,10 @@ def phase_of(setup, live, items=()):
     return setup["mode"] + ":" + ("live" if live else "connecting") + ":" + (relay_domain() or "-") + ":" + step
 
 
-def copy_button(text):
-    return ('<button class="copy-mini" type="button" data-copy="' + esc(text) + '" onclick="copyText(this, this.dataset.copy)">Copy</button>')
+def copy_button(text, label="Copy", kind="copy-mini"):
+    """A button that copies text: the text in a data attribute, never in the script. Without scripts it's hidden."""
+    return ('<button class="' + kind + '" type="button" data-copy="' + esc(text) + '" onclick="copyText(this, '
+            'this.dataset.copy)">' + label + "</button>")
 
 
 def connect_steps(setup, domain, error=""):
@@ -2213,7 +2296,7 @@ def private_members_note():
 
 def notifications_note(setup):
     if not push_on(setup):
-        return '<p class="note">Phone notifications are off. You can turn them on in Settings.</p>'
+        return '<p class="note">Phone notifications are off. You can turn them on in Settings, further down this page.</p>'
     return ('<p class="note">iPhones get notifications for direct messages and mentions. Android phones don\'t '
             "yet.</p>")
 
@@ -2247,8 +2330,8 @@ def guide_part(setup, domain):
     # screen with the address filled in, and joins nothing by itself
     actions = ('<div class="g-acts"><a class="btn" href="buzz://connect?relay='
                + esc(urllib.parse.quote("wss://" + domain, safe="")) + '">Open in Buzz</a>'
-               '<button class="btn ghost" type="button" data-copy="' + esc(address) + '" '
-               'onclick="copyText(this, this.dataset.copy)">Copy the address</button></div>')
+               + copy_button(address, "Copy the address", "btn ghost") + "</div>"
+               '<p class="muted small">Opens Buzz on this computer with the address filled in, once Buzz is set up.</p>')
     stores = ('<a href="' + APP_STORE + '" target="_blank" rel="noopener">App Store</a> or <a href="' + GOOGLE_PLAY
               + '" target="_blank" rel="noopener">Google Play</a>')
     steps = [
@@ -2272,7 +2355,7 @@ def guide_part(setup, domain):
         drawn = "".join(guide_frame(n, len(frames), name, drawing, caption, more,
                                     (s == 0 and n == 1, s == len(steps) - 1 and n == len(frames)), title)
                         for n, (name, drawing, caption, more) in enumerate(frames, 1))
-        panes.append('<section class="g-pane" id="' + key + '"><p class="eyebrow">' + kicker + "</p><h2>" + title + "</h2>"
+        panes.append('<section class="g-pane" id="' + key + '"><p class="eyebrow">' + kicker + '</p><h2 tabindex="-1">' + title + "</h2>"
                      '<p class="muted">' + sentence + "</p>" + acts + '<div class="g-frames">' + drawn + "</div>" + foot
                      + "</section>")
     further = ('<p class="eyebrow g-further">Go further</p><a class="g-out" href="' + SELF_HOST_GUIDE + '" target="_blank" '
@@ -2504,7 +2587,7 @@ def main_page(setup, error="", values=None):
     domain = relay_domain() or setup.get("domain") or ""
     checks = checks_html(setup, live, items)
     status = ('<div class="checks" data-poll data-phase="' + esc(phase_of(setup, live, items)) + '" data-sig="'
-              + checks_sig(checks) + '">' + checks + "</div>")
+              + checks_sig(checks) + '">' + checks + '</div><p class="vh" role="status" data-said></p>')
     if not live:
         head = ('<p class="eyebrow">Connecting &middot; ' + MODE_NAMES[mode] + "</p><h1>Connect "
                 + ('<mark>' + esc(domain) + "</mark>" if domain else "your <mark>address</mark>") + "</h1>"
@@ -2525,7 +2608,7 @@ def main_page(setup, error="", values=None):
         '<p class="lede">Only people you invite, and the agents they bring, can read or post. They join with your '
         "invite link, or in Buzz with this address, " + reach + ".</p>"
         '<div class="address"><code><span>https://' + esc(domain) + "</span></code>"
-        '<button class="btn" type="button" data-copy="https://' + esc(domain) + '" onclick="copyText(this, this.dataset.copy)">Copy</button></div>'
+        + copy_button("https://" + domain, "Copy", "btn") + "</div>"
         + status + guide_part(setup, domain)
     )
     return layout(body + safety_part(setup) + settings_part(setup, error, values, live))

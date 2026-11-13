@@ -4,6 +4,10 @@ import { copyText } from "../lib/code";
 import { TABLER } from "./tabler";
 
 /**
+ * Held back on 2026-11-13 (docs/decisions.md): published without this section until Block agrees
+ * and the channel exists. Its markup is in the commit that held it back; reverting that commit
+ * brings it back. index.html has no #ask now, so mountAsk never runs.
+ *
  * A place to ask, the page's last section: how to join Block's feedback community for Buzz, and
  * where self-hosting questions go. Three steps, each under a still drawing of the screen it happens
  * on: Block's invite page, Buzz's community list, and the channel. Nothing in a drawing is operated.

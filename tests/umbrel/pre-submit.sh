@@ -2,7 +2,7 @@
 # The longer test, for before submitting the package to Umbrel or an update to it. Unattended, on a
 # fresh DigitalOcean droplet that's deleted at the end whatever happens, about $0.10 a run:
 #   umbrelOS (2.0.0 by default) with Buzz Relay installed through Umbrel, and its memory before setup;
-#   e2e.sh, then memory with a community and under a load of 20 members sending 200 messages;
+#   e2e.sh, moderation included, then memory with a community and under a load of 20 members sending 200 messages;
 #   a 20 MB image and a real 96 MB video up and back, and the size limits;
 #   what the community's public address shows, and secrets in the app's logs;
 #   a restart of the whole Umbrel;
@@ -195,16 +195,18 @@ grep -q '^REDIS .*NOAUTH' $TMP/hostile.txt && pass "Redis refuses commands witho
 echo "INFO  the relay's metrics port answers other apps with HTTP $(v METRICS): counts only, no keys or messages (block/buzz#7989, fix open in #8004)"
 
 echo "== The relay's settings, written to by something other than the page"
-# Lines a compromised writer might add: a command, and a setting that would turn membership checks off
+# Lines a compromised writer might add: a command, a setting that would turn membership checks off, and
+# moderation for another name, open to anyone, with other operators. The relay process's environment is read
+# by name only: the rest of it holds secrets.
 host "docker exec -i $C sh -s" > $TMP/tamper.txt <<'TAMPER'
 started() { docker inspect -f '{{.State.StartedAt}}' buzz_relay_1; }
 ready() { docker exec buzz_relay_1 bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080; printf "GET /_readiness HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n" >&3; head -n 1 <&3' 2> /dev/null | grep -q ' 200 '; }
 restarted() { for i in $(seq 1 60); do sleep 3; [ "$(started)" != "$1" ] && ready && return 0; done; return 1; }
 before=$(started)
-docker exec buzz_web_1 sh -c 'cp /settings/relay.env /tmp/relay.env.good && printf "%s\n" "BUZZ_REQUIRE_RELAY_MEMBERSHIP=false" "BUZZ_INJECTED=\$(touch /tmp/ran)" "\`touch /tmp/ran\`" >> /settings/relay.env'
+docker exec buzz_web_1 sh -c 'cp /settings/relay.env /tmp/relay.env.good && printf "%s\n" "BUZZ_REQUIRE_RELAY_MEMBERSHIP=false" "BUZZ_INJECTED=\$(touch /tmp/ran)" "\`touch /tmp/ran\`" "BUZZ_ADMIN_HOST=evil.example.com:8443" "BUZZ_ADMIN_AUTH=disabled" "RELAY_OPERATOR_PUBKEYS=cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd" >> /settings/relay.env'
 restarted "$before" && echo "READY tampered"
 docker exec buzz_relay_1 test -e /tmp/ran && echo "RAN"
-docker exec buzz_relay_1 bash -c 'for p in /proc/[0-9]*; do [ "$(cat $p/comm 2> /dev/null)" = buzz-relay ] && tr "\0" "\n" < $p/environ | grep -E "^(BUZZ_REQUIRE_RELAY_MEMBERSHIP|BUZZ_INJECTED)="; done' | sed 's/^/ENV /'
+docker exec buzz_relay_1 bash -c 'for p in /proc/[0-9]*; do [ "$(cat $p/comm 2> /dev/null)" = buzz-relay ] && tr "\0" "\n" < $p/environ | grep -E "^(BUZZ_REQUIRE_RELAY_MEMBERSHIP|BUZZ_INJECTED|BUZZ_ADMIN_HOST|BUZZ_ADMIN_AUTH|BUZZ_ADMIN_TOKEN|RELAY_OPERATOR_PUBKEYS|BUZZ_ADMIN_WEB_DIR)="; done' | sed 's/^/ENV /'
 before=$(started)
 docker exec buzz_web_1 sh -c 'cp /tmp/relay.env.good /settings/relay.env.new && mv /settings/relay.env.new /settings/relay.env'
 restarted "$before" && echo "READY again"
@@ -214,6 +216,9 @@ grep -q '^READY tampered' $TMP/tamper.txt && ! grep -q '^RAN' $TMP/tamper.txt &&
   grep -q '^ENV BUZZ_REQUIRE_RELAY_MEMBERSHIP=true' $TMP/tamper.txt && ! grep -q '^ENV BUZZ_INJECTED' $TMP/tamper.txt &&
   pass "lines added to the relay's settings run nothing and can't turn off its checks" ||
   fail "the relay ran or took lines added to its settings"
+grep -q '^READY tampered' $TMP/tamper.txt && ! grep -q -E '^ENV (BUZZ_ADMIN_|RELAY_OPERATOR_PUBKEYS)' $TMP/tamper.txt &&
+  pass "nor turn on moderation for another name, open it to anyone or add operators, and Block's dashboard stays off" ||
+  fail "the relay took admin settings added to its settings, or has the dashboard on: $(grep -E '^ENV (BUZZ_ADMIN_|RELAY_OPERATOR)' $TMP/tamper.txt | tr '\n' ' ')"
 grep -q '^READY again' $TMP/tamper.txt && pass "the relay starts again with the page's own settings" ||
   fail "the relay didn't come back after its settings were restored"
 

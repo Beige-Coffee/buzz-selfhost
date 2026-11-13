@@ -3,8 +3,10 @@
   python3 preview.py <port> <scenario>    then open http://127.0.0.1:<port>
 
 Scenarios: login, setup, domain-dns (the Cloudflare sign-in), domain-uploaded (signed in with the file Cloudflare
-saved), domain-530 (the tunnel set up, not connected), funnel-login, funnel-consent, private-live, domain-live.
-Everything except "login" skips the sign-in. Mocked: relay and public checks, Tailscale status files.
+saved), domain-530 (the tunnel set up, not connected), funnel-login, funnel-consent, private-live, domain-live,
+domain-moderation (moderation on and reachable), domain-moderation-blocked (on, and Cloudflare turns it away).
+Everything except "login" skips the sign-in. Mocked: relay and public checks, moderation's address, Tailscale
+status files.
 """
 import http.server, importlib.machinery, importlib.util, json, os, sys, tempfile
 
@@ -77,16 +79,24 @@ elif scenario == "private-live":
     setup("private", "buzz.tail1234.ts.net")
     tailscale("Running", name="buzz.tail1234.ts.net", serve="https://buzz.tail1234.ts.net (tailnet only)\n|-- / proxy http://buzz-gateway:80\n")
     m.request = fake_request(lambda path, h: (None, b"unreachable"))
-elif scenario == "domain-live":
+elif scenario in ("domain-live", "domain-moderation", "domain-moderation-blocked"):
     setup("domain", "buzz.yourteam.com")
     m.resolves = lambda name: ["104.21.32.1"]
+    info = {"self": "aa" * 32}
+    if scenario != "domain-live":
+        m.save(OWNER, m.owner_hex(OWNER), "domain", "buzz.yourteam.com", moderation=True)
+        info["admin_api"] = "https://buzz.yourteam.com:8443"
+        # The relay's admin host, or Cloudflare's Browser Integrity Check refusing a client with no User-Agent
+        answer = ((404, {"content-security-policy": "default-src 'none'; frame-ancestors 'none'"}, b"")
+                  if scenario == "domain-moderation" else (403, {"content-type": "text/plain"}, b"error code: 1010"))
+        m.admin_request = lambda domain, addr, timeout=4: answer
 
     def public(path, h):
         if path == "/_liveness":
             return 200, b"ok"
         if path == "/pair":
             return 101, b""
-        return 200, json.dumps({"self": "aa" * 32}).encode()
+        return 200, json.dumps(info).encode()
     m.request = fake_request(public)
 
 print("preview", scenario, "on", port, "settings in", d, flush=True)

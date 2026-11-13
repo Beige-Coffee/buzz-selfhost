@@ -17,6 +17,7 @@ import hmac
 import html
 import http.client
 import http.server
+import ipaddress
 import json
 import os
 import re
@@ -286,12 +287,20 @@ def push_on(setup):
     return (setup or {}).get("push") is not False
 
 
-def write_relay_env(key, domain, push):
+def moderation_on(setup):
+    """Moderation, the relay's admin API at <domain>:8443: off unless the owner turned it on, and only on the
+    owner's own domain. setup.json keeps "moderation": false once it has been on, and has no such key before."""
+    return bool(setup) and setup.get("moderation") is True and setup.get("mode") == "domain"
+
+
+def relay_env_text(key, domain, push, admin=False):
     # The relay watches this file and restarts when it changes. It reads plain KEY=value lines, never
     # runs them, and these are the only values in them.
     if not re.fullmatch(r"[0-9a-f]{64}", key) or len(domain) > 253 or not re.fullmatch(HOST, domain):
         raise ValueError("The relay's settings take a key and a host name.")
-    write_atomic(RELAY_ENV, "\n".join([
+    if admin and domain.endswith(".ts.net"):
+        raise ValueError("Moderation needs your own domain.")
+    lines = [
         "RELAY_OWNER_PUBKEY=" + key,
         "BUZZ_DOMAIN=" + domain,
         "RELAY_URL=wss://" + domain,
@@ -300,7 +309,15 @@ def write_relay_env(key, domain, push):
         "BUZZ_CORS_ORIGINS=https://" + domain + ",tauri://localhost,http://tauri.localhost",
         "BUZZ_PAIRING_RELAY_URL=wss://" + domain + "/pair",
         "BUZZ_PUSH_ENABLED=" + ("true" if push else "false"),
-    ]) + "\n")
+    ]
+    # Moderation, at this domain and port alone: the relay's entrypoint drops any other value
+    if admin:
+        lines.append("BUZZ_ADMIN_HOST=" + domain + ":8443")
+    return "\n".join(lines) + "\n"
+
+
+def write_relay_env(key, domain, push, admin=False):
+    write_atomic(RELAY_ENV, relay_env_text(key, domain, push, admin))
 
 
 # The watcher and the forms both read the settings and write them back: one at a time, so an owner's
@@ -308,11 +325,23 @@ def write_relay_env(key, domain, push):
 SETUP_LOCK = threading.Lock()
 
 
-def save(owner_text, key, mode, domain, push=None):
+def save(owner_text, key, mode, domain, push=None, moderation=None):
+    """push and moderation of None keep what setup.json says. Moderation stays on through a move to another
+    domain, at the new name, and turns off on a Tailscale option, which can't serve it."""
+    previous = load_setup() or {}
     if push is None:
-        push = push_on(load_setup())
-    write_atomic(SETUP_JSON, json.dumps({"owner": owner_text, "owner_hex": key, "mode": mode, "domain": domain,
-                                         "push": push}))
+        push = push_on(previous)
+    if moderation is None:
+        moderation = previous.get("moderation") if previous.get("moderation") in (True, False) else None
+        if moderation is True and previous.get("mode") != "domain":
+            moderation = False  # it was never on there, so it doesn't come back with a domain
+    if moderation is True and mode != "domain":
+        moderation = False
+    record = {"owner": owner_text, "owner_hex": key, "mode": mode, "domain": domain, "push": push}
+    if moderation is not None:  # once it has been on, it stays false when off: staff added then return with it
+        record["moderation"] = moderation
+    write_atomic(SETUP_JSON, json.dumps(record))
+    forget_admin()
     if mode == "domain":
         if os.path.exists(TAILSCALE_ON):
             os.remove(TAILSCALE_ON)
@@ -320,7 +349,7 @@ def save(owner_text, key, mode, domain, push=None):
         if read_text(CLOUDFLARE_ON).strip() != domain:
             drop_upload()
         write_atomic(CLOUDFLARE_ON, domain + "\n")
-        write_relay_env(key, domain, push)
+        write_relay_env(key, domain, push, moderation is True)
         return
     if os.path.exists(CLOUDFLARE_ON):
         os.remove(CLOUDFLARE_ON)
@@ -332,6 +361,22 @@ def save(owner_text, key, mode, domain, push=None):
         write_relay_env(key, domain, push)
     elif os.path.exists(RELAY_ENV):
         os.remove(RELAY_ENV)
+
+
+def reconcile():
+    """At start. A stop between save()'s writes can leave the relay's settings saying something other than
+    setup.json does, about moderation, notifications or the address. setup.json wins: its save runs again."""
+    with SETUP_LOCK:
+        setup = load_setup()
+        if not setup or (read_json(SETUP_JSON) or {}).get("mode") not in MODES:
+            return  # nothing saved yet, or not a save this page made
+        domain = str(setup.get("domain") or "")
+        try:
+            expected = relay_env_text(setup["owner_hex"], domain, push_on(setup), moderation_on(setup)) if domain else ""
+        except ValueError:
+            return  # not a domain this page would have saved: left as it is
+        if read_text(RELAY_ENV) != expected:
+            save(str(setup.get("owner") or ""), setup["owner_hex"], setup["mode"], domain)
 
 
 # ---------------------------------------------------------------- Tailscale
@@ -472,8 +517,146 @@ def item(key, state, text, hint=""):
     return {"key": key, "state": state, "text": text, "hint": hint}
 
 
-def check(setup):
-    """The checks for the saved address, as (live, items). States: ok, wait, bad."""
+# ---------------------------------------------------------------- moderation's address
+
+ADMIN_PORT = 8443
+
+
+def admin_origin(domain):
+    return "https://" + domain + ":" + str(ADMIN_PORT)
+
+
+def advertised_admin(status, body):
+    """The moderation address a NIP-11 answer advertises: "" for none, or None when it isn't a NIP-11 answer.
+    The page only compares it with its own, and never shows it."""
+    if status != 200:
+        return None
+    try:
+        info = json.loads(body.decode())
+    except (ValueError, UnicodeDecodeError, AttributeError):
+        return None
+    if not isinstance(info, dict):
+        return None
+    value = info.get("admin_api")
+    return value if isinstance(value, str) else ""
+
+
+def admin_request(domain, addr, timeout=4):
+    """https://<domain>:8443/, asked as Buzz's admin client asks: no User-Agent, and a Host that keeps its port
+    (http.client adds it). The NIP-11 Accept makes each failure look different. (status, headers, body), with
+    the headers' names in lower case, or (None, {}, reason)."""
+    try:
+        context = ssl.create_default_context()
+        conn = http.client.HTTPSConnection(domain, ADMIN_PORT, timeout=timeout, context=context)
+        if addr:
+            conn.sock = context.wrap_socket(socket.create_connection((addr, ADMIN_PORT), timeout=timeout),
+                                            server_hostname=domain)
+        conn.request("GET", "/", headers=NIP11)
+        response = conn.getresponse()
+        headers = {name.lower(): value for name, value in response.getheaders()}
+        body = response.read(65536)
+        conn.close()
+        return response.status, headers, body
+    except ssl.SSLError as error:
+        return None, {}, ("tls " + str(error)).encode()
+    except (OSError, http.client.HTTPException) as error:
+        return None, {}, str(error).encode()
+
+
+def admin_probe(domain, addresses, info):
+    """One look at the moderation address, once the community's NIP-11 (the info future) advertises it: nothing
+    is sent otherwise. Buzz opens moderation only at public addresses, so a name that points anywhere else
+    isn't asked either."""
+    if advertised_admin(*info.result()) != admin_origin(domain):
+        return None
+    try:
+        public = bool(addresses) and all(ipaddress.ip_address(a).is_global for a in addresses)
+    except ValueError:
+        public = False
+    if not public:
+        return None, {}, b"not asked: no public address"
+    return admin_request(domain, addresses[0])
+
+
+def admin_answer(status, headers, body):
+    """What the moderation address's answer means, as (class, status). The relay's admin host answers / with a
+    404 and its own Content-Security-Policy (default-src 'none', frame-ancestors 'none'). Cloudflare turns a
+    client away with its own pages. A Host that lost its port reaches the community, which answers NIP-11."""
+    headers, body = headers or {}, body or b""
+    if status is None:  # nothing answered, or it couldn't be asked: an HTTPS error, or no public address
+        return ("other" if body.startswith((b"tls", b"not asked")) else "nothing"), None
+    text = body.decode(errors="replace")
+    csp = headers.get("content-security-policy", "")
+    if status == 404 and csp.startswith("default-src 'none'") and "frame-ancestors 'none'" in csp:
+        return "ok", status
+    html_page = headers.get("content-type", "").lower().startswith("text/html")
+    if (headers.get("cf-mitigated") or "error code: 1010" in text or "Error 1010" in text
+            or "challenge-platform" in text or "Just a moment" in text or (status in (403, 429, 503) and html_page)):
+        return "cloudflare", status
+    if status == 200 and '"supported_nips"' in text:
+        return "port", status
+    return "other", status
+
+
+def admin_hint(kind, status):
+    if kind == "cloudflare":
+        return ("Cloudflare turned away a request sent the way Buzz sends moderation requests, with no browser "
+                "details. In Cloudflare, check this domain's Security settings, such as Browser Integrity Check, Bot "
+                "Fight Mode or a custom rule. Then reload this page.")
+    if kind == "port":
+        return ("The request reached Buzz without its port, so Buzz took it for the community itself. If this name "
+                "runs through Umbrel's Cloudflare Tunnel app, clear the HTTP Host Header in the hostname's settings "
+                "there. Then reload this page.")
+    if kind == "nothing":
+        return ("Nothing answered on port 8443 from this Umbrel. The network it's on may block that port. If "
+                "Moderation shows in Buzz on your computer, it works.")
+    return ("It answered with HTTP " + str(status) + ". " if status else "") + "Reload this page in a minute to check again."
+
+
+# The last look at the moderation address, for one relay configuration: the domain and the text of the relay's
+# settings. Changing either asks again; so does a save, which clears it. It's asked on page loads alone, never
+# by the 5-second refresh, and only once for an answer that works: each look is a line in the relay's log.
+ADMIN = {"key": None, "at": 0.0, "value": None}
+ADMIN_LOCK = threading.Lock()
+ADMIN_RETRY = 30  # seconds before a page load asks again after an answer that didn't work
+
+
+def forget_admin():
+    with ADMIN_LOCK:
+        ADMIN.update(key=None, at=0.0, value=None)
+
+
+def admin_key(domain):
+    return domain + "\n" + read_text(RELAY_ENV)
+
+
+def admin_known(key):
+    """The last look's (class, status) for this configuration and its age in seconds, or (None, None)."""
+    with ADMIN_LOCK:
+        if key is not None and ADMIN["key"] == key and ADMIN["value"] is not None:
+            return ADMIN["value"], time.time() - ADMIN["at"]
+    return None, None
+
+
+def admin_item(setup, domain, advertised, key):
+    """The status list's row for moderation, on the owner's own domain while its NIP-11 loads, or None."""
+    shown = "<code>" + html.escape(admin_origin(domain)) + "</code>"
+    if not moderation_on(setup):
+        return item("admin", "wait", "Turning off moderation", "Buzz restarts for a few seconds.") if advertised else None
+    if advertised != admin_origin(domain):
+        return item("admin", "wait", "Turning on moderation", "Buzz restarts for a few seconds.")
+    known, _ = admin_known(key)
+    if known is None:
+        # Not looked at yet in this configuration: the page loads again, and the load looks
+        return dict(item("admin", "wait", "Checking moderation at " + shown), due=True)
+    if known[0] == "ok":
+        return item("admin", "ok", "Moderation is reachable at " + shown)
+    return item("admin", "bad", "Moderation isn't reachable at " + shown, admin_hint(*known))
+
+
+def check(setup, page_load=False):
+    """The checks for the saved address, as (live, items). States: ok, wait, bad. A page load also looks at the
+    moderation address when it's due."""
     mode = setup["mode"]
     domain = relay_domain() or setup.get("domain") or ""
     # The relay's main port, not its health port: the health and metrics ports listen on every
@@ -490,9 +673,18 @@ def check(setup):
         jobs["live"] = lambda: request(domain, 443, "/_liveness", tls=True, addr=addr)
         jobs["info"] = lambda: request(domain, 443, "/", tls=True, headers=NIP11, addr=addr)
         jobs["pair"] = lambda: request(domain, 443, "/pair", tls=True, headers=UPGRADE, addr=addr)
-    with concurrent.futures.ThreadPoolExecutor(len(jobs)) as pool:
+    key = admin_key(domain) if mode == "domain" and domain and moderation_on(setup) else None
+    known, age = admin_known(key)
+    look = key is not None and page_load and (known is None or (known[0] != "ok" and age >= ADMIN_RETRY))
+    with concurrent.futures.ThreadPoolExecutor(len(jobs) + 1) as pool:
         futures = {name: pool.submit(job) for name, job in jobs.items()}
+        if look:
+            # beside the other checks, once the NIP-11 answer says moderation is there
+            futures["admin"] = pool.submit(admin_probe, domain, addresses, futures["info"])
         got = {name: future.result() for name, future in futures.items()}
+    if got.get("admin") is not None:
+        with ADMIN_LOCK:
+            ADMIN.update(key=key, at=time.time(), value=admin_answer(*got["admin"]))
     items = []
     # Ready, and serving this address: right after an address change, the relay still running the
     # old one answers readiness but knows no community at the new address until it restarts.
@@ -550,6 +742,12 @@ def check(setup):
     pair_ok = got["pair"][0] == 101
     items.append(item("pair", "ok" if pair_ok else "wait",
                       "Phones can pair" if pair_ok else "Phone pairing isn't reachable yet"))
+    # Moderation, while the community's NIP-11 loads: the rows above cover the rest
+    advertised = advertised_admin(*got["info"])
+    if mode == "domain" and reach_ok and advertised is not None:
+        row = admin_item(setup, domain, advertised, key)
+        if row:
+            items.append(row)
     if mode == "domain" and not reach_ok:
         cf = cloudflare_state()["state"]
         if cf == "signin" and upload_waiting():
@@ -588,13 +786,17 @@ CACHE = {"at": 0.0, "key": None, "value": None}
 CACHE_LOCK = threading.Lock()
 
 
-def cached_check(setup):
-    # The tunnel's step too: right after an upload, the page shows the tunnel taking it, not the old wait
-    key = json.dumps(setup, sort_keys=True) + relay_domain() + read_text(TAILSCALE_SERVE) + cloudflare_step()
+def cached_check(setup, page_load=False):
+    # The tunnel's step too: right after an upload, the page shows the tunnel taking it, not the old wait. And
+    # the last look at moderation's address, and whether this is a page load, which may look again.
+    with ADMIN_LOCK:
+        looked = str(ADMIN["at"])
+    key = (json.dumps(setup, sort_keys=True) + relay_domain() + read_text(TAILSCALE_SERVE) + cloudflare_step()
+           + looked + ("|page" if page_load else ""))
     with CACHE_LOCK:
         if CACHE["key"] == key and time.time() - CACHE["at"] < 3:
             return CACHE["value"]
-    value = check(setup)
+    value = check(setup, page_load)
     with CACHE_LOCK:
         CACHE.update(at=time.time(), key=key, value=value)
     return value
@@ -1578,10 +1780,12 @@ def tailscale_step(mode):
     return "consent" if consent_link() else "consent-wait"
 
 
-def phase_of(setup, live):
+def phase_of(setup, live, items=()):
     step = "-"
     if not live:
         step = cloudflare_step() if setup["mode"] == "domain" else tailscale_step(setup["mode"])
+    elif any(entry.get("due") for entry in items):
+        step = "moderation"  # moderation's address is due a look, which only a page load takes
     return setup["mode"] + ":" + ("live" if live else "connecting") + ":" + (relay_domain() or "-") + ":" + step
 
 
@@ -1736,10 +1940,14 @@ def address_change(setup, values, current):
         if current else
         '<label class="check"><input type="checkbox" name="ack" value="yes"><span>I understand this starts a new, empty '
         "community.</span></label>")
+    # What happens to moderation, for the option chosen
+    moderation = ('<p class="muted small" data-for="domain">Moderation stays on, at the new address.</p>'
+                  '<p class="muted small" data-for="funnel private">Moderation turns off: it needs your own domain.</p>'
+                  if moderation_on(setup) else "")
     return (
         '<form method="post" action="address" data-guided><input type="hidden" name="owner" value="' + esc(setup["owner"]) + '">'
         '<p class="heads-up">' + note + '</p><div class="opts">' + options + "</div>"
-        '<div data-for="domain">' + domain_field(values, "New address") + "</div>" + confirm
+        '<div data-for="domain">' + domain_field(values, "New address") + "</div>" + moderation + confirm
         + '<button class="btn small ghost" type="submit">Change the address</button></form>'
     )
 
@@ -1768,30 +1976,122 @@ SAFETY_TIPS = [
      "join until it expires, 30 days at most. Links can't be canceled yet, and someone you remove can rejoin with a "
      "link that still works."),
 ]
+PRIVATE_TIP, INVITE_TIP = SAFETY_TIPS[4][0], SAFETY_TIPS[5][0]
+# While moderation is on, members' private messages aren't private from the owner and the staff they add
+MODERATION_TIP = ("While Moderation is on, the owner and staff they add can open any message stored here by its ID, "
+                  "deleted ones included, even in private channels and direct messages.")
+# A ban covers one identity and the agents it brings; links can't be canceled, so a person can come back
+BAN_TIP = {False: "To keep an identity out, even with a link, turn on Moderation in Settings and ban it. A person can "
+                  "still join under a new identity.",
+           True: "To keep an identity out, even with a link, ban it in Moderation in Buzz. A person can still join under "
+                 "a new identity."}
 
 
-def safety_part():
+def safety_part(setup):
     """The live page's tips for owners, to share with members, most of all when anyone can join: collapsed,
-    between the next steps and Settings."""
+    between the next steps and Settings. On the owner's own domain they say how to ban, and while moderation is
+    on, who can read private messages."""
+    on = moderation_on(setup)
+    tips = []
+    for lead, text in SAFETY_TIPS:
+        if lead == PRIVATE_TIP and on:
+            text += " " + MODERATION_TIP
+        if lead == INVITE_TIP and setup["mode"] == "domain":
+            text += " " + BAN_TIP[on]
+        tips.append("<li><b>" + lead + "</b> " + text + "</li>")
     return (
         '<details class="alt"><summary>Keeping your community safe</summary><div class="inner">'
         "<p class=\"muted small\">Most of this is common sense. It matters more when people you don't know can join. "
-        'Share it with your members.</p><div class="panel"><ul>'
-        + "".join("<li><b>" + lead + "</b> " + text + "</li>" for lead, text in SAFETY_TIPS)
+        'Share it with your members.</p><div class="panel"><ul>' + "".join(tips)
         + '</ul></div><p class="muted small">Block is working on more protections for agents.</p></div></details>'
     )
 
 
-def settings_part(setup, error, values):
+STAFF_RETURN = ("Staff added before get their access back when you turn it on. Review them in Buzz under Moderation, "
+                "then Staff.")
+
+
+def moderation_points(domain):
+    """What turning moderation on means, for the owner."""
+    return (
+        "<ul><li>You, and staff you add in Buzz, can read reports, with who sent them, and the feedback members send. "
+        "You and your staff can also open any message stored here by its ID, deleted ones included, even in private "
+        "channels and direct messages. Members don't see this in Buzz. The safety tips on this page say it, so share "
+        "them.</li>"
+        "<li>Moderation gets its own address on the internet, <code>" + esc(admin_origin(domain)) + "</code>. It "
+        "accepts only requests signed by you or your staff.</li>"
+        "<li>A ban keeps that identity out of this community, and the agents that join through it. It can't rejoin "
+        "with an invite link. A new identity can still join with a link that works.</li>"
+        "<li>Buzz on a computer shows Moderation in its Settings. The phone apps don't have it.</li></ul>"
+    )
+
+
+def moderation_part(setup, live, current, error, values):
+    """Settings, Moderation: the relay's admin API, for Buzz's Moderation on a computer. Off by default, offered
+    on the owner's own domain once the community is live. The Tailscale options show why it isn't there."""
+    on = moderation_on(setup)
+    opened = values.get("form") == "moderation"
+    summary = "On" if on else "Off" if setup["mode"] == "domain" else "Own domain only"
+    what = "Review reports, ban or time out members, and delete messages, in Buzz on a computer."
+    staff = '<p class="muted small">' + STAFF_RETURN + "</p>" if setup.get("moderation") is False else ""
+    box = ('<label class="check"><input type="checkbox" name="moderation" value="on"' + (" checked" if on else "")
+           + "><span>Turn on moderation</span></label>")
+    save_button = '<button class="btn small ghost" type="submit">Save</button></form>'
+    if setup["mode"] != "domain":
+        inner = ('<p class="muted small">Moderation needs your own domain for now. Buzz won\'t connect to it at a '
+                 "Tailscale address.</p>")
+    elif not on and not live:
+        inner = '<p class="muted small">' + what + " You can turn it on here once your community is live.</p>" + staff
+    elif not on:
+        inner = ('<form method="post" action="moderation"><p class="muted small">' + what + " When it's on:</p>"
+                 '<div class="panel">' + moderation_points(current) + "</div>" + staff + box
+                 + '<p class="muted small">Saving restarts Buzz for a few seconds.</p>' + save_button)
+    elif not live:
+        inner = ('<form method="post" action="moderation"><div class="panel"><p>While it\'s on:</p>'
+                 + moderation_points(current) + "</div>" + box + '<p class="muted small">It starts working once your '
+                 "community is live. To turn it off, clear the box and save.</p>" + save_button)
+    else:
+        # Buzz keeps Moderation out of Settings without a word when its check fails, and says why only under
+        # Manage plugins (src/app/Settings.tsx in block/buzz-app v1.0.0): its three messages, and what each means here
+        inner = (
+            '<form method="post" action="moderation"><p class="muted small">Moderation is on. To open it, choose this '
+            "community in Buzz on your computer, then open Settings. A Moderation group appears in the sidebar, with "
+            "Reports, Feedback, Communities and Staff. If Settings was already open, close it and open it again. Use "
+            "the identity you entered as the owner.</p>"
+            '<div class="panel"><p>While it\'s on:</p>' + moderation_points(current) + "</div>"
+            '<div class="panel"><p><b>Moderation doesn\'t show in Buzz?</b> Buzz says why in Settings, under Plugins, '
+            "Manage plugins, then Moderation.</p><ul>"
+            "<li><b>Could not check access.</b> Buzz couldn't reach <code>" + esc(admin_origin(current)) + "</code> "
+            "from your computer. If this page shows no problem, the network your computer is on may block port 8443, "
+            "or send the name to a local address. Try another network, then choose Check access again in Buzz.</li>"
+            "<li><b>Access is unavailable in this build or on this relay.</b> Buzz doesn't see moderation at this "
+            "address yet. Wait a minute after saving, then close Settings in Buzz and open it again, with this "
+            "community chosen.</li>"
+            "<li><b>Select a community on a relay where you have staff access.</b> Buzz reached moderation with an "
+            "identity that isn't the owner's or a staff member's. Use the identity you entered as the owner, or ask "
+            "the owner to add you as staff. A computer clock that's off by more than a minute causes this too: set it "
+            "to update automatically.</li></ul>"
+            '<p class="muted small">If Moderation there says Enable, choose it.</p></div>' + box
+            + '<p class="muted small">To turn it off, clear the box and save. Buzz restarts for a few seconds. Bans, '
+            "timeouts and your staff list stay as they are. Turn moderation on again to change them.</p>" + save_button)
+    return ("<details" + (" open" if opened else "") + '><summary>Moderation<span class="val word">' + summary
+            + '</span></summary><div class="inner">' + inner + (error_box(error) if opened else "") + "</div></details>")
+
+
+def settings_part(setup, error, values, live=False):
     current = relay_domain() or setup.get("domain") or ""
     owner = values.get("owner", "") if values.get("form") == "owner" else ""
     owner_now = setup["owner"]
     address_values = values if values.get("form") == "address" else {}
+    # Staff rows outlive the switch and owner changes: whenever moderation has been on, the new owner should look
+    staff = ('<p class="muted small">Staff added in Moderation stay staff after the change, whenever Moderation is on. '
+             "The new owner can review them in Buzz under Moderation, then Staff.</p>"
+             if setup.get("moderation") in (True, False) else "")
     return (
         '<section class="part"><h2>Settings</h2><div class="set-card">'
         "<details" + (" open" if values.get("form") == "owner" else "") + "><summary>Owner<span class=\"val\">" + esc(owner_now[:10] + "\u2026" + owner_now[-4:]) + "</span></summary><div class=\"inner\">"
         '<form method="post" action="owner"><p class="muted small">Make someone else the owner. The current owner '
-        "becomes an admin, which you can change in Buzz. The community and its address stay the same.</p>"
+        "becomes an admin, which you can change in Buzz. The community and its address stay the same.</p>" + staff +
         '<label class="field" for="new-owner">New owner\'s public ID (npub)</label>'
         '<input type="text" id="new-owner" name="owner" autocomplete="off" spellcheck="false" placeholder="npub1..." value="' + esc(owner) + '">'
         '<button class="btn small ghost" type="submit">Change the owner</button></form>'
@@ -1805,6 +2105,7 @@ def settings_part(setup, error, values):
         '<label class="check"><input type="checkbox" name="push" value="on"' + (" checked" if push_on(setup) else "")
         + "><span>Send phone notifications</span></label>"
         '<button class="btn small ghost" type="submit">Save</button></form></div></details>'
+        + moderation_part(setup, live, current, error, values) +
         "<details" + (" open" if values.get("form") == "address" else "") + "><summary>Address<span class=\"val\">" + esc(current or "none yet") + "</span></summary><div class=\"inner\">"
         + address_change(setup, address_values, current)
         + (error_box(error) if values.get("form") == "address" else "") + "</div></details></div></section>"
@@ -1813,10 +2114,10 @@ def settings_part(setup, error, values):
 
 def main_page(setup, error="", values=None):
     values = values or {}
-    live, items = cached_check(setup)
+    live, items = cached_check(setup, page_load=True)
     mode = setup["mode"]
     domain = relay_domain() or setup.get("domain") or ""
-    status = ('<ul class="status" data-poll data-phase="' + esc(phase_of(setup, live)) + '">' + status_html(items) + "</ul>")
+    status = ('<ul class="status" data-poll data-phase="' + esc(phase_of(setup, live, items)) + '">' + status_html(items) + "</ul>")
     if not live:
         head = ('<p class="eyebrow">Connecting &middot; ' + MODE_NAMES[mode] + "</p><h1>Connect "
                 + ('<mark>' + esc(domain) + "</mark>" if domain else "your <mark>address</mark>") + "</h1>"
@@ -1828,7 +2129,7 @@ def main_page(setup, error="", values=None):
         body = head + status + connect_steps(setup, domain, error if values.get("form") == "cert" else "")
         if mode == "private" and domain:
             body += '<section class="part"><h2>Who can connect</h2>' + private_members_note() + "</section>"
-        return layout(body + settings_part(setup, error, values))
+        return layout(body + settings_part(setup, error, values, live))
     reach = {"domain": "from anywhere",
              "funnel": "from anywhere, without Tailscale",
              "private": "from devices on your Tailscale network"}[mode]
@@ -1865,7 +2166,7 @@ def main_page(setup, error="", values=None):
         'rel="noopener">Google Play</a>.' + (" The phone needs Tailscale too." if mode == "private" else "") + "</p>"
         + how_to("Show me how", phone_steps(domain)) + notifications_note(setup) + "</div></div></section>"
     )
-    return layout(body + safety_part() + settings_part(setup, error, values))
+    return layout(body + safety_part(setup) + settings_part(setup, error, values, live))
 
 
 # ---------------------------------------------------------------- the server
@@ -1958,7 +2259,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not setup:
                 return self.send(200, json.dumps({"phase": "setup", "html": ""}), "application/json")
             live, items = cached_check(setup)
-            return self.send(200, json.dumps({"phase": phase_of(setup, live), "live": live, "html": status_html(items)}),
+            return self.send(200, json.dumps({"phase": phase_of(setup, live, items), "live": live, "html": status_html(items)}),
                              "application/json")
         if path not in ("/", ""):
             return self.send(404, layout("<h1>Not found</h1>"))
@@ -2052,6 +2353,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
             save(setup["owner"], setup["owner_hex"], setup["mode"], relay_domain() or setup.get("domain", ""),
                  values.get("push") == "on")
             return self.redirect("./")
+        if path == "/moderation":
+            values["form"] = "moderation"
+            forget_admin()  # a save looks at the address again, even one that changes nothing
+            want = values.get("moderation") == "on"
+            domain = relay_domain() or setup.get("domain") or ""
+            if want and (setup["mode"] != "domain" or not domain):
+                return self.send(400, main_page(setup, "Moderation needs your own domain.", values))
+            # Unchanged, nothing is written and Buzz doesn't restart
+            if want != moderation_on(setup):
+                save(setup["owner"], setup["owner_hex"], setup["mode"], domain, moderation=want)
+            return self.redirect("./")
         if path == "/address":
             values["form"] = "address"
             current = relay_domain() or setup.get("domain") or ""
@@ -2088,6 +2400,11 @@ if __name__ == "__main__":
     # A write of an uploaded sign-in that a stop cut short. One that finished waits for the tunnel.
     try:
         os.remove(CLOUDFLARE_UPLOAD + ".tmp")
+    except OSError:
+        pass
+    # The relay's settings, as setup.json says, after a stop in the middle of a save
+    try:
+        reconcile()
     except OSError:
         pass
     threading.Thread(target=tailscale_watcher, daemon=True).start()

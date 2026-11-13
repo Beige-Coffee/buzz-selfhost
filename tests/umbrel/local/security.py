@@ -372,6 +372,248 @@ m.save(OWNER, KEY, "funnel", "")
 ok(waiting() is None, "a Tailscale option deletes it")
 status, _ = upload()
 ok(status == 303 and waiting() is None, "and with a Tailscale option chosen, an upload is ignored")
+
+print("== Moderation: the switch")
+OWNER2 = "npub1xhq934ja9kl4d0h6r4pazkjg4whvp6umptmtsxcrd2zkc9e3rd3ssj94xd"
+ADMIN_CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' blob:; "
+             "object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")  # relay 0.3.0's router.rs
+
+
+def form(path, body="", cookie=None, site="same-origin"):
+    """Posts one of the page's forms: (status, page)."""
+    conn = http.client.HTTPConnection("127.0.0.1", PORT, timeout=15)
+    headers = {"Content-Type": "application/x-www-form-urlencoded", "Sec-Fetch-Site": site}
+    if cookie:
+        headers["Cookie"] = m.COOKIE + "=" + cookie
+    conn.request("POST", path, body=body, headers=headers)
+    response = conn.getresponse()
+    text = response.read().decode(errors="replace")
+    conn.close()
+    return response.status, text
+
+
+def page_get(path="/"):
+    conn = http.client.HTTPConnection("127.0.0.1", PORT, timeout=15)
+    conn.request("GET", path, headers={"Cookie": m.COOKIE + "=" + session})
+    response = conn.getresponse()
+    text = response.read().decode(errors="replace")
+    conn.close()
+    return text
+
+
+def admin_lines():
+    return [line for line in m.read_text(m.RELAY_ENV).splitlines() if line.startswith("BUZZ_ADMIN_HOST")]
+
+
+def fresh(mode, domain):
+    """A setup where moderation was never on."""
+    for path in (m.SETUP_JSON, m.RELAY_ENV):
+        if os.path.exists(path):
+            os.remove(path)
+    m.save(OWNER, KEY, mode, domain)
+
+
+stderr, sys.stderr = sys.stderr, io.StringIO()
+try:
+    fresh("domain", "buzz.example.com")
+    status, _ = form("/moderation", "moderation=on")
+    ok(status == 401 and not admin_lines(), "turning moderation on needs the page's sign-in: 401, and the relay's settings don't change")
+    status, _ = form("/moderation", "moderation=on", session, site="same-site")
+    ok(status == 403 and not admin_lines(), "a form from another app's page on the same Umbrel is refused: 403, nothing changes")
+    fresh("funnel", "buzz.tail1234.ts.net")
+    status, text = form("/moderation", "moderation=on", session)
+    ok(status == 400 and "Moderation needs your own domain." in text and not admin_lines() and "moderation" not in m.load_setup(),
+       "on a Tailscale option it's refused: 400, with its sentence, and nothing is saved")
+    fresh("domain", "buzz.example.com")
+    status, _ = form("/moderation", "moderation=on", session)
+    ok(status == 303 and admin_lines() == ["BUZZ_ADMIN_HOST=buzz.example.com:8443"] and m.load_setup().get("moderation") is True,
+       "on the owner's own domain it's saved: 303, and one line in the relay's settings, the domain on port 8443")
+    before = os.stat(m.RELAY_ENV).st_ino
+    status, _ = form("/moderation", "moderation=on", session)
+    ok(status == 303 and os.stat(m.RELAY_ENV).st_ino == before, "saving it unchanged writes nothing, so Buzz doesn't restart")
+    status, _ = form("/moderation", "", session)
+    ok(status == 303 and not admin_lines() and m.load_setup().get("moderation") is False,
+       "clearing the box takes the line out, and setup.json keeps \"moderation\": false, for the staff warning")
+    fresh("domain", "buzz.example.com")
+    before = os.stat(m.RELAY_ENV).st_ino
+    status, _ = form("/moderation", "", session)
+    ok(status == 303 and os.stat(m.RELAY_ENV).st_ino == before and "moderation" not in m.load_setup(),
+       "turning it off when it was never on writes nothing")
+
+    print("== Moderation never points at an old name")
+    form("/moderation", "moderation=on", session)
+    form("/owner", "owner=" + OWNER2, session)
+    ok(admin_lines() == ["BUZZ_ADMIN_HOST=buzz.example.com:8443"] and ("RELAY_OWNER_PUBKEY=" + m.owner_hex(OWNER2)) in m.read_text(m.RELAY_ENV),
+       "changing the owner keeps it on")
+    form("/notifications", "", session)
+    ok(admin_lines() == ["BUZZ_ADMIN_HOST=buzz.example.com:8443"] and "BUZZ_PUSH_ENABLED=false" in m.read_text(m.RELAY_ENV),
+       "turning phone notifications off keeps it on")
+    status, _ = form("/address", "mode=domain&domain=chat.example.com&confirm=buzz.example.com", session)
+    ok(status == 303 and admin_lines() == ["BUZZ_ADMIN_HOST=chat.example.com:8443"] and "buzz.example.com" not in m.read_text(m.RELAY_ENV),
+       "moving to another domain keeps it on, at the new name alone: the old one is nowhere in the relay's settings")
+    status, _ = form("/address", "mode=funnel&confirm=chat.example.com", session)
+    ok(status == 303 and not os.path.exists(m.RELAY_ENV) and m.load_setup().get("moderation") is False,
+       "moving to a Tailscale option turns it off, and setup.json keeps \"moderation\": false")
+    write(m.TAILSCALE_STATUS, json.dumps({"BackendState": "Running", "Self": {"DNSName": "buzz.tail1234.ts.net."}}))
+    m.adopt_tailscale_name()
+    ok(m.relay_domain() == "buzz.tail1234.ts.net" and not admin_lines(), "the Tailscale name becomes the address, without moderation")
+    status, _ = form("/address", "mode=domain&domain=buzz.example.com&confirm=buzz.tail1234.ts.net", session)
+    ok(status == 303 and m.relay_domain() == "buzz.example.com" and not admin_lines() and m.load_setup().get("moderation") is False,
+       "back on a domain it stays off, until the owner turns it on again")
+    record = dict(m.load_setup(), mode="funnel", domain="", moderation=True)
+    write(m.SETUP_JSON, json.dumps(record))
+    m.adopt_tailscale_name()
+    ok(m.relay_domain() == "buzz.tail1234.ts.net" and not admin_lines() and m.load_setup().get("moderation") is False,
+       "a setup.json that says it's on with a Tailscale option never gives the relay the line")
+    m.save(OWNER, KEY, "funnel", "buzz.tail1234.ts.net", moderation=True)
+    ok(not admin_lines() and m.load_setup().get("moderation") is False, "nor does asking save() for it there")
+    write(m.SETUP_JSON, json.dumps(record))
+    m.save(OWNER, KEY, "domain", "buzz.example.com")
+    ok(not admin_lines() and m.load_setup().get("moderation") is False, "and it doesn't come back with a domain")
+    try:
+        m.write_relay_env(KEY, "buzz.tail1234.ts.net", True, True)
+        refused = False
+    except ValueError:
+        refused = True
+    ok(refused, "the relay's settings never take moderation for a Tailscale name")
+
+    print("== Moderation: what the page makes of each answer from its address")
+    canned = {  # what https://<name>:8443/ can answer, asked for NIP-11 with no User-Agent, and what the page should say
+        "the relay's admin host: 404 with its admin policy": ((404, {"content-security-policy": ADMIN_CSP}, b""), "ok"),
+        "the gateway's catch-all: an empty 404": ((404, {}, b""), "other"),
+        "a relay that knows no community at <name>:8443": ((404, {"content-type": "text/plain; charset=utf-8"},
+                                                           b"relay: no community is configured for this host"), "other"),
+        "the community's own NIP-11: Host lost its port": ((200, {"content-type": "application/nostr+json"},
+                                                            b'{"name":"x","supported_nips":[1,11,29]}'), "port"),
+        "Cloudflare's 1010, as a page": ((403, {"content-type": "text/html; charset=UTF-8"},
+                                          b"<html><title>Access denied</title><h1>Error 1010</h1></html>"), "cloudflare"),
+        "Cloudflare's 1010, as text": ((403, {"content-type": "text/plain; charset=UTF-8"}, b"error code: 1010"), "cloudflare"),
+        "a Cloudflare challenge": ((403, {"cf-mitigated": "challenge", "content-type": "text/html"},
+                                    b"<title>Just a moment...</title>"), "cloudflare"),
+        "a 530 from Cloudflare": ((530, {"content-type": "text/html"}, b"<html>error code: 1033</html>"), "other"),
+        "no answer": ((None, {}, b"timed out"), "nothing"),
+        "an HTTPS error": ((None, {}, b"tls [SSL: CERTIFICATE_VERIFY_FAILED]"), "other"),
+    }
+    wrong = [label for label, (answer, kind) in canned.items() if m.admin_answer(*answer)[0] != kind]
+    ok(not wrong, "each of %d kinds of answer is read as what it is%s" % (len(canned), (": not " + ", ".join(wrong)) if wrong else ""))
+    hints = {kind: m.admin_hint(*m.admin_answer(*answer)) for answer, kind in canned.values()}
+    ok("Browser Integrity Check" in hints["cloudflare"] and "HTTP Host Header" in hints["port"] and "8443" in hints["nothing"]
+       and m.admin_hint(*m.admin_answer(*canned["a 530 from Cloudflare"][0])).startswith("It answered with HTTP 530."),
+       "and each gets its own hint, which shows a status code and nothing else from the answer")
+
+    print("== Moderation: when the page looks at its address")
+    SELF = "ab" * 32
+    asked = []
+    answers = [(404, {"content-security-policy": ADMIN_CSP}, b"")]
+
+    def stand_in(domain, addr, timeout=4):
+        asked.append(addr)
+        return answers[0]
+
+    def community(advertise):
+        """A live community on this name, through Cloudflare, whose NIP-11 advertises this moderation address."""
+        def request(host, port, path, tls=False, headers=None, timeout=6, addr=None):
+            if host == m.RELAY_HOST:
+                return (200, b"ok") if path == "/_readiness" else (200, json.dumps({"self": SELF}).encode())
+            if path == "/_liveness":
+                return 200, b"ok"
+            if path == "/pair":
+                return 101, b""
+            info = {"self": SELF, "supported_nips": [1, 11]}
+            if advertise:
+                info["admin_api"] = advertise
+            return 200, json.dumps(info).encode()
+        return request
+
+    real_request, real_resolves = m.request, m.resolves
+    m.admin_request, m.request, m.resolves = stand_in, community("https://buzz.example.com:8443"), lambda name: ["104.16.0.1"]
+    fresh("domain", "buzz.example.com")
+    form("/moderation", "moderation=on", session)
+
+    def status_json():
+        m.CACHE["key"] = None
+        return json.loads(page_get("/status.json"))
+
+    def loaded():
+        m.CACHE["key"] = None
+        return page_get("/")
+
+    first = status_json()
+    ok(not asked and first["phase"].endswith(":moderation") and "Checking moderation at" in first["html"],
+       "the 5-second refresh never asks: it marks the look as due, which opens the page again")
+    text = loaded()
+    ok(asked == ["104.16.0.1"] and "Moderation is reachable at <code>https://buzz.example.com:8443</code>" in text
+       and 'data-phase="domain:live:buzz.example.com:-"' in text,
+       "the page load asks once, at the address Cloudflare's DNS gives, beside the other checks")
+    again = status_json()
+    loaded()
+    ok(len(asked) == 1 and again["phase"] == "domain:live:buzz.example.com:-" and "reachable" in again["html"],
+       "an answer that works is kept: the refresh and later page loads don't ask again")
+    m.forget_admin()
+    answers[0] = (403, {"content-type": "text/plain"}, b"error code: 1010")
+    text = loaded()
+    ok(len(asked) == 2 and "Moderation isn't reachable" in text and "Browser Integrity Check" in text,
+       "a Cloudflare refusal gets its own hint")
+    loaded()
+    ok(len(asked) == 2, "one that doesn't work is asked again by a page load only after %d seconds" % m.ADMIN_RETRY)
+    m.ADMIN["at"] -= m.ADMIN_RETRY + 1
+    loaded()
+    ok(len(asked) == 3, "and then it is")
+    answers[0] = (404, {"content-security-policy": ADMIN_CSP}, b"")
+    form("/moderation", "", session)
+    form("/moderation", "moderation=on", session)
+    loaded()
+    ok(len(asked) == 4, "turning it off, then on, asks again, though the relay's settings read as before")
+    form("/notifications", "", session)
+    loaded()
+    ok(len(asked) == 5, "any save asks again, like turning phone notifications off")
+    write(m.RELAY_ENV, m.relay_env_text(KEY, "buzz.example.com", True, True))
+    loaded()
+    ok(len(asked) == 6, "so does other text in the relay's settings, saved or not: it's another relay configuration")
+    m.forget_admin()
+    m.resolves = lambda name: ["10.0.0.5"]
+    text = loaded()
+    ok(len(asked) == 6 and "Moderation isn't reachable" in text,
+       "a name that points to a private address isn't asked, as Buzz wouldn't: the row says it isn't reachable")
+    m.resolves = lambda name: ["104.16.0.1"]
+    m.forget_admin()
+    m.request = community('https://evil.example.com:8443/"><script>zq7</script>')
+    text, listed = loaded(), status_json()["html"]
+    ok(len(asked) == 6 and "Turning on moderation" in listed and not any("evil" in t or "zq7" in t for t in (text, listed)),
+       "a NIP-11 that advertises another address gets no request, and the page never shows what it says")
+    m.request = community("")
+    form("/moderation", "", session)
+    m.request = community("https://buzz.example.com:8443")
+    ok("Turning off moderation" in status_json()["html"], "while the relay still advertises it after turning off, the row says so")
+    m.request, m.resolves = real_request, real_resolves
+
+    print("== Moderation: the relay's settings at start")
+    fresh("domain", "buzz.example.com")
+    m.save(OWNER, KEY, "domain", "buzz.example.com", moderation=True)
+    write(m.RELAY_ENV, m.relay_env_text(KEY, "buzz.example.com", True))  # a stop before the save's last write
+    m.reconcile()
+    ok(admin_lines() == ["BUZZ_ADMIN_HOST=buzz.example.com:8443"], "a start finishes a save that a stop cut short: moderation comes on")
+    m.save(OWNER, KEY, "domain", "buzz.example.com", False, False)
+    write(m.RELAY_ENV, m.relay_env_text(KEY, "buzz.example.com", True, True))
+    m.reconcile()
+    ok(not admin_lines() and "BUZZ_PUSH_ENABLED=false" in m.read_text(m.RELAY_ENV),
+       "or off, with phone notifications as setup.json says")
+    before = os.stat(m.RELAY_ENV).st_ino
+    m.reconcile()
+    ok(os.stat(m.RELAY_ENV).st_ino == before, "settings that already agree aren't written, so Buzz doesn't restart")
+    m.save(OWNER, KEY, "funnel", "")
+    write(m.RELAY_ENV, m.relay_env_text(KEY, "buzz.example.com", True, True))
+    m.reconcile()
+    ok(not os.path.exists(m.RELAY_ENV), "a Tailscale option still waiting for its name leaves the relay waiting too")
+    write(m.SETUP_JSON, json.dumps(dict(m.load_setup(), mode="tailscale", domain="buzz.tail1234.ts.net")))
+    write(m.RELAY_ENV, m.relay_env_text(KEY, "buzz.example.com", True))
+    before = m.read_text(m.RELAY_ENV)
+    m.reconcile()
+    ok(m.read_text(m.RELAY_ENV) == before and not os.path.exists(m.CLOUDFLARE_ON),
+       "a setup.json this page didn't write, with a mode it doesn't know, is left alone")
+finally:
+    printed, sys.stderr = sys.stderr.getvalue(), stderr
+ok(printed == "", "nothing reached the page's error output in all of this%s" % (": " + printed[:300] if printed else ""))
 server.shutdown()
 
 print("== The relay's settings reader")
@@ -384,6 +626,75 @@ out = subprocess.run(["bash", "-c", reader + 'load "$1"; printf "%s|%s|%s" "$BUZ
                       '"$BUZZ_CORS_ORIGINS"', "test", d + "/relay-test.env"], capture_output=True, text=True).stdout
 ok(not os.path.exists(marker) and out == "x$(touch " + marker + ")|unset|https://a.com,tauri://localhost",
    "the relay reads its settings as plain values: nothing in them runs, and a name it doesn't use is ignored")
+
+print("== The relay's entrypoint and moderation, with a stand-in relay")
+# The whole script from docker-compose.yml, in a folder of its own: buzz-relay is a stand-in that writes down the
+# admin settings it was started with and exits. Nothing else in its environment is written: the key is in there.
+ep = d + "/entrypoint"
+os.makedirs(ep)
+ADMIN_NAMES = ("BUZZ_ADMIN_HOST", "BUZZ_ADMIN_AUTH", "BUZZ_ADMIN_TOKEN", "RELAY_OPERATOR_PUBKEYS", "BUZZ_ADMIN_WEB_DIR")
+stub(ep, "buzz-relay", "env | grep -E '^(" + "|".join(ADMIN_NAMES) + ")=' | sort > \"" + ep + "/seen\"\n")
+relay_script = script
+for path, local in (("/data/secrets/relay.env", ep + "/secrets.env"), ("/data/settings/relay.env", ep + "/settings.env"),
+                    ("/usr/local/bin/buzz-relay", ep + "/buzz-relay"), ("sleep 3", "sleep 0.2")):
+    assert path in relay_script, path
+    relay_script = relay_script.replace(path, local)
+write(ep + "/secrets.env", "BUZZ_RELAY_PRIVATE_KEY=" + "0" * 64 + "\n")  # made up: the stand-in never reads it
+# What the image and a compose file could put in the relay's environment. The image sets BUZZ_ADMIN_WEB_DIR to Block's
+# browser dashboard (relay Dockerfile, relay-v0.3.0).
+IMAGE = {"BUZZ_ADMIN_WEB_DIR": "/srv/buzz/admin-web"}
+HOSTILE = dict(IMAGE, BUZZ_ADMIN_HOST="evil.example.com:8443", BUZZ_ADMIN_AUTH="disabled", BUZZ_ADMIN_TOKEN="x",
+               RELAY_OPERATOR_PUBKEYS="cd" * 32)
+
+
+def relay_saw(settings, environment=IMAGE):
+    """Starts the relay's entrypoint with these settings and this environment: the admin settings the relay got."""
+    write(ep + "/settings.env", settings)
+    if os.path.exists(ep + "/seen"):
+        os.remove(ep + "/seen")
+    # The container has no locale, so its shell's ranges are plain ASCII; macOS's bash under a UTF-8 locale isn't
+    run = subprocess.run(["bash", "-c", relay_script], env=dict(environment, PATH=os.environ["PATH"], LC_ALL="C"),
+                         capture_output=True, text=True, timeout=30)
+    seen = open(ep + "/seen").read() if os.path.exists(ep + "/seen") else None
+    return seen if run.returncode == 0 else "exit %d: %s" % (run.returncode, run.stderr[:200])
+
+
+page_settings = m.relay_env_text(KEY, "buzz.example.com", True)
+with_admin = m.relay_env_text(KEY, "buzz.example.com", True, True)
+ok(relay_saw(page_settings, HOSTILE) == "",
+   "the page is its only source: a value in the image or the environment never reaches the relay, the dashboard's included")
+ok(relay_saw(with_admin, HOSTILE) == "BUZZ_ADMIN_HOST=buzz.example.com:8443\n",
+   "the page's own line reaches it, and nothing else: no open mode, no other operators, no browser dashboard")
+crafted = ["old.example.com:8443", "buzz.example.com:9443", "buzz.example.com:8443/x", "buzz.example.com",
+           "BUZZ.example.com:8443", "buzz.example.com:8443$(touch " + marker + ")", "buzz.example.com:8443 "]
+seen = {value: relay_saw(page_settings + "BUZZ_ADMIN_HOST=" + value + "\n") for value in crafted}
+ok(all(v == "" for v in seen.values()) and not os.path.exists(marker),
+   "any other value is dropped (%d kinds: an old name, another port, a path, a command), and nothing runs%s"
+   % (len(crafted), "" if all(v == "" for v in seen.values()) else ": " + repr(seen)))
+domains = {"buzz.tail1234.ts.net": "a Tailscale name", "Buzz.example.com": "a capital letter", "buzz_x.example.com": "an underscore"}
+seen = {name: relay_saw("BUZZ_DOMAIN=" + name + "\nBUZZ_ADMIN_HOST=" + name + ":8443\n") for name in domains}
+ok(all(v == "" for v in seen.values()), "an address the gateway treats as Tailscale's gets none (%s)%s"
+   % (", ".join(domains.values()), "" if all(v == "" for v in seen.values()) else ": " + repr(seen)))
+second = {admin: relay_saw(page_settings + "BUZZ_DOMAIN=evil.example.com\nBUZZ_ADMIN_HOST=" + admin + "\n")
+          for admin in ("evil.example.com:8443", "buzz.example.com:8443")}
+ok(all(v == "" for v in second.values()),
+   "a second BUZZ_DOMAIN line can't move it or keep it: it's the gateway's address, the first, and the relay's own, the last%s"
+   % ("" if all(v == "" for v in second.values()) else ": " + repr(second)))
+ok(relay_saw("BUZZ_ADMIN_HOST=buzz.example.com:8443\n") == "", "with no address in the settings, there's none")
+extra = with_admin + "".join(n + "=" + v + "\n" for n, v in HOSTILE.items() if n != "BUZZ_ADMIN_HOST")
+ok(relay_saw(extra, {}) == "BUZZ_ADMIN_HOST=buzz.example.com:8443\n",
+   "the settings file can't set the other four: open mode, a token, other operators or the dashboard")
+
+print("== The compose file and the relay's admin settings")
+compose = open(os.path.join(PKG, "docker-compose.yml")).read()
+relay_block = compose.split("\n  relay:\n", 1)[1].split("\n  tailscale:\n", 1)[0]
+environment = relay_block.split("\n    environment:\n", 1)[1].split("\n    volumes:\n", 1)[0]
+ok(not any(n in environment for n in ADMIN_NAMES), "the relay's environment in the compose file sets none of " + ", ".join(ADMIN_NAMES))
+ok(all(compose.count(n) == script.count(n) for n in ADMIN_NAMES), "and only the relay's own script names them, no other service")
+load_list = reader.split("case ", 1)[1].split("\n", 2)[1]
+unset_line = next(line for line in script.splitlines() if line.startswith("unset BUZZ_ADMIN_HOST"))
+ok("|BUZZ_ADMIN_HOST)" in load_list and not any(n in load_list for n in ADMIN_NAMES[1:]) and all(n in unset_line for n in ADMIN_NAMES),
+   "its settings reader takes BUZZ_ADMIN_HOST alone of them, after unsetting all five")
 
 print("== The gateway's address")
 bin_dir = d + "/bin"

@@ -1,0 +1,115 @@
+# The setup page's next image (1.1.0, not published): the cert.pem upload and owner moderation.
+# On an Apple Silicon Mac, Docker Desktop, no umbrelOS, no cost. The page from this checkout; relay 0.3.0's
+# image and the package's other images as pinned. The mocked suites' summary lines, then check.py on a
+# fresh up.sh run, removed afterwards with down.sh. A run earlier the same evening, during a network
+# outage, failed check.py's three Tailscale sign-in checks: the Tailscale machine couldn't resolve
+# Tailscale's login server. This run, with the network back, passed them.
+
+$ python3 tests/umbrel/local/render.py
+rendered 1067 page states without errors
+
+$ docker run --rm -v "$PWD:/repo:ro" -w /repo python:3.13.16-alpine3.24 python3 tests/umbrel/local/render.py   # the image's Python, on Linux
+rendered 1067 page states without errors
+
+$ python3 tests/umbrel/local/security.py
+passed: 103  failed: 0
+
+# The same, against 10 changed copies of the relay's entrypoint (the dashboard or open mode left set, each
+# part of the admin host's guard taken out, BUZZ_ADMIN_AUTH readable from the settings or set in the
+# compose file): each copy made it fail.
+
+$ python3 tests/umbrel/local/cloudflare.py
+passed: 60  failed: 0
+
+# preview.py, each of its 11 scenarios on its own port, its page and status.json fetched, and what the
+# moderation scenarios should show
+passed: 11  failed: 0
+
+$ bash tests/umbrel/local/up.sh && python3 tests/umbrel/local/check.py
+== Sign-in
+PASS  the page sends a visitor without a session to sign in
+PASS  status.json refuses a visitor without a session (HTTP 401)
+== Another app on the same Docker network, going around Umbrel's proxy
+PASS  a direct request from another container can't save settings or read status (HTTP 401 401)
+PASS  nothing was saved by that request
+PASS  a wrong password is refused
+PASS  the app password signs in and sets a session cookie
+PASS  the session cookie is HttpOnly
+PASS  a form posted from another app's page on the same Umbrel is refused (HTTP 403)
+PASS  the page's own forms pass whatever Host the proxy forwards (reached validation)
+== Setup
+PASS  signed in, the page shows the setup steps
+PASS  creating without the acknowledgement is refused
+PASS  a bad public ID is refused
+PASS  a home-network-only name is refused
+PASS  the owner and the domain are saved (HTTP 303)
+PASS  the relay starts with the saved address (NIP-11 answers for buzz-one.local-test.invalid)
+PASS  the relay's owner is the page's owner
+PASS  phone notifications are on by default (NIP-11 offers buzz-push-v1)
+PASS  the page shows the Cloudflare steps, and that the name doesn't resolve
+PASS  the page gives the tunnel's service URL
+PASS  the app's own Cloudflare tunnel waits for a sign-in, with Cloudflare's link
+PASS  the page shows that sign-in link
+== Persistence across a restart of every container
+PASS  the relay comes back with the same identity
+PASS  the owner survives the restart
+PASS  the session survives the restart and the page remembers the setup
+== Phone notifications
+PASS  turning phone notifications off is saved
+PASS  the relay restarts without them
+PASS  the page shows them off
+== Changing the owner
+PASS  the new owner is saved
+PASS  the relay's owner is the new one
+PASS  the previous owner is now an admin
+PASS  phone notifications stay off through the owner change
+PASS  turning them back on offers them again
+== Changing the address, guarded
+PASS  a change without typing the current address is refused
+PASS  typing the current address confirms the change, with the new address in the two boxes
+PASS  the new address is a separate community: the owner, and none of the old members
+PASS  switching back to the first address brings its community back, admin included
+== The Tailscale modes, up to the sign-in
+PASS  choosing the free Tailscale address starts Tailscale in Funnel mode
+PASS  and turns the Cloudflare tunnel off: it waits, with no sign-in running
+PASS  Tailscale is waiting for a sign-in, with a link
+PASS  the page shows that sign-in link
+PASS  the relay waits: no address until Tailscale names the machine
+PASS  with no address to type, a change needs the box ticked
+PASS  with no address yet, switching to the private network needs only the acknowledgement
+PASS  going back to the domain turns Tailscale off
+PASS  and the first address's community is back
+PASS  Tailscale stopped and cleared its state for the page
+PASS  switching to Tailscale again starts it again, with a sign-in link (private network)
+PASS  the page shows the private network's sign-in step
+== A sign-in Cloudflare saved as a file, uploaded
+PASS  the service's own check, in the real image, takes exactly the 14 made-up files the page takes, of 57
+PASS  back on the domain, the page takes a sign-in file while the service waits (HTTP 303)
+PASS  within seconds the real service took it: the upload is gone and the tunnel moved on (error)
+PASS  it's the service's cert.pem, byte for byte as uploaded, mode 600, owned by the app's user (600 1000)
+PASS  Cloudflare refuses the made-up token, and the page offers Sign in to Cloudflare again
+PASS  the reset deletes that sign-in and starts a new one, with a new link
+== Moderation: the relay's admin API at buzz-one.local-test.invalid:8443, from the real image
+PASS  a test owner whose key is held here becomes the owner
+PASS  moderation is off by default: no admin API advertised, and none at buzz-one.local-test.invalid:8443
+PASS  the page turns it on: its line in the relay's settings
+PASS  the relay restarts with it, and its NIP-11 advertises admin_api https://buzz-one.local-test.invalid:8443
+PASS  the relay process has that alone: no open mode, no other operators, no browser dashboard (BUZZ_ADMIN_HOST=buzz-one.local-test.invalid:8443)
+PASS  through the gateway, buzz-one.local-test.invalid:8443 is the relay's admin host: 404 with its own security policy (HTTP 404)
+PASS  a browser there gets no page: the dashboard is off (HTTP 404)
+PASS  an unsigned request to the admin API is refused (HTTP 401)
+PASS  another key's signature is refused (HTTP 403)
+PASS  the owner's signature gets in: the operator, as the relay's owner (HTTP 200)
+PASS  the same signature sent for the community's own address is refused (HTTP 403)
+PASS  a member posts (HTTP 200, 200)
+PASS  the owner bans the member through the admin API (HTTP 200)
+PASS  the banned member's posts are refused: banned from this community
+PASS  the page turns it off: the line goes, and setup.json keeps "moderation": false
+PASS  the relay restarts without it: no admin API advertised
+PASS  and none at buzz-one.local-test.invalid:8443, for the owner either
+PASS  the ban holds with moderation off
+PASS  after an owner change it stays on, and the previous owner's signature is refused (HTTP 403)
+PASS  choosing a Tailscale option turns it off
+PASS  and back on the domain, it stays off
+
+passed: 75  failed: 0

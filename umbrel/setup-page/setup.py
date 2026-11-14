@@ -1044,6 +1044,9 @@ dl.values dd { margin: 0; display: flex; align-items: center; gap: 8px; flex-wra
 .copy-mini:hover { border-color: var(--ink); color: var(--ink); }
 """
 
+# Buzz's drawn screens and the live page's guide. The stepper's count, title and buttons line up on the title's first
+# line, the buttons at the top of their row: on a phone a drawing's title can wrap to more lines than the next one's,
+# and buttons centered on it would move.
 HOW_STYLE = """
 details.how { margin-top: 12px; }
 details.alt { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -1053,7 +1056,6 @@ details.how > summary:hover { border-color: var(--ink); }
 details.how[open] > summary { background: var(--chip); }
 .note { margin-top: 12px; font-size: 14px; color: var(--ink-2); }
 .next { --w: calc(min(1000px, 100vw) - 2 * clamp(16px, 4vw, 32px)); width: var(--w); margin: 52px 0 0 calc((100% - var(--w)) / 2); }
-.next + details.alt { margin-top: 52px; }
 .guide { display: grid; grid-template-columns: minmax(0, 1fr); margin-top: 14px; border: 1px solid var(--line-2); border-radius: 22px; background: #fff; box-shadow: var(--shadow-1); overflow: hidden; }
 .g-nav { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-bottom: 1px solid var(--line); }
 @media (min-width: 880px) { .guide { grid-template-columns: 250px minmax(0, 1fr); } .g-nav { border-bottom: 0; border-right: 1px solid var(--line); } }
@@ -1102,6 +1104,9 @@ details.how[open] > summary { background: var(--chip); }
 .g-pane > .panel { margin-top: 18px; }
 @media (max-width: 560px) { .g-pane { padding: 22px 16px 24px; } }
 .js .g-btns { display: flex; }
+.js .g-row { align-items: flex-start; }
+.js .g-n { display: flex; align-items: center; min-height: 44px; }
+.js .g-t { padding-top: 10px; }
 .js .g-pane + .g-pane { border-top: 0; }
 [data-step="join"] .guide:not(.ready) .g-pane:not(#join), [data-step="invite"] .guide:not(.ready) .g-pane:not(#invite),
 [data-step="safe"] .guide:not(.ready) .g-pane:not(#safe), [data-step="phone"] .guide:not(.ready) .g-pane:not(#phone),
@@ -1280,21 +1285,25 @@ details.how[open] > summary { background: var(--chip); }
 # rule inside .sq so none reaches the rest of the page. The page's own colors stand in for the guide's: --soft for its
 # canvas, and --ink-2 for its fainter text too, which keeps small text at 4.5:1; --ink-3 is for a mark that isn't
 # text. The guide changes to the tall drawing on screens under 520 pixels, where its drawing is under 480 wide; here
-# the drawing's own width decides, so it works in the guide's pane, beside the steps or under them. Each drawing is
-# at least as tall as Buzz's screens in the other steps, so the stepper stays put on a computer, and at a phone's
-# width the lists tighten and long words break before they leave their box. In forced colors a drawing keeps its own,
-# on its own light ground: forced, its SVG text could take the color of the shapes behind it.
+# the drawing's own width decides, so it works in the guide's pane, beside the steps or under them. The tall drawing
+# grows to 360 pixels wide at most, near its own 340, with its labels at its scale. Each drawing is at least as tall as
+# Buzz's screens in the other steps, and the step's two drawings are one height, so the stepper stays put between
+# them: on a computer 340 pixels, and narrower the tall drawing's height with its labels (348 for 340 wide, and the
+# rest of the box, with room for other fonts), or what the lists need on the smallest phones. At a phone's width the
+# lists tighten and long words break before they leave their box. In forced colors a drawing keeps its own, on its
+# own light ground: forced, its SVG text could take the color of the shapes behind it. Only the live page, which has
+# the step, gets these rules.
 SAFE_STYLE = """
 .sq { container: sq / inline-size; }
 .sq svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .sq ul { margin: 0; padding: 0; list-style: none; }
-.sq .sq-fig { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: min(340px, 100cqw * 340 / 560); margin: 0; padding: 16px 16px 18px; border-radius: 22px; background-color: var(--soft); background-image: radial-gradient(circle, rgb(35 30 30 / 7%) 1px, transparent 1px); background-size: 18px 18px; }
+.sq .sq-fig { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: max(306px, min(340px, 100cqw * 340 / 560)); margin: 0; padding: 16px 16px 18px; border-radius: 22px; background-color: var(--soft); background-image: radial-gradient(circle, rgb(35 30 30 / 7%) 1px, transparent 1px); background-size: 18px 18px; }
 .sq .sq-k { display: flex; align-items: center; gap: 9px; margin: 2px 4px 0; font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
 .sq .sq-k i { flex: none; width: 20px; height: 11px; border: 1.3px dashed #a9a917; border-radius: 3px; background: rgb(215 215 46 / 30%); transform: skewX(-24deg); }
 .sq .sq-rec { position: absolute; top: 14px; right: 16px; padding: 3px 10px; border-radius: 999px; background: var(--ink); font: 600 9.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
 .sq .sq-stage, .sq .sq-lists { width: 100%; max-width: 600px; margin: auto; }
 .sq .sq-iso { display: block; width: 100%; height: auto; overflow: visible; }
-.sq .sq-tall { display: none; }
+.sq .sq-tall { display: none; max-width: 360px; margin-inline: auto; }
 .sq .sq-b polygon { stroke: rgb(35 30 30 / 38%); stroke-width: 1.5; stroke-linejoin: round; }
 .sq .sq-floor { fill: rgb(35 30 30 / 3.5%); stroke: rgb(35 30 30 / 34%); stroke-width: 1.3; stroke-dasharray: 5 5; }
 .sq .sq-floor.open { fill: rgb(215 215 46 / 22%); stroke: #a9a917; }
@@ -1311,8 +1320,6 @@ SAFE_STYLE = """
 .sq .sq-dot { fill: var(--ink); stroke: none; }
 .sq .sq-iso text { stroke: none; }
 .sq .sq-note { fill: var(--ink-2); font: 500 11px var(--mono); letter-spacing: 0.02em; text-anchor: middle; }
-.sq .sq-cap { fill: var(--ink); font: 600 14px var(--sans); letter-spacing: -0.015em; text-anchor: middle; }
-.sq .sq-sub { fill: var(--ink-2); font: 10.5px var(--mono); text-anchor: middle; }
 .sq .sq-win { filter: drop-shadow(0 7px 10px rgb(24 20 14 / 9%)); }
 .sq .sq-w-body { fill: #f1f1f2; stroke: #d6d6d9; stroke-width: 1; }
 .sq .sq-w-light { fill: #d5d5d8; stroke: none; }
@@ -1335,6 +1342,9 @@ SAFE_STYLE = """
 .sq .sq-caps p { margin: 0; }
 .sq .sq-caps b { display: block; font-size: 14px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; }
 .sq .sq-caps span { display: block; margin-top: 3px; font: 10.5px/1.4 var(--mono); color: var(--ink-2); }
+.sq .sq-caps-tall { display: none; grid-template-columns: minmax(0, 168fr) minmax(0, 172fr); gap: 0; max-width: 360px; margin-inline: auto; padding-top: 0.143em; font-size: calc(min(100cqw - 32px, 360px) * 14 / 340); }
+.sq .sq-caps-tall b { font-size: 1em; }
+.sq .sq-caps-tall span { margin-top: 0.286em; font-size: 0.75em; }
 .sq .sq-lists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 34px auto; gap: 0 16px; padding-top: 14px; }
 .sq .sq-tray { min-width: 0; padding: 12px 12px 13px; border: 1px solid var(--line-2); border-radius: 16px; background: #fff; box-shadow: 0 1px 2px rgb(24 20 14 / 4%); }
 .sq .sq-h { margin: 0 0 10px; font: 600 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
@@ -1363,15 +1373,18 @@ SAFE_STYLE = """
 .sq-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 @media (forced-colors: active) { .sq .sq-fig { forced-color-adjust: none; } }
 @container sq (max-width: 479px) {
+  .sq .sq-fig { min-height: calc(min(100cqw - 32px, 360px) * 348 / 340 + 84px); }
   .sq .sq-wide, .sq .sq-caps { display: none; }
   .sq .sq-tall { display: block; }
+  .sq .sq-caps-tall { display: grid; }
   .sq .sq-rec { position: static; align-self: flex-end; margin: 8px 4px 0; }
   .sq .sq-lists { gap: 0 10px; }
   .sq .sq-tray { padding: 11px 10px 12px; }
   .sq .sq-tray li { gap: 8px; font-size: 13px; }
 }
 @container sq (max-width: 360px) {
-  .sq .sq-fig { padding: 14px 10px 16px; }
+  .sq .sq-fig { min-height: max(360px, calc((100cqw - 20px) * 348 / 340 + 80px)); padding: 14px 10px 16px; }
+  .sq .sq-caps-tall { font-size: calc((100cqw - 20px) * 14 / 340); }
   .sq .sq-lists { gap: 0 8px; }
   .sq .sq-tray { padding: 11px 8px 12px; }
   .sq .sq-tray li { gap: 6px; font-size: 12px; }
@@ -1558,21 +1571,27 @@ function guide(box) {
     frame.querySelector('[data-go="' + by + '"]').focus();
     if (say) { say.textContent = frame.getAttribute("data-say"); }
   }
-  links.forEach(function (link, i) {
-    link.addEventListener("click", function (event) {
-      event.preventDefault();
-      history.replaceState(null, "", "#" + ids[i]);
-      show(i, 0);
-      // Focus moves to the step, as the link's jump does without scripts
-      panes[i].querySelector("h2").focus();
-    });
+  // Any link to a step, the guide's own or one elsewhere on the page such as Settings, Moderation, opens the step at
+  // its first drawing and moves focus to its heading, as the link's jump does without scripts. Like Next, it puts the
+  // step in the address without a new entry in the history, so Back never opens another step. A link from outside
+  // the guide brings the step into view first.
+  document.addEventListener("click", function (event) {
+    var link = event.target.closest ? event.target.closest('a[href^="#"]') : null;
+    var i = link ? ids.indexOf(link.getAttribute("href").slice(1)) : -1;
+    if (i < 0) { return; }
+    event.preventDefault();
+    history.replaceState(null, "", "#" + ids[i]);
+    show(i, 0);
+    var outside = !box.contains(link);
+    if (outside) { panes[i].scrollIntoView(); }
+    panes[i].querySelector("h2").focus({ preventScroll: outside });
   });
   box.querySelectorAll("[data-go]").forEach(function (button) {
     button.addEventListener("click", function () {
       if (button.getAttribute("aria-disabled") !== "true") { go(Number(button.getAttribute("data-go"))); }
     });
   });
-  // A link to a step from elsewhere on the page, such as Settings, Moderation: focus moves to the step, as with its link
+  // A step's name typed into the address bar opens it the same way
   window.addEventListener("hashchange", function () {
     var i = ids.indexOf(location.hash.slice(1));
     if (i >= 0) { show(i, 0); panes[i].scrollIntoView(); panes[i].querySelector("h2").focus({ preventScroll: true }); }
@@ -1635,13 +1654,14 @@ def esc(text):
     return html.escape(str(text), quote=True)
 
 
-def layout(body, signed_in=True, title="Buzz Relay"):
+def layout(body, signed_in=True, title="Buzz Relay", safety=False):
+    """A page around body. safety: the live page, whose guide has the safety step and needs its drawings' rules."""
     logout = ('<form method="post" action="logout"><button class="link" type="submit">Sign out</button></form>'
               if signed_in else "")
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1"><title>' + esc(title) + "</title>"
-        "<style>" + STYLE + HOW_STYLE + SAFE_STYLE + "</style><script>" + SCRIPT + "</script></head><body>"
+        "<style>" + STYLE + HOW_STYLE + (SAFE_STYLE if safety else "") + "</style><script>" + SCRIPT + "</script></head><body>"
         '<header class="hd"><span class="brand">' + BEE + "<span>Buzz Relay</span></span>" + logout + "</header>"
         "<main>" + body + '<p class="foot">Buzz is open source, from Block: '
         '<a href="https://github.com/block/buzz" target="_blank" rel="noopener">github.com/block/buzz</a>.</p>'
@@ -2155,7 +2175,7 @@ SAY_AGENT = ("Your computer, with your files, keys and logins, set apart by a do
              "a small machine on a yellow floor, where the agent runs with one project.")
 # The bubbles' widths until the script measures their words: wide enough for the fonts the page falls back to without
 # Inter (Avenir Next, Segoe UI, a phone's own), a little roomier than the guide's, which measures Inter
-WIDE_BUBBLES, TALL_BUBBLES = (142, 48), (184, 194)
+WIDE_BUBBLES, TALL_BUBBLES = (142, 48), (184, 48)
 
 
 def agent_wide():
@@ -2166,7 +2186,7 @@ def agent_wide():
     wx, wy, ww, wh = 186, 12, 206, 156
     oy, cy, cx, ex = wy + 59 + 44 + 25, 50 + its // 2, 483 - its * 0.866 - 2, wx + ww + 11
     return ('<svg class="sq-iso sq-wide" viewBox="0 0 ' + js_num(width) + " " + js_num(height) + '" role="img" aria-label="'
-            + SAY_AGENT + '">' + a_floor(mine) + a_laptop(13, 6) + a_badge(10, 70, "folder") + a_badge(42, 76, "key")
+            + esc(SAY_AGENT) + '">' + a_floor(mine) + a_laptop(13, 6) + a_badge(10, 70, "folder") + a_badge(42, 76, "key")
             + a_badge(74, 70, "lock") + no_way_across(170, 10, height - 34, 90)
             + '<text class="sq-note" x="170" y="' + js_num(height - 14) + '">no way across</text>'
             + drawn_window(wx, wy, ww, wh, [
@@ -2181,18 +2201,20 @@ def agent_wide():
 
 def agent_tall():
     """On a narrow drawing the window gets the full width, so its words stay readable. The agent's machine sits under
-    the agent's message, your computer apart beside it, and the labels are drawn in."""
-    width, height, mine, its = 340, 348, 88, 80
+    the agent's message, your computer apart beside it. The guide draws their labels in; here they're the page's text
+    under the drawing (TALL_CAPS), where they wrap instead of running into each other when a reader spaces text out.
+    The drawing stops where the labels start, 311 of the guide's 348."""
+    width, height, mine, its = 340, 311, 88, 80
     c_floor, c_badge, c_agent, _, c_machine = iso_kit(84, 222)
     a_floor, a_badge, _, a_laptop, _ = iso_kit(254, 216)
     wx, wy, ww, wh = 8, 6, 324, 156
     ax, by = wx + 22, wy + wh
     ty, head = by + 12, 222 + its // 2 - 28 - 47
     return ('<svg class="sq-iso sq-tall" viewBox="0 0 ' + js_num(width) + " " + js_num(height) + '" role="img" aria-label="'
-            + SAY_AGENT + '">'
+            + esc(SAY_AGENT) + '">'
             + drawn_window(wx, wy, ww, wh, [
                 dict(av="maya", who="Maya", time="10:02 AM", chip="Ops", text="can you draft the notes?", bw=TALL_BUBBLES[0]),
-                dict(who="Ops", time="10:03 AM", text="On it. Working from the app repo.", bw=TALL_BUBBLES[1])])
+                dict(who="Ops", time="10:03 AM", text="On it.", bw=TALL_BUBBLES[1])])
             + '<path class="sq-wire" d="M' + js_num(ax) + " " + js_num(by) + "V" + js_num(ty - 6) + "Q" + js_num(ax) + " "
             + js_num(ty) + " " + js_num(ax + 6) + " " + js_num(ty) + "H78Q84 " + js_num(ty) + " 84 " + js_num(ty + 6) + "V"
             + js_num(head) + '"/><circle class="sq-dot" cx="' + js_num(ax) + '" cy="' + js_num(by) + '" r="3"/><circle '
@@ -2200,21 +2222,29 @@ def agent_tall():
             + c_floor(its, True) + c_machine(17, 17) + c_agent(40, 40, 28, 54) + c_badge(72, 10, "folder", True)
             + no_way_across(170, 186, 310, 262)
             + a_floor(mine) + a_laptop(13, 6) + a_badge(10, 70, "folder") + a_badge(42, 76, "key") + a_badge(74, 70, "lock")
-            + '<text class="sq-cap" x="84" y="326">The agent\'s machine</text><text class="sq-sub" x="84" y="341">one project '
-            'only</text><text class="sq-cap" x="254" y="326">Your computer</text><text class="sq-sub" x="254" y="341">your '
-            "files, keys, logins</text></svg>")
+            + "</svg>")
 
 
 def safe_icon(name):
     return '<svg viewBox="0 0 24 24" aria-hidden="true">' + SAFE_ICON[name] + "</svg>"
 
 
+def drawing_caps(cls, caps):
+    """The labels under a drawing of the agent, kept from screen readers: its description says them."""
+    return ('<div class="' + cls + '" aria-hidden="true">'
+            + "".join("<p><b>" + title + "</b><span>" + line + "</span></p>" for title, line in caps) + "</div>")
+
+
+# Under the wide drawing, its three parts; under the tall one, its two, each centered under its part (x 84 and 254 of
+# 340) and at the drawing's scale, as the guide draws them in
+WIDE_CAPS = drawing_caps("sq-caps", [("Your computer", "your files, keys, logins"),
+                                     ("Your community", "the agent sees what is posted"),
+                                     ("The agent's machine", "one project only")])
+TALL_CAPS = drawing_caps("sq-caps sq-caps-tall", [("The agent's machine", "one project only"),
+                                                  ("Your computer", "your files, keys, logins")])
 AGENT_FIG = (
     '<div class="sq"><figure class="sq-fig"><p class="sq-k"><i></i>What the agent can touch</p><span class="sq-rec">'
-    'Recommended</span><div class="sq-stage">' + agent_wide() + agent_tall()
-    + '<div class="sq-caps" aria-hidden="true"><p><b>Your computer</b><span>your files, keys, logins</span></p>'
-    "<p><b>Your community</b><span>the agent sees what is posted</span></p>"
-    "<p><b>The agent's machine</b><span>one project only</span></p></div></div></figure></div>"
+    'Recommended</span><div class="sq-stage">' + agent_wide() + WIDE_CAPS + agent_tall() + TALL_CAPS + "</div></figure></div>"
 )
 
 
@@ -2223,13 +2253,14 @@ def tray_items(items, pub):
                    + text + "</li>" for icon, text in items)
 
 
-# Two lists over one community: what's fine to share flows in, and what to keep out is struck through and stops short
+# Two lists over one community: what's fine to share flows in, and what to keep out is struck through and stops short.
+# Each says it's a list: Safari drops that from a list drawn without bullets.
 NEWCOMER = '<span class="sq-new">' + safe_icon("user") + "</span>"
 OPEN_FIG = (
     '<div class="sq"><figure class="sq-fig"><p class="sq-k"><i></i>What anyone who joins can read</p><div class="sq-lists">'
-    '<div class="sq-tray"><p class="sq-h" id="sq-share">Fine to share</p><ul aria-labelledby="sq-share">'
+    '<div class="sq-tray"><p class="sq-h" id="sq-share">Fine to share</p><ul role="list" aria-labelledby="sq-share">'
     + tray_items([("doc", "Public docs"), ("branch", "Open-source code"), ("horn", "Announcements")], True) + "</ul></div>"
-    '<div class="sq-tray sq-out"><p class="sq-h" id="sq-keep">Keep out</p><ul aria-labelledby="sq-keep">'
+    '<div class="sq-tray sq-out"><p class="sq-h" id="sq-keep">Keep out</p><ul role="list" aria-labelledby="sq-keep">'
     + tray_items([("users", "Customer data"), ("branch", "Private repositories"), ("key", "Keys and logins")], False)
     + '</ul></div><span class="sq-flow" aria-hidden="true"></span><span class="sq-flow sq-stop" aria-hidden="true">'
     '<i class="sq-x">' + safe_icon("x") + '</i></span><p class="sq-room"><span class="sq-faces" aria-hidden="true">'
@@ -2704,9 +2735,9 @@ OPEN_CAPTION = ("If anyone can join, strangers can post, and members can bring t
 PRIVATE_NOTE = ("Anyone in a private channel can add people and agents to it, so keep these channels to people you trust. "
                 "Shared files are different: anyone in the community with a file's link can open it.")
 # While moderation is on, members' private messages aren't private from the owner and the staff they add: the note
-# leads with that
-MODERATED_NOTE = ("While Moderation is on, you and staff you add can open any message stored here by its ID, deleted ones "
-                  "included, even in private channels and direct messages.")
+# leads with that. It names the owner, not "you", since the owner shares these notes with members.
+MODERATED_NOTE = ("While Moderation is on, the owner and the staff they add can open any message stored here by its ID, "
+                  "deleted ones included, even in private channels and direct messages.")
 INVITE_NOTE = ("A new link works for 3 days with no limit on uses unless you change it, and for 30 days at most. You can't "
                "cancel a link yet, and someone you remove can rejoin with a link that still works.")
 # A ban covers one identity and the agents it brings; links can't be canceled, so a person can come back
@@ -2723,14 +2754,15 @@ def safe_steps():
 
 def safe_notes(setup):
     """Under the safety step's drawings: private channels and invite links, and bans where moderation can be on, the
-    owner's own domain. While it's on, the first note says who can read private messages, and the last how to ban."""
+    owner's own domain. While it's on, the first note says who can read private messages, and the last how to ban.
+    It says it's a list, for Safari, as the drawing's lists do."""
     on = moderation_on(setup)
     notes = [("lock", "Private channels.", (MODERATED_NOTE + " " if on else "") + PRIVATE_NOTE),
              ("link", "Invite links.", INVITE_NOTE)]
     if setup["mode"] == "domain":
         notes.append(("ban", "Bans.", BAN_NOTE[on]))
     return (
-        '<div class="g-foot"><ul class="g-notes">' + "".join(
+        '<div class="g-foot"><ul class="g-notes" role="list">' + "".join(
             '<li><span class="g-ni">' + ti(icon) + "</span><p><b>" + lead + "</b> " + text + "</p></li>"
             for icon, lead, text in notes)
         + '</ul><p class="muted small">Share these with your members. <a href="' + SELF_HOST_SECURITY + '" target="_blank" '
@@ -2836,13 +2868,14 @@ STAFF_RETURN = ("Staff added before get their access back when you turn it on. "
 
 def moderation_points(domain, live):
     """What turning moderation on means, for the owner. Members learn who can read their private messages from the
-    guide's safety step, which a live page has above Settings."""
-    share = ('The <a href="#safe">Keep it safe</a> step above says it, so share it.' if live else
-             "Once your community is live, the Keep it safe step on this page says it, so share it.")
+    Private channels note in the guide's safety step, which a live page has above Settings, while moderation is on."""
+    share = ('While Moderation is on, the Private channels note in <a href="#safe">Keep it safe</a> above says it.' if live
+             else "Once your community is live, the Private channels note in the Keep it safe step says it while "
+             "Moderation is on.")
     return (
         "<ul><li>You, and staff you add in Buzz, can read reports, with who sent them, and the feedback members send. "
         "You and your staff can also open any message stored here by its ID, deleted ones included, even in private "
-        "channels and direct messages. Members don't see this in Buzz. " + share + "</li>"
+        "channels and direct messages. Members don't see this in Buzz, so tell them. " + share + "</li>"
         "<li>Moderation gets its own address on the internet, <code>" + esc(admin_origin(domain)) + "</code>. It "
         "accepts only requests signed by you or your staff.</li>"
         "<li>A ban keeps one identity out of this community, and the agents that join through it. It can't rejoin "
@@ -2980,7 +3013,7 @@ def main_page(setup, error="", values=None):
         + copy_button("https://" + domain, "Copy", "btn") + "</div>"
         + status + guide_part(setup, domain)
     )
-    return layout(body + settings_part(setup, error, values, live))
+    return layout(body + settings_part(setup, error, values, live), safety=True)
 
 
 # The safety drawings' people and agent, each drawn once and used wherever it shows: #sq-maya and #sq-leo, cut round,

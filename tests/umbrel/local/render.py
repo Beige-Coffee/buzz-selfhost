@@ -33,7 +33,7 @@ GUIDE_FRAMES = {"join": (("Open Join a community", '<p class="on">', "If Buzz op
                             "Anyone with the link can join until it expires or runs out of uses.")),
                 "safe": (("Give each agent its own machine", '<svg class="sq-iso sq-wide" viewBox="0 0 560 204" role="img"',
                           "Run agents on a separate computer with nothing private on it"),
-                         ("Treat an open community as public", '<ul aria-labelledby="sq-share">',
+                         ("Treat an open community as public", '<ul role="list" aria-labelledby="sq-share">',
                           "Keep private work, personal details and passwords out.")),
                 "phone": (("Scan the code", "Copy pairing code", "choose <b>Add Community</b> in its community switcher"),
                           ("Check the code", 'dark hot">Codes match</span>', "type the six digits your computer shows"))}
@@ -54,8 +54,9 @@ OPEN_CAPTION = ("If anyone can join, strangers can post, and members can bring t
                 "details and passwords out.")
 PRIVATE_NOTE = ("Anyone in a private channel can add people and agents to it, so keep these channels to people you trust. "
                 "Shared files are different: anyone in the community with a file's link can open it.")
-MODERATED_NOTE = ("While Moderation is on, you and staff you add can open any message stored here by its ID, deleted ones "
-                  "included, even in private channels and direct messages. " + PRIVATE_NOTE)
+# Members read the notes too, so the moderated one names the owner, not "you"
+MODERATED_NOTE = ("While Moderation is on, the owner and the staff they add can open any message stored here by its ID, "
+                  "deleted ones included, even in private channels and direct messages. " + PRIVATE_NOTE)
 INVITE_NOTE = ("A new link works for 3 days with no limit on uses unless you change it, and for 30 days at most. You can't "
                "cancel a link yet, and someone you remove can rejoin with a link that still works.")
 BAN_NOTES = {False: "To keep an identity out, turn on Moderation in Settings, then ban it in Buzz on a computer. The same "
@@ -66,10 +67,30 @@ SHARE = ('<p class="muted small">Share these with your members. <a href="https:/
          'rel="noopener">More on security in the self-hosting guide</a></p>')
 NOTE = re.compile(r'<li><span class="g-ni">(<svg class="tb-i" viewBox="0 0 24 24" aria-hidden="true">.*?</svg>)</span>'
                   r'<p><b>([^<]*)</b> (.*?)</p></li>')
-# Settings, Moderation: who can read private messages, which the safety step says on a live page
-SHARE_LIVE = 'Members don\'t see this in Buzz. The <a href="#safe">Keep it safe</a> step above says it, so share it.'
-SHARE_LATER = ("Members don't see this in Buzz. Once your community is live, the Keep it safe step on this page says it, so "
-               "share it.")
+# What the drawing of the agent says to screen readers, wide or tall, and its labels: under the wide drawing its three
+# parts, under the tall one its two. The words drawn in each, in order: the line nothing crosses on the wide one, then
+# the Buzz window, where Ops answers the same in both.
+SAY_AGENT = ("Your computer, with your files, keys and logins, set apart by a dotted line that nothing crosses. Beside it, a "
+             "Buzz window: Maya asks the agent Ops to draft the notes, and Ops answers. A line runs from the agent's message to "
+             "a small machine on a yellow floor, where the agent runs with one project.")
+WIDE_LABELS = [("Your computer", "your files, keys, logins"), ("Your community", "the agent sees what is posted"),
+               ("The agent's machine", "one project only")]
+TALL_LABELS = [("The agent's machine", "one project only"), ("Your computer", "your files, keys, logins")]
+
+
+def window(ask):
+    return ["release", "Open community", "Maya", "10:02 AM", "Ops", ask, "Ops", "10:03 AM", "On it."]
+
+
+WINDOW_TEXTS = {"wide": ["no way across"] + window("draft the notes?"), "tall": window("can you draft the notes?")}
+# Settings, Moderation: who can read private messages, which the safety step's Private channels note says while it's on
+SHARE_LIVE = ('Members don\'t see this in Buzz, so tell them. While Moderation is on, the Private channels note in <a href="#safe">'
+              'Keep it safe</a> above says it.')
+SHARE_LATER = ("Members don't see this in Buzz, so tell them. Once your community is live, the Private channels note in the "
+               "Keep it safe step says it while Moderation is on.")
+# texts the reviews replaced: "you" in a note members read, the line to share it, and a reply about the code the caption
+# says to keep from agents
+REPLACED = ("you and staff you add can open", "says it, so share it", "Working from the app repo")
 # The invite caption keeps Add member for a public ID; the pairing caption has both ways the phone checks the code, the
 # protect prompt's three buttons and Skip, and then, on the computer, Codes match
 INVITE_ADD = "paste someone's public ID under <b>Add directly</b> and choose <b>Add member</b>, then send them the address."
@@ -133,16 +154,21 @@ def check_safe(page, pane, mode, moderation):
     assert page.count('id="sq-round"') == 1 and page.count('clip-path="url(#sq-round)"') == 2
     drawings, foot = pane[:pane.index('<div class="g-foot">')], pane[pane.index('<div class="g-foot">'):]
     agent, public = drawings.split('<div class="g-frame" ')[1:]
-    # What an agent can touch: a picture with its description, wide and tall, the labels under the wide one kept from
-    # screen readers since the description says them
-    say = 'role="img" aria-label="' + m.SAY_AGENT + '"'
+    # What an agent can touch: a picture with its description, wide and tall, and the labels under each kept from screen
+    # readers, since the description says them. The tall one's are the page's text too, not drawn in, so they wrap
+    # when a reader spaces text out; its drawing stops where they start.
+    say = 'role="img" aria-label="' + html.escape(SAY_AGENT) + '"'
     assert agent.count(say) == 2 and '<svg class="sq-iso sq-wide" viewBox="0 0 560 204" ' + say in agent
-    assert '<svg class="sq-iso sq-tall" viewBox="0 0 340 348" ' + say in agent
+    assert '<svg class="sq-iso sq-tall" viewBox="0 0 340 311" ' + say in agent
     assert '<p class="sq-k"><i></i>What the agent can touch</p><span class="sq-rec">Recommended</span>' in agent
-    assert '<div class="sq-caps" aria-hidden="true"><p><b>Your computer</b>' in agent
+    svgs = {kind: svg for svg, kind in re.findall(r'(<svg class="sq-iso sq-(wide|tall)" .*?</svg>)', agent)}
+    assert {key: re.findall(r">([^<>]+)<", svg) for key, svg in svgs.items()} == WINDOW_TEXTS, svgs.keys()
+    caps = re.findall(r'<div class="(sq-caps(?: sq-caps-tall)?)" aria-hidden="true">(.*?)</div>', agent)
+    assert [(kind, re.findall(r"<p><b>([^<]*)</b><span>([^<]*)</span></p>", body)) for kind, body in caps] == [
+        ("sq-caps", WIDE_LABELS), ("sq-caps sq-caps-tall", TALL_LABELS)], caps
     assert agent.endswith('<p class="muted small g-cap">' + AGENT_CAPTION + "</p></div>")
-    # What anyone who joins can read: two lists, each named by its heading
-    lists = re.findall(r'<p class="sq-h" id="([\w-]+)">([^<]*)</p><ul aria-labelledby="([\w-]+)">(.*?)</ul>', public)
+    # What anyone who joins can read: two lists, each named by its heading, and a list in Safari too
+    lists = re.findall(r'<p class="sq-h" id="([\w-]+)">([^<]*)</p><ul role="list" aria-labelledby="([\w-]+)">(.*?)</ul>', public)
     assert [(label, heading, named == label) for label, heading, named, _ in lists] == [
         ("sq-share", "Fine to share", True), ("sq-keep", "Keep out", True)]
     assert [re.findall(r"</span>([^<]+)</li>", items) for _, _, _, items in lists] == [
@@ -155,12 +181,26 @@ def check_safe(page, pane, mode, moderation):
     if mode == "domain":
         notes.append(("ban", "Bans.", BAN_NOTES[on]))
     assert NOTE.findall(foot) == [(m.ti(icon), lead, text) for icon, lead, text in notes], (mode, moderation)
-    assert foot.startswith('<div class="g-foot"><ul class="g-notes"><li>') and foot.endswith("</li></ul>" + SHARE + "</div>")
+    assert foot.startswith('<div class="g-foot"><ul class="g-notes" role="list"><li>') and foot.endswith("</li></ul>" + SHARE + "</div>")
+
+
+def check_own(page):
+    """The page loads nothing from another host: no src= that names one, no stylesheet or @import, every url() one of its
+    own #ids, and in its SVGs every href one of its own #ids or the agent's picture, written into the page."""
+    sources = re.findall(r"""\ssrc\s*=\s*["']?([^"'\s>]*)""", page, re.I)
+    assert not [s for s in sources if re.match(r"([a-z][a-z0-9+.-]*:|//)", s, re.I)], sources
+    assert "<link" not in page.lower() and "@import" not in page.lower()
+    urls = re.findall(r"url\(\s*['\"]?([^)'\"]*)", page, re.I)
+    assert urls and all(url.startswith("#") for url in urls), urls
+    hrefs = [href for svg in re.findall(r"<svg\b.*?</svg>", page, re.S | re.I)
+             for href in re.findall(r"""[\s:]href\s*=\s*["']?([^"'\s>]*)""", svg, re.I)]
+    assert hrefs and all(href.startswith(("#", "data:image/webp;base64,")) for href in hrefs), [h[:40] for h in hrefs]
 
 
 def check_guide(page, mode, domain, push, moderation):
     """The live page's guide: four steps in order, each with two drawings, a stepper and its own notes. Returns the
     number of steps and drawings checked."""
+    check_own(page)
     guide = section(page, '<section class="next">', 'aria-live="polite"></p></div></section>')
     nav = section(guide, '<nav class="g-nav" aria-label="Next steps">', "</nav>")
     # the steps, in order, as links that work without scripts; none is current until the script picks one
@@ -245,17 +285,30 @@ for name, least in (("ink-2", 4.5), ("ink-3", 3)):
 assert sorted(sel.strip() for sel, body in re.findall(r"([^{}]+)\{([^{}]*)\}", style) if "var(--ink-3)" in body) == [
     ".bar .work .tr", ".opt:has(input:disabled) :is(b, small)", ".set-card details > summary::after", ".sq .sq-new"]
 # The safety drawings' rules: every one inside .sq, where they are, but the hidden symbols' own; the page's colors, none
-# of their own; the tall drawing below 480 pixels of the drawing's width, as the guide has it on a phone; and at least
-# as tall as Buzz's screens, which are 340 pixels at 560 wide and scale down with the width
+# of their own; the tall drawing below 480 pixels of the drawing's width, as the guide has it on a phone, with its
+# labels, near its own width at most; and at least as tall as Buzz's screens, which are 340 pixels at 560 wide and scale
+# down with the width. Narrower, both drawings get the tall one's height with its labels (348 for 340 wide, and the
+# rest of the box), and no less than the lists need on the smallest phones, so the stepper stays put between them.
 safe = re.sub(r"@container sq \([^)]*\) \{|\n\}", "", m.SAFE_STYLE)
 loose = [sel.strip() for sel, _ in re.findall(r"([^{}]+)\{([^{}]*)\}", safe) if sel.strip() != ".sq-defs"
          and not all(part.strip().startswith(".sq ") or part.strip() == ".sq" for part in sel.split(","))]
 assert safe.count("{") > 80 and not loose, loose
 tokens = set(re.findall(r"--([\w-]+):", m.STYLE.split("}")[0]))
 assert not re.search(r"--[\w-]+:", m.SAFE_STYLE) and set(re.findall(r"var\(--([\w-]+)\)", m.SAFE_STYLE)) <= tokens
-assert "@container sq (max-width: 479px) {\n  .sq .sq-wide, .sq .sq-caps { display: none; }\n  .sq .sq-tall { display: block; }" in m.SAFE_STYLE
-assert "min-height: min(340px, 100cqw * 340 / 560);" in section(m.SAFE_STYLE, ".sq .sq-fig {", "}")
+assert ("@container sq (max-width: 479px) {\n  .sq .sq-fig { min-height: calc(min(100cqw - 32px, 360px) * 348 / 340 + 84px); }\n"
+        "  .sq .sq-wide, .sq .sq-caps { display: none; }\n  .sq .sq-tall { display: block; }\n"
+        "  .sq .sq-caps-tall { display: grid; }") in m.SAFE_STYLE
+assert ("@container sq (max-width: 360px) {\n  .sq .sq-fig { min-height: max(360px, calc((100cqw - 20px) * 348 / 340 + 80px)); "
+        "padding: 14px 10px 16px; }\n  .sq .sq-caps-tall { font-size: calc((100cqw - 20px) * 14 / 340); }") in m.SAFE_STYLE
+assert "min-height: max(306px, min(340px, 100cqw * 340 / 560));" in section(m.SAFE_STYLE, ".sq .sq-fig {", "}")
+assert ".sq .sq-tall { display: none; max-width: 360px; margin-inline: auto; }" in m.SAFE_STYLE
+# the tall drawing's labels at its scale, each centered under its part (x 84 and 254 of 340)
+assert ("grid-template-columns: minmax(0, 168fr) minmax(0, 172fr); gap: 0; max-width: 360px; margin-inline: auto; "
+        "padding-top: 0.143em; font-size: calc(min(100cqw - 32px, 360px) * 14 / 340);") in section(m.SAFE_STYLE, ".sq .sq-caps-tall {", "}")
 assert "height: calc(340px * var(--s));" in section(style, ".mb-stage {", "}")
+# The stepper's count, title and buttons line up on the title's first line, so buttons don't move with a title that wraps
+assert ".js .g-row { align-items: flex-start; }\n.js .g-n { display: flex; align-items: center; min-height: 44px; }\n.js .g-t { padding-top: 10px; }" in style
+assert ".next + details.alt" not in style
 # A focus ring the card's rounded edge doesn't clip, a count that stays whole, a faded icon but not its button's ring,
 # the problem mark's "!" kept from screen readers, copy buttons only with scripts, and the current step in forced colors
 assert ".set-card summary:focus-visible { outline-offset: -3px; border-radius: 12px; }" in style
@@ -295,6 +348,8 @@ for mode in ("domain", "funnel", "private"):
                 for values in forms + (({"form": "cert"},) if mode == "domain" else ()):
                     page = m.main_page(setup, "an error" if values else "", values)
                     assert "<main>" in page and "Traceback" not in page
+                    # the safety drawings' rules only on the page with the step, and none of the texts the reviews replaced
+                    assert (m.SAFE_STYLE in page) == live and not [old for old in REPLACED if old in page]
                     assert ((NOTIFY_ON if push else NOTIFY_OFF) in page) == live
                     assert ('href="buzz://connect?relay=wss%3A%2F%2F' + domain + '"') in page or not (live and named)
                     # Live: the checks as a card, then the next steps as a guide. Connecting: the checks as a bar.
@@ -356,15 +411,17 @@ for mode in ("domain", "funnel", "private"):
                     address_form = section(page, 'action="address"', "</form>")
                     assert all((line in address_form) == on for line in ADDRESS_LINES), (mode, moderation)
                     # The safety step, on the live page alone: on the owner's own domain, Moderation's row says who can read
-                    # private messages and sends the owner to the step, to share it, or says it will be there once live
+                    # private messages, to tell members, and points to the step's Private channels note, which says it
+                    # while moderation is on, or says the note will once the community is live
                     assert ('<section class="g-pane" id="safe">' in page) == ('<a class="g-step" href="#safe">' in page) == live
                     if mode == "domain" and POINTS in row:
                         assert (SHARE_LIVE in row) == live and (SHARE_LATER in row) == (not live), (live, moderation)
                     assert ('href="#safe"' in row) == (mode == "domain" and live and POINTS in row)
                     count += 1
 for values in ({}, {"owner": "x", "mode": "private", "ack": "yes"}):
-    assert "<main>" in m.setup_page("e", values); count += 1
-assert "<main>" in m.login_page("e"); count += 1
+    page = m.setup_page("e", values)
+    assert "<main>" in page and m.SAFE_STYLE not in page; count += 1
+assert "<main>" in m.login_page("e") and m.SAFE_STYLE not in m.login_page("e"); count += 1
 
 # The status list's moderation row, in each state, and the hint for each kind of answer from moderation's address
 use(tempfile.mkdtemp())

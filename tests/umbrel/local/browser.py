@@ -1,9 +1,10 @@
 """The setup page's scripts in headless Chrome, on the page's previews (preview.py), with nothing real behind them:
 the guide's stepper across its four steps and at its ends, a step opened by the address, the step drawn before the
-script runs, a step's link moving focus to it, the safety step's drawings and notes on each option, the 5-second
-refresh keeping an open list open and focus where it was and saying what changed, the private network's device check
-against answers held back and let through in a chosen order, a new phase keeping the reader's step, and the page
-without scripts, where every drawing fits from a computer's width to a phone's.
+script runs, a step's link moving focus to it, the safety step's drawings and notes on each option, its stepper
+staying put on a phone, Moderation's link to it and Back after that link, the 5-second refresh keeping an open list
+open and focus where it was and saying what changed, the private network's device check against answers held back
+and let through in a chosen order, a new phase keeping the reader's step, and the page without scripts, where every
+drawing fits from a computer's width to a phone's.
 
 Chrome runs over a pipe, with no port, and every name but 127.0.0.1 fails to resolve, so nothing leaves this machine.
 The page's 5-second refresh and the device check's 6-second limit are held, and fired by the test, and the device
@@ -494,7 +495,7 @@ SAFE = """(() => {
   const svgs = [...pane.querySelectorAll(".sq-iso")].filter(shown);
   return {
     figs: figs.length, agent: svgs.map((s) => s.classList.contains("sq-wide") ? "wide" : "tall").join(),
-    caps: [...pane.querySelectorAll(".sq-caps")].filter(shown).length,
+    caps: [...pane.querySelectorAll(".sq-caps")].filter(shown).map((c) => c.children.length).join(),
     scale: Math.min(...svgs.map((s) => Math.round(s.getBoundingClientRect().width / s.viewBox.baseVal.width * 100) / 100)),
     cropped: figs.filter((f) => [...f.querySelectorAll(".sq-k, .sq-rec, .sq-iso, .sq-caps, .sq-tray, .sq-room")].filter(shown)
       .some((el) => !inside(el, f))).length + [...pane.querySelectorAll(".sq-tray, .sq-tray li, .sq-room, .g-notes p")]
@@ -513,11 +514,42 @@ SAFE = """(() => {
   };
 })()"""
 
+# The safety step's drawing that shows, whether it's the tall one, and where it and the stepper's buttons are in the page
+PLACES = """(() => {
+  const frame = [...document.querySelectorAll("#safe .g-frame")].find((f) => !f.hidden), fig = frame.querySelector(".sq-fig");
+  const top = (el) => Math.round((el.getBoundingClientRect().top + scrollY) * 10) / 10;
+  return { tall: [...frame.querySelectorAll(".sq-tall")].some((s) => getComputedStyle(s).display !== "none"),
+    at: [top(fig), Math.round(fig.getBoundingClientRect().height * 10) / 10].concat([...frame.querySelectorAll("[data-go]")].map(top)) };
+})()"""
+
+# WCAG 1.4.12's text spacing, as a reader's style sheet would set it
+SPACING = """(() => { const s = document.createElement("style"); s.textContent = "* { line-height: 1.5 !important; "
+  + "letter-spacing: 0.12em !important; word-spacing: 0.16em !important; } p { margin-bottom: 2em !important; }";
+  document.head.appendChild(s); })()"""
+
+# The tall drawing's labels as they show: each one's words, any two that meet, any outside the drawing, and whether any wraps
+LABELS = """(() => {
+  const shown = (el) => getComputedStyle(el).display !== "none" && !el.closest("[hidden]");
+  const fig = [...document.querySelectorAll("#safe .sq-fig")].find(shown), caps = fig && fig.querySelector(".sq-caps-tall");
+  if (!caps || !shown(caps)) { return null; }
+  const boxes = [...caps.querySelectorAll("b, span")].map((el) => { const r = document.createRange(); r.selectNodeContents(el);
+    const b = r.getBoundingClientRect();
+    return { text: el.textContent, left: b.left, right: b.right, top: b.top, bottom: b.bottom, lines: r.getClientRects().length }; });
+  const f = fig.getBoundingClientRect();
+  const meet = (a, b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+  return {
+    boxes: boxes.map((b) => b.text + ": " + Math.round(b.left) + "-" + Math.round(b.right) + " x " + Math.round(b.top) + "-" + Math.round(b.bottom)),
+    overlaps: boxes.flatMap((a, i) => boxes.slice(i + 1).filter((b) => meet(a, b)).map((b) => a.text + " / " + b.text)),
+    outside: boxes.filter((b) => b.left < f.left - 0.5 || b.right > f.right + 0.5 || b.bottom > f.bottom + 0.5).map((b) => b.text),
+    wrapped: boxes.some((b) => b.lines > 1),
+  };
+})()"""
+
 
 def safety_step(chrome):
     """The safety step with scripts: its drawings as tall as Buzz's screens on a computer, so the stepper stays put, each
     chat bubble as wide as its words, the people and the agent drawn, the tall drawing once the window is a phone's,
-    and the notes on each option."""
+    both drawings one height there too, its labels with text spaced out, and the notes on each option."""
     page = Page(chrome)
     page.goto(LIVE + "#safe")
     agent = page.eval(SAFE)
@@ -525,7 +557,7 @@ def safety_step(chrome):
     public = page.eval(SAFE)
     # Buzz's screens are 340 pixels tall at 560 wide or more, and scale down with the width
     screen = round(340 * min(1, agent["width"] / 560))
-    ok(agent["agent"] == "wide" and agent["caps"] == 1 and agent["heights"] == [screen] and public["heights"] == [screen]
+    ok(agent["agent"] == "wide" and agent["caps"] == "3" and agent["heights"] == [screen] and public["heights"] == [screen]
        and agent["drawn"] and public["drawn"] and agent["cropped"] == public["cropped"] == 0,
        "on a computer, each drawing is as tall as Buzz's screens in the other steps (%d pixels), with the people and the "
        "agent drawn and nothing outside it" % screen, (agent, public))
@@ -535,10 +567,33 @@ def safety_step(chrome):
     page.call("Emulation.setDeviceMetricsOverride", {"width": 375, "height": 812, "deviceScaleFactor": 1, "mobile": True})
     page.eval("document.querySelector('#safe .g-frame [data-go=\"-1\"]').click()")
     narrow = page.wait("(() => { const s = %s; return s.agent === 'tall' && s; })()" % SAFE)
-    ok(narrow and narrow["caps"] == 0 and narrow["scale"] >= 0.8 and narrow["cropped"] == 0 and narrow["drawn"]
+    ok(narrow and narrow["caps"] == "2" and narrow["scale"] >= 0.8 and narrow["cropped"] == 0 and narrow["drawn"]
        and len(narrow["bubbles"]) == 2 and all(abs(gap) < 0.6 for gap in narrow["bubbles"]),
-       "at a phone's width the tall drawing shows, at %s of its size, with its bubbles fitted to their words" % (narrow or {}).get("scale"),
-       narrow)
+       "at a phone's width the tall drawing shows, at %s of its size, with its two labels and its bubbles fitted to their "
+       "words" % (narrow or {}).get("scale"), narrow)
+    page.close()
+    # On a phone both drawings are one height, the tall one's, so the stepper's buttons stay put between them: the
+    # drawing's top and the buttons' tops in the page, and the drawing's height
+    steady = {}
+    for width in (375, 540):
+        page = Page(chrome, width=width, height=900)
+        page.goto(LIVE + "#safe")
+        first = page.eval(PLACES)
+        page.eval("document.querySelector('#safe .g-frame [data-go=\"1\"]').click()")
+        steady[width] = (first, page.eval(PLACES))
+        page.close()
+    ok(all(a["tall"] and not b["tall"] and a["at"] == b["at"] for a, b in steady.values()),
+       "at 375 and 540 pixels the tall drawing and the lists are one height, so Previous and Next stay put between them",
+       steady)
+    # Text spaced out as WCAG 1.4.12 lets a reader space it, at a phone's width: the tall drawing's labels wrap in their
+    # halves, and none runs into another or out of the drawing
+    page = Page(chrome, width=375, height=900)
+    page.goto(LIVE + "#safe")
+    page.eval(SPACING)
+    spaced = page.eval(LABELS)
+    ok(spaced and len(spaced["boxes"]) == 4 and not spaced["overlaps"] and not spaced["outside"] and spaced["wrapped"],
+       "with WCAG's text spacing at 375 pixels, the tall drawing's labels wrap under their parts, none running into "
+       "another or out of the drawing", spaced)
     page.close()
     # The notes on each option: bans only on the owner's own domain, moderation's reading leading while it's on, and no
     # first sentence about the internet on the private network
@@ -560,17 +615,44 @@ def safety_step(chrome):
 
 
 def settings_link(chrome):
-    """Moderation's link to the safety step, in Settings: it opens the step in view and moves focus to its heading."""
+    """Moderation's link to the safety step, in Settings: as a step's link, it opens the step at its first drawing, in
+    view, and moves focus to its heading, also when the address is at #safe already, and adds nothing to the history,
+    so Back after it doesn't open the step the address named before."""
+    moderation = ("[...document.querySelectorAll('.set-card details')].find((d) => d.querySelector('summary').textContent"
+                  ".startsWith('Moderation'))")
+    seen = ("(() => { const r = document.getElementById('safe').getBoundingClientRect(); "
+            "return r.top > -1 && r.top < innerHeight; })()")
+    opened = "(() => { const g = %s; return g.at === 'safe:1' && g; })()" % GUIDE
+    # The reader opened Pair your phone with its link, which put #phone in the address, then reached Moderation
     page = Page(chrome)
     page.goto(LIVE)
-    page.eval("[...document.querySelectorAll('.set-card details')].find((d) => d.querySelector('summary').textContent"
-              ".startsWith('Moderation')).open = true")
+    page.click('.g-step[href="#phone"]')
+    page.eval(moderation + ".open = true")
+    before = page.call("Page.getNavigationHistory")["entries"]
     page.click('.set-card a[href="#safe"]')
-    now = page.wait("(() => { const g = %s; return g.at === 'safe:1' && g; })()" % GUIDE)
-    seen = page.eval("(() => { const r = document.getElementById('safe').getBoundingClientRect(); "
-                     "return r.top > -1 && r.top < innerHeight; })()")
-    ok(now and now["hash"] == "#safe" and now["focus"] == "h2@safe" and now["current"] == ["#safe"] and seen,
-       "Moderation's link to the safety step opens it in view and moves focus to its heading", (now, seen))
+    now = page.wait(opened)
+    ok(now and now["hash"] == "#safe" and now["focus"] == "h2@safe" and now["current"] == ["#safe"] and page.eval(seen),
+       "Moderation's link to the safety step opens it in view and moves focus to its heading", now)
+    # Back, as the browser's button goes: to the entry before this one
+    history = page.call("Page.getNavigationHistory")
+    page.call("Page.navigateToHistoryEntry", {"entryId": history["entries"][history["currentIndex"] - 1]["id"]})
+    back = page.wait("location.href === 'about:blank' && location.href", timeout=10)
+    ok(len(history["entries"]) == len(before) and back == "about:blank", "it adds nothing to the history, as a step's "
+       "own link does: Back after it leaves the page instead of opening the step the address named before (#phone)",
+       ([e["url"] for e in before], [e["url"] for e in history["entries"]], back))
+    page.close()
+    # The address at #safe already, and the reader on the step's second drawing: no hashchange comes, and the link still
+    # opens the step, here with Enter
+    page = Page(chrome)
+    page.goto(LIVE + "#safe")
+    page.eval("document.querySelector('#safe .g-frame [data-go=\"1\"]').click()")
+    page.eval(moderation + ".open = true")
+    page.eval("document.querySelector('.set-card a[href=\"#safe\"]').focus()")
+    page.key("Enter")
+    again = page.wait(opened)
+    ok(again and again["hash"] == "#safe" and again["focus"] == "h2@safe" and page.eval(seen),
+       "with the address at #safe already and the reader on its second drawing, the link opens the step again at its "
+       "first, in view, focus on its heading", again)
     page.close()
 
 
@@ -597,10 +679,10 @@ def without_scripts(chrome):
            "wider than the page" % width, seen)
         safe = page.eval(SAFE)
         drawing = "wide" if width > 600 else "tall"
-        ok(safe["figs"] == 2 and safe["agent"] == drawing and safe["caps"] == (drawing == "wide") and safe["scale"] >= 0.8
-           and safe["cropped"] == 0 and safe["drawn"],
-           "and the safety step's two drawings: the %s one of the agent at %s of its size, the people and the agent drawn, "
-           "nothing outside its drawing or wider than its box" % (drawing, safe["scale"]), safe)
+        ok(safe["figs"] == 2 and safe["agent"] == drawing and safe["caps"] == ("3" if drawing == "wide" else "2")
+           and safe["scale"] >= 0.8 and safe["cropped"] == 0 and safe["drawn"],
+           "and the safety step's two drawings: the %s one of the agent at %s of its size with its labels, the people and "
+           "the agent drawn, nothing outside its drawing or wider than its box" % (drawing, safe["scale"]), safe)
         page.close()
 
 

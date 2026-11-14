@@ -27,7 +27,8 @@ package still pins the 1.0.0 image. On 2026-11-13, also for 1.1.0 and from appro
 guide and its checks one card, and while connecting the checks became a progress bar; they passed the same local tests, and so
 did the fixes from four reviews of them, the same day, with a new test in a browser (Tested, below). Later that day the
 collapsed safety tips became a step of the guide, Keep it safe, with the self-hosting guide's two Security drawings, and
-passed the same tests. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
+passed the same tests, and so did the fixes from two reviews of it. It lives on this `umbrel` branch, not on `main`, until
+Umbrel accepts it.
 
 ## Why our own package
 
@@ -199,7 +200,10 @@ Credit #5928 when we submit.
   drawings from its Security section, what an agent can touch and what anyone who joins can read, then
   notes on private channels, invite links and, on the owner's own domain, bans, for the owner to share
   with members (Moderation, below, and Security review). The phone step says the phone needs Tailscale
-  too on the private option, and whether phones get notifications. When the page opens itself again at
+  too on the private option, and whether phones get notifications. A step's two drawings are one height,
+  so the stepper stays put between them, on a phone too. Any link to a step, such as Moderation's in
+  Settings, opens it at its first drawing with focus on its heading, and puts the step in the address
+  without a new entry in the browser's history, as Next does. When the page opens itself again at
   a new phase, the guide stays at the reader's step and drawing. Without scripts every step shows, one
   after the other, and the copy buttons hide; `#join`, `#invite`, `#safe` and `#phone` open a step.
   Settings: change the owner (the old one becomes an admin), turn phone notifications off or on, turn
@@ -278,8 +282,9 @@ that turns it on. Built for the page's image 1.1.0, not yet published.
 - **What the owner and staff can read**, as the row says before it's turned on: reports with who sent
   them, feedback, and any message stored on this Umbrel by its ID, deleted ones included, in private
   channels and direct messages, in every community the relay keeps, earlier addresses' included.
-  Members don't see this in Buzz, so while it's on the safety step's first note leads with it, for the
-  owner to share, and the row points to that step.
+  Members don't see this in Buzz, so while it's on the safety step's first note, Private channels, leads
+  with it, naming the owner and their staff, since members read it too. The row tells the owner to tell
+  members, and points to that note.
 - **Bans and staff outlive the switch.** Turning it off removes the line and the relay restarts
   without the admin API. Bans and timeouts stay enforced; lifting them needs moderation on again.
   Staff rows stay in the database and come back with it, also after Change the owner, where the new
@@ -358,7 +363,9 @@ Moderation is on, which the page offers on the owner's own domain. There its not
 identity, and that a person can still join under a new one; while it's on, they say first that the owner
 and their staff can open any stored message by its ID, private ones included. On the private network, which
 isn't on the internet, its intro speaks of agents alone. Its drawings come from the self-hosting guide, so
-the two say the same.
+the two say the same, but for one line: on a phone the guide's agent answers "On it. Working from the app
+repo.", under a caption that says not to connect agents to your code, and here it answers "On it.", as on
+a computer.
 
 On 2026-11-12 a review of the designs for the page's image 1.1.0, the upload and moderation, found no
 hole another app on the Umbrel could use: both new forms sit behind the page's sign-in, its size limit
@@ -754,6 +761,21 @@ two Security drawings, for the page's image 1.1.0 (not published), on this Mac a
   (`BUZZ_LOCAL_PORT`).
 - Umbrel's linter with image checks: no issues. Screenshots 05 and 06 retaken; 01 to 04 didn't change.
 
+2026-11-13, fixes from two reviews of the safety step, its behavior and its texts, for the page's image 1.1.0 (not
+published), on this Mac at no cost ([log](../tests/runs/2026-11-13-1633-umbrel-setup-page-safety-review-fixes-local.log)):
+
+- **Mocked:** `render.py` 2147 page states, also on the image's Python 3.13 on Linux, now with its own copy of the
+  agent drawing's description, the words drawn in each drawing and their labels, the lists' roles, the texts the
+  reviews replaced, the drawings' rules only on the live page, and that the live page loads nothing from another host.
+  Each of 23 changes to the page, made in a copy of it, made it fail. `security.py` 110, `cloudflare.py` 63.
+  `preview.py`'s 14 screens.
+- **Browser:** `browser.py` 31 of 31, six runs in a row, adding Back after Moderation's link to the safety step, the
+  link with the address at `#safe` already, the stepper staying put between the step's drawings at 375 and 540
+  pixels, and the tall drawing's labels with text spaced out. On the page before these fixes, those four fail.
+  Measured from 320 to 1440 pixels, no step's buttons move between its two drawings.
+- **Real:** `check.py` 80 of 80 on the package's containers on Docker Desktop, with the page on port 8809.
+- Umbrel's linter with image checks: no issues. The six screenshots, retaken, came out the same.
+
 ## Not yet tested
 
 - The page's image 1.1.0 on umbrelOS: it isn't published yet. Then `pre-submit.sh`, whose `e2e.sh` now
@@ -764,6 +786,8 @@ two Security drawings, for the page's image 1.1.0 (not published), on this Mac a
   Firefox, on a real phone, and with a screen reader: so far a Chromium browser and headless Chrome on a
   Mac, and the page's own tests. The safety step only in headless Chrome so far, and its drawings in a
   real contrast theme not at all: headless Chrome emulates forced colors without forcing them (Gotchas).
+  Its lists say `role="list"`, since Safari drops the role from a list drawn without bullets; not yet
+  heard in Safari with VoiceOver.
 - The private network's device check passing on a real tailnet, as the card shows it: so far its
   failure off the tailnet, and answers held back and let through in headless Chrome (`browser.py`).
 - An upload of a real `cert.pem` that Cloudflare saved in the browser, by hand: so far made-up files,
@@ -941,6 +965,12 @@ edits before any image is published; the droplet runs use the published image.
   to at 1440 by 900 (432 pixels down).
 - In headless Chrome 157, emulating `forced-colors: active` matches the media query but leaves the page's
   colors as they are, so it shows the page's own forced-colors rules apply, not how a contrast theme draws it.
+- A plain link to `#safe` adds an entry to the browser's history, while the guide's own links and Next
+  replace the address. So Back after Moderation's link fired `hashchange` for the step the address named
+  before, opened that step and scrolled away from Settings; and with the address at `#safe` already, the
+  link fired nothing and focus fell to the page. The script now handles every link to a step itself.
+- SVG text doesn't wrap: with text spaced out as WCAG 1.4.12 lets a reader do, the tall drawing's drawn-in
+  labels ran into each other. They're the page's text under the drawing now, at its scale.
 - The submission's screenshots 01 to 03 come from DevTools on a Chrome started without `--disable-gpu`,
   and 04 to 06 from Chrome's `--screenshot` with it. Each way draws text a little differently, so to
   compare pixels, retake each the way it was taken. Without `--disable-gpu`, the setup page's numbered

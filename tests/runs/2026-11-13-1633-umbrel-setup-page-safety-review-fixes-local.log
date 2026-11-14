@@ -1,0 +1,288 @@
+# Fixes from two reviews of the guide's Keep it safe step, one of its behavior and one of its texts, for the page's next
+# image (1.1.0, not published). On an Apple Silicon Mac, Docker Desktop, no umbrelOS, no cost. The page from this
+# checkout; relay 0.3.0's image and the package's other images as pinned. The mocked suites, the browser test and the
+# previews on ports 8801 to 8808 only, then check.py on a fresh up.sh run with the page on 8809, removed afterwards with
+# down.sh, then Umbrel's linter and the screenshots.
+
+# What changed, by the reviews' items:
+# 1. Back after Moderation's link to the step: the link added an entry to the history, so Back fired hashchange for the
+#    step the address named before (#phone, from the guide's own links), opened it and scrolled away from Settings, and
+#    with the address at #safe already the link fired nothing and focus fell to the page. The script now handles every
+#    link to a step as the guide's own links: the address replaced, the step at its first drawing, in view, focus on its
+#    heading. hashchange stays for a step's name typed into the address bar. Back after the link now leaves the page.
+# 2. On a phone the stepper moved between the step's two drawings, 45 to 217 pixels from 320 to 540 wide, since the tall
+#    drawing grew to 1.27 times its size. It stops at 360 pixels wide; under 480 pixels of drawing width both drawings
+#    get one height, the tall one's with its labels and room for other fonts, and at least 360; the wide drawing's range
+#    gets at least 306, where the lists were 8 pixels taller. The stepper's count, title and buttons line up on the
+#    title's first line, so a title that wraps to more lines doesn't move the buttons: that alone moved them 12 pixels
+#    at 375, and the first step's 2 to 12 pixels from 320 to 390. Measured from 320 to 1440 pixels, no step's buttons
+#    move between its two drawings now; on a computer the drawings stay 340 pixels tall.
+# 3. The open community's two lists and the three notes say role="list": Safari drops the role from a list drawn
+#    without bullets.
+# 4. The tall drawing's labels are the page's text under it, at its scale, as the wide one's are, so with WCAG 1.4.12's
+#    text spacing they wrap instead of running into each other. The drawing stops at 311 of the guide's 348.
+# 5 to 7. The texts, below. 8. The dead rule .next + details.alt is gone. 9. The drawing's description goes into
+#    aria-label through esc(): its apostrophe is escaped, and a screen reader hears the same.
+# 10. render.py has its own copy of that description, checks the words drawn in each drawing and their labels, and
+#    that the live page loads nothing from another host: no src= naming one, no stylesheet or @import, every url() a
+#    #id, and every href in its SVGs a #id or the agent's picture as data:image/webp.
+# 11. The drawings' rules ship only with the live page: 7,064 bytes less on every other page (domain-dns 65,827 to
+#    58,763, setup 76,631 to 69,567); the live page 172,518 to 173,575 (domain-live), with the labels and roles.
+
+# The texts that changed, before and after:
+# - Private channels, while Moderation is on:
+#   "While Moderation is on, you and staff you add can open any message stored here by its ID, deleted ones included,
+#   even in private channels and direct messages."
+#   "While Moderation is on, the owner and the staff they add can open any message stored here by its ID, deleted ones
+#   included, even in private channels and direct messages."
+# - Settings, Moderation, on a live page:
+#   "Members don't see this in Buzz. The Keep it safe step above says it, so share it."
+#   "Members don't see this in Buzz, so tell them. While Moderation is on, the Private channels note in Keep it safe
+#   above says it." (Keep it safe a link to the step)
+# - Settings, Moderation, while connecting:
+#   "Members don't see this in Buzz. Once your community is live, the Keep it safe step on this page says it, so share it."
+#   "Members don't see this in Buzz, so tell them. Once your community is live, the Private channels note in the Keep it
+#   safe step says it while Moderation is on."
+# - The tall drawing's reply, under a caption that says not to connect agents to your code:
+#   "On it. Working from the app repo." -> "On it.", as on the wide drawing.
+
+$ python3 tests/umbrel/local/render.py
+rendered 2147 page states without errors
+# The guide on 86 live pages, each with its 4 steps and 8 drawings. New: the agent drawing's description from the
+# test's own copy, escaped as the page writes it; the words drawn in the wide and the tall drawing, in order, and the
+# labels under each (three and two); the tall drawing's viewBox ending at 311; the lists' and the notes' role="list";
+# the new texts and none of the old; the drawings' rules on live pages alone; the live page loading nothing from
+# another host; the narrow min-heights, the 360-pixel cap, the labels at the drawing's scale, and the stepper lined
+# up on the title's first line, in the stylesheet.
+# Each of 23 changes to the page, made in a copy of it, made render.py fail: the moderated note says 'you' again;
+# the open community's first list without its role; the notes without their role; the tall reply about the app repo
+# again; a word of the agent drawing's description; a tall label's line; a wide label; the description unescaped; a
+# script from another host; an @import; a background from another host; a picture's href to another host; an
+# xlink:href to another host; a stylesheet link; the drawings' rules on every page; the dead rule back; the live
+# sharing line as before; the sharing line while connecting as before; the tall drawing as tall as the guide's; the
+# narrow min-height; the tall drawing uncapped; the stepper centered again; the tall labels not at the drawing's
+# scale.
+
+$ docker run --rm -v "$PWD:/repo:ro" -w /repo python:3.13.16-alpine3.24 sh -c 'python3 --version && python3 tests/umbrel/local/render.py'   # the image's Python, on Linux
+Python 3.13.16
+rendered 2147 page states without errors
+
+$ python3 tests/umbrel/local/security.py
+passed: 110  failed: 0
+
+$ python3 tests/umbrel/local/cloudflare.py
+passed: 63  failed: 0
+
+$ BROWSER_PORT=8801 python3 tests/umbrel/local/browser.py   # its four previews on 8801 to 8804
+Chrome/157.0.8103.51
+== The step the address names
+PASS  before the script draws the guide, the page shows the one step the address names, or the one kept across a new phase (a hash still wins), at its drawing, and the script keeps it: 15 addresses, a hostile hash and unknown ones open the first step
+== Next and Previous with the keyboard
+PASS  Next walks every drawing and crosses into the next step, moving the address to it and focus to the new drawing's Next; at the guide's last drawing it's aria-disabled and does nothing
+PASS  Previous crosses back into the previous step's last drawing, and stops at the first
+PASS  crossing into a step says where the reader is, the safety step by its heading
+== A step's link
+PASS  a step's link opens the step at its first drawing and moves focus to the step's heading, clicked or with Enter
+PASS  in forced colors, the current step's link has a border, the others none, and the safety step's drawings keep their own colors
+== The safety step with scripts
+PASS  on a computer, each drawing is as tall as Buzz's screens in the other steps (340 pixels), with the people and the agent drawn and nothing outside it
+PASS  each chat bubble is as wide as its words in this browser's font
+PASS  at a phone's width the tall drawing shows, at 0.85 of its size, with its two labels and its bubbles fitted to their words
+PASS  at 375 and 540 pixels the tall drawing and the lists are one height, so Previous and Next stay put between them
+PASS  with WCAG's text spacing at 375 pixels, the tall drawing's labels wrap under their parts, none running into another or out of the drawing
+PASS  the notes on each option: bans on the owner's own domain alone, who can read private messages first while moderation is on, and on the private network an intro without the internet
+== Moderation's link to the safety step
+PASS  Moderation's link to the safety step opens it in view and moves focus to its heading
+PASS  it adds nothing to the history, as a step's own link does: Back after it leaves the page instead of opening the step the address named before (#phone)
+PASS  with the address at #safe already and the reader on its second drawing, the link opens the step again at its first, in view, focus on its heading
+== The 5-second refresh on a live page
+PASS  a refresh with the same checks changes nothing: the same card, the list open, focus on its summary, and nothing said
+PASS  when the checks change, the card is drawn again with its list open and focus on its summary, the page doesn't move, and a screen reader hears the card's summary once
+PASS  the next refresh, with nothing new, says nothing
+PASS  while connecting, a change says the current stage
+== The private network's device check
+PASS  the page looks once from this device as it opens, and shows that it's checking
+PASS  a refresh during that look starts no other: one look at a time
+PASS  a late answer from an older look never replaces a newer one: the row shows the newest look's answer, here the first look running out of time
+PASS  the next look reaches Buzz: the problem goes from above the card, which says Everything works, 4 checks
+PASS  two more looks with the same answer leave the row and the card as they are: no writes at all
+PASS  drawn again while a look is out: the last answer shows in the new row at once, no second look starts, and a screen reader hears the card's summary
+PASS  that look's answer, that this device can't reach Buzz, goes to the row the page has now, and above the card
+== A new phase opens the page again
+PASS  a new phase opens the page again at the reader's step and drawing, drawn from the start, and keeps nothing after
+== Without scripts
+PASS  without scripts at 1440 pixels: every step and drawing, no stepper and no copy buttons, nothing cropped or wider than the page
+PASS  and the safety step's two drawings: the wide one of the agent at 1.06 of its size with its labels, the people and the agent drawn, nothing outside its drawing or wider than its box
+PASS  without scripts at 375 pixels: every step and drawing, no stepper and no copy buttons, nothing cropped or wider than the page
+PASS  and the safety step's two drawings: the tall one of the agent at 0.85 of its size with its labels, the people and the agent drawn, nothing outside its drawing or wider than its box
+
+passed: 31  failed: 0
+
+# Five more runs: passed: 31  failed: 0 each time.
+# Against the page before these fixes (setup.py at c295b80, with these tests): 6 of 31 fail, the four new checks
+# (the stepper on a phone, the labels with text spaced out, Back after Moderation's link, the link at #safe already)
+# and the two that now count the tall drawing's labels. Moderation's link opening the step passed there too: its
+# hashchange did that when the address changed.
+
+# The stepper, measured in headless Chrome on a preview at 25 widths from 320 to 1440 pixels (a probe, not a suite):
+# how far Next moves between each step's two drawings. Before, the safety step's 45 (320 wide), -40 (360), -64
+# (375), -91 (390), -122 (414), -158 (480), -217 (540) and 8 (558 to 584), and the first step's -12 (320) and -2
+# (360 to 390). Now 0 in every step at every width. The safety step's drawings: 360 to 452 pixels tall from 320 to
+# 556 wide, 306 to 322 from 558 to 640, and 340 from 720 up, as before.
+
+# preview.py, each of its 14 scenarios in turn on a port from 8801 to 8806, its page and status.json fetched: a card
+# when live, the bar while connecting, with what shows under it and the sentence a screen reader hears, and on each
+# live page the guide and its safety step's notes
+PASS  login: the sign-in page
+PASS  setup: the setup steps, and status.json has nothing to refresh
+PASS  domain-dns: the bar done you wait wait, under it nothing, saying 'Sign in to Cloudflare: your turn.', the page's own checks in status.json
+PASS  domain-uploaded: the bar done done work wait, under it ['wait:cloudflare', 'wait:dns'], saying 'Cloudflare publishes the name: in progress.', the page's own checks in status.json
+PASS  domain-working: the bar done done work wait, under it ['wait:cloudflare', 'wait:dns'], saying 'Cloudflare publishes the name: in progress.', the page's own checks in status.json
+PASS  domain-530: the bar done done bad wait, under it ['bad:reach'], saying 'Cloudflare publishes the name: needs your attention.', the page's own checks in status.json
+PASS  funnel-login: the bar done you wait wait wait, under it nothing, saying 'Sign in to Tailscale: your turn.', the page's own checks in status.json
+PASS  funnel-consent: the bar done done you wait wait, under it nothing, saying 'Allow Funnel: your turn.', the page's own checks in status.json
+PASS  private-consent: the bar done done you, under it nothing, saying 'Allow HTTPS: your turn.', the page's own checks in status.json
+PASS  private-live: the card 'Everything else works, 3 of 4 checks', above it: Checking from this device..., and the guide's 4 steps and 8 drawings, the safety step's notes Private channels. Invite links.
+PASS  domain-live: the card 'Everything works, 3 checks', and the guide's 4 steps and 8 drawings, the safety step's notes Private channels. Invite links. Bans.
+PASS  domain-moderation: the card 'Everything works, 4 checks', and the guide's 4 steps and 8 drawings, the safety step's notes Private channels. Invite links. Bans.
+PASS  domain-moderation-blocked: the card 'Everything else works, 3 of 4 checks', above it: Moderation isn't reachable, and the guide's 4 steps and 8 drawings, the safety step's notes Private channels. Invite links. Bans.
+PASS  domain-moderation-starting: the card 'Everything else works, 3 of 4 checks', above it: Turning on moderation, and the guide's 4 steps and 8 drawings, the safety step's notes Private channels. Invite links. Bans.
+
+passed: 14  failed: 0
+
+$ bash -n tests/umbrel/local/up.sh tests/umbrel/local/down.sh tests/umbrel/e2e.sh tests/umbrel/pre-submit.sh
+bash -n: tests/umbrel/local/up.sh ok
+bash -n: tests/umbrel/local/down.sh ok
+bash -n: tests/umbrel/e2e.sh ok
+bash -n: tests/umbrel/pre-submit.sh ok
+
+$ BUZZ_LOCAL_PORT=8809 PYTHON=<a Python with PyYAML> bash tests/umbrel/local/up.sh   # 16:33 PST
+ Container buzz_silo_1  Healthy
+ Container buzz_relay_1  Starting
+ Container buzz_relay_1  Started
+cloudflared Up 6 seconds
+gateway Up 6 seconds
+pair Up 6 seconds
+postgres Up 6 seconds (healthy)
+redis Up 6 seconds (healthy)
+relay Up Less than a second (health: starting)
+silo Up 6 seconds (healthy)
+tailscale Up 6 seconds
+web Up 6 seconds
+
+$ cmp tests/umbrel/local/run/setup.py umbrel/setup-page/setup.py && echo identical   # the stack's page is this one
+identical
+
+$ BUZZ_LOCAL_PORT=8809 python3 tests/umbrel/local/check.py
+== Sign-in
+PASS  the page sends a visitor without a session to sign in
+PASS  status.json refuses a visitor without a session (HTTP 401)
+== Another app on the same Docker network, going around Umbrel's proxy
+PASS  a direct request from another container can't save settings or read status (HTTP 401 401)
+PASS  nothing was saved by that request
+PASS  a wrong password is refused
+PASS  the app password signs in and sets a session cookie
+PASS  the session cookie is HttpOnly
+PASS  a form posted from another app's page on the same Umbrel is refused (HTTP 403)
+PASS  the page's own forms pass whatever Host the proxy forwards (reached validation)
+== Setup
+PASS  signed in, the page shows the setup steps
+PASS  creating without the acknowledgement is refused
+PASS  a bad public ID is refused
+PASS  a home-network-only name is refused
+PASS  the owner and the domain are saved (HTTP 303)
+PASS  the relay starts with the saved address (NIP-11 answers for buzz-one.local-test.invalid)
+PASS  the relay's owner is the page's owner
+PASS  phone notifications are on by default (NIP-11 offers buzz-push-v1)
+PASS  the page shows the Cloudflare steps, and that the name doesn't resolve
+PASS  the page gives the tunnel's service URL
+PASS  the app's own Cloudflare tunnel waits for a sign-in, with Cloudflare's link
+PASS  the page shows that sign-in link
+PASS  the progress bar marks Cloudflare's sign-in as the owner's turn, and status.json sends the same bar
+== Persistence across a restart of every container
+PASS  the relay comes back with the same identity
+PASS  the owner survives the restart
+PASS  the session survives the restart and the page remembers the setup
+== Phone notifications
+PASS  turning phone notifications off is saved
+PASS  the relay restarts without them
+PASS  the page shows them off
+== Changing the owner
+PASS  the new owner is saved
+PASS  the relay's owner is the new one
+PASS  the previous owner is now an admin
+PASS  phone notifications stay off through the owner change
+PASS  turning them back on offers them again
+== Changing the address, guarded
+PASS  a change without typing the current address is refused
+PASS  typing the current address confirms the change, with the new address in the two boxes
+PASS  the new address is a separate community: the owner, and none of the old members
+PASS  switching back to the first address brings its community back, admin included
+== The Tailscale modes, up to the sign-in
+PASS  choosing the free Tailscale address starts Tailscale in Funnel mode
+PASS  and turns the Cloudflare tunnel off: it waits, with no sign-in running
+PASS  Tailscale is waiting for a sign-in, with a link
+PASS  the page shows that sign-in link
+PASS  and the progress bar marks Tailscale's sign-in as the owner's turn
+PASS  the relay waits: no address until Tailscale names the machine
+PASS  with no address to type, a change needs the box ticked
+PASS  with no address yet, switching to the private network needs only the acknowledgement
+PASS  going back to the domain turns Tailscale off
+PASS  and the first address's community is back
+PASS  Tailscale stopped and cleared its state for the page
+PASS  switching to Tailscale again starts it again, with a sign-in link (private network)
+PASS  the page shows the private network's sign-in step
+== A sign-in Cloudflare saved as a file, uploaded
+PASS  the service's own check, in the real image, takes exactly the 14 made-up files the page takes, of 57
+PASS  back on the domain, the page takes a sign-in file while the service waits (HTTP 303)
+PASS  within seconds the real service took it: the upload is gone and the tunnel moved on (error)
+PASS  it's the service's cert.pem, byte for byte as uploaded, mode 600, owned by the app's user (600 1000)
+PASS  Cloudflare refuses the made-up token, and the page offers Sign in to Cloudflare again
+PASS  the reset deletes that sign-in and starts a new one, with a new link
+== Moderation: the relay's admin API at buzz-one.local-test.invalid:8443, from the real image
+PASS  a test owner whose key is held here becomes the owner
+PASS  moderation is off by default: no admin API advertised, and none at buzz-one.local-test.invalid:8443
+PASS  the page turns it on: its line in the relay's settings
+PASS  the relay restarts with it, and its NIP-11 advertises admin_api https://buzz-one.local-test.invalid:8443
+PASS  the relay process has that alone: no open mode, no other operators, no browser dashboard (BUZZ_ADMIN_HOST=buzz-one.local-test.invalid:8443)
+PASS  through the gateway, buzz-one.local-test.invalid:8443 is the relay's admin host: 404 with its own security policy (HTTP 404)
+PASS  a browser there gets no page: the dashboard is off (HTTP 404)
+PASS  an unsigned request to the admin API is refused (HTTP 401)
+PASS  another key's signature is refused (HTTP 403)
+PASS  the owner's signature gets in: the operator, as the relay's owner (HTTP 200)
+PASS  the same signature sent for the community's own address is refused (HTTP 403)
+PASS  a member posts (HTTP 200, 200)
+PASS  the owner bans the member through the admin API (HTTP 200)
+PASS  the banned member's posts are refused: banned from this community
+PASS  the banned identity can't come back with the owner's invite link (HTTP 403, invite_restricted), and a new identity joins with the same link (HTTP 200)
+PASS  the page turns it off: the line goes, and setup.json keeps "moderation": false
+PASS  the relay restarts without it: no admin API advertised
+PASS  and none at buzz-one.local-test.invalid:8443, for the owner either
+PASS  the ban holds with moderation off
+PASS  turned on again, the owner lifts the ban (HTTP 204), and the member posts again (HTTP 200)
+PASS  after a restart of every container it's still on: advertised, and the owner's signature still gets in
+PASS  after an owner change it stays on, and the previous owner's signature is refused (HTTP 403)
+PASS  choosing a Tailscale option turns it off
+PASS  and back on the domain, it stays off
+
+passed: 80  failed: 0
+
+$ bash tests/umbrel/local/down.sh
+ Volume buzzlocal_buzz-cloudflare-control  Removed
+ Volume buzzlocal_buzz-git  Removed
+ Volume buzzlocal_buzz-tailscale  Removed
+ Network umbrel_main_network_local  Removed
+# No container, volume or network of the buzzlocal project left.
+
+# Umbrel's linter, on a copy of getumbrel/umbrel-apps with umbrel/buzz/ copied in as buzz/, without __pycache__
+$ npm run lint:apps -- buzz --check-images
+Linting buzz
+No issues found.
+
+# The screenshots, taken the ways they were taken, on ports 8806 to 8808: 01 to 03 over DevTools from preview.py's
+# setup screen, 1440 by 900 at 2x, on a headless Chrome 157 started without --disable-gpu; 04 and 05 with --screenshot
+# from domain-dns and domain-live; 06 from domain-live#invite at 1440 by 1800, cropped from 432 pixels down (Chrome
+# scrolls to 433 there, as before). Twice, and once from the page before these fixes. The second capture matched all
+# six committed files pixel for pixel, as the old page's did; the first differed only in 02 (inside its drawing) and
+# 03 (107 pixels on the numbered circles), where captures differ from run to run. None retaken: on a computer the
+# guide's stepper and drawings are where they were.

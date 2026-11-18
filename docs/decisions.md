@@ -91,6 +91,16 @@ done: the work they call for is listed where it is still owed.
   and a helper meant to answer everyone is set up without a proof, as a member whose profile
   carries Buzz's agent flag. The old line "for a bot that's always on, run it on a server with a
   key of its own, added as a member" is gone: that setup is the one that shows as a person.
+- **What an agent on your own server needs comes first, and every answer has a short link
+  (2026-11-17).** The owner asked for everything required to be front and center, naming
+  `"is_agent": true`. The server answer now opens with six needs, from `agents.md`. The source
+  says the proof tag on the profile is the agent mark: Buzz on desktop and phones and Block's
+  harness read it. `"is_agent": true` is read only by Buzz on desktop, and Buzz never sets it, so
+  the page names it as optional next to the proof and as the only mark for a helper with no proof.
+  Every answer opens from `#<id>` (`#agents`, which a post links to, and `#agent-remote`), and
+  each part of a long answer from `#<id>-<part>` (`#agent-remote-needs`). An answer that depends
+  on the setup adds it (`#add&path=vps&reach=private`). `relay-key`, an id the setup steps already
+  use, keeps the long form. Link buttons on answers and their parts are faint until hovered.
 
 ## The relay moves to 0.3.0 (2026-11-12)
 

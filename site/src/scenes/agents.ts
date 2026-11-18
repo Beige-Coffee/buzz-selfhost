@@ -1,6 +1,7 @@
 import skill from "virtual:skill-steps";
 import type { AgentStep } from "../../build/skill";
 import ops from "../assets/avatars/ops.webp";
+import { linkButton } from "../lib/permalink";
 import { esc, fillRich } from "../lib/values";
 import { BUZZ_ROBOT, TABLER } from "./tabler";
 
@@ -25,8 +26,13 @@ const OWN: Record<string, string> = {
   server: `<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>`,
   alert: `<path d="M12 3 22 20H2z"/><path d="M12 10v4M12 17v.01"/>`,
   robot: BUZZ_ROBOT,
+  login: `<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 16l4-4-4-4"/><path d="M14 12H4"/>`,
+  tag: `<path d="M4 7.5V12a2 2 0 0 0 .6 1.4l6.8 6.8a2 2 0 0 0 2.8 0l5-5a2 2 0 0 0 0-2.8L12.4 5.6A2 2 0 0 0 11 5H6.5A2.5 2.5 0 0 0 4 7.5z"/><path d="M8.5 9.5h.01"/>`,
 };
 const icon = (n: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${OWN[n] ?? TABLER[n]}</svg>`;
+
+/** A part of a long answer: a heading with its own link, #<answer>-<part>, which faq.ts opens. */
+const part = (id: string, title: string) => `<h4 class="ga-h" id="${id}">${title}${linkButton(`#${id}`, "Copy a link to this part")}</h4>`;
 
 /** faq.ts's own pieces, so every answer looks alike. */
 export interface AnswerKit {
@@ -93,26 +99,37 @@ const MARKED = `<div class="fq-vis ga-mark">
   <div class="ga-mk good"><p class="ga-mk-h"><span class="fq-tag yes">Shows as an agent</span></p>
     ${helper(true)}
     <pre class="ga-ev"><i>its profile, kind 0</i>
-"tags": [<mark>["auth", "your public key", "", "your signature"]</mark>]</pre>
-    <p class="ga-mk-f">The profile carries your proof. Buzz draws it as your agent, shows Managed by and your name on its profile, and tags it in direct messages, so it wakes.</p></div>
+"tags": [<mark>["auth", "your public key", "", "your signature"]</mark>]
+"content": {"name": "Helper", <em>"is_agent": true</em>}</pre>
+    <p class="ga-mk-f">Your proof tag is the agent mark. Buzz shows you as its owner and tags it in direct messages, so it wakes. <code>"is_agent": true</code> is optional: only Buzz on desktop reads it.</p></div>
   <div class="ga-mk bad"><p class="ga-mk-h"><span class="fq-tag no">Shows as a person</span></p>
     ${helper(false)}
     <pre class="ga-ev"><i>its profile, kind 0</i>
-"tags": <s>[]</s></pre>
-    <p class="ga-mk-f">No proof on the profile. Buzz treats it as a person, so a direct message never tags it and it never wakes.</p></div>
+"tags": <s>[]</s>
+"content": {"name": "Helper"}</pre>
+    <p class="ga-mk-f">No proof tag on its profile. Buzz shows a person, so a direct message never tags it and it never wakes.</p></div>
 </div>`;
 
-const MESSAGES = () => `<details class="ga-fold"><summary>The messages, for a client of your own</summary>
+/** What Buzz needs before it treats a program on your own server as your agent, from agents.md, in its order. */
+const NEED_ICONS = ["key", "login", "robot", "tag", "hash", "at"];
+const NEEDS = () =>
+  part("agent-remote-needs", "What Buzz needs") +
+  `<div class="fq-vis"><ul class="fq-check ga-needs">${skill.agents.needs
+    .map((n, i) => `<li${/is_agent/.test(n.title) ? ' class="opt"' : ""}><span class="fq-dep-i">${icon(NEED_ICONS[i] ?? "check")}</span><div><b>${n.title}</b><p>${n.html}</p></div></li>`)
+    .join("")}</ul></div>`;
+
+// the fold's link sits beside it: a link inside a summary is a control inside a control
+const MESSAGES = () => `<div class="ga-fold-wrap">${linkButton("#agent-remote-messages", "Copy a link to this part")}<details class="ga-fold" id="agent-remote-messages"><summary>The messages, for a client of your own</summary>
   <div class="ga-fold-b"><table class="ga-msgs"><thead><tr><th>Step</th><th>What to send</th></tr></thead><tbody>${skill.agents.messages
     .map(([s, d]) => `<tr><td>${s}</td><td>${d}</td></tr>`)
     .join("")}</tbody></table>
   <p class="opx-note"><code>PROOF</code> is the tag Buzz copies for you: <code>["auth", "&lt;your public key&gt;", "", "&lt;your signature&gt;"]</code>.</p></div>
-</details>`;
+</details></div>`;
 
-const SYMPTOMS = () => `<h4 class="ga-h">Shows as a person, or never answers?</h4>
+const SYMPTOMS = () => `${part("agent-remote-fixes", "Shows as a person, or never answers?")}
 <div class="fq-vis ga-sym">${skill.agents.symptoms.map(([s, f]) => `<div class="ga-sym-row"><b>${icon("alert")}<span>${s}</span></b><p>${f}</p></div>`).join("")}</div>`;
 
-const WARN = `<div class="ga-warn">${icon("alert")}<p><b>The proof can't be taken back.</b> It never expires, and it isn't tied to one community. Whoever holds the agent's key and the proof can act as your agent, and your own Buzz agents take requests from it. Keep that key on the agent's server, and make a proof only for a key you made. If the key leaks, ${go("moderate", "ban it")}.</p></div>`;
+const WARN = `<div class="ga-warn" id="agent-remote-proof">${icon("alert")}<p><b>The proof can't be taken back.</b>${linkButton("#agent-remote-proof", "Copy a link to this part")} It never expires, and it isn't tied to one community. Whoever holds the agent's key and the proof can act as your agent, and your own Buzz agents take requests from it. Keep that key on the agent's server, and make a proof only for a key you made. If the key leaks, ${go("moderate", "ban it")}.</p></div>`;
 
 export function agentQuestions({ rec, note }: AnswerKit) {
   return [
@@ -145,6 +162,7 @@ export function agentQuestions({ rec, note }: AnswerKit) {
       a: () =>
         rec("Run the agent on a computer that stays on, with Buzz open there. An agent answers only while Buzz is open on its computer and that computer is awake.") +
         PLACES +
+        part("agent-on-steps", "Set it up") +
         flow(skill.agents.stayOn) +
         note(`This is also the safer place for an agent: ${go("agent-safe", "a machine of its own")}.`) +
         note(`For a server with no desktop, or a helper that answers every member, see ${go("agent-remote", "an agent on your own server")}.`),
@@ -166,15 +184,17 @@ export function agentQuestions({ rec, note }: AnswerKit) {
       q: "How do we run an agent on our own server?",
       a: () =>
         `<p class="ga-status">${icon("alert")}Not built into Buzz yet</p>` +
-        rec("Give the agent a key of its own and your ownership proof, and publish its profile with that proof. The proof is what makes Buzz show it as your agent and wake it.") +
-        note("Buzz has no built-in way to run an agent on your own server yet. Block ships the two pieces it takes: a key authorization in Settings, and the <code>buzz</code> command. We tested these steps on 12 November 2026.") +
+        rec("Give the agent a key of its own, sign it in with your ownership proof, and publish its profile with that proof. The proof on its profile is the agent mark: without it, Buzz shows a person and never wakes it.") +
+        NEEDS() +
         MARKED +
+        note("Buzz has no built-in way to run an agent on your own server yet. Block ships the two pieces it takes: a key authorization in Settings, and the <code>buzz</code> command. We tested these steps on 12 November 2026.") +
+        part("agent-remote-steps", "Set it up") +
         flow(skill.agents.server) +
         MESSAGES() +
         SYMPTOMS() +
         WARN +
-        note("Who the agent answers is up to the program you run. Block's own, <code>buzz-acp</code> in its relay's source, hands mentions to Goose, Codex or Claude. It answers only its owner unless you start it with <code>--respond-to anyone</code> or an allowlist, and without the proof it has no owner, so it answers nobody. We have not tested <code>buzz-acp</code>.") +
-        note(`A helper that answers everyone needs no proof. Add its key as a member (${go("add", "How should we add people?")}), and have its own client publish its profile with <code>"is_agent": true</code> in the content. Buzz shows it as an agent with no owner, and nothing it does acts for you. The <code>buzz</code> command has no option for that field.`),
+        note("Who the agent answers is up to the program you run. Block's own, <code>buzz-acp</code> in its relay's source, hands mentions to Goose, Codex or Claude. It answers only its owner unless you start it with <code>--respond-to anyone</code> or an allowlist. Without the proof, or <code>--agent-owner</code>, it has no owner, so it answers nobody. We have not tested <code>buzz-acp</code>.") +
+        note(`A helper that answers everyone needs no proof. Add its key as a member (${go("add", "How should we add people?")}), and have its own client publish its profile with <code>"is_agent": true</code> in the content. Buzz on desktop shows it as an agent with no owner, and nothing it does acts for you. Buzz on phones doesn't read the flag: there it shows as an agent only in channels where it has the bot role. The <code>buzz</code> command has no option for that field.`),
     },
   ];
 }

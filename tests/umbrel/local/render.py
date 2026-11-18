@@ -28,8 +28,8 @@ GUIDE_STEPS = (("join", "Join your community", "First, as the owner", "Step 1 of
                ("phone", "Pair your phone", "Optional", "Step 4 of 4 &middot; Optional", "Pair your phone"))
 GUIDE_FRAMES = {"join": (("Open Join a community", '<p class="on">', "If Buzz opens on a <b>Join a community</b> page instead"),
                          ("Paste the address", "<h6>Community URL</h6>", "choose <b>Continue</b> twice")),
-                "invite": (("Open Membership", 'dark hot">Invite members</span>', "the <b>Invite</b> tab in newer versions of Buzz"),
-                           ("Send an invite link", "<b>Add or invite people</b>",
+                "invite": (("Open Membership", '<span class="hot">Invite</span>', "choose <b>Membership</b>, then the <b>Invite</b> tab."),
+                           ("Send an invite link", '<span class="mb-copy hot">Copy link</span>',
                             "Anyone with the link can join until it expires or runs out of uses.")),
                 "safe": (("Give each agent its own machine", '<svg class="sq-iso sq-wide" viewBox="0 0 560 204" role="img"',
                           "Run agents on a separate computer with nothing private on it"),
@@ -91,9 +91,22 @@ SHARE_LATER = ("Members don't see this in Buzz, so tell them. Once your communit
 # texts the reviews replaced: "you" in a note members read, the line to share it, and a reply about the code the caption
 # says to keep from agents
 REPLACED = ("you and staff you add can open", "says it, so share it", "Working from the app repo")
-# The invite caption keeps Add member for a public ID; the pairing caption has both ways the phone checks the code, the
-# protect prompt's three buttons and Skip, and then, on the computer, Codes match
-INVITE_ADD = "paste someone's public ID under <b>Add directly</b> and choose <b>Add member</b>, then send them the address."
+# The invite caption says how to invite one person, as Buzz has no Add directly since 1.0.1; the pairing caption has
+# both ways the phone checks the code, the protect prompt's three buttons and Skip, and then, on the computer, Codes match
+INVITE_ONE = "To invite one person, set <b>Max uses</b> to <b>1 use</b> first."
+# Buzz's Membership since 1.0.1: a Members and an Invite tab, the Invite tab to click first, then on it Copy link beside
+# the link's QR code, with its expiry and its use limit under it
+MEMBERS_TABS = '<p class="mb-tabs"><span class="on">Members</span><span class="hot">Invite</span></p>'
+INVITE_TABS = '<p class="mb-tabs"><span>Members</span><span class="on">Invite</span></p>'
+INVITE_PANEL = ('<div class="mb-inv"><div class="mb-inv-qr"><svg class="id-qr"', "Copy link</span></span></div>"
+                '<div class="mb-group"><p>Expires after<span class="mb-choice">3 days', '<p>Max uses<span class="mb-choice">No limit')
+# The app dock as a new install has it since 1.0.1: Bestie first, with the default page icon, then Messages and Agents.
+# A page without that icon fails the checks below rather than stopping here.
+DOCK = ('<div class="mb-dock"><span class="mb-tile">' + (m.ti("browser") if "browser" in m.TABLER else "no browser icon")
+        + '</span><span class="mb-tile on">' + m.ti("messages") + '</span><span class="mb-tile">' + m.ti("robot") + "</span>")
+# The owner step and the private network's next steps: members join with an invite link, no longer added by public ID
+OWNER_INVITES = "As the owner, you invite the other members and choose admins in Buzz."
+PRIVATE_INVITE = "share the <b>buzz</b> machine with them, then send them an invite link from Buzz."
 PAIRING = ("If the phone asks for a code, type the six digits your computer shows. If it shows a code, check that the digits "
            "match. When it asks to protect your identity, choose <b>Use Face ID</b>, <b>Use Touch ID</b> or <b>Use "
            "biometrics</b>, or <b>Skip</b>. Then choose <b>Codes match</b> on your computer.")
@@ -111,7 +124,10 @@ GONE = ("Bought the domain recently?", "Show me how", "Join as you set up Buzz",
         "Keeping your community safe", "Most of this is common sense", "Block is working on more protections for agents",
         "The safety tips on this page", "Agents work with what's on their computer.", "Private channels and direct messages "
         "are for the people in them", "but moderation can read them", "Invite links decide which people get in.",
-        "Step 1 of 3", "Step 3 of 3")
+        "Step 1 of 3", "Step 3 of 3",
+        # Buzz 1.0.0's Membership: its Invite members button and dialog, Add directly, and the captions that named them
+        "Invite members", "in newer versions of Buzz", "Add or invite people", "Add directly", "Add member",
+        "Refresh</span>", "public ID under", "In Buzz 1.0.0")
 # the app's own Cloudflare tunnel, from waiting for a sign-in to running, and its errors; signin+upload is
 # a sign-in the owner uploaded, waiting for the tunnel to take it
 CLOUDFLARE = ("", "signin", "signin+upload", "creating", "routing", "taken", "wrong-domain", "error", "running")
@@ -245,8 +261,15 @@ def check_guide(page, mode, domain, push, moderation):
     assert ('<button class="btn ghost" type="button" data-copy="https://' + domain + '" onclick="copyText(this, '
             'this.dataset.copy)">Copy the address</button></div>' + OPEN_NOTE + '<div class="g-frames">') in join
     assert page.count(OPEN_NOTE) == 1
-    assert INVITE_ADD in invite.split('<div class="g-frame" ')[2] and PAIRING in phone.split('<div class="g-frame" ')[2]
+    assert INVITE_ONE in invite.split('<div class="g-frame" ')[2] and PAIRING in phone.split('<div class="g-frame" ')[2]
     assert OWN_KEY in join and join.count("self-host.buzz") == 1
+    # Join's drawings show the dock as a new install has it; Invite's, Membership's two tabs, then the Invite tab
+    assert join.count(DOCK) == 2 and invite.count(DOCK) == 0
+    members, sharing = invite.split('<div class="g-frame" ')[1:]
+    assert MEMBERS_TABS in members and INVITE_TABS not in members and "mb-inv" not in members
+    assert "Search members</p>" in members and "<small>Owner · You</small>" in members
+    assert INVITE_TABS in sharing and MEMBERS_TABS not in sharing and all(part in sharing for part in INVITE_PANEL)
+    assert "Search members" not in sharing and members.count('hot"') == sharing.count('hot"') == 1
     # Invite: who can connect, on the private network alone
     assert (m.private_members_note() in invite) == (mode == "private") and m.private_members_note() not in join + phone
     # Phone: the stores, Tailscale on the private network, Builderlab under the first drawing, notifications last
@@ -421,6 +444,9 @@ for mode in ("domain", "funnel", "private"):
 for values in ({}, {"owner": "x", "mode": "private", "ack": "yes"}):
     page = m.setup_page("e", values)
     assert "<main>" in page and m.SAFE_STYLE not in page; count += 1
+    # Members join with an invite link; the profile menu's drawing has the dock as a new install has it
+    assert OWNER_INVITES in page and PRIVATE_INVITE in page and page.count(DOCK) == 1
+    assert "you add the other members" not in page and "then add them in Buzz" not in page
 assert "<main>" in m.login_page("e") and m.SAFE_STYLE not in m.login_page("e"); count += 1
 
 # The status list's moderation row, in each state, and the hint for each kind of answer from moderation's address

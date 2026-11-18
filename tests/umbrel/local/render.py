@@ -32,7 +32,7 @@ GUIDE_FRAMES = {"join": (("Open Join a community", '<p class="on">', "If Buzz op
                            ("Send an invite link", '<span class="mb-copy hot">Copy link</span>',
                             "Anyone with the link can join until it expires or runs out of uses.")),
                 "safe": (("Give each agent its own machine", '<svg class="sq-iso sq-wide" viewBox="0 0 560 204" role="img"',
-                          "Run agents on a separate computer with nothing private on it"),
+                          "run agents on a separate computer with nothing private on it"),
                          ("Treat an open community as public", '<ul role="list" aria-labelledby="sq-share">',
                           "Keep private work, personal details and passwords out.")),
                 "phone": (("Scan the code", "Copy pairing code", "choose <b>Add Community</b> in its community switcher"),
@@ -43,11 +43,12 @@ SAFE_INTRO = ("Opening your community to the internet exposes you to risk. So do
               "data. Here are some tips to keep yourself and your community safe.")
 SAFE_INTRO_PRIVATE = ("Adding agents with access to personal data exposes you to risk. Here are some tips to keep yourself "
                       "and your community safe.")
-AGENT_CAPTION = ("Most agents made in Buzz run on their owner's computer. There they can run commands, change files and go "
-                 "online without asking first. They take requests only from their owner, but they read what others post, "
-                 "and a post can be written to trick them. Run agents on a separate computer with nothing private on it, "
-                 "under their own identity, not the one that owns this community. Don't connect them to your email, drives "
-                 "or code.")
+AGENT_CAPTION = ("Agents made in Buzz can run on their owner's computer. If that computer holds private data, the agent may "
+                 "be able to reach it. Agents take instructions only from their owner, but they read channel history to do "
+                 "their work, and any text they read can be written to trick them. The risk is higher when anyone can "
+                 "join. In an open community, run agents on a separate computer with nothing private on it, and don't "
+                 'connect them to your email, drives or code. <a href="https://self-host.buzz/#agents" target="_blank" '
+                 'rel="noopener">The self-hosting guide</a> shows how to run an agent on its own server.')
 OPEN_CAPTION = ("If anyone can join, strangers can post, and members can bring their own agents without asking you. Anyone "
                 "who joins, and any agent they bring, can read every channel that isn't private, including its full "
                 "history. They can also open files shared there and see who's a member. Keep private work, personal "
@@ -84,10 +85,10 @@ def window(ask):
 
 WINDOW_TEXTS = {"wide": ["no way across"] + window("draft the notes?"), "tall": window("can you draft the notes?")}
 # Settings, Moderation: who can read private messages, which the safety step's Private channels note says while it's on
-SHARE_LIVE = ('Members don\'t see this in Buzz, so tell them. While Moderation is on, the Private channels note in <a href="#safe">'
-              'Keep it safe</a> above says it.')
-SHARE_LATER = ("Members don't see this in Buzz, so tell them. Once your community is live, the Private channels note in the "
-               "Keep it safe step says it while Moderation is on.")
+SHARE_LIVE = ('Buzz doesn\'t tell members, so tell them. While it\'s on, the Private channels note in <a href="#safe">'
+              'Keep it safe</a> says so.')
+SHARE_LATER = ("Buzz doesn't tell members, so tell them. Once your community is live, the Private channels note in the "
+               "Keep it safe step says so while it's on.")
 # texts the reviews replaced: "you" in a note members read, the line to share it, and a reply about the code the caption
 # says to keep from agents
 REPLACED = ("you and staff you add can open", "says it, so share it", "Working from the app repo")
@@ -127,7 +128,9 @@ GONE = ("Bought the domain recently?", "Show me how", "Join as you set up Buzz",
         "Step 1 of 3", "Step 3 of 3",
         # Buzz 1.0.0's Membership: its Invite members button and dialog, Add directly, and the captions that named them
         "Invite members", "in newer versions of Buzz", "Add or invite people", "Add directly", "Add member",
-        "Refresh</span>", "public ID under", "In Buzz 1.0.0")
+        "Refresh</span>", "public ID under", "In Buzz 1.0.0",
+        # the Moderation row's panels and the Builderlab fold's old claim
+        "While it's on:</p><ul>", "Your community won't appear there by itself")
 # the app's own Cloudflare tunnel, from waiting for a sign-in to running, and its errors; signin+upload is
 # a sign-in the owner uploaded, waiting for the tunnel to take it
 CLOUDFLARE = ("", "signin", "signin+upload", "creating", "routing", "taken", "wrong-domain", "error", "running")
@@ -137,15 +140,15 @@ UPLOAD_OPEN = '<details class="alt" open><summary>Cloudflare saved a file named 
 # stores it off whatever is asked, so it has no "on".
 MODERATION = (None, True, False)
 TICKED, UNTICKED = 'name="moderation" value="on" checked>', 'name="moderation" value="on">'
-POINTS = "A ban keeps one identity out of this community, and the agents that join through it."
+POINTS = "A ban keeps one identity out, with the agents that join through it."
 MESSAGES = ("<b>Could not check access.</b>", "<b>Access is unavailable in this build or on this relay.</b>",
             "<b>Select a community on a relay where you have staff access.</b>")
 OWNER_STAFF = "Staff added in Moderation stay staff after the change, whenever Moderation is on."
 OWNER_REVIEW = "The new owner can review the staff in Buzz under Moderation, then Staff."
 OWNER_LOSES = "You lose Moderation after the change, unless the new owner adds you as staff"
 # Buzz's reason shows only as its button's tooltip, and its third message also comes from Cloudflare or a lost port
-WHERE = "If it says Unavailable, point at its button to see the reason."
-NOT_ONLY = "Cloudflare turning Buzz away, or a request that lost its port, shows this message as well."
+WHERE = "If Moderation says Unavailable, point at its button to see why:"
+NOT_ONLY = "If this page shows a moderation problem, fix that first."
 OPERATORS_STAY = "Staff with the operator role can still rename public channels while it's off"
 ADDRESS_LINES = ('data-for="domain">Moderation stays on, at the new address.',
                  'data-for="funnel private">Moderation turns off: it needs your own domain.')
@@ -228,7 +231,7 @@ def check_guide(page, mode, domain, push, moderation):
     assert "<b>The self-hosting guide</b><small>Roles, moderation, backups and agents</small>" in nav
     # the self-hosting guide's homepage from Go further and the own-key line, and its Security section from the safety step
     assert re.findall(r'href="https://self-host\.buzz[^"]*"', guide) == ['href="https://self-host.buzz/"'] * 2 + [
-        'href="https://self-host.buzz/#security"']
+        'href="https://self-host.buzz/#agents"', 'href="https://self-host.buzz/#security"']
     # each pane runs to its last </section>: Buzz's drawn screens have sections of their own
     parts = guide.split('<section class="g-pane" id="')[1:]
     panes = [(part[:part.index('"')], part[part.index('">') + 2:part.rindex("</section>")]) for part in parts]
@@ -404,7 +407,7 @@ for mode in ("domain", "funnel", "private"):
                         if live:
                             assert "Moderation doesn't show in Buzz?" in row and all(t in row for t in MESSAGES)
                             assert WHERE in row and NOT_ONLY in row
-                            assert "Bans, timeouts and your staff list stay as they are." in row and OPERATORS_STAY in row
+                            assert "Bans, timeouts and staff stay as they are." in row and OPERATORS_STAY in row
                         else:
                             assert "It starts working once your community is live." in row and MESSAGES[0] not in row
                     elif live:

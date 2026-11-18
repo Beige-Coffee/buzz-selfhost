@@ -22,8 +22,8 @@ image for the setup page; Buzz 1.0 came out the same day. On 2026-11-11 all thre
 and safety tips on the live page. `pre-submit.sh` passed 115 of 115 on an Intel droplet with the relay and the page's
 image. On 2026-11-12 the page gained two features for its next image, 1.1.0, not yet published: when Cloudflare's
 page saves `cert.pem` in the browser instead of passing it to the app, the owner can upload that file, and an owner
-on their own domain can turn on moderation (below). Both passed the page's local tests and the package's containers on Docker; the
-package still pins the 1.0.0 image. On 2026-11-13, also for 1.1.0 and from approved mockups, the live page's next steps became a
+on their own domain can turn on moderation (below). Both passed the page's local tests and the package's containers on Docker. Since 2026-11-18 the
+package pins the 1.1.0 image (tag `umbrel-setup-v1.1.0`, built with provenance by CI). On 2026-11-13, also for 1.1.0 and from approved mockups, the live page's next steps became a
 guide and its checks one card, and while connecting the checks became a progress bar; they passed the same local tests, and so
 did the fixes from four reviews of them, the same day, with a new test in a browser (Tested, below). Later that day the
 collapsed safety tips became a step of the guide, Keep it safe, with the self-hosting guide's two Security drawings, and
@@ -894,9 +894,8 @@ found no issues once the PR link was set. To change the PR, change the package h
 `umbrel/buzz/` over the fork's `buzz/` without `__pycache__`, run
 `npm run lint:apps -- buzz --check-images` there, and push. The setup page isn't in the PR: to
 change it, push a tag `umbrel-setup-vX.Y.Z`, then pin the new image's digest in
-`docker-compose.yml`. While `docker-compose.yml` still pins the page's 1.0.0 image, don't copy
-`umbrel/buzz/` to the fork: the App Store description already says the owner can turn on moderation
-from the app's page, which only 1.1.0 can do. Nate Fretz (nmfretz) reviewed it on 2026-11-10 and holds
+`docker-compose.yml`. `docker-compose.yml` pins the page's 1.1.0 image, the first that can turn on moderation, as the
+App Store description says. Nate Fretz (nmfretz) reviewed it on 2026-11-10 and holds
 their own end-to-end test, with real Cloudflare and Tailscale accounts, until we say the PR is final. The PR credits #5928 and says how it
 differs from [#5993](https://github.com/getumbrel/umbrel-apps/pull/5993).
 

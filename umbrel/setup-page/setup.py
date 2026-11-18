@@ -1738,16 +1738,17 @@ def address_fields(values, setup):
     return (
         '<div class="choices">'
         + choice("domain", "Recommended for most communities", "", "Your own domain",
-                 "A name you own, like <code>buzz.yourteam.com</code>. Only people you invite can join, from "
-                 "anywhere. The address stays yours, even on another server.",
+                 "A name you own, like <code>buzz.yourteam.com</code>. Members join from anywhere with an invite, "
+                 "and the address stays yours, even on another server.",
                  "a domain (around 10 US dollars a year) on a free Cloudflare account.", mode == "domain",
                  more=domain_field(values, "Your address")
                  + next_steps("You sign in to Cloudflare and choose your domain. This page sets up the rest and checks "
                               "that it works. Cloudflare handles HTTPS, so it can see the traffic it carries, and "
                               "uploads are limited to 100 MB."))
         + choice("funnel", "Recommended for trying Buzz out", "", "A free Tailscale address",
-                 "The quickest start. Tailscale gives this Umbrel an address like <code>buzz.tail1234.ts.net</code> "
-                 "that anyone you invite can reach. It's tied to your Tailscale account, not a name you own.",
+                 "The quickest start. Tailscale gives this Umbrel an address like <code>buzz.tail1234.ts.net</code>, "
+                 "and members join from anywhere with an invite. It's tied to your Tailscale account, not a name you "
+                 "own.",
                  "a free Tailscale account for you, the owner.", mode == "funnel",
                  "For now, if you change your community's address, its messages and members don't carry over to the "
                  "new one. If you're building a community to keep, choose your own domain now.",

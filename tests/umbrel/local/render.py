@@ -48,9 +48,9 @@ AGENT_CAPTION = ("Agents in Buzz can run locally or remotely. An agent that runs
                  "channel history to do their work. In a community open to anyone, someone could post text meant to "
                  "trick an agent, and it can end up in the agent's context. So in an open community, it's best to run "
                  "agents on a separate computer with nothing private on it, and not to connect them to your email, "
-                 "drives or code. "
-                 '<a href="https://self-host.buzz/#agents" target="_blank" rel="noopener">The self-hosting guide</a> '
-                 "shows how to run an agent on its own server.")
+                 "drives or code. The self-hosting guide shows "
+                 '<a href="https://self-host.buzz/#agents" target="_blank" rel="noopener">how to run an agent on its own '
+                 "server</a>.")
 OPEN_CAPTION = ("If anyone can join, strangers can post, and members can bring their own agents without asking you. Anyone "
                 "who joins, and any agent they bring, can read every channel that isn't private, including its full "
                 "history. They can also open files shared there and see who's a member. Keep private work, personal "
@@ -119,6 +119,14 @@ GUIDE_LINK = ('<a class="g-out" href="https://self-host.buzz/" target="_blank" r
 OWN_KEY = ('Made your own key? <a href="https://self-host.buzz/" target="_blank" rel="noopener">The self-hosting guide</a> '
            "shows how to join with it.")
 BUILDERLAB = '<details class="g-more"><summary>Signed in with Builderlab?</summary>'
+# Signed in with Builderlab, the computer shows the code once it signs out, in Settings, Identity, on the account's card,
+# which Buzz 1.0.5 names by its host; Remove from device is another button there, and removes the key. The note on the
+# community's address ends the first paragraph, for the phone's email sign-in.
+BUILDERLAB_OUT = ("this community's address to your Builderlab account.</p><p>A phone that already has a community "
+                  "doesn't offer email sign-in. To get the code instead, sign out of Builderlab on your computer: open "
+                  "<b>Settings</b>, then <b>Identity</b>, and choose <b>Sign out</b> on your Builderlab account, "
+                  "app.builderlab.xyz. Your Buzz identity stays on the computer. Don't use <b>Remove from device</b>: "
+                  "it's a different button, and it removes your key from the computer.</p></details>")
 NOTIFY_ON = "iPhones get notifications for direct messages and mentions. Android phones don't yet."
 NOTIFY_OFF = "Phone notifications are off. You can turn them on in Settings, further down this page."
 # texts the guide dropped, or the old next steps had, and the safety tips the safety step replaced
@@ -132,7 +140,11 @@ GONE = ("Bought the domain recently?", "Show me how", "Join as you set up Buzz",
         "Invite members", "in newer versions of Buzz", "Add or invite people", "Add directly", "Add member",
         "Refresh</span>", "public ID under", "In Buzz 1.0.0",
         # the Moderation row's panels and the Builderlab fold's old claim
-        "While it's on:</p><ul>", "Your community won't appear there by itself")
+        "While it's on:</p><ul>", "Your community won't appear there by itself",
+        # before the last review: the Builderlab fold's sign-out without where, the agents caption's link named by its
+        # site, the footer without the phone app, the private network's label, and the page's check last in the fold
+        "doesn't offer email sign-in: sign out", "The self-hosting guide</a> shows how to run an agent", "and the app at",
+        "must stay off the internet", "fix that first.</p></li>")
 # the app's own Cloudflare tunnel, from waiting for a sign-in to running, and its errors; signin+upload is
 # a sign-in the owner uploaded, waiting for the tunnel to take it
 CLOUDFLARE = ("", "signin", "signin+upload", "creating", "routing", "taken", "wrong-domain", "error", "running")
@@ -148,13 +160,77 @@ MESSAGES = ("<b>Could not check access.</b>", "<b>Access is unavailable in this 
 OWNER_STAFF = "Staff added in Moderation stay staff after the change, whenever Moderation is on."
 OWNER_REVIEW = "The new owner can review the staff in Buzz under Moderation, then Staff."
 OWNER_LOSES = "You lose Moderation after the change, unless the new owner adds you as staff"
-# Buzz's reason shows only as its button's tooltip, and its third message also comes from Cloudflare or a lost port
+# Buzz's reason shows only as its button's tooltip. A problem the page's own check shows can be behind its first message
+# (an HTML page or a 5xx) or its third (Cloudflare's refusal or a lost port), so the fold opens with that check, and the
+# third message ends at the clock.
 WHERE = "If Moderation says Unavailable, point at its button to see why:"
-NOT_ONLY = "If this page shows a moderation problem, fix that first."
+NOT_ONLY = ('<details class="alt"><summary>Moderation doesn\'t show in Buzz?</summary><div class="inner"><p class="muted '
+            'small">If this page shows a moderation problem, fix that first. In Buzz, open Settings, then Plugins, Manage '
+            "plugins. " + WHERE + "</p>")
+THIRD = ("<b>Select a community on a relay where you have staff access.</b> Use the identity you entered as the owner, or "
+         "ask the owner to add you as staff. Also check that your computer sets its clock automatically.</p></li></ul>")
+# The Moderation row's notes, in the guide's style and a list in Safari too, how to open it, and in its fold what Buzz
+# offers next to each message
+MOD_NOTES = '<ul class="g-notes mod-notes" role="list">'
+OPEN_IT = ('<p class="muted small"><b>To open it:</b> in Buzz on your computer, choose this community and open '
+           "<b>Settings</b>.")
+CHECK_AGAIN = "Try another network, then choose Check access again.</p></li>"
+ENABLE = '</ul><p class="muted small">If Moderation says Enable instead, choose it.</p></div></details>'
+# Moderation's address is on the internet, which the note says
+OWN_ADDRESS = ("<b>Its own address.</b> <code>https://buzz.example.com:8443</code>, on the internet, open only to requests "
+               "you or your staff sign.</p></li>")
 OPERATORS_STAY = "Staff with the operator role can still rename public channels while it's off"
 ADDRESS_LINES = ('data-for="domain">Moderation stays on, at the new address.',
                  'data-for="funnel private">Moderation turns off: it needs your own domain.')
 MODERATION_OPEN = '<details open><summary>Moderation<span class="val word">'
+# The three ways in, each with who it's for, on the setup page's cards and in Settings, Address, the same words: whether
+# the server must not be reachable from the internet, not a VPN
+OPTIONS = [("domain", "Your own domain", "Recommended for most communities"),
+           ("funnel", "A free Tailscale address", "Recommended for trying Buzz out"),
+           ("private", "A private Tailscale network", "Recommended when the server must not be reachable from the internet")]
+CARD = re.compile(r'<input type="radio" name="mode" value="(\w+)"(?: checked)?><span class="kicker"><span>([^<]*)</span>'
+                  r'<span class="pick"></span></span><h3>([^<]*)</h3><p>(.*?)</p>')
+ROW_OPT = re.compile(r'<label class="opt"><input type="radio" name="mode" value="(\w+)"[^>]*><span><b>([^<]*)</b>'
+                     r"<small>([^<]*)</small></span>")
+STEP_2 = ("How you set this up depends on what it's for: trying Buzz out, hosting an existing community, or a private "
+          "group whose server must not be reachable from the internet. Pick the option that fits you best.")
+OLD_LABELS = ("must stay off the internet", "behind a VPN", "Recommended for teams that need privacy",
+              "Recommended for communities on the internet")
+# Anyone can reach the public options' addresses; joining takes an invite
+INVITED = {"domain": "Members join from anywhere with an invite, and the address stays yours, even on another server.",
+           "funnel": "and members join from anywhere with an invite. It's tied to your Tailscale account"}
+# What happens after each choice, folded away and closed, inside the option once it's chosen
+NEXT = {"domain": "You sign in to Cloudflare and choose your domain. This page sets up the rest and checks that it works.",
+        "funnel": "You sign in to Tailscale, and it gives you the address. It stays the same as long as you keep this "
+                  "Tailscale account.",
+        "private": "You sign in to Tailscale, and it gives you the address. To let someone in, invite them to your "
+                   "Tailscale network or share the <b>buzz</b> machine with them"}
+NEXT_FOLD = re.compile(r'<div class="choice-more" data-for="(\w+)">(?:.*?)<details class="alt"( open)?><summary>What happens '
+                       r'next</summary><div class="inner"><p class="small">(.*?)</p></div></details></div></div>')
+# Under the two address boxes, the full address once a domain is typed (the script fills it in), then what the first box is
+ADDRESS_HINT = ('<p class="muted small" data-preview hidden></p><p class="muted small">The first part is up to you: keep '
+                "<b>buzz</b>, change it, or clear it to use your domain on its own.</p>")
+# The owner deletes the sign-in file Cloudflare saved, in bold
+CERT_DELETE = "<b>Afterwards, delete it from your computer and empty the trash.</b> Anyone who has the file can add names"
+# Buzz on Block's own page, for every platform
+INSTALL = '<a href="https://buzz.xyz" target="_blank" rel="noopener">install it</a>, but wait to set it up.'
+# On every page: Buzz's three repos, the relay's, the desktop app's and, since 2026-11-17, the phone app's
+FOOT = ('<p class="foot">Buzz is open source, from Block. The relay is at <a href="https://github.com/block/buzz" '
+        'target="_blank" rel="noopener">github.com/block/buzz</a>, the desktop app at <a href="https://github.com/block/'
+        'buzz-app" target="_blank" rel="noopener">github.com/block/buzz-app</a>, and the phone app at <a href="https://'
+        'github.com/block/buzz-mobile" target="_blank" rel="noopener">github.com/block/buzz-mobile</a>.</p></main>')
+
+
+def check_foot(page):
+    assert page.count(FOOT) == 1 and page.endswith(FOOT + "</body></html>"), page[-600:]
+    assert re.findall(r'href="(https://github\.com/[^"]*)"', page[page.index('<p class="foot">'):]) == [
+        "https://github.com/block/buzz", "https://github.com/block/buzz-app", "https://github.com/block/buzz-mobile"]
+
+
+def check_address_form(form):
+    """Settings, Address: the three ways in with who each is for, and for a new domain the two boxes and the hint."""
+    assert ROW_OPT.findall(form) == OPTIONS, ROW_OPT.findall(form)
+    assert form.count(ADDRESS_HINT) == 1 and not any(old in form for old in OLD_LABELS)
 
 
 def section(page, start, end):
@@ -283,6 +359,7 @@ def check_guide(page, mode, domain, push, moderation):
     first, second = phone.split('<div class="g-frame" ')[1:]
     assert BUILDERLAB in first and BUILDERLAB not in second and "<code>https://" + domain + "</code>" in first
     assert "Get Buzz on your phone" in first and "<b>or sign in with email</b>" in first and "<b>Enter a community link</b>" in first
+    assert first.count(BUILDERLAB_OUT) == 1 and first.index(BUILDERLAB) < first.index(BUILDERLAB_OUT)
     assert phone.endswith('<div class="g-foot"><p class="note">' + (NOTIFY_ON if push else NOTIFY_OFF) + "</p></div>")
     assert page.count(NOTIFY_ON if push else NOTIFY_OFF) == 1 and (NOTIFY_OFF if push else NOTIFY_ON) not in page
     assert not any(gone in page for gone in GONE), [gone for gone in GONE if gone in page]
@@ -311,7 +388,17 @@ inks = dict(re.findall(r"--(ink-[23]): rgb\(35 30 30 / (\d+)%\)", style))
 for name, least in (("ink-2", 4.5), ("ink-3", 3)):
     assert all(contrast(int(inks[name]) / 100, bg) >= least for bg in ((255, 255, 255), (0xf7, 0xf7, 0xf4), (0xf2, 0xf2, 0xee))), name
 assert sorted(sel.strip() for sel, body in re.findall(r"([^{}]+)\{([^{}]*)\}", style) if "var(--ink-3)" in body) == [
-    ".bar .work .tr", ".opt:has(input:disabled) :is(b, small)", ".set-card details > summary::after", ".sq .sq-new"]
+    ".bar .work .tr", ".opt:has(input:disabled) :is(b, small)", ".set-card > details > summary::after", ".sq .sq-new"]
+# A card's rows are its own folds, its children: no rule reaches a fold inside a row, such as Moderation's, which keeps
+# the page's small fold, its arrow before the words and its body indented
+rules = [sel.strip() for sel, _ in re.findall(r"([^{}]+)\{([^{}]*)\}", style)]
+card_rules = [sel for sel in rules if ".set-card" in sel]
+assert len(card_rules) == 11 and all(sel == ".set-card" or sel.startswith(".set-card > details") for sel in card_rules), card_rules
+assert ".set-card > details > .inner { margin: 0; padding: 0 16px 18px; }" in style
+assert "details > summary { list-style: none; cursor: pointer; display: inline-flex;" in style
+assert "details .inner { margin-top: 8px; padding-left: 14px; }" in style
+# The options' cards never grow wider than the page, whatever a chosen option holds
+assert ".choices { display: grid; grid-template-columns: minmax(0, 1fr);" in style
 # The safety drawings' rules: every one inside .sq, where they are, but the hidden symbols' own; the page's colors, none
 # of their own; the tall drawing below 480 pixels of the drawing's width, as the guide has it on a phone, with its
 # labels, near its own width at most; and at least as tall as Buzz's screens, which are 340 pixels at 560 wide and scale
@@ -339,7 +426,7 @@ assert ".js .g-row { align-items: flex-start; }\n.js .g-n { display: flex; align
 assert ".next + details.alt" not in style
 # A focus ring the card's rounded edge doesn't clip, a count that stays whole, a faded icon but not its button's ring,
 # the problem mark's "!" kept from screen readers, copy buttons only with scripts, and the current step in forced colors
-assert ".set-card summary:focus-visible { outline-offset: -3px; border-radius: 12px; }" in style
+assert ".set-card > details > summary:focus-visible { outline-offset: -3px; border-radius: 12px; }" in style
 assert ".ck-all > summary .val { flex: none; }" in style
 assert "opacity" not in section(style, '.g-btns button[aria-disabled="true"] {', "}")
 assert '.g-btns button[aria-disabled="true"] .tb-i { opacity: 0.35; }' in style
@@ -390,7 +477,7 @@ for mode in ("domain", "funnel", "private"):
                         assert UPLOAD_FORM not in page, (mode, live, cf)
                     else:
                         assert UPLOAD_FORM in page and 'enctype="multipart/form-data"' in page and "My Profile, API Tokens" in page
-                        assert "Sign in to Cloudflare</a>" in page
+                        assert "Sign in to Cloudflare</a>" in page and page.count(CERT_DELETE) == 1
                         if values.get("form") == "cert":
                             box = page[page.index(UPLOAD_OPEN):]
                             assert box.index('role="alert">an error') < box.index("</details>"), "the error is inside the upload"
@@ -408,7 +495,10 @@ for mode in ("domain", "funnel", "private"):
                         assert TICKED in row and POINTS in row and m.STAFF_RETURN not in row
                         if live:
                             assert "Moderation doesn't show in Buzz?" in row and all(t in row for t in MESSAGES)
-                            assert WHERE in row and NOT_ONLY in row
+                            # the fold opens with the page's own check, before Buzz's Manage plugins
+                            assert NOT_ONLY in row and row.count("fix that first") == 1 and THIRD in row
+                            assert OPEN_IT in row and CHECK_AGAIN in row and ENABLE in row
+                            assert row.index(OPEN_IT) < row.index(MOD_NOTES) < row.index(NOT_ONLY) < row.index(MESSAGES[0])
                             assert "Bans, timeouts and staff stay as they are." in row and OPERATORS_STAY in row
                         else:
                             assert "It starts working once your community is live." in row and MESSAGES[0] not in row
@@ -417,6 +507,12 @@ for mode in ("domain", "funnel", "private"):
                         assert "Saving restarts Buzz for a few seconds." in row
                     else:
                         assert "You can turn it on here once your community is live." in row and 'name="moderation"' not in row
+                    # What it does while it's on, as notes that are a list in Safari too, its address on the internet
+                    # among them, and with the fold, Buzz's three messages as another
+                    if POINTS in row:
+                        assert row.count(MOD_NOTES) == (2 if on and live else 1) and row.count(OWN_ADDRESS) == 1
+                    else:
+                        assert MOD_NOTES not in row and "Its own address." not in row
                     if mode == "domain":
                         assert (m.STAFF_RETURN in row) == (moderation is False and not on), (moderation, live)
                     # Staff with the operator role keep renaming public channels while it's off: said wherever the page
@@ -438,6 +534,8 @@ for mode in ("domain", "funnel", "private"):
                     assert (OWNER_LOSES in owner_form) == on, (mode, moderation)
                     address_form = section(page, 'action="address"', "</form>")
                     assert all((line in address_form) == on for line in ADDRESS_LINES), (mode, moderation)
+                    check_address_form(address_form)
+                    check_foot(page)
                     # The safety step, on the live page alone: on the owner's own domain, Moderation's row says who can read
                     # private messages, to tell members, and points to the step's Private channels note, which says it
                     # while moderation is on, or says the note will once the community is live
@@ -452,7 +550,25 @@ for values in ({}, {"owner": "x", "mode": "private", "ack": "yes"}):
     # Members join with an invite link; the profile menu's drawing has the dock as a new install has it
     assert OWNER_INVITES in page and PRIVATE_INVITE in page and page.count(DOCK) == 1
     assert "you add the other members" not in page and "then add them in Buzz" not in page
-assert "<main>" in m.login_page("e") and m.SAFE_STYLE not in m.login_page("e"); count += 1
+    # The three ways in: who each is for, in Step 2's words too, members of the public ones joining with an invite, and
+    # what happens next folded away, closed, in the option it's for
+    cards = CARD.findall(page)
+    assert [(mode, title, kicker) for mode, kicker, title, _ in cards] == OPTIONS, cards
+    assert page.count(STEP_2) == 1 and not any(old in page for old in OLD_LABELS)
+    texts = {mode: text for mode, _, _, text in cards}
+    assert all(sentence in texts[mode] for mode, sentence in INVITED.items()), texts
+    folds = NEXT_FOLD.findall(page)
+    assert [(mode, opened) for mode, opened, _ in folds] == [("domain", ""), ("funnel", ""), ("private", "")], folds
+    assert all(text.startswith(NEXT[mode]) for mode, _, text in folds) and page.count("<summary>What happens next</summary>") == 3
+    # Your own domain's two boxes: the full address shows once a domain is typed, and the first box's hint
+    assert page.count(ADDRESS_HINT) == 1 and ADDRESS_HINT in section(page, '<div class="choice-more" data-for="domain">',
+                                                                      "<summary>What happens next")
+    # Buzz from Block's own page, and the footer's three repos
+    assert page.count(INSTALL) == 1 and "github.com/block/buzz-app/releases" not in page
+    check_foot(page)
+login = m.login_page("e")
+assert "<main>" in login and m.SAFE_STYLE not in login; count += 1
+check_foot(login)
 
 # The status list's moderation row, in each state, and the hint for each kind of answer from moderation's address
 use(tempfile.mkdtemp())

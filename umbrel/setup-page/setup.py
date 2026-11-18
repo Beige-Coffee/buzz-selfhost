@@ -2679,7 +2679,7 @@ def cert_upload(error=""):
         '<input type="file" id="cert" name="cert" data-max="' + str(CERT_MAX) + '" required>'
         '<button class="btn small ghost" type="submit">Upload it</button></form>' + error_box(error)
         + '<p class="muted small">This app uses the file as your sign-in and deletes it once the name is set up. '
-        "Afterwards, delete it from your computer and empty the trash. Anyone who has the file can add names to "
+        "<b>Afterwards, delete it from your computer and empty the trash.</b> Anyone who has the file can add names to "
         "your domain and create or delete tunnels in your Cloudflare account. " + TOKEN_NOTE + "</p></div></details>"
     )
 

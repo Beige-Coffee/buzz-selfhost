@@ -1438,8 +1438,8 @@ function updateForm(form) {
     var b = base.value.trim().toLowerCase().replace(/^[a-z]+:[/][/]/, "").split("/")[0];
     var s = sub.value.trim().toLowerCase();
     while (s.slice(-1) === ".") { s = s.slice(0, -1); }
-    preview.textContent = b ? "Members will use https://" + (s ? s + "." : "") + b
-      : "Clear the first box to use the domain on its own.";
+    preview.textContent = b ? "Members will use https://" + (s ? s + "." : "") + b : "";
+    preview.hidden = !b;
   }
 }
 // The private network's check, from this browser: one look at a time for each address, and only the newest look's
@@ -1710,8 +1710,16 @@ def domain_field(values, label):
         'autocomplete="off" spellcheck="false"><span>.</span>'
         '<input type="text" id="domain-base" name="base" placeholder="yourteam.com" aria-label="Domain" '
         'autocomplete="off" spellcheck="false" value="' + esc(values.get("base", "")) + '"></div>'
-        '<p class="muted small" data-preview>Clear the first box to use the domain on its own.</p>'
+        '<p class="muted small" data-preview hidden></p>'
+        '<p class="muted small">The first part is up to you: keep <b>buzz</b>, change it, or clear it to use your '
+        "domain on its own.</p>"
     )
+
+
+def next_steps(text):
+    """What happens after an option is chosen, folded away to keep the option cards short."""
+    return ('<details class="alt"><summary>What happens next</summary><div class="inner"><p class="small">' + text
+            + "</p></div></details>")
 
 
 def posted_domain(values):
@@ -1727,30 +1735,30 @@ def address_fields(values, setup):
     mode = values.get("mode") or (setup or {}).get("mode") or ""
     return (
         '<div class="choices">'
-        + choice("domain", "For hosting a community", "Recommended", "Your own domain",
+        + choice("domain", "Recommended for communities on the internet", "", "Your own domain",
                  "A name you own, like <code>buzz.yourteam.com</code>. Anyone you invite can reach it from anywhere, "
                  "and the address stays yours, even on another server.",
                  "a domain (around 10 US dollars a year) on a free Cloudflare account.", mode == "domain",
                  more=domain_field(values, "Your address")
-                 + '<p class="small">Next, you sign in to Cloudflare and choose your domain. This page sets up the rest and '
-                 "checks that it works. "
-                 "Cloudflare handles HTTPS, so it can see the traffic it carries, and uploads are limited to 100 MB.</p>")
-        + choice("funnel", "For trying Buzz out", "", "A free Tailscale address",
+                 + next_steps("You sign in to Cloudflare and choose your domain. This page sets up the rest and checks "
+                              "that it works. Cloudflare handles HTTPS, so it can see the traffic it carries, and "
+                              "uploads are limited to 100 MB."))
+        + choice("funnel", "Recommended for trying Buzz out", "", "A free Tailscale address",
                  "The quickest start. Tailscale gives this Umbrel an address like <code>buzz.tail1234.ts.net</code> "
                  "that anyone you invite can reach. It's tied to your Tailscale account, not a name you own.",
                  "a free Tailscale account for you, the owner.", mode == "funnel",
                  "For now, if you change your community's address, its messages and members don't carry over to the "
                  "new one. If you're building a community to keep, choose your own domain now.",
-                 more='<p class="small">Next, you sign in to Tailscale, and it gives you the address. It stays the same '
-                 "as long as you keep this Tailscale account.</p>")
-        + choice("private", "For a private group on a VPN", "", "A private Tailscale network",
+                 more=next_steps("You sign in to Tailscale, and it gives you the address. It stays the same as long "
+                                 "as you keep this Tailscale account."))
+        + choice("private", "Recommended for teams that need privacy", "", "A private Tailscale network",
                  "Nothing is reachable from the internet. Only devices you allow on your Tailscale network can "
-                 "connect. Best for a small group that wants its server hidden.",
+                 "connect.",
                  "Tailscale on every member's device, phones included, and access to your Tailscale network.",
                  mode == "private",
-                 more='<p class="small">Next, you sign in to Tailscale, and it gives you the address. To let someone in, '
-                 "invite them to your Tailscale network or share the <b>buzz</b> machine with them, then add them "
-                 "in Buzz.</p>")
+                 more=next_steps("You sign in to Tailscale, and it gives you the address. To let someone in, invite "
+                                 "them to your Tailscale network or share the <b>buzz</b> machine with them, then add "
+                                 "them in Buzz."))
         + "</div>"
     )
 
@@ -2826,9 +2834,9 @@ def address_change(setup, values, current):
     """What changing the address does, the three ways in a short list, and the address typed to confirm."""
     now = setup["mode"]
     chosen = values.get("mode", "")
-    rows = [("domain", "Your own domain", "For hosting a community"),
-            ("funnel", "A free Tailscale address", "For trying Buzz out"),
-            ("private", "A private Tailscale network", "For a private group on a VPN")]
+    rows = [("domain", "Your own domain", "Recommended for communities on the internet"),
+            ("funnel", "A free Tailscale address", "Recommended for trying Buzz out"),
+            ("private", "A private Tailscale network", "Recommended for teams that need privacy")]
     options = "".join(
         '<label class="opt"><input type="radio" name="mode" value="' + mode + '"' + (" checked" if mode == chosen else "")
         # the same Tailscale option again changes nothing; another domain is a change

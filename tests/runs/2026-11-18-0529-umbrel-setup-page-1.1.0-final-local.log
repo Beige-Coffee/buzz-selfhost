@@ -1,0 +1,357 @@
+# The owner's review of the setup page and a last review's fixes, for the page's next image (1.1.0, not published). On
+# an Apple Silicon Mac, Docker Desktop, no umbrelOS, no cost. The page from this checkout; relay 0.3.0's image and the
+# package's other images as pinned. The mocked suites, the browser test, the previews and the screenshots on ports 8851
+# to 8858 only (security.py and cloudflare.py each bind a port the system picks, as before), then check.py on a fresh
+# up.sh run with the page on 8859, removed afterwards with down.sh, then Umbrel's linter.
+# Times are UTC: on this Mac it was 2026-11-17, 21:29 PST.
+
+# Earlier the same day, from the owner's review, committed before this run and tested here on the package's containers
+# for the first time:
+# - Each address option says who it's for, in place of one Recommended badge, and what happens after it is folded away
+#   under What happens next. Under the address boxes, the first part is up to the owner, and once a domain is typed, the
+#   full address.
+# - The public options say members join from anywhere with an invite.
+# - The cert.pem note's sentence to delete the file is in bold.
+# - The install link goes to buzz.xyz, Block's page for every platform, not the GitHub release page.
+# - The footer links the relay's repo and the app's.
+# - The Moderation row's grey panels became four short notes in the guide's style, a one-sentence To open it, and Buzz's
+#   three Unavailable reasons folded into Moderation doesn't show in Buzz?.
+# - The agents caption in the owner's words, and the Builderlab fold as Buzz 1.0.5 and the phone app have it.
+
+# The last review's fixes, by its items, with the texts before and after:
+# 1. The Moderation doesn't show in Buzz? fold starts with the page's own check, and the third message's note ends at the
+#    clock. Buzz shows Could not check access for an HTML page or a 5xx too, not only for a network that blocks the port
+#    (toAccess in src/bundled/relay-staff/staff.ts at block/buzz-app v1.0.5: an intercepted answer, and an ambiguous one
+#    such as a 5xx, is "unreachable"), and the third message for any 401 or 403 that isn't an HTML page. So a problem
+#    the page shows can be behind either.
+#    "In Buzz, open Settings, then Plugins, Manage plugins. If Moderation says Unavailable, point at its button to see
+#    why:" -> "If this page shows a moderation problem, fix that first. In Buzz, open Settings, then Plugins, Manage
+#    plugins. If Moderation says Unavailable, point at its button to see why:"
+#    "... Also check that your computer sets its clock automatically. If this page shows a moderation problem, fix that
+#    first." -> "... Also check that your computer sets its clock automatically."
+# 2. The fold inside the Moderation row took the Settings rows' rules: a full-width summary with the rows' padding, its
+#    arrow after the words, and the rows' padding around its body. The rows' rules now reach only the card's own folds,
+#    its children (.set-card > details), so the fold inside is a small fold like the page's others: an inline summary
+#    with its arrow first, none after, and its body indented 14 pixels.
+# 3. The private network's label, on the setup card and in Settings, Address:
+#    "Recommended when the server must stay off the internet" -> "Recommended when the server must not be reachable from
+#    the internet". Step 2's intro to match: "... or a private group behind a VPN that only certain people can reach."
+#    -> "... or a private group whose server must not be reachable from the internet."
+# 4. Choosing your own domain made the setup page 561 pixels wide at 375: the options' grid had a column without a size,
+#    which grew to the domain card's widest content. Now .choices { grid-template-columns: minmax(0, 1fr); }.
+# 5. The footer: "Buzz is open source, from Block. The relay is at github.com/block/buzz, and the app at
+#    github.com/block/buzz-app." -> "Buzz is open source, from Block. The relay is at github.com/block/buzz, the desktop
+#    app at github.com/block/buzz-app, and the phone app at github.com/block/buzz-mobile." Each a link, target="_blank"
+#    rel="noopener". The phone app moved to block/buzz-mobile on 2026-11-17.
+# 6. The Builderlab fold says where to sign out, in a paragraph of its own:
+#    "A phone that already has a community doesn't offer email sign-in: sign out of Builderlab on your computer to get
+#    the code instead." -> "A phone that already has a community doesn't offer email sign-in. To get the code instead,
+#    sign out of Builderlab on your computer: open Settings, then Identity, and choose Sign out on your Builderlab
+#    account, app.builderlab.xyz. Your Buzz identity stays on the computer. Don't use Remove from device: it's a
+#    different button, and it removes your key from the computer."
+#    "Buzz also saves this community's address to your Builderlab account." now ends the first paragraph.
+#    From block/buzz-app at v1.0.5 (a local clone, read-only git): in a Builderlab build that sign-in is managed in
+#    Settings, Identity, where the Builderlab card's Manage account leads (src/bundled/builderlab/login/Login.tsx). Under
+#    Community sign-ins, the account's card is named by its host, app.builderlab.xyz, since the built-in server has no
+#    organization name (src/features/federated-identity/built-in-server.json, serverTitle in src/app/IdentitySettings.tsx).
+#    Its button reads Sign out; then a dialog, Sign out of app.builderlab.xyz?, says "Your Buzz identity stays on this
+#    device" and has Sign out again. Signed out, Settings, Mobile app shows the pairing code (MobileApp.tsx). Remove from
+#    device, under the Buzz ID card, removes the private key from this device's secure storage
+#    (src/features/identity/SignOut.tsx).
+# 7. The agents caption's link names where it goes: "<a ...>The self-hosting guide</a> shows how to run an agent on its
+#    own server." -> "The self-hosting guide shows <a ...>how to run an agent on its own server</a>." The same href,
+#    https://self-host.buzz/#agents, target and rel.
+# 8. Moderation's address is on the internet: "https://buzz.yourteam.com:8443, open only to requests you or your staff
+#    sign." -> "https://buzz.yourteam.com:8443, on the internet, open only to requests you or your staff sign."
+# And Back after Moderation's link to Keep it safe. The script handled that link as the guide's own links, the address
+# replaced, so Back left the page. Now the link adds one entry, its state { buzzStep }, and the entry it leaves keeps the
+# link, { buzzFrom }. Back to that entry fires popstate: the page opens the link's fold, moves focus to the link, scrolls
+# it into view if it isn't, and leaves the guide as it is. hashchange skips those entries, so Back opens no other step,
+# and Forward opens the step again. After popstate, Chrome goes to the element the address names (#phone here) and takes
+# focus from anything outside it, so the page moves focus in the next task: moved during popstate, it fell to the page.
+# The guide's own links and Next still replace the address, and a step typed into the address bar still opens it.
+$ python3 tests/umbrel/local/render.py
+rendered 2147 page states without errors
+# New: the three options' labels and titles on the setup page's cards and in Settings, Address; Step 2's intro; the
+# public options' invite sentences; the three What happens next folds, closed, each in its option; the hint under the
+# address boxes, on the setup page and in Settings, Address; the cert.pem sentence in bold; the buzz.xyz link; the
+# footer's three repos on the sign-in, setup, connecting and live pages; the Moderation row's notes as a list in Safari
+# too (role="list", and a second list in the fold), To open it, its address on the internet, the fold starting with the
+# page's check, the third note ending at the clock, Check access again and Enable instead; the Builderlab fold's second
+# paragraph; the agents caption's link text; Settings' row rules only for the card's own folds; the options' grid with
+# minmax(0, 1fr); and none of the texts these replaced.
+# Each of 22 changes to the page, made in a copy of it, made render.py fail: the page's check last in the fold again; the
+# third note going on past the clock; Settings' row rules reaching the fold inside a row; the private network's old
+# label on the setup card; and in Settings, Address; Step 2's old intro; the options' grid without minmax; the footer
+# without the phone app; the phone app's link without rel=noopener; the Builderlab fold without where to sign out; and
+# without Remove from device; the agents caption's link named by its site again; moderation's address without on the
+# internet; What happens next open from the start; the free Tailscale address without the invite; the address boxes
+# without their hint; the cert.pem sentence not bold; the install link to GitHub's releases; Moderation's notes without
+# role="list"; To open it without its words; Check access again gone; Enable instead gone.
+# Against the page before these fixes (setup.py at 904f121, with these tests) it fails at the first check of the
+# stylesheet: Settings' rows' arrow rule still reaches folds inside a row.
+
+$ docker run --rm -v "$PWD:/repo:ro" -w /repo -e PYTHONDONTWRITEBYTECODE=1 python:3.13.16-alpine3.24 sh -c 'python3 --version && python3 tests/umbrel/local/render.py'   # the image's Python, on Linux
+Python 3.13.16
+rendered 2147 page states without errors
+
+$ python3 tests/umbrel/local/security.py
+passed: 110  failed: 0
+
+$ python3 tests/umbrel/local/cloudflare.py
+passed: 63  failed: 0
+
+$ BROWSER_PORT=8851 python3 tests/umbrel/local/browser.py   # its five previews on 8851 to 8855
+Chrome/157.0.8103.79
+== The step the address names
+PASS  before the script draws the guide, the page shows the one step the address names, or the one kept across a new phase (a hash still wins), at its drawing, and the script keeps it: 15 addresses, a hostile hash and unknown ones open the first step
+== Next and Previous with the keyboard
+PASS  Next walks every drawing and crosses into the next step, moving the address to it and focus to the new drawing's Next; at the guide's last drawing it's aria-disabled and does nothing
+PASS  Previous crosses back into the previous step's last drawing, and stops at the first
+PASS  crossing into a step says where the reader is, the safety step by its heading
+== A step's link
+PASS  a step's link opens the step at its first drawing and moves focus to the step's heading, clicked or with Enter
+PASS  in forced colors, the current step's link has a border, the others none, and the safety step's drawings keep their own colors
+== The safety step with scripts
+PASS  on a computer, each drawing is as tall as Buzz's screens in the other steps (340 pixels), with the people and the agent drawn and nothing outside it
+PASS  each chat bubble is as wide as its words in this browser's font
+PASS  at a phone's width the tall drawing shows, at 0.85 of its size, with its two labels and its bubbles fitted to their words
+PASS  at 375 and 540 pixels the tall drawing and the lists are one height, so Previous and Next stay put between them
+PASS  with WCAG's text spacing at 375 pixels, the tall drawing's labels wrap under their parts, none running into another or out of the drawing
+PASS  the notes on each option: bans on the owner's own domain alone, who can read private messages first while moderation is on, and on the private network an intro without the internet
+== Moderation's link to the safety step and Back after it
+PASS  Moderation's link to the safety step opens it in view and moves focus to its heading, and adds one entry to the history, where a step's own link adds none
+PASS  Back returns to Moderation's link, focus on it, in view, its row open, and opens no other step: the guide stays at the safety step, though the address names #phone again
+PASS  Forward opens the safety step again, in view, focus on its heading
+PASS  a step typed into the address bar still opens it, focus on its heading
+PASS  with the address at #safe already and the reader on its second drawing, the link opens the step again at its first, in view, focus on its heading
+PASS  and Back, to the same address, returns to the link, focus on it, in view
+== Settings' Moderation row
+PASS  the fold inside Moderation's row is a small fold like the guide's: its summary inline, the arrow before its words and none after, and its body indented 14 pixels
+PASS  nothing in the row runs past the card or out of its box at 375 pixels, and the fold opens with the page's own check
+== The setup and Settings forms at a phone's width
+PASS  the setup page's three What happens next folds are closed at first
+PASS  on the setup page, nothing shows under the address boxes until a domain is typed, a name alone included, then the full address
+PASS  in Settings, Address, nothing shows under the address boxes until a domain is typed, then the full address
+PASS  at 375 pixels no form is wider than the page: the setup form with each option chosen and a domain typed, and Settings on three live pages with every row open and each way in chosen (17 views)
+== The 5-second refresh on a live page
+PASS  a refresh with the same checks changes nothing: the same card, the list open, focus on its summary, and nothing said
+PASS  when the checks change, the card is drawn again with its list open and focus on its summary, the page doesn't move, and a screen reader hears the card's summary once
+PASS  the next refresh, with nothing new, says nothing
+PASS  while connecting, a change says the current stage
+== The private network's device check
+PASS  the page looks once from this device as it opens, and shows that it's checking
+PASS  a refresh during that look starts no other: one look at a time
+PASS  a late answer from an older look never replaces a newer one: the row shows the newest look's answer, here the first look running out of time
+PASS  the next look reaches Buzz: the problem goes from above the card, which says Everything works, 4 checks
+PASS  two more looks with the same answer leave the row and the card as they are: no writes at all
+PASS  drawn again while a look is out: the last answer shows in the new row at once, no second look starts, and a screen reader hears the card's summary
+PASS  that look's answer, that this device can't reach Buzz, goes to the row the page has now, and above the card
+== A new phase opens the page again
+PASS  a new phase opens the page again at the reader's step and drawing, drawn from the start, and keeps nothing after
+== Without scripts
+PASS  without scripts at 1440 pixels: every step and drawing, no stepper and no copy buttons, nothing cropped or wider than the page
+PASS  and the safety step's two drawings: the wide one of the agent at 1.06 of its size with its labels, the people and the agent drawn, nothing outside its drawing or wider than its box
+PASS  and Buzz's Membership, drawn in the invite step: Members open with Invite to choose, then Invite open, every part inside the drawn page and none wider than its box
+PASS  without scripts at 375 pixels: every step and drawing, no stepper and no copy buttons, nothing cropped or wider than the page
+PASS  and the safety step's two drawings: the tall one of the agent at 0.85 of its size with its labels, the people and the agent drawn, nothing outside its drawing or wider than its box
+PASS  and Buzz's Membership, drawn in the invite step: Members open with Invite to choose, then Invite open, every part inside the drawn page and none wider than its box
+
+passed: 42  failed: 0
+
+# Five runs in a row on the final page and tests, 42 of 42 each (above, the fifth), and one before them with the same
+# checks.
+# New: Moderation's link adds one entry where a step's own link adds none; Back returns to the link, focus on it, in
+# view, its row open, with the guide still at the safety step and the address back at #phone; Forward opens the step
+# again; a step typed into the address bar opens it; with the address at #safe already, Back to the same address returns
+# to the link; Settings' Moderation row at 375 pixels, its fold's summary inline with the arrow first and none after, the
+# body indented 14 pixels, nothing past the card or out of its box, the fold opening with the page's check; the setup
+# page's What happens next folds closed; under the address boxes nothing until a domain is typed, a name alone included,
+# then the full address, on the setup page and in Settings, Address; and at 375 pixels no form wider than the page: the
+# setup form with each option chosen and a domain typed, and Settings on three live pages (own domain, moderation on, the
+# private network) with every row open and each way in chosen, 17 views.
+# The first version moved focus to the link during popstate: Back's two checks failed, with focus on the page, and a
+# probe of the events showed Chrome taking focus from the link after popstate, before hashchange. Focus a task later,
+# with setTimeout 0 or requestAnimationFrame, stays.
+# Against the page before these fixes (setup.py at 904f121, with these tests): 6 of 42 fail, the link adding an entry,
+# Back to the link both ways, the Moderation row's two checks, and the forms at 375 pixels, where the setup form with
+# your own domain chosen runs to 561 pixels. Each of 4 changes to the page's script, made in a copy of it, made
+# browser.py fail: the link adding no entry again (3 checks); focus moved during popstate (Back's 2 checks); hashchange
+# opening a step on Back (1); the full address shown before a domain is typed (2).
+
+# preview.py, each of its 14 scenarios in turn on a port from 8851 to 8859, its page and status.json fetched: the
+# footer's three repos on every page, the setup page's labels, folds, hint and buzz.xyz link, the cert.pem sentence while
+# signing in to Cloudflare, and on each live page the guide, the agents link, the Builderlab sign-out, Address's labels,
+# and with moderation on, its fold and address
+PASS  login: the sign-in page, the footer's three repos
+PASS  setup: the setup steps, the three options' labels, What happens next closed, the address hint, Buzz from buzz.xyz, the footer's three repos
+PASS  domain-dns: the bar, saying 'Sign in to Cloudflare: your turn.', the footer's three repos, the cert.pem note's bold sentence
+PASS  domain-uploaded: the bar, saying 'Cloudflare publishes the name: in progress.', the footer's three repos
+PASS  domain-working: the bar, saying 'Cloudflare publishes the name: in progress.', the footer's three repos
+PASS  domain-530: the bar, saying 'Cloudflare publishes the name: needs your attention.', the footer's three repos
+PASS  funnel-login: the bar, saying 'Sign in to Tailscale: your turn.', the footer's three repos
+PASS  funnel-consent: the bar, saying 'Allow Funnel: your turn.', the footer's three repos
+PASS  private-consent: the bar, saying 'Allow HTTPS: your turn.', the footer's three repos
+PASS  private-live: the card 'Everything else works, 3 of 4 checks', the guide's 8 drawings, the agents link, the Builderlab sign-out, Address's three labels, the footer's three repos
+PASS  domain-live: the card 'Everything works, 3 checks', the guide's 8 drawings, the agents link, the Builderlab sign-out, Address's three labels, the footer's three repos
+PASS  domain-moderation: the card 'Everything works, 4 checks', the guide's 8 drawings, the agents link, the Builderlab sign-out, Address's three labels, the footer's three repos, Moderation's fold opening with the page's check, its address on the internet
+PASS  domain-moderation-blocked: the card 'Everything else works, 3 of 4 checks', the guide's 8 drawings, the agents link, the Builderlab sign-out, Address's three labels, the footer's three repos, Moderation's fold opening with the page's check, its address on the internet
+PASS  domain-moderation-starting: the card 'Everything else works, 3 of 4 checks', the guide's 8 drawings, the agents link, the Builderlab sign-out, Address's three labels, the footer's three repos
+
+passed: 14  failed: 0
+
+$ bash -n tests/umbrel/local/up.sh tests/umbrel/local/down.sh tests/umbrel/e2e.sh tests/umbrel/pre-submit.sh
+bash -n: tests/umbrel/local/up.sh ok
+bash -n: tests/umbrel/local/down.sh ok
+bash -n: tests/umbrel/e2e.sh ok
+bash -n: tests/umbrel/pre-submit.sh ok
+
+$ BUZZ_LOCAL_PORT=8859 PYTHON=<a Python with PyYAML> bash tests/umbrel/local/up.sh   # 21:20 PST
+ Container buzz_silo_1  Healthy
+ Container buzz_relay_1  Starting
+ Container buzz_relay_1  Started
+cloudflared Up 6 seconds
+gateway Up 6 seconds
+pair Up 6 seconds
+postgres Up 6 seconds (healthy)
+redis Up 6 seconds (healthy)
+relay Up Less than a second (health: starting)
+silo Up 6 seconds (healthy)
+tailscale Up 6 seconds
+web Up 6 seconds
+
+$ cmp tests/umbrel/local/run/setup.py umbrel/setup-page/setup.py && echo identical   # the stack's page is this one
+identical
+
+$ BUZZ_LOCAL_PORT=8859 python3 tests/umbrel/local/check.py
+== Sign-in
+PASS  the page sends a visitor without a session to sign in
+PASS  status.json refuses a visitor without a session (HTTP 401)
+== Another app on the same Docker network, going around Umbrel's proxy
+PASS  a direct request from another container can't save settings or read status (HTTP 401 401)
+PASS  nothing was saved by that request
+PASS  a wrong password is refused
+PASS  the app password signs in and sets a session cookie
+PASS  the session cookie is HttpOnly
+PASS  a form posted from another app's page on the same Umbrel is refused (HTTP 403)
+PASS  the page's own forms pass whatever Host the proxy forwards (reached validation)
+== Setup
+PASS  signed in, the page shows the setup steps
+PASS  creating without the acknowledgement is refused
+PASS  a bad public ID is refused
+PASS  a home-network-only name is refused
+PASS  the owner and the domain are saved (HTTP 303)
+PASS  the relay starts with the saved address (NIP-11 answers for buzz-one.local-test.invalid)
+PASS  the relay's owner is the page's owner
+PASS  phone notifications are on by default (NIP-11 offers buzz-push-v1)
+PASS  the page shows the Cloudflare steps, and that the name doesn't resolve
+PASS  the page gives the tunnel's service URL
+PASS  the app's own Cloudflare tunnel waits for a sign-in, with Cloudflare's link
+PASS  the page shows that sign-in link
+PASS  the progress bar marks Cloudflare's sign-in as the owner's turn, and status.json sends the same bar
+== Persistence across a restart of every container
+PASS  the relay comes back with the same identity
+PASS  the owner survives the restart
+PASS  the session survives the restart and the page remembers the setup
+== Phone notifications
+PASS  turning phone notifications off is saved
+PASS  the relay restarts without them
+PASS  the page shows them off
+== Changing the owner
+PASS  the new owner is saved
+PASS  the relay's owner is the new one
+PASS  the previous owner is now an admin
+PASS  phone notifications stay off through the owner change
+PASS  turning them back on offers them again
+== Changing the address, guarded
+PASS  a change without typing the current address is refused
+PASS  typing the current address confirms the change, with the new address in the two boxes
+PASS  the new address is a separate community: the owner, and none of the old members
+PASS  switching back to the first address brings its community back, admin included
+== The Tailscale modes, up to the sign-in
+PASS  choosing the free Tailscale address starts Tailscale in Funnel mode
+PASS  and turns the Cloudflare tunnel off: it waits, with no sign-in running
+PASS  Tailscale is waiting for a sign-in, with a link
+PASS  the page shows that sign-in link
+PASS  and the progress bar marks Tailscale's sign-in as the owner's turn
+PASS  the relay waits: no address until Tailscale names the machine
+PASS  with no address to type, a change needs the box ticked
+PASS  with no address yet, switching to the private network needs only the acknowledgement
+PASS  going back to the domain turns Tailscale off
+PASS  and the first address's community is back
+PASS  Tailscale stopped and cleared its state for the page
+PASS  switching to Tailscale again starts it again, with a sign-in link (private network)
+PASS  the page shows the private network's sign-in step
+== A sign-in Cloudflare saved as a file, uploaded
+PASS  the service's own check, in the real image, takes exactly the 14 made-up files the page takes, of 57
+PASS  back on the domain, the page takes a sign-in file while the service waits (HTTP 303)
+PASS  within seconds the real service took it: the upload is gone and the tunnel moved on (error)
+PASS  it's the service's cert.pem, byte for byte as uploaded, mode 600, owned by the app's user (600 1000)
+PASS  Cloudflare refuses the made-up token, and the page offers Sign in to Cloudflare again
+PASS  the reset deletes that sign-in and starts a new one, with a new link
+== Moderation: the relay's admin API at buzz-one.local-test.invalid:8443, from the real image
+PASS  a test owner whose key is held here becomes the owner
+PASS  moderation is off by default: no admin API advertised, and none at buzz-one.local-test.invalid:8443
+PASS  the page turns it on: its line in the relay's settings
+PASS  the relay restarts with it, and its NIP-11 advertises admin_api https://buzz-one.local-test.invalid:8443
+PASS  the relay process has that alone: no open mode, no other operators, no browser dashboard (BUZZ_ADMIN_HOST=buzz-one.local-test.invalid:8443)
+PASS  through the gateway, buzz-one.local-test.invalid:8443 is the relay's admin host: 404 with its own security policy (HTTP 404)
+PASS  a browser there gets no page: the dashboard is off (HTTP 404)
+PASS  an unsigned request to the admin API is refused (HTTP 401)
+PASS  another key's signature is refused (HTTP 403)
+PASS  the owner's signature gets in: the operator, as the relay's owner (HTTP 200)
+PASS  the same signature sent for the community's own address is refused (HTTP 403)
+PASS  a member posts (HTTP 200, 200)
+PASS  the owner bans the member through the admin API (HTTP 200)
+PASS  the banned member's posts are refused: banned from this community
+PASS  the banned identity can't come back with the owner's invite link (HTTP 403, invite_restricted), and a new identity joins with the same link (HTTP 200)
+PASS  the page turns it off: the line goes, and setup.json keeps "moderation": false
+PASS  the relay restarts without it: no admin API advertised
+PASS  and none at buzz-one.local-test.invalid:8443, for the owner either
+PASS  the ban holds with moderation off
+PASS  turned on again, the owner lifts the ban (HTTP 204), and the member posts again (HTTP 200)
+PASS  after a restart of every container it's still on: advertised, and the owner's signature still gets in
+PASS  after an owner change it stays on, and the previous owner's signature is refused (HTTP 403)
+PASS  choosing a Tailscale option turns it off
+PASS  and back on the domain, it stays off
+
+passed: 80  failed: 0
+
+$ bash tests/umbrel/local/down.sh
+ Volume buzzlocal_buzz-secrets  Removed
+ Volume buzzlocal_buzz-tailscale-control  Removed
+ Volume buzzlocal_buzz-silo  Removed
+ Volume buzzlocal_buzz-postgres  Removed
+ Volume buzzlocal_buzz-redis  Removed
+ Network umbrel_main_network_local  Removed
+# No container, volume or network of the buzzlocal project left.
+
+# Umbrel's linter, on a copy of getumbrel/umbrel-apps with umbrel/buzz/ copied in as buzz/, without __pycache__. Inside
+# the command sandbox its image checks can't reach the registries (10 errors, "fetch failed"); outside it:
+$ npm run lint:apps -- buzz --check-images
+Linting buzz
+No issues found.
+
+# The screenshots, taken the ways they were taken, on ports 8856 to 8858. The scripts that took them before weren't kept,
+# so the recipe was written again from these logs: 01 to 03 over DevTools from preview.py's setup screen, 1440 by 900 at
+# 2x, on a headless Chrome 157 started without --disable-gpu; 02 with Where to find your public ID open at its second tab,
+# scrolled to put the Owner step 24 pixels from the top; 03 with your own domain chosen and yourteam.com typed, the box
+# left, scrolled the same to How members reach it. 04 and 05 with --screenshot (--headless=new --disable-gpu
+# --hide-scrollbars --window-size=1440,900 --force-device-scale-factor=2 --virtual-time-budget=4000, a fresh profile
+# each) from domain-dns and domain-live; 06 the same from domain-live#invite at 1440 by 1800, cropped from 432 pixels
+# down (Chrome scrolls to 433 there, as before: the step's top didn't move).
+# Checked first on the page at 04681ae, which gave the committed files before: 04 and 06 pixel for pixel; 01, 02 and 03
+# but for 23, 1 and 107 pixels, on the numbered circles and in 02's drawing, which vary from capture to capture without
+# --disable-gpu; and 05 but for one tile Chrome left blank in that capture.
+# Then three captures of this page. 01, 03 and 06 came out the same all three times; 02 differed between captures in its
+# drawing's gradients, by at most 14 of 255 in a channel; 05 in the first and 04 in the third each had a blank tile.
+# Kept: the second capture, whole in every file.
+01-setup.png (2880, 1800): the owner step's invite sentence, Step 2's intro, Recommended for most communities and the
+  invite sentence on the first card
+02-public-id.png (2880, 1800): the owner step's invite sentence
+03-options.png (2880, 1800): the first two options' labels and invite sentences, Step 2's intro, the hint under the
+  address boxes, What happens next closed
+04-cloudflare.png: pixel for pixel the same, not retaken (the cert.pem note's fold is closed, and the footer below the
+  view)
+05-live.png (2880, 1800): the dock in the join step's drawing, with Bestie first
+06-add-members.png (2880, 1800), cropped from 2880 by 3600: Membership's Members and Invite tabs, and the caption

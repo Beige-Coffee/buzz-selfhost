@@ -63,13 +63,30 @@ export const ICONS: Record<ExpectIcon, string> = {
   lock: icon(`<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>`),
 };
 
-/** A Get ready item: its folds sit on its line, and the one you open drops its text below. */
-function readyHTML(r: AgentTrack["ready"][number], i: number): string {
-  const folds = [r.warn && { ...r.warn, warn: true }, r.more && { ...r.more, warn: false }].filter((f) => !!f);
-  const id = (j: number) => `ag-fold-${i}-${j}`;
-  return `<li><span data-rich="${attr(r.t)}"></span>${folds
-    .map((f, j) => ` <button type="button" class="ag-fold${f.warn ? " ag-fold-warn" : ""}" aria-expanded="false" aria-controls="${id(j)}">${f.label}</button>`)
-    .join("")}${folds.map((f, j) => `<div class="ag-more-body" id="${id(j)}" hidden data-rich="${attr(f.t)}"></div>`).join("")}</li>`;
+type ReadyItem = AgentTrack["ready"][number];
+/** The item the skill takes care of: it makes the key, so the list leaves it out and the fold keeps its details. */
+const isKey = (r: ReadyItem) => /^<b>Your key<\/b>/.test(r.t);
+/** An item's bold name, for its line in the fold. */
+const named = (r: ReadyItem) => r.t.replace(/<\/b>[\s\S]*$/, "</b>");
+
+/**
+ * Get ready, kept short (the owner's pick of 2026-11-18, from three live options): one line per
+ * item, with only a warning kept beside its item, such as the domain that can't change later. Every
+ * other detail sits in one fold under the list.
+ */
+function readyList(rs: ReadyItem[]): string {
+  const items = rs.filter((r) => !isKey(r));
+  const more = rs.filter((r) => r.more);
+  return `<ul class="ag-ready">${items
+    .map(
+      (r, i) =>
+        `<li><span data-rich="${attr(r.t)}"></span>${r.warn ? ` <button type="button" class="ag-fold ag-fold-warn" aria-expanded="false" aria-controls="ag-warn-${i}">${r.warn.label}</button><div class="ag-more-body" id="ag-warn-${i}" hidden data-rich="${attr(r.warn.t)}"></div>` : ""}</li>`,
+    )
+    .join("")}</ul>${
+    more.length
+      ? `<details class="ag-fine"><summary>More on each item</summary><dl>${more.map((r) => `<dt>${named(r)}: ${r.more!.label}</dt><dd data-rich="${attr(r.more!.t)}"></dd>`).join("")}</dl></details>`
+      : ""
+  }`;
 }
 
 /** What to expect: in order, what the agent does and where it stops for you. */
@@ -120,7 +137,7 @@ export function mountAgent(host: HTMLElement): void {
           <span class="tl-n" aria-hidden="true"><span>1</span></span>
           <div class="tl-body">
             <h3>Get ready</h3>
-            <ul class="ag-ready">${t.ready.map(readyHTML).join("")}</ul>
+            ${readyList(t.ready)}
           </div>
         </li>
         <li class="tl-step ag-step">

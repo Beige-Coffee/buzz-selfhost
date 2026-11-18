@@ -118,8 +118,8 @@ const vault = `<div class="id-vault">
 const laptop = `<svg viewBox="0 0 120 84" aria-hidden="true"><rect x="16" y="6" width="88" height="58" rx="6"/><path d="M4 74h112l-6 6H10z"/><rect class="id-lockbody" x="49" y="31" width="22" height="17" rx="3"/><path class="id-lockarc" d="M53 31v-5a7 7 0 0 1 14 0v5"/></svg>`;
 const phone = `<svg viewBox="0 0 60 96" aria-hidden="true"><rect x="6" y="4" width="48" height="88" rx="9"/><path d="M24 12h12"/><rect class="id-lockbody" x="19" y="44" width="22" height="17" rx="3"/><path class="id-lockarc" d="M23 44v-5a7 7 0 0 1 14 0v5"/></svg>`;
 const devices = `<div class="id-devs">
-  <div class="id-dev">${laptop}<b>Computer</b><span>${ti("check")}Disk encryption on</span><span>${ti("check")}Screen lock on</span></div>
-  <div class="id-dev">${phone}<b>Phone</b><span>${ti("check")}Passcode on</span></div>
+  <div class="id-dev">${laptop}<b>Computer</b><span>Disk encryption on</span><span>Screen lock on</span></div>
+  <div class="id-dev">${phone}<b>Phone</b><span>Passcode on</span></div>
 </div>`;
 
 const ADDRESS = `<span class="typed">buzz.yourteam.org</span>`;

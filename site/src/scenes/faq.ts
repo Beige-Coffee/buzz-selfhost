@@ -31,7 +31,8 @@ const OWN: Record<string, string> = {
 };
 const icon = (n: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${OWN[n] ?? TABLER[n]}</svg>`;
 
-const rec = (t: string) => `<div class="fq-rec"><span class="fq-rec-i">${icon("check")}</span><div><b>Recommended</b><p>${t}</p></div></div>`;
+// no tick here, or anywhere on the page (the owner's call, 2026-11-18)
+const rec = (t: string) => `<div class="fq-rec"><div><b>Recommended</b><p>${t}</p></div></div>`;
 const note = (t: string) => `<p class="opx-note">${t}</p>`;
 const steps = (rows: [string, string][]) =>
   `<ol class="opx-flow">${rows
@@ -67,8 +68,8 @@ const hasConsole = (t: Track) => t === "vps" || t === "own-public";
  * screens for relay staff (the owner, as the relay's operator, and whoever is added under Staff), or from
  * the command line for the owner and admins (block/buzz crates/buzz-relay/src/handlers/moderation_authz.rs).
  */
-const YES = `<span class="fq-y" aria-label="Yes">${icon("check")}</span>`;
-const NO = `<span class="fq-n" aria-label="No">${icon("x")}</span>`;
+const YES = `<span class="fq-y">Yes</span>`;
+const NO = `<span class="fq-n">No</span>`;
 const IF_STAFF = `<span class="fq-if">If on Staff</span>`;
 const roles = (t: Track) => `<div class="fq-vis"><table class="fq-roles">
   <thead><tr><th></th><th>${icon("crown")}Owner</th><th>${icon("shield")}Admin</th><th>${icon("user")}Member</th></tr></thead>
@@ -147,13 +148,14 @@ const LANES = `<div class="fq-vis fq-lanes">
   ${lane(`${icon("alert")}The server itself`, " hot", ["Change its logins", "Assume every message was read"])}
 </div>`;
 
+/** A short list to work through in order, numbered: nothing on the page ticks. */
 const checklist = (items: [string, string, string?][]) =>
-  `<div class="fq-vis"><ul class="fq-check">${items
+  `<div class="fq-vis"><ol class="fq-check fq-numbered">${items
     .map(
-      ([t, d, only]) =>
-        `<li><button type="button" class="fq-box" aria-pressed="false" aria-label="Done: ${t}">${icon("check")}</button><div><b>${t}${only ? ` <span class="fq-only">${only}</span>` : ""}</b><p>${d}</p></div></li>`,
+      ([t, d, only], i) =>
+        `<li><span class="fq-num" aria-hidden="true">${i + 1}</span><div><b>${t}${only ? ` <span class="fq-only">${only}</span>` : ""}</b><p>${d}</p></div></li>`,
     )
-    .join("")}</ul></div>`;
+    .join("")}</ol></div>`;
 
 /** The server's door: personal SSH keys, and two-factor sign-in on the hosting account. Keys are illustrative. */
 const ACCESS = `<div class="fq-vis fq-access">
@@ -253,8 +255,7 @@ const mobile = (t: Track) =>
   PHONE_FOLDED.map((x) => fold(x, phone(x))).join("");
 
 /**
- * Before the team arrives: five things to have true, each a link to the answer that says how. The
- * boxes tick, for working down the list, like the leaving checklist.
+ * Before the team arrives: five things to have true, each a link to the answer that says how.
  */
 const PRELAUNCH: [id: string, title: string, text: string][] = [
   ["server", "Two operators", "A primary and a backup, each with their own way in."],
@@ -267,7 +268,7 @@ const prelaunchHTML = () => `<div class="pl" role="group" aria-labelledby="pl-k"
   <p class="pl-k" id="pl-k">Before the team arrives</p>
   <ul class="pl-list">${PRELAUNCH.map(
     ([id, title, text]) =>
-      `<li><button type="button" class="fq-box" aria-pressed="false" aria-label="Done: ${title}">${icon("check")}</button><div><a href="#operations" data-q-link="${id}">${title}</a><p>${text}</p></div></li>`,
+      `<li><div><a href="#operations" data-q-link="${id}">${title}</a><p>${text}</p></div></li>`,
   ).join("")}</ul>
 </div>`;
 
@@ -529,19 +530,28 @@ const GROUPS: [string, Question[]][] = [
   ],
 ];
 
+/** A group's fold mark, turned to point right while the group is folded. */
+const CHEV = `<svg class="fq-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+
+/**
+ * The questions, grouped. Each group's label folds it, and the groups start folded except the one
+ * holding the open answer, so the list never runs long (the owner's pick of 2026-11-18, from three
+ * live options). Opening an answer, by a click or a link, unfolds its group; readers can keep
+ * several groups open. A group holds buttons, not tabs: a fold button can't sit inside a tab list.
+ */
 export function mountFaq(host: HTMLElement): void {
   const all = GROUPS.flatMap(([, qs]) => qs);
   host.innerHTML = `${prelaunchHTML()}${runningOnHTML(trackOf())}<div class="opx fq">
-    <div class="opx-list fq-list" role="tablist" aria-label="Questions" aria-orientation="vertical">${GROUPS.map(
-      ([group, qs]) =>
-        `<div class="fq-grp" role="none"><p class="fq-g">${group}</p>${qs
+    <div class="opx-list fq-list" role="group" aria-label="Questions">${GROUPS.map(
+      ([group, qs], gi) =>
+        `<div class="fq-grp" data-g="${gi}"><button type="button" class="fq-g fq-g-t" aria-expanded="true"><span>${group}</span><em aria-label="${qs.length} questions">${qs.length}</em>${CHEV}</button>${qs
           .map(
             (x) =>
-              `<button type="button" role="tab" class="opx-item" id="fq-tab-${x.id}" data-q="${x.id}" aria-controls="fq-pane" aria-selected="false" tabindex="-1"><span class="opx-item-i">${icon(x.icon)}</span><span class="opx-item-t"><b>${x.q}</b></span></button>`,
+              `<button type="button" class="opx-item" id="fq-tab-${x.id}" data-q="${x.id}" aria-controls="fq-pane"><span class="opx-item-i">${icon(x.icon)}</span><span class="opx-item-t"><b>${x.q}</b></span></button>`,
           )
           .join("")}</div>`,
     ).join("")}</div>
-    <div class="fq-pane" id="fq-pane" role="tabpanel"></div>
+    <div class="fq-pane" id="fq-pane" role="region"></div>
   </div>`;
   const box = host.querySelector<HTMLElement>(".fq")!;
   const list = host.querySelector<HTMLElement>(".fq-list")!;
@@ -583,26 +593,32 @@ export function mountFaq(host: HTMLElement): void {
     fitMembers(slot);
   };
 
+  const grps = () => [...list.querySelectorAll<HTMLElement>(".fq-grp")];
+  const setShut = (g: HTMLElement, shut: boolean) => {
+    g.classList.toggle("shut", shut);
+    g.querySelector(".fq-g-t")!.setAttribute("aria-expanded", String(!shut));
+  };
+  const groupOf = (id: string) => GROUPS.findIndex(([, qs]) => qs.some((q) => q.id === id));
+
   const show = (id: string, focus = false) => {
     const x = all.find((y) => y.id === id) ?? all[0];
     if (x.id !== open) state = {};
     open = x.id;
-    list.setAttribute("role", narrow.matches ? "group" : "tablist");
-    if (narrow.matches) list.removeAttribute("aria-orientation");
-    else list.setAttribute("aria-orientation", "vertical");
-    pane.setAttribute("role", narrow.matches ? "region" : "tabpanel");
+    // the open answer's group unfolds; the others stay as the reader left them
+    const gi = groupOf(x.id);
+    grps().forEach((g) => Number(g.dataset.g) === gi && setShut(g, false));
     list.querySelectorAll<HTMLButtonElement>("[data-q]").forEach((b) => {
       const on = b.dataset.q === x.id;
-      b.setAttribute("role", narrow.matches ? "button" : "tab");
       b.setAttribute("data-selected", String(on));
+      // on a phone the answer opens under its question; beside the list, its question is the current one
       if (narrow.matches) {
-        b.removeAttribute("aria-selected");
+        b.removeAttribute("aria-current");
         b.setAttribute("aria-expanded", String(on));
       } else {
         b.removeAttribute("aria-expanded");
-        b.setAttribute("aria-selected", String(on));
+        if (on) b.setAttribute("aria-current", "true");
+        else b.removeAttribute("aria-current");
       }
-      b.tabIndex = narrow.matches || on ? 0 : -1;
       if (on && focus) b.focus();
     });
     pane.setAttribute("aria-labelledby", `fq-tab-${x.id}`);
@@ -615,6 +631,9 @@ export function mountFaq(host: HTMLElement): void {
 
   host.addEventListener("click", (e) => {
     const t = e.target as HTMLElement;
+    // a group's label folds or unfolds it, and leaves the open answer as it is
+    const fold = t.closest<HTMLButtonElement>(".fq-g-t");
+    if (fold) return setShut(fold.closest<HTMLElement>(".fq-grp")!, fold.getAttribute("aria-expanded") === "true");
     const tab = t.closest<HTMLButtonElement>("[data-q]");
     if (tab) return show(tab.dataset.q!);
     // a link from one answer to another
@@ -651,11 +670,8 @@ export function mountFaq(host: HTMLElement): void {
       jumpTo("guide");
       return;
     }
-    // the leaving checklist ticks off, for working through it
-    const tick = t.closest<HTMLButtonElement>(".fq-box");
-    if (tick) tick.setAttribute("aria-pressed", String(tick.getAttribute("aria-pressed") !== "true"));
   });
-  // arrow keys move between questions, as in any tab list
+  // arrow keys move between questions, unfolding the group of the one they reach
   host.addEventListener("keydown", (e) => {
     if (!(e.target as HTMLElement).closest("[data-q]")) return;
     const i = all.findIndex((x) => x.id === open);
@@ -685,6 +701,8 @@ export function mountFaq(host: HTMLElement): void {
     if (target) scrollTo({ top: target.getBoundingClientRect().top + scrollY - 80, behavior: "instant" });
   });
   narrow.addEventListener("change", () => show(open));
+  // every group starts folded; showing the first answer unfolds its own
+  grps().forEach((g) => setShut(g, true));
   show(open);
   // the Running on box changed: redraw it, and the answer if it depends on the setup
   onValues(() => {

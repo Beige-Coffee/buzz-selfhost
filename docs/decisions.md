@@ -101,6 +101,19 @@ done: the work they call for is listed where it is still owed.
   each part of a long answer from `#<id>-<part>` (`#agent-remote-needs`). An answer that depends
   on the setup adds it (`#add&path=vps&reach=private`). `relay-key`, an id the setup steps already
   use, keeps the long form. Link buttons on answers and their parts are faint until hovered.
+- **Security says what the Umbrel setup page says, nothing ticks, and two lists got shorter
+  (2026-11-18).** The owner liked the Umbrel page's safety step and asked the guide to match it:
+  the section's intro, the two titles ("Give each agent its own machine", "Treat an open community
+  as public") and their text are now the Umbrel page's, and `security.md` says the two facts it
+  added (a member's agents get in through that member; an open channel's whole history and member
+  list are readable), which `SECURITY_SAYS` checks. He doesn't like check marks, so none are left:
+  the Recommended box has no tick, the roles table says Yes and No, the leaving list is numbered,
+  Before the team arrives and the setup steps no longer tick, and Get ready uses plain dots.
+  Drawings of Buzz's own screens keep the ticks Buzz itself shows. From live options he picked
+  groups that fold in Running your relay (all folded but the open answer's, several can be open)
+  and a minimal Get ready: one line per item, a warning beside its item, every other detail in
+  one fold, and the key left out of the list since the skill makes it. He kept Follow the steps
+  yourself: it is the skill's own commands, so it adds nothing to maintain.
 
 ## The relay moves to 0.3.0 (2026-11-12)
 

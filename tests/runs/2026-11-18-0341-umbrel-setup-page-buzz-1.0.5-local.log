@@ -1,0 +1,150 @@
+# Buzz's screens on the setup page brought up to Buzz 1.0.5, the current stable release, for the page's next image
+# (1.1.0, not published). On an Apple Silicon Mac, no umbrelOS, no cost. The page from this checkout. The mocked
+# suites, the browser test and the previews on ports 8831 to 8839 only (security.py and cloudflare.py each bind a port
+# the system picks, as before). Not run: up.sh, check.py, Umbrel's linter and the screenshots.
+# Times are UTC: on this Mac it was 2026-11-17, 19:41 PST.
+
+# The source: block/buzz-app at v1.0.0 and v1.0.5 (a local clone, read-only git), compared for every screen the page
+# draws or names. Two changes, both since 1.0.1:
+# 1. Membership (block/buzz-app#3147, src/bundled/moderation/CommunityAdmin.tsx): 1.0.0 had Refresh and Invite members
+#    over a boxed member list, and Invite members opened Add or invite people: the link with Copy link, Expires after,
+#    Max uses and a QR code, then Add directly by public ID. 1.0.5 has a Members and an Invite tab (Tabs, variant
+#    panel: text, a bar under the open one). Members: the search, Members · 1, each row with its role at the end, and
+#    Retry only after a failed read. Invite: the link's QR code, beside it the link with Copy link, then Expires after
+#    (3 days) and Max uses (No limit) in one box; on a Mac, Share over the code on hover (not drawn). Add directly is a
+#    third tab, switched off (DIRECT_MEMBER_ADD_ENABLED = false in src/bundled/moderation/features.ts).
+# 2. A new install turns on Bestie (d5288ace, block/buzz-app#2804, src/bundled/index.ts), and the dock puts it first
+#    (dockOrder in src/app/shell/presentation.ts). With no community open it shows the default page icon, a browser
+#    window. An install updated from 1.0.0 keeps it off.
+# The same in 1.0.5: the community button and its menu (Personal space, Join a community, Create community; a dot now
+# marks unread in other communities), the join dialog (Community URL, Continue twice, Publish profile & open), the
+# full-page Join a community (Invite link or community URL, Join), Settings' order (settings-sections.ts unchanged;
+# Plugins can now list a Claude card, past the drawings' fade), Identity and the Buzz ID card, the profile menu, Open
+# Settings on Mod+,, Other options then Sign in with Builderlab or Use an existing key, which takes nsec1 only
+# (key-import.ts unchanged), pairing under Mobile app or Pair mobile (PairingSettings.tsx and MobileApp.tsx unchanged),
+# Moderation (relay-staff unchanged) and its messages under Manage plugins (accessMessage unchanged), buzz://connect
+# (docs/deep-links.md only adds buzz://dm/new), the agent avatar packs, and an invite link's defaults and limits.
+# The phone's screens aren't in buzz-app: they're the mobile app in block/buzz (mobile/). Scan a QR code, or sign in
+# with email, Enter a community link, Add Community, Use Face ID, Use Touch ID, Use biometrics and Skip are the same at
+# mobile-v1.0.0-rc.3, mobile-v1.1.0-rc.3 and main on 2026-11-13 (a local clone, not fetched again).
+
+# What changed on the page:
+# - The invite step's two drawings, redrawn as Membership's tabs: Members open with the Invite tab to choose, then the
+#   Invite tab open with Copy link to choose. The 1.0.0 dialog's rules are gone from the stylesheet.
+# - The dock in the drawings of Buzz's window (the join step's two, and Open Settings under Where to find your public
+#   ID): Bestie's tile first, then Messages and Agents.
+# - The invite step's captions, as given:
+#   "In Buzz, open Settings. Under Community admin, choose Membership, then Invite members, or the Invite tab in newer
+#   versions of Buzz."
+#   -> "In Buzz, open Settings. Under Community admin, choose Membership, then the Invite tab."
+#   "Copy the link and send it. Anyone with the link can join until it expires or runs out of uses. To invite one
+#   person, set Max uses to 1 use first. In Buzz 1.0.0 you can also paste someone's public ID under Add directly and
+#   choose Add member, then send them the address."
+#   -> "Choose Copy link and send it. Anyone with the link can join until it expires or runs out of uses. To invite one
+#   person, set Max uses to 1 use first."
+# - Two texts that had members added by public ID:
+#   The owner step: "As the owner, you add the other members and choose admins in Buzz."
+#   -> "As the owner, you invite the other members and choose admins in Buzz."
+#   The private network's next steps: "... or share the buzz machine with them, then add them in Buzz."
+#   -> "... or share the buzz machine with them, then send them an invite link from Buzz."
+# - Comments cite v1.0.5 wherever they cited 1.0.0, and the phone's labels cite block/buzz's mobile/.
+# Left as they were: the safety step's drawings, the self-hosting guide's own.
+
+$ python3 tests/umbrel/local/render.py
+rendered 2147 page states without errors
+# New: Membership's tabs in each of the invite step's drawings, the Invite tab's panel (the QR code, the link with Copy
+# link to choose, Expires after 3 days, Max uses No limit) only in the second, the owner's row and its role only in the
+# first; the dock with Bestie first in the join step's two drawings and the setup page's one; the caption for one
+# person; the owner step and the private network's next steps with invite links; and none of 1.0.0's Invite members,
+# Refresh, Add or invite people, Add directly, Add member or the captions that named them.
+# Each of 14 changes to the page, made in a copy of it, made render.py fail:
+# the first drawing's tabs with Members ringed and Invite open; Copy link not ringed; no QR code on the Invite tab;
+# another expiry; Max uses renamed; no Bestie in the dock; Bestie after Agents; the owner adding members again; the
+# private network adding them in Buzz again; the 1.0.0 invite caption; the Invite members button back; the invite
+# panel in the first drawing; no role on the owner's row; the 1.0.0 caption for opening Membership.
+# Against the page before this change (setup.py at 77ca2f2, with these tests):
+#   AssertionError: ('invite', 1, '<span class="hot">Invite</span>', 'choose <b>Membership</b>, then the <b>Invite</b> tab.')
+
+$ python3 tests/umbrel/local/security.py
+passed: 110  failed: 0
+
+$ python3 tests/umbrel/local/cloudflare.py
+passed: 63  failed: 0
+
+$ BROWSER_PORT=8831 python3 tests/umbrel/local/browser.py   # its four previews on 8831 to 8834
+Chrome/157.0.8103.79
+== The step the address names
+PASS  before the script draws the guide, the page shows the one step the address names, or the one kept across a new phase (a hash still wins), at its drawing, and the script keeps it: 15 addresses, a hostile hash and unknown ones open the first step
+== Next and Previous with the keyboard
+PASS  Next walks every drawing and crosses into the next step, moving the address to it and focus to the new drawing's Next; at the guide's last drawing it's aria-disabled and does nothing
+PASS  Previous crosses back into the previous step's last drawing, and stops at the first
+PASS  crossing into a step says where the reader is, the safety step by its heading
+== A step's link
+PASS  a step's link opens the step at its first drawing and moves focus to the step's heading, clicked or with Enter
+PASS  in forced colors, the current step's link has a border, the others none, and the safety step's drawings keep their own colors
+== The safety step with scripts
+PASS  on a computer, each drawing is as tall as Buzz's screens in the other steps (340 pixels), with the people and the agent drawn and nothing outside it
+PASS  each chat bubble is as wide as its words in this browser's font
+PASS  at a phone's width the tall drawing shows, at 0.85 of its size, with its two labels and its bubbles fitted to their words
+PASS  at 375 and 540 pixels the tall drawing and the lists are one height, so Previous and Next stay put between them
+PASS  with WCAG's text spacing at 375 pixels, the tall drawing's labels wrap under their parts, none running into another or out of the drawing
+PASS  the notes on each option: bans on the owner's own domain alone, who can read private messages first while moderation is on, and on the private network an intro without the internet
+== Moderation's link to the safety step
+PASS  Moderation's link to the safety step opens it in view and moves focus to its heading
+PASS  it adds nothing to the history, as a step's own link does: Back after it leaves the page instead of opening the step the address named before (#phone)
+PASS  with the address at #safe already and the reader on its second drawing, the link opens the step again at its first, in view, focus on its heading
+== The 5-second refresh on a live page
+PASS  a refresh with the same checks changes nothing: the same card, the list open, focus on its summary, and nothing said
+PASS  when the checks change, the card is drawn again with its list open and focus on its summary, the page doesn't move, and a screen reader hears the card's summary once
+PASS  the next refresh, with nothing new, says nothing
+PASS  while connecting, a change says the current stage
+== The private network's device check
+PASS  the page looks once from this device as it opens, and shows that it's checking
+PASS  a refresh during that look starts no other: one look at a time
+PASS  a late answer from an older look never replaces a newer one: the row shows the newest look's answer, here the first look running out of time
+PASS  the next look reaches Buzz: the problem goes from above the card, which says Everything works, 4 checks
+PASS  two more looks with the same answer leave the row and the card as they are: no writes at all
+PASS  drawn again while a look is out: the last answer shows in the new row at once, no second look starts, and a screen reader hears the card's summary
+PASS  that look's answer, that this device can't reach Buzz, goes to the row the page has now, and above the card
+== A new phase opens the page again
+PASS  a new phase opens the page again at the reader's step and drawing, drawn from the start, and keeps nothing after
+== Without scripts
+PASS  without scripts at 1440 pixels: every step and drawing, no stepper and no copy buttons, nothing cropped or wider than the page
+PASS  and the safety step's two drawings: the wide one of the agent at 1.06 of its size with its labels, the people and the agent drawn, nothing outside its drawing or wider than its box
+PASS  and Buzz's Membership, drawn in the invite step: Members open with Invite to choose, then Invite open, every part inside the drawn page and none wider than its box
+PASS  without scripts at 375 pixels: every step and drawing, no stepper and no copy buttons, nothing cropped or wider than the page
+PASS  and the safety step's two drawings: the tall one of the agent at 0.85 of its size with its labels, the people and the agent drawn, nothing outside its drawing or wider than its box
+PASS  and Buzz's Membership, drawn in the invite step: Members open with Invite to choose, then Invite open, every part inside the drawn page and none wider than its box
+
+passed: 33  failed: 0
+
+# Two more runs: passed: 33  failed: 0 each time.
+# New: Buzz's Membership as the invite step draws it, without scripts at 1440 and 375 pixels: the Members tab open with
+# the Invite tab to choose, then the Invite tab open, and every part inside the drawn page, none wider than its box but
+# the link, which ends in an ellipsis. It fails on two changes, made in a copy of the page: the panel pushed 190 pixels
+# down, off the page ("out": the panel and its parts), and an option's row 70 pixels wide ("wide": both rows). Against
+# the page before this change, its two checks fail (no tabs) and the other 31 pass.
+
+# preview.py, each of its 14 scenarios in turn on a port from 8831 to 8839, its page and status.json fetched: the
+# sign-in page, the setup steps, the bar while connecting with the stage a screen reader hears, and on each live page
+# the card, the guide's 8 drawings, Membership's two tabs, Copy link to choose and the dock with Bestie
+PASS  login: the sign-in page
+PASS  setup: the setup steps, the owner inviting members, the dock with Bestie in Where to find your public ID
+PASS  domain-dns: the bar, saying 'Sign in to Cloudflare: your turn.'
+PASS  domain-uploaded: the bar, saying 'Cloudflare publishes the name: in progress.'
+PASS  domain-working: the bar, saying 'Cloudflare publishes the name: in progress.'
+PASS  domain-530: the bar, saying 'Cloudflare publishes the name: needs your attention.'
+PASS  funnel-login: the bar, saying 'Sign in to Tailscale: your turn.'
+PASS  funnel-consent: the bar, saying 'Allow Funnel: your turn.'
+PASS  private-consent: the bar, saying 'Allow HTTPS: your turn.'
+PASS  private-live: the card 'Everything else works, 3 of 4 checks', the guide's 8 drawings, Membership's Members and Invite tabs, the dock with Bestie
+PASS  domain-live: the card 'Everything works, 3 checks', the guide's 8 drawings, Membership's Members and Invite tabs, the dock with Bestie
+PASS  domain-moderation: the card 'Everything works, 4 checks', the guide's 8 drawings, Membership's Members and Invite tabs, the dock with Bestie
+PASS  domain-moderation-blocked: the card 'Everything else works, 3 of 4 checks', the guide's 8 drawings, Membership's Members and Invite tabs, the dock with Bestie
+PASS  domain-moderation-starting: the card 'Everything else works, 3 of 4 checks', the guide's 8 drawings, Membership's Members and Invite tabs, the dock with Bestie
+
+passed: 14  failed: 0
+
+# Not run: up.sh and check.py (the full stack, later), Umbrel's linter, and the screenshots. Screenshots 01, 02, 05 and
+# 06 will change: the owner step's text (01, 02), the dock in the join step's drawing (05), and the invite step's
+# drawing and caption (06).

@@ -1665,8 +1665,9 @@ def layout(body, signed_in=True, title="Buzz Relay", safety=False):
         '<meta name="viewport" content="width=device-width, initial-scale=1"><title>' + esc(title) + "</title>"
         "<style>" + STYLE + HOW_STYLE + (SAFE_STYLE if safety else "") + "</style><script>" + SCRIPT + "</script></head><body>"
         '<header class="hd"><span class="brand">' + BEE + "<span>Buzz Relay</span></span>" + logout + "</header>"
-        "<main>" + body + '<p class="foot">Buzz is open source, from Block: '
-        '<a href="https://github.com/block/buzz" target="_blank" rel="noopener">github.com/block/buzz</a>.</p>'
+        "<main>" + body + '<p class="foot">Buzz is open source, from Block. The relay is at '
+        '<a href="https://github.com/block/buzz" target="_blank" rel="noopener">github.com/block/buzz</a>, and the app '
+        'at <a href="https://github.com/block/buzz-app" target="_blank" rel="noopener">github.com/block/buzz-app</a>.</p>'
         "</main></body></html>"
     )
 

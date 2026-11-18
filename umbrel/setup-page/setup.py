@@ -1102,6 +1102,7 @@ details.how[open] > summary { background: var(--chip); }
 .g-ni { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 9px; background: var(--chip); font-size: 16px; }
 .g-notes p { min-width: 0; margin: 3px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
 .g-notes b { font-weight: 500; color: var(--ink); }
+.mod-notes { margin: 14px 0 16px; }
 .g-foot > .g-notes + p { margin-top: 16px; }
 .g-pane > .panel { margin-top: 18px; }
 @media (max-width: 560px) { .g-pane { padding: 22px 16px 24px; } }
@@ -1814,6 +1815,10 @@ TABLER = {
     'shield-check': '<path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/><path d="M9 12l2 2l4 -4"/>',
     'link': '<path d="M9 15l6 -6"/><path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464"/><path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"/>',
     'ban': '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M5.7 5.7l12.6 12.6"/>',
+    'flag': '<path d="M5 5a5 5 0 0 1 7 0a5 5 0 0 0 7 0v9a5 5 0 0 1 -7 0a5 5 0 0 0 -7 0v-9z"/><path d="M5 21v-7"/>',
+    'eye': '<path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>',
+    'alert-circle': '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+    'clock': '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 7v5l3 3"/>',
 }
 
 
@@ -2035,13 +2040,19 @@ def phone_steps(domain):
          "In Buzz on your computer, open <b>Settings</b>, then <b>Mobile app</b>. On the phone, choose <b>Scan a QR "
          "code</b> and scan it. If the phone already has a community, choose <b>Add Community</b> in its community "
          "switcher first.",
-         # Signed in to Builderlab, the computer shows Get Buzz on your phone in place of the code, and the phone
-         # restores only communities Block hosts
-         '<details class="g-more"><summary>Signed in with Builderlab?</summary><p>Your computer may show <b>Get Buzz '
-         "on your phone</b> instead of a code. Then open Buzz on the phone and choose <b>or sign in with email</b>, "
-         "with the same account. Your community won't appear there by itself: choose <b>Enter a community link</b>, "
-         "paste <code>https://" + esc(domain) + "</code>, choose <b>Continue</b>, then your saved identity.</p>"
-         "</details>"),
+         # Signed in to Builderlab with this computer's key backed up there, Settings, Mobile app shows Get Buzz on your
+         # phone in place of the code (MobileApp.tsx, builderlab-account.ts in buzz-app v1.0.5). The phone's email
+         # sign-in, offered only with no community yet, restores that key; from mobile-v1.2.0-rc.5 (block/buzz#9262) it
+         # lists self-hosted addresses saved to the account, and its first screen's button reads Enter community link
+         # (add_community_connection.dart). Joining any community while signed in saves its address to the Builderlab
+         # account (known-communities/sync.ts).
+         '<details class="g-more"><summary>Signed in with Builderlab?</summary><p>If your Builderlab account backs '
+         "up this computer's key, your computer shows <b>Get Buzz on your phone</b> instead of a code. On the phone, "
+         "choose <b>or sign in with email</b> and use the same account. Choose <code>" + esc(domain) + "</code> if it's "
+         "listed. If not, choose <b>Enter community link</b> (or <b>Add Community</b>, then <b>Enter a community "
+         "link</b>), paste <code>https://" + esc(domain) + "</code>, choose <b>Continue</b>, then your saved identity. "
+         "A phone that already has a community doesn't offer email sign-in: sign out of Builderlab on your computer to "
+         "get the code instead. Buzz also saves this community's address to your Builderlab account.</p></details>"),
         ("Check the code", screen(drawn_pair(domain, verifying=True)),
          # The phone either asks for the computer's code or shows its own to compare, as the drawing says
          # (PairingSettings.tsx). Once the code is right, the phone asks to protect your identity (Use Face ID, Use
@@ -2741,16 +2752,19 @@ def guide_frame(n, total, title, drawing, caption, more, ends, step_title):
 # at most (EXPIRY and USES in src/bundled/moderation/CommunityAdmin.tsx), and can't be canceled; removing a member isn't
 # a ban, and Buzz offers the owner of a self-hosted community no ban unless Moderation is on, which needs the owner's
 # own domain.
+# The guide's "How should we run agents?" question
+GUIDE_AGENTS = "https://self-host.buzz/#agents"
 SAFE_INTRO = ("Opening your community to the internet exposes you to risk. So does adding agents with access to personal "
               "data. Here are some tips to keep yourself and your community safe.")
 # The private network isn't on the internet
 SAFE_INTRO_PRIVATE = ("Adding agents with access to personal data exposes you to risk. Here are some tips to keep yourself "
                       "and your community safe.")
-AGENT_CAPTION = ("Most agents made in Buzz run on their owner's computer. There they can run commands, change files and go "
-                 "online without asking first. They take requests only from their owner, but they read what others post, "
-                 "and a post can be written to trick them. Run agents on a separate computer with nothing private on it, "
-                 "under their own identity, not the one that owns this community. Don't connect them to your email, drives "
-                 "or code.")
+AGENT_CAPTION = ("Agents made in Buzz can run on their owner's computer. If that computer holds private data, the agent may "
+                 "be able to reach it. Agents take instructions only from their owner, but they read channel history to do "
+                 "their work, and any text they read can be written to trick them. The risk is higher when anyone can "
+                 "join. In an open community, run agents on a separate computer with nothing private on it, and don't "
+                 "connect them to your email, drives or code. <a href=\"" + GUIDE_AGENTS + "\" target=\"_blank\" "
+                 "rel=\"noopener\">The self-hosting guide</a> shows how to run an agent on its own server.")
 OPEN_CAPTION = ("If anyone can join, strangers can post, and members can bring their own agents without asking you. Anyone "
                 "who joins, and any agent they bring, can read every channel that isn't private, including its full "
                 "history. They can also open files shared there and see who's a member. Keep private work, personal "
@@ -2890,21 +2904,27 @@ STAFF_RETURN = ("Staff added before get their access back when you turn it on. "
                 "staff in Buzz under Moderation, then Staff.")
 
 
+def moderation_note(icon, lead, text):
+    return '<li><span class="g-ni">' + ti(icon) + "</span><p><b>" + lead + "</b> " + text + "</p></li>"
+
+
 def moderation_points(domain, live):
-    """What turning moderation on means, for the owner. Members learn who can read their private messages from the
-    Private channels note in the guide's safety step, which a live page has above Settings, while moderation is on."""
-    share = ('While Moderation is on, the Private channels note in <a href="#safe">Keep it safe</a> above says it.' if live
-             else "Once your community is live, the Private channels note in the Keep it safe step says it while "
-             "Moderation is on.")
+    """What moderation does while it's on, as the guide's notes. Members learn who can read their private messages
+    from the Private channels note in the guide's safety step, which a live page has above Settings."""
+    share = (' While it\'s on, the Private channels note in <a href="#safe">Keep it safe</a> says so.' if live
+             else " Once your community is live, the Private channels note in the Keep it safe step says so while it's on.")
     return (
-        "<ul><li>You, and staff you add in Buzz, can read reports, with who sent them, and the feedback members send. "
-        "You and your staff can also open any message stored here by its ID, deleted ones included, even in private "
-        "channels and direct messages. Members don't see this in Buzz, so tell them. " + share + "</li>"
-        "<li>Moderation gets its own address on the internet, <code>" + esc(admin_origin(domain)) + "</code>. It "
-        "accepts only requests signed by you or your staff.</li>"
-        "<li>A ban keeps one identity out of this community, and the agents that join through it. It can't rejoin "
-        "with an invite link. A new identity can still join with a link that works.</li>"
-        "<li>Buzz on a computer shows Moderation in its Settings. The phone apps don't have it.</li></ul>"
+        '<ul class="g-notes mod-notes" role="list">'
+        + moderation_note("flag", "Reports and feedback.", "You and your staff read reports, with who sent them, and the "
+                          "feedback members send.")
+        + moderation_note("eye", "Private messages.", "You and your staff can open any message stored here by its ID, "
+                          "deleted ones included, even in private channels and direct messages. Buzz doesn't tell "
+                          "members, so tell them." + share)
+        + moderation_note("ban", "Bans.", "A ban keeps one identity out, with the agents that join through it. A new "
+                          "identity can still join with a link that works.")
+        + moderation_note("world", "Its own address.", "<code>" + esc(admin_origin(domain)) + "</code>, open only to "
+                          "requests you or your staff sign.")
+        + "</ul>"
     )
 
 
@@ -2925,13 +2945,13 @@ def moderation_part(setup, live, current, error, values):
     elif not on and not live:
         inner = '<p class="muted small">' + what + " You can turn it on here once your community is live.</p>" + staff
     elif not on:
-        inner = ('<form method="post" action="moderation"><p class="muted small">' + what + " When it's on:</p>"
-                 '<div class="panel">' + moderation_points(current, live) + "</div>" + staff + box
+        inner = ('<form method="post" action="moderation"><p class="muted small">' + what + " The phone apps don't "
+                 "have it. When it's on:</p>" + moderation_points(current, live) + staff + box
                  + '<p class="muted small">Saving restarts Buzz for a few seconds.</p>' + save_button)
     elif not live:
-        inner = ('<form method="post" action="moderation"><div class="panel"><p>While it\'s on:</p>'
-                 + moderation_points(current, live) + "</div>" + box + '<p class="muted small">It starts working once your '
-                 "community is live. To turn it off, clear the box and save.</p>" + save_button)
+        inner = ('<form method="post" action="moderation"><p class="muted small">Moderation is on. It starts working '
+                 "once your community is live. While it's on:</p>" + moderation_points(current, live) + box
+                 + '<p class="muted small">To turn it off, clear the box and save.</p>' + save_button)
     else:
         # Buzz keeps Moderation out of Settings without a word when its check fails, and says why only under
         # Manage plugins, as the tooltip of the plugin's button beside "Unavailable" (accessMessage in
@@ -2939,29 +2959,28 @@ def moderation_part(setup, live, current, error, values):
         # means here. It shows the third for any 401 or 403 that isn't an HTML page (relay-staff/staff.ts), Cloudflare's
         # plain-text refusal and a lost port's included.
         inner = (
-            '<form method="post" action="moderation"><p class="muted small">Moderation is on. To open it, choose this '
-            "community in Buzz on your computer, then open Settings. A Moderation group appears in the sidebar, with "
-            "Reports, Feedback, Communities and Staff. If Settings was already open, close it and open it again. Use "
-            "the identity you entered as the owner.</p>"
-            '<div class="panel"><p>While it\'s on:</p>' + moderation_points(current, live) + "</div>"
-            '<div class="panel"><p><b>Moderation doesn\'t show in Buzz?</b> Buzz says why in Settings, under Plugins, '
-            "Manage plugins, then Moderation. If it says Unavailable, point at its button to see the reason.</p><ul>"
-            "<li><b>Could not check access.</b> Buzz couldn't reach <code>" + esc(admin_origin(current)) + "</code> "
-            "from your computer. If this page shows no problem, the network your computer is on may block port 8443, "
-            "or send the name to a local address. Try another network, then choose Check access again in Buzz.</li>"
-            "<li><b>Access is unavailable in this build or on this relay.</b> Buzz doesn't see moderation at this "
-            "address yet. Wait a minute after saving, then close Settings in Buzz and open it again, with this "
-            "community chosen.</li>"
-            "<li><b>Select a community on a relay where you have staff access.</b> If this page shows a problem with "
-            "moderation, fix that first: Cloudflare turning Buzz away, or a request that lost its port, shows this "
-            "message as well. Otherwise, Buzz reached moderation with an identity that isn't the owner's or a staff "
-            "member's. Use the identity you entered as the owner, or ask the owner to add you as staff. A computer "
-            "clock that's off by more than a minute causes this too: set it to update automatically.</li></ul>"
-            '<p class="muted small">If Moderation there says Enable, choose it.</p></div>' + box
+            '<form method="post" action="moderation"><p class="muted small"><b>To open it:</b> in Buzz on your '
+            "computer, choose this community and open <b>Settings</b>. Moderation is the group in the sidebar with "
+            "Reports, Feedback, Communities and Staff. Use the identity you entered as the owner, and if Settings was "
+            "already open, close it and open it again.</p>" + moderation_points(current, live)
+            + '<details class="alt"><summary>Moderation doesn\'t show in Buzz?</summary><div class="inner">'
+            '<p class="muted small">In Buzz, open Settings, then Plugins, Manage plugins. If Moderation says '
+            "Unavailable, point at its button to see why:</p>"
+            '<ul class="g-notes mod-notes" role="list">'
+            + moderation_note("alert-circle", "Could not check access.", "Your computer couldn't reach <code>"
+                              + esc(admin_origin(current)) + "</code>. Some networks block port 8443 or send the name "
+                              "to a local address. Try another network, then choose Check access again.")
+            + moderation_note("clock", "Access is unavailable in this build or on this relay.", "Buzz doesn't see "
+                              "moderation yet. Wait a minute, then close Settings and open it again with this "
+                              "community chosen.")
+            + moderation_note("user", "Select a community on a relay where you have staff access.", "Use the identity "
+                              "you entered as the owner, or ask the owner to add you as staff. Also check that your "
+                              "computer sets its clock automatically. If this page shows a moderation problem, fix "
+                              "that first.")
+            + '</ul><p class="muted small">If Moderation says Enable instead, choose it.</p></div></details>' + box
             + '<p class="muted small">To turn it off, clear the box and save. Buzz restarts for a few seconds. Bans, '
-            "timeouts and your staff list stay as they are. Turn moderation on again to change them. Staff with the "
-            "operator role can still rename public channels while it's off, so remove staff you no longer trust "
-            "first.</p>" + save_button)
+            "timeouts and staff stay as they are. Staff with the operator role can still rename public channels while "
+            "it's off, so remove staff you no longer trust first.</p>" + save_button)
     return ("<details" + (" open" if opened else "") + '><summary>Moderation<span class="val word">' + summary
             + '</span></summary><div class="inner">' + inner + (error_box(error) if opened else "") + "</div></details>")
 

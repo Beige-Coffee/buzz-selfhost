@@ -27,8 +27,9 @@ package still pins the 1.0.0 image. On 2026-11-13, also for 1.1.0 and from appro
 guide and its checks one card, and while connecting the checks became a progress bar; they passed the same local tests, and so
 did the fixes from four reviews of them, the same day, with a new test in a browser (Tested, below). Later that day the
 collapsed safety tips became a step of the guide, Keep it safe, with the self-hosting guide's two Security drawings, and
-passed the same tests, and so did the fixes from two reviews of it. It lives on this `umbrel` branch, not on `main`, until
-Umbrel accepts it.
+passed the same tests, and so did the fixes from two reviews of it. On 2026-11-18 the page's drawings of Buzz's screens,
+and the texts that name them, moved to Buzz 1.0.5, the current stable release: the invite step now shows Membership's
+Invite tab. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
 
 ## Why our own package
 
@@ -50,14 +51,17 @@ Credit #5928 when we submit.
   Members, the owner included, chat in Buzz Desktop and the iPhone app. Block ships no browser
   version to run on Umbrel: the relay's own web pages are invite pages and a code browser.
 - **For Buzz 1.0 only.** The package ships once Buzz 1.0 is out, so the page names its menus and
-  no others. Drawings of Buzz 1.0.0's own screens, from its source (block/buzz-app v1.0.0), show
-  where to find the public ID, in a dropdown under the owner's field. Once the community is live, a
-  guide of next steps shows how to join it, invite people, keep it safe and pair a phone: one step at
-  a time, each with two drawings and a caption under each, and Previous and Next between them. Redraw
-  Buzz's screens when they change; the safety step's drawings are the self-hosting guide's. Buzz's next
-  release already changes the invite dialog and drops adding members by public ID
-  ([block/buzz-app#3147](https://github.com/block/buzz-app/pull/3147)), so the page leads with invite
-  links.
+  no others. Drawings of Buzz's own screens, from the source of Buzz 1.0.5, the current stable release
+  (block/buzz-app v1.0.5), show where to find the public ID, in a dropdown under the owner's field. Once
+  the community is live, a guide of next steps shows how to join it, invite people, keep it safe and pair
+  a phone: one step at a time, each with two drawings and a caption under each, and Previous and Next
+  between them. Redraw Buzz's screens when they change; the safety step's drawings are the self-hosting
+  guide's. Since 1.0.1 ([block/buzz-app#3147](https://github.com/block/buzz-app/pull/3147)) Membership
+  has a Members and an Invite tab: the Invite tab has the link's QR code, Copy link, Expires after and
+  Max uses, and nothing adds a member by public ID (its Add directly tab is switched off). So the invite
+  step shows the Invite tab, and the page mentions invite links only. Also since 1.0.1, a new install
+  turns on Bestie, first in the app dock, which the drawings of Buzz's window show. The phone's screens
+  come from the mobile app, which lives in block/buzz (`mobile/`), not in buzz-app.
 - **Reaching the community is separate from joining it.** Every option keeps the community
   members-only: the relay requires membership, so only people the owner invites, and the agents they
   bring, can read or post. The
@@ -317,8 +321,9 @@ that turns it on. Built for the page's image 1.1.0, not yet published.
 - **When Buzz's check fails**, Buzz keeps Moderation out of Settings without a word and says why only in
   Settings, Plugins, Manage plugins, Moderation, and even there only as a tooltip: the plugin says
   "Unavailable", and pointing at its button shows the reason (`src/app/Settings.tsx`). The row says so, and
-  explains Buzz 1.0.0's three messages (Could not check access; Access is unavailable in this build or on
-  this relay; Select a community on a relay where you have staff access) and what each likely means here.
+  explains Buzz's three messages, the same in 1.0.5 as in 1.0.0 (Could not check access; Access is unavailable
+  in this build or on this relay; Select a community on a relay where you have staff access) and what each
+  likely means here.
   Buzz shows the third for any 401 or 403 that isn't an HTML page (`relay-staff/staff.ts`), so also for
   Cloudflare's plain-text refusal and the relay's refusal of a Host that lost its port: the row sends the
   owner to the page's own check first.
@@ -354,8 +359,8 @@ with the tunnel's credentials file) is deleted once the name is routed, and Umbr
 its folder. Deleting the file doesn't revoke the token: it stays in the owner's Cloudflare profile
 (My Profile, API Tokens) until deleted there.
 
-What the live page's safety step states, from Buzz 1.0.0 and relay 0.3.0: in the relay's default
-media mode any member with a file's link can open it, one from a private channel included
+What the live page's safety step states, from Buzz 1.0.5 (the same as in 1.0.0) and relay 0.3.0: in the
+relay's default media mode any member with a file's link can open it, one from a private channel included
 ([block/buzz#9077](https://github.com/block/buzz/pull/9077) adds an enforce mode, off by default);
 invite links last 3 days with no use limit by default, 30 days at most, and can't be canceled;
 removing a member isn't a ban, and Buzz 1.0 offers the owner of a self-hosted community no ban unless
@@ -776,8 +781,30 @@ published), on this Mac at no cost ([log](../tests/runs/2026-11-13-1633-umbrel-s
 - **Real:** `check.py` 80 of 80 on the package's containers on Docker Desktop, with the page on port 8809.
 - Umbrel's linter with image checks: no issues. The six screenshots, retaken, came out the same.
 
+2026-11-18, Buzz's screens on the page brought up to Buzz 1.0.5, the current stable release, for the page's image 1.1.0
+(not published), on this Mac at no cost ([log](../tests/runs/2026-11-18-0341-umbrel-setup-page-buzz-1.0.5-local.log)):
+
+- **The source:** block/buzz-app at v1.0.0 and v1.0.5, compared for every screen the page draws or names. Two changes,
+  both since 1.0.1: Membership has a Members and an Invite tab, the Invite tab with the link's QR code, Copy link,
+  Expires after and Max uses, and no Add directly; and a new install turns on Bestie, first in the app dock. The rest is
+  the same: joining, Settings' order, Identity, Use an existing key, pairing on the computer, Moderation's messages under
+  Manage plugins, `buzz://connect` and the agent avatars. The phone's labels, from block/buzz's `mobile/`, are the same
+  at mobile-v1.0.0-rc.3, mobile-v1.1.0-rc.3 and main on 2026-11-13.
+- **Mocked:** `render.py` 2147 page states, now with Membership's tabs in both drawings, the Invite tab's panel with Copy
+  link to choose, the dock with Bestie first, and the texts that say members join with an invite link. Each of 14
+  changes to the page, made in a copy of it, made it fail, and so did the page before this change. `security.py` 110,
+  `cloudflare.py` 63. `preview.py`'s 14 screens.
+- **Browser:** `browser.py` 33 of 33, three runs, adding Buzz's drawn Membership without scripts at 1440 and 375 pixels:
+  its tabs, and every part inside the drawn page. The panel pushed off the page, an option's row too narrow, and the
+  page before this change each fail it.
+- Not run: `check.py` on the package's containers, Umbrel's linter and the screenshots. Screenshots 01, 02, 05 and 06
+  will change: the owner step's text (01, 02), the dock in the join step's drawing (05), and the invite step's drawing
+  and caption (06).
+
 ## Not yet tested
 
+- Buzz 1.0.5's screens as drawn here, next to the running app: they come from its source. The phone's labels come
+  from block/buzz's mobile tags and main, not from the build in the App Store.
 - The page's image 1.1.0 on umbrelOS: it isn't published yet. Then `pre-submit.sh`, whose `e2e.sh` now
   turns moderation on and off on the page, asks the admin API through the gateway, bans a member, checks
   the ban against an invite link, lifts it and keeps moderation on through a restart, and whose tamper

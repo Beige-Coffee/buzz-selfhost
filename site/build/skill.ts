@@ -55,6 +55,8 @@ export interface SkillAgents {
   harness: [string, string, string][];
   /** keeping an agent answering: a computer that stays on, with Buzz open */
   stayOn: AgentStep[];
+  /** what Buzz needs before it treats a program on your own server as your agent: the list that opens that section */
+  needs: AgentStep[];
   /** an agent on your own server */
   server: AgentStep[];
   /** the messages a client of your own sends: step, what to send */
@@ -431,6 +433,9 @@ const AGENTS_SAYS = [
   "It answers only its owner unless started with `--respond-to anyone` or an allowlist",
   "Buzz shows it as an agent, with no owner, and nothing it does acts for you",
   "it keeps messages to the channel brief",
+  "This is the agent mark",
+  "Buzz never sets it on its own agents",
+  "Buzz on phones doesn't read the flag",
 ];
 /** A Markdown table's rows, header and rule left out, as inline HTML cells. */
 function tableRows(markdown: string, cells: number, where: string): string[][] {
@@ -460,10 +465,22 @@ function agents(dir: string): SkillAgents {
   // the page names what each line of the example is for, so it needs exactly these five
   const example = section("Tell an agent its job").match(/```text\n([\s\S]*?)```/)?.[1].trim().split("\n") ?? fail('agents.md "Tell an agent its job": no ```text example');
   if (example.length !== 5) fail(`agents.md: the example instruction has ${example.length} lines, and the page labels five`);
+  // what Buzz needs: the bullets that open the server section, before its first numbered step
+  const opening = section("Run an agent on your own server").split(/^1\. \*\*/m)[0];
+  const needs = opening
+    .split(/\n(?=- \*\*)/)
+    .filter((b) => b.startsWith("- **"))
+    .map((b) => {
+      const head = b.match(/^- \*\*(.+?)\*\*([\s\S]*)$/) ?? fail(`agents.md: a need without a bold title: ${b.slice(0, 50)}`);
+      const rest = head[2].split(/\n\n/)[0].replace(/\n\s+/g, " ").trim();
+      return { title: md.parseInline(head[1].replace(/\.$/, "")) as string, html: links(md.parseInline(vars(current(presentation(rest)))) as string, "references") };
+    });
+  if (needs.length !== 6) fail(`agents.md: the server section opens with ${needs.length} needs, and the page shows six`);
   return {
     instruction: example,
     harness: tableRows(section("Pick a harness and model"), 3, "agents.md harness table") as [string, string, string][],
     stayOn: numbered("Keep an agent answering", 4),
+    needs,
     server: numbered("Run an agent on your own server", 7),
     messages: tableRows(section("The messages"), 2, "agents.md messages table") as [string, string][],
     symptoms: tableRows(section("When it shows as a person, or never answers"), 2, "agents.md symptoms table") as [string, string][],
@@ -498,7 +515,7 @@ export function parseSkill(dir: string): SkillData {
   if (charts.size !== 1) fail(`the skill installs ${charts.size ? [...charts].join(" and ") : "no"} chart version: the page shows one`);
   const chart = [...charts][0];
   const data = { steps, fixes: fixes(dir), ops: ops(dir), mobile: referenceSections(dir, "mobile.md"), agents: agents(dir), home: HOME, preparation: toHTML(readFileSync(join(dir, "references", "manual.md"), "utf8").replace(/^# .*\n/, ""), "references"), pin: { tag: tag!, digest: digest!, commit: commit!, chart } };
-  const agentText = [...data.agents.stayOn, ...data.agents.server].map((x) => x.html).concat(data.agents.instruction, data.agents.harness.flat(), data.agents.messages.flat(), data.agents.symptoms.flat());
+  const agentText = [...data.agents.stayOn, ...data.agents.needs, ...data.agents.server].map((x) => x.html).concat(data.agents.instruction, data.agents.harness.flat(), data.agents.messages.flat(), data.agents.symptoms.flat());
   for (const text of [...data.steps.map((x) => x.html), ...data.ops.map((x) => x.html), ...data.fixes.flatMap((x) => [x.symptom, x.fix]), ...agentText]) {
     const old = text.match(OLD);
     if (old) fail(`the site would show "${old[0]}": add a rule to CURRENT in build/skill.ts (${text.replace(/<[^>]+>/g, "").slice(0, 80)})`);
@@ -519,5 +536,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   console.log(`chart: ${data.pin.chart}`);
   for (const t of TRACKS) console.log(`ops ${t}: ${data.ops.filter((o) => o.tracks.includes(t)).map((o) => `${o.kind}/${o.title}`).join(", ")}`);
   const a = data.agents;
-  console.log(`agents: ${a.instruction.length} instruction lines, ${a.harness.length} harnesses, ${a.stayOn.length} stay-on steps, ${a.server.length} server steps, ${a.messages.length} messages, ${a.symptoms.length} symptoms`);
+  console.log(`agents: ${a.instruction.length} instruction lines, ${a.harness.length} harnesses, ${a.stayOn.length} stay-on steps, ${a.needs.length} needs, ${a.server.length} server steps, ${a.messages.length} messages, ${a.symptoms.length} symptoms`);
+  for (const n of a.needs) console.log(`  need: ${n.title.replace(/<[^>]+>/g, "")} | ${n.html.replace(/<[^>]+>/g, "").slice(0, 90)}`);
 }

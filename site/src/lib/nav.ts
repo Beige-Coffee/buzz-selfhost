@@ -155,11 +155,31 @@ function settleOnHash(): void {
   window.setTimeout(stop, 4000);
 }
 
+/**
+ * Anchors a scene owns, such as an answer in Running your relay: the token a short link carries
+ * (#agents, #agent-remote-steps), and the id of the element to land on once the scene has opened
+ * it. An element already on the page with that id wins, so older links keep their place.
+ */
+const resolvers: ((token: string) => string | null)[] = [];
+export function registerAnchors(resolve: (token: string) => string | null): void {
+  resolvers.push(resolve);
+}
+
 /** Opened from a shared link: land on its section or step, under the header. */
 function landOnHash(): void {
   const h = location.hash;
-  const to = h.match(/[#&]to=([\w-]+)/)?.[1] ?? h.slice(1);
-  if (!to) return;
+  // #…&to=<id>, or a short link: #<anchor>, maybe followed by the setup, as in #add&path=vps
+  const token = h.match(/[#&]to=([\w-]+)/)?.[1] ?? h.slice(1).split("&")[0];
+  if (!token) return;
+  let to = token;
+  if (!SECTIONS.includes(token) && !document.getElementById(token))
+    for (const resolve of resolvers) {
+      const id = resolve(token);
+      if (id) {
+        to = id;
+        break;
+      }
+    }
   let y: number | null = null;
   if (SECTIONS.includes(to)) y = targetY(to);
   else {

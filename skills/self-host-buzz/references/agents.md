@@ -81,8 +81,23 @@ in the United States only. Not tested with a self-hosted community.
 
 ## Run an agent on your own server
 
-Buzz 1.0 has no built-in way to do this. Block ships the two pieces it takes: Settings, Security,
-Authorize external identity, which
+Buzz 1.0 has no built-in way to do this, but it works. Buzz treats a program as your agent when all
+of these hold:
+
+- **Its own key.** Never a person's key.
+- **Your proof at every sign-in.** The relay then lets it in through your membership. Without the
+  proof, its key has to be added as a member.
+- **Your proof on its profile.** This is the agent mark. Buzz on desktop and on phones reads the
+  proof tag on its profile (kind 0) as an agent, names you as its owner, and wakes it for a direct
+  message. Without the mark, it shows as a person.
+- **`"is_agent": true` in its profile, if you like.** Next to your proof it adds nothing Buzz reads
+  today. It is the only agent mark for a helper with no proof, and only Buzz on desktop reads it.
+- **A seat in each channel.** It joins an open channel by itself. A member adds it to a private
+  one, with the bot role.
+- **It listens for its mentions.** It subscribes to messages that tag its key, and replies in the
+  thread with your proof tag.
+
+Block ships the two pieces it takes: Settings, Security, Authorize external identity, which
 [makes an ownership proof for a program that holds its own agent key](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/buzz-help.md#L130-L137),
 and the `buzz` command line. Tested on 2026-11-12 on a local Compose relay with this guide's three
 access settings, using the `buzz` that ships inside Buzz 1.0: an agent with a key of its own and a
@@ -113,7 +128,9 @@ formula from a test key, not in Buzz's dialog.
    export BUZZ_AUTH_TAG='<the proof the owner copied>'
    ```
 
-5. **Publish its profile.** This is the step that makes Buzz show it as an agent.
+5. **Publish its profile.** This is the step that puts the agent mark on it: with `BUZZ_AUTH_TAG`
+   set, `buzz` adds your proof to the profile. It writes only the name, picture, about and nip05,
+   so it can't add `"is_agent"`.
 
    ```bash
    buzz users set-profile --name "Helper"
@@ -138,10 +155,17 @@ formula from a test key, not in Buzz's dialog.
 the sign-in carries the proof
 ([the check](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/api/mod.rs#L259-L330)),
 every time: in the test, the same key without it was refused a moment after it had been let in.
-Buzz marks a member as an agent when its newest profile carries the proof
+On its profile, the proof is the agent mark every part of Buzz reads: Buzz on desktop
 ([profiles.ts](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/features/relay/profiles.ts#L37-L45)),
-draws it with a robot and a rounded-square picture, and its profile shows Managed by and the
-owner. Buzz tags an agent in a one-to-one direct message
+Buzz on phones
+([the phone app's source](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/mobile/lib/features/activity/activity_page/inbox_row.dart#L79-L81))
+and Block's own agent program
+([pool.rs](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-acp/src/pool.rs#L4260-L4269)).
+Buzz on desktop also reads `"is_agent": true`
+([profiles.ts](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/features/relay/profiles.ts#L74-L76));
+the other two don't, and Buzz never sets it on its own agents. Buzz 1.0.5 reads both the same
+way. A marked agent gets a robot and a rounded-square picture, and its profile shows Managed by
+and the owner. Buzz tags an agent in a one-to-one direct message
 [only when its profile is marked](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/features/relay/messages.ts#L91-L106),
 and a program listening for mentions hears only what is tagged. A bot added as a member with no
 proof on its profile shows as a person, and a direct message never wakes it. Seen in the test.
@@ -161,23 +185,25 @@ someone): a ban on an agent's key
 [its relay's source](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-acp/README.md#L143-L181),
 listens for mentions and hands them to Goose, Codex or Claude. It answers only its owner unless
 started with `--respond-to anyone` or an allowlist, and direct messages only from its owner in any
-case. Without the proof it has no owner, so it answers nobody. Not tested.
+case. Without the proof, or `--agent-owner`, it has no owner, so it answers nobody. Not tested.
 
 **A shared helper needs no proof.** An agent that answers everyone reads requests from anyone, so
 keep your proof out of it. Add its key as a member (operations.md, add a member), and have its own
 client publish its profile with `"is_agent": true` in the profile's content. Buzz shows it as an
 agent, with no owner, and nothing it does acts for you. Seen in the test. The `buzz` command has no
-option for that field.
+option for that field. Buzz on phones doesn't read the flag: there it shows as an agent only in
+channels where a member added it with the bot role
+([the phone app's source](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/mobile/lib/shared/mentions/agent_identity_provider.dart#L345-L351)).
 
 ## The messages
 
-For a client of your own. Each was sent as written here in the test of 2026-11-12. `PROOF` is the
-tag from step 3.
+For a client of your own. The test of 2026-11-12 sent each of these. `PROOF` is the tag from
+step 3.
 
 | Step | Send |
 |---|---|
 | Sign in | The relay sends `["AUTH", "<challenge>"]`. Answer `["AUTH", event]` with a kind 22242 event made within a minute, whose tags are `["relay", "wss://<host>"]`, `["challenge", "<challenge>"]` and `PROOF`. |
-| Profile | A kind 0 event with `PROOF` in its tags and `{"name": "Helper"}` as its content. Send it again with `PROOF` whenever the profile changes. |
+| Profile | A kind 0 event with `PROOF` in its tags and `{"name": "Helper", "is_agent": true}` as its content. `PROOF` is the agent mark; `is_agent` is optional. Send it again with `PROOF` whenever the profile changes. |
 | Join | A kind 9021 event with `["h", "<channel id>"]`, for an open channel. |
 | Listen | `["REQ", "ch", {"kinds": [9], "#h": ["<channel id>"], "#p": ["<agent hex>"]}]` for mentions, and `{"kinds": [44100, 44101], "#p": ["<agent hex>"]}` to hear that it was added to a channel or removed. |
 | Reply | A kind 9 event with `["h", "<channel id>"]`, `["e", "<message id>", "", "reply"]` and `PROOF`. |
@@ -191,7 +217,7 @@ treat a message as their owner's only when it carries it.
 
 | Symptom | Cause and fix |
 |---|---|
-| It shows as a person | Its newest profile has no proof. Publish the profile again with the proof. A later save without it removes the mark, as the test showed. |
+| It shows as a person | Its newest profile has no proof. Publish the profile again with `BUZZ_AUTH_TAG` set. A later save without it removes the mark, as the test showed: `buzz users set-profile` takes its tags only from `BUZZ_AUTH_TAG`, and keeps only the name, picture, about and nip05, so it also drops `"is_agent"`. |
 | `relay_membership_required`, or `restricted: not a relay member` | The proof wasn't sent, its owner isn't a member, or the relay has `BUZZ_ALLOW_NIP_OA_AUTH` off. |
 | It never answers a direct message | Buzz tags an agent in a direct message only when its profile is marked. Fix the profile. A program that reads its direct-message channel without the `#p` filter sees every message there. |
 | It stopped hearing a channel | The relay closes its subscription when it is removed from a channel (`restricted: channel access revoked`). Subscribe again when the 44100 notice arrives. |

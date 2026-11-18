@@ -320,6 +320,22 @@
 .ga-status svg { width: 14px; height: 14px; }
 .ga-h { margin: 26px 0 0; font-size: 15px; font-weight: 600; }
 
+/* every answer, and each part of a long one, has its own link: faint until hovered, so it can be found */
+:is(.fq-h, .ga-h, .ga-fold-wrap, .ga-warn) .hl { opacity: 0.45; }
+:is(.fq-h, .ga-h, .ga-fold-wrap, .ga-warn):hover .hl { opacity: 1; }
+.ga-h .hl { margin-left: 6px; vertical-align: -0.4em; }
+/* the fold's link, at the end of its summary's line */
+.ga-fold-wrap { position: relative; }
+.ga-fold-wrap > .hl { position: absolute; top: 30px; right: 0; margin: 0; }
+.ga-warn .hl { width: 22px; height: 22px; margin: 0 2px 0 4px; vertical-align: -0.35em; color: #7a4d06; }
+.ga-warn .hl svg { width: 13px; stroke: currentColor; }
+.ga-warn .hl:hover { background: rgb(255 255 255 / 55%); }
+
+/* what Buzz needs: the optional line reads as optional */
+.ga-needs li.opt { border-style: dashed; background: #fbfbf9; }
+.ga-needs li.opt b { font-weight: 500; }
+.ga-needs b code { font-size: 0.86em; }
+
 /* the skill's steps, commands included */
 .ga-flow .opx-flow-d.tl-md { font-size: 14.5px; }
 .ga-flow .opx-flow-d.tl-md > :last-child { margin-bottom: 0; }
@@ -377,6 +393,7 @@
 .ga-ev i { font-style: normal; color: rgb(255 255 255 / 50%); }
 .ga-ev mark { padding: 1px 4px; border-radius: 4px; background: var(--accent); color: var(--ink); }
 .ga-ev s { padding: 1px 4px; border-radius: 4px; background: #f6dedd; color: #9e2f2a; text-decoration: none; }
+.ga-ev em { padding: 0 3px; border: 1px dashed rgb(215 215 46 / 70%); border-radius: 4px; font-style: normal; color: var(--accent); }
 .ga-mk-f { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
 
 /* the messages, folded */

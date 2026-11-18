@@ -7,7 +7,7 @@ import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members"
 import { promptText, runningOnHTML, taskHTML } from "./operations";
 import { TABLER } from "./tabler";
 import { copyText, enhanceCode } from "../lib/code";
-import { jumpTo } from "../lib/nav";
+import { jumpTo, registerAnchors } from "../lib/nav";
 import { getValues, isPrivate, onValues, setValues, skillURL, trackHash, trackOf, type Track } from "../lib/values";
 
 /**
@@ -548,8 +548,33 @@ export function mountFaq(host: HTMLElement): void {
   const pane = host.querySelector<HTMLElement>(".fq-pane")!;
   // on a phone the answer opens under its question, like an accordion
   const narrow = matchMedia("(max-width: 640px)");
-  const hashQuestion = () => new URLSearchParams(location.hash.slice(1)).get("q");
-  let open = all.some((x) => x.id === hashQuestion()) ? hashQuestion()! : all[0].id;
+  /**
+   * Which answer a link opens: #…&q=<id> as before, a short link, #<id> (#agents), or a part of an
+   * answer, #<id>-<part> (#agent-remote-steps). The longest id that fits wins, so #agent-remote is
+   * never read as a part of #agents. An element already on the page with the token as its id wins.
+   */
+  const byLength = [...all].sort((a, b) => b.id.length - a.id.length);
+  const target = (token: string): { q: string; part?: string } | null => {
+    if (all.some((x) => x.id === token)) return { q: token };
+    const owner = byLength.find((x) => token.startsWith(`${x.id}-`));
+    return owner ? { q: owner.id, part: token } : null;
+  };
+  const hashTarget = (): { q: string; part?: string } | null => {
+    const h = location.hash.slice(1);
+    const q = new URLSearchParams(h).get("q");
+    if (q && all.some((x) => x.id === q)) return { q };
+    const token = h.split("&")[0];
+    return token && !token.includes("=") && !document.getElementById(token) ? target(token) : null;
+  };
+  const hashQuestion = () => hashTarget()?.q ?? null;
+  /** An answer's own link: its id, with the setup when the answer depends on it. Where the id is taken (relay-key), the long form. */
+  const linkFor = (x: Question) =>
+    document.getElementById(x.id)
+      ? `#${trackHash(trackOf())}&to=fq-tab-${x.id}&q=${x.id}`
+      : typeof x.a === "function" && x.a.length > 0
+        ? `#${x.id}&${trackHash(trackOf())}`
+        : `#${x.id}`;
+  let open = hashQuestion() ?? all[0].id;
   // each click-through's flow and step, from the start again with each new question
   let state: Record<string, [number, number]> = {};
   const draw = (slot: HTMLElement) => {
@@ -581,7 +606,7 @@ export function mountFaq(host: HTMLElement): void {
       if (on && focus) b.focus();
     });
     pane.setAttribute("aria-labelledby", `fq-tab-${x.id}`);
-    pane.innerHTML = `<h3 class="fq-h">${x.q}${linkButton(`#${trackHash(trackOf())}&to=fq-tab-${x.id}&q=${x.id}`, "Copy a link to this answer")}</h3>${typeof x.a === "string" ? x.a : x.a(trackOf())}`;
+    pane.innerHTML = `<h3 class="fq-h">${x.q}${linkButton(linkFor(x), "Copy a link to this answer")}</h3>${typeof x.a === "string" ? x.a : x.a(trackOf())}`;
     if (narrow.matches) list.querySelector(`[data-q="${x.id}"]`)!.after(pane);
     else box.appendChild(pane);
     enhanceCode(pane);
@@ -651,8 +676,9 @@ export function mountFaq(host: HTMLElement): void {
     const q = list.querySelector<HTMLElement>(`[data-q="${open}"]`)!;
     scrollTo({ top: q.getBoundingClientRect().top + scrollY - 72, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   });
+  // the long form, #…&q=<id>; a short link lands through registerAnchors below
   window.addEventListener("hashchange", () => {
-    const q = hashQuestion();
+    const q = new URLSearchParams(location.hash.slice(1)).get("q");
     if (!q || !all.some((x) => x.id === q)) return;
     show(q);
     const target = list.querySelector<HTMLElement>(`[data-q="${q}"]`);
@@ -664,6 +690,14 @@ export function mountFaq(host: HTMLElement): void {
   onValues(() => {
     host.querySelector(".opx-ctx")!.outerHTML = runningOnHTML(trackOf());
     if (typeof all.find((x) => x.id === open)!.a !== "string") show(open);
-    else pane.querySelector<HTMLAnchorElement>(".fq-h .hl")?.setAttribute("href", `#${trackHash(trackOf())}&to=fq-tab-${open}&q=${open}`);
+    else pane.querySelector<HTMLAnchorElement>(".fq-h .hl")?.setAttribute("href", linkFor(all.find((x) => x.id === open)!));
+  });
+  // a short link to an answer, or to a part of one: open it, then nav.ts lands on it as it does any anchor
+  registerAnchors((token) => {
+    const t = target(token);
+    if (!t) return null;
+    if (open !== t.q) show(t.q);
+    if (t.part) return document.getElementById(t.part) ? t.part : null;
+    return narrow.matches ? `fq-tab-${t.q}` : "fq-pane";
   });
 }

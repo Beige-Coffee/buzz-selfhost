@@ -50,3 +50,15 @@ Buzz on a second computer.
 **Cleanup.** Both test channels deleted by their creator, the test direct message hidden for both
 sides, all five test identities archived by themselves (NIP-IA, reason `retired`), and the three
 test members removed. The community's member count was back where it started.
+
+**Who reads which mark, from Block's source (checked again on 2026-11-17, Buzz 1.0.5).** Buzz on
+desktop marks an agent when its newest profile has a four-part `auth` tag, or `is_agent` or
+`isAgent` set to true in its content (`src/features/relay/profiles.ts`), and never writes either
+field for its own agents, which carry the tag. The phone app, in block/buzz's `mobile/`, marks a
+sender as an agent from a verified owner on its profile, from the relay's agent directory, or from
+the bot role in a channel; it never reads `is_agent` (`inbox_row.dart`,
+`agent_identity_provider.dart`). Block's `buzz-acp` checks only for the `auth` tag
+(`pool.rs`, `profile_event_is_agent`). `buzz users set-profile` writes only `display_name`, `name`,
+`picture`, `about` and `nip05` (`buzz-sdk` `build_profile`) and takes its tags from
+`BUZZ_AUTH_TAG`, so a later save drops `is_agent`. The proof tag together with `is_agent` was not
+sent in the test; read from the source, Buzz on desktop shows both as an agent with its owner.

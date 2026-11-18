@@ -4,7 +4,7 @@ script runs, a step's link moving focus to it, the safety step's drawings and no
 staying put on a phone, Moderation's link to it and Back after that link, the 5-second refresh keeping an open list
 open and focus where it was and saying what changed, the private network's device check against answers held back
 and let through in a chosen order, a new phase keeping the reader's step, and the page without scripts, where every
-drawing fits from a computer's width to a phone's.
+drawing fits from a computer's width to a phone's, Buzz's drawn Membership whole inside its page.
 
 Chrome runs over a pipe, with no port, and every name but 127.0.0.1 fails to resolve, so nothing leaves this machine.
 The page's 5-second refresh and the device check's 6-second limit are held, and fired by the test, and the device
@@ -522,6 +522,17 @@ PLACES = """(() => {
     at: [top(fig), Math.round(fig.getBoundingClientRect().height * 10) / 10].concat([...frame.querySelectorAll("[data-go]")].map(top)) };
 })()"""
 
+# Buzz's Membership as the invite step draws it, both drawings: each tab with its state, and every part inside the drawn
+# page, none wider than its box but the invite link, which ends in an ellipsis
+MEMBERSHIP = """(() => [...document.querySelectorAll("#invite .mb-page")].map((page) => {
+  const box = page.getBoundingClientRect(), parts = [...page.querySelectorAll("h5, p, span, b, small, div")];
+  return { parts: parts.length,
+    out: parts.filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.left < box.left - 0.5
+      || r.right > box.right + 0.5 || r.top < box.top - 0.5 || r.bottom > box.bottom + 0.5); }).map((el) => el.className || el.tagName),
+    wide: parts.filter((el) => el.scrollWidth > el.clientWidth + 0.5 && !el.matches(".mb-in > .mono")).map((el) => el.className || el.tagName),
+    tabs: [...page.querySelectorAll(".mb-tabs span")].map((s) => s.className + ":" + s.textContent).join() };
+}))()"""
+
 # WCAG 1.4.12's text spacing, as a reader's style sheet would set it
 SPACING = """(() => { const s = document.createElement("style"); s.textContent = "* { line-height: 1.5 !important; "
   + "letter-spacing: 0.12em !important; word-spacing: 0.16em !important; } p { margin-bottom: 2em !important; }";
@@ -658,7 +669,7 @@ def settings_link(chrome):
 
 def without_scripts(chrome):
     """Without scripts: every step and drawing, no stepper, no copy buttons, and from a computer's width to a phone's the
-    drawings fit, the safety step's legible and whole."""
+    drawings fit, the safety step's legible and whole, and Buzz's Membership whole inside its drawn page."""
     for width in (1440, 375):
         page = Page(chrome, width=width, height=900, scripts=False)
         page.goto(LIVE)
@@ -683,6 +694,11 @@ def without_scripts(chrome):
            and safe["scale"] >= 0.8 and safe["cropped"] == 0 and safe["drawn"],
            "and the safety step's two drawings: the %s one of the agent at %s of its size with its labels, the people and "
            "the agent drawn, nothing outside its drawing or wider than its box" % (drawing, safe["scale"]), safe)
+        members = page.eval(MEMBERSHIP)
+        ok([d["tabs"] for d in members] == ["on:Members,hot:Invite", ":Members,on:Invite"]
+           and all(d["parts"] > 8 and not d["out"] and not d["wide"] for d in members),
+           "and Buzz's Membership, drawn in the invite step: Members open with Invite to choose, then Invite open, every "
+           "part inside the drawn page and none wider than its box", members)
         page.close()
 
 

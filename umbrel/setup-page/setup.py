@@ -1144,33 +1144,34 @@ details.how[open] > summary { background: var(--chip); }
 .mb-nav-col .mb-nav-host {margin-bottom: 4px; padding-right: 0; }
 .mb-nav-host span {flex: none; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 5px; background: #f0f0f0; font-size: 8.5px; font-weight: 600; }
 .mb-nav-host em {min-width: 0; overflow: hidden; text-overflow: ellipsis; font-style: normal; }
-.mb-btns {display: flex; justify-content: flex-end; gap: 6px; margin: 6px 0 2px; }
 .mb-btn.dark {background: #0f0f0f; color: #fff; }
-.mb-btn.off {opacity: 0.4; }
-.mb h6 em {font-style: normal; color: #5f5f5f; }
-.mb-box {position: relative; padding: 8px 10px 4px; border: 1px solid #1f1f1f; border-radius: 14px; }
-.mb-canvas .mb-search {display: flex; align-items: center; gap: 6px; margin-bottom: 4px; padding: 5px 10px; border-radius: 999px; background: #f3f3f4; font-size: 10.5px; color: #6b6b6b; }
-.mb-row {display: flex; align-items: center; gap: 8px; padding: 4px 0; }
-.mb-who {flex: 1; min-width: 0; }
-.mb-who b {display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 400; white-space: nowrap; }
-.mb-who small {display: block; font-size: 10px; color: #5f5f5f; }
+.mb-canvas .mb-tabs {display: flex; gap: 14px; margin-top: 12px; font-size: 11.5px; color: #5f5f5f; }
+.mb-tabs span {padding: 3px 1px 5px; }
+.mb-tabs .on {color: #0f0f0f; box-shadow: inset 0 -2px #0f0f0f; }
+.mb-tabs .hot {margin: 0 -5px; padding-inline: 6px; border-radius: 8px; }
+.mb-canvas .mb-search {display: flex; align-items: center; gap: 6px; margin-top: 12px; padding: 5px 10px; border-radius: 999px; background: #f3f3f4; font-size: 10.5px; color: #6b6b6b; }
+.mb-canvas .mb-cap {margin-top: 12px; font-size: 10px; color: #5f5f5f; }
+.mb-row {display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+.mb-who {flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 400; white-space: nowrap; }
 .mb-who .tb-i {font-size: 11px; color: #b7791f; }
+.mb-row > small {font-size: 10px; color: #5f5f5f; white-space: nowrap; }
 .mb-shade.on-modal {z-index: 3; }
 .mb-dlg {position: absolute; top: 50%; left: 50%; z-index: 4; width: 330px; padding: 14px 16px 12px; transform: translate(-50%, -50%); border-radius: 18px; background: #fff; box-shadow: 0 18px 50px rgb(0 0 0 / 25%); }
-.mb-dlg.inv {top: 6px; width: 346px; padding: 11px 16px 12px; transform: translateX(-50%); }
-.mb-dlg.inv h6 {margin-top: 7px; }
 .mb-dlg-h {display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
 .mb-line {display: flex; align-items: center; gap: 6px; margin: 5px 0 2px; }
 .mb-in {flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 11px; border-radius: 999px; background: #f3f3f4; font-size: 10.5px; }
 .mb-in > span:first-child {flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mb-in .mono {font: 10px var(--mono); }
-.mb-in .ph {color: #8a8a8a; }
 .mb-choice {display: inline-flex; align-items: center; gap: 3px; padding: 0 4px; font-size: 10.5px; white-space: nowrap; }
-.mb-copy {padding: 1px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 500; white-space: nowrap; }
-.mb-canvas .mb-opts {display: flex; justify-content: space-between; margin: 4px 2px 0; font-size: 10.5px; }
-.mb-opts > span {display: inline-flex; align-items: center; gap: 2px; font-weight: 500; }
-.mb-opts .mb-choice {font-weight: 400; }
-.mb-inv-qr {width: 62px; margin: 6px auto 0; padding: 4px; border-radius: 8px; box-shadow: 0 0 0 1px #e6e6e6; }
+.mb-inv {display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 18px; align-items: center; margin-top: 16px; }
+.mb-inv-qr {padding: 7px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #e6e6e6; }
+.mb-inv .mb-line {margin: 0; }
+.mb-inv .mb-in {padding: 4px 4px 4px 11px; }
+.mb-copy {padding: 3px 8px; border-radius: 999px; background: #fff; font-size: 10.5px; font-weight: 500; white-space: nowrap; }
+.mb-group {margin-top: 9px; padding: 0 11px; border: 1px solid #e8e8e8; border-radius: 13px; }
+.mb-canvas .mb-group p {display: flex; align-items: center; justify-content: space-between; padding: 7px 0; font-size: 10.5px; }
+.mb-group p + p {border-top: 1px solid #e8e8e8; }
+.mb-group .mb-choice {padding-right: 0; }
 .mb .id-pair {padding: 9px 18px; }
 .id-pair-b {display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 14px; align-items: center; margin-top: 10px; }
 .id-pair-code {padding: 8px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #e6e6e6; }
@@ -1761,14 +1762,15 @@ def address_fields(values, setup):
                  "Tailscale on every member's device, phones included, and access to your Tailscale network.",
                  mode == "private",
                  more=next_steps("You sign in to Tailscale, and it gives you the address. To let someone in, invite "
-                                 "them to your Tailscale network or share the <b>buzz</b> machine with them, then add "
-                                 "them in Buzz."))
+                                 "them to your Tailscale network or share the <b>buzz</b> machine with them, then send "
+                                 "them an invite link from Buzz."))
         + "</div>"
     )
 
 
-# Buzz's own screens, drawn from Buzz 1.0.0's source (block/buzz-app at v1.0.0) in its light theme, with the
-# thing to click in chartreuse. Tabler's outline icons (MIT) are the set Buzz draws its interface with.
+# Buzz's own screens, drawn from Buzz 1.0.5's source (block/buzz-app at v1.0.5, the current stable release) in its
+# light theme, with the thing to click in chartreuse. Tabler's outline icons (MIT, 3.46.0 in 1.0.5 as in 1.0.0) are
+# the set Buzz draws its interface with.
 TABLER = {
     'messages': '<path d="M21 14l-3 -3h-7a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1h9a1 1 0 0 1 1 1v10"/><path d="M14 15v2a1 1 0 0 1 -1 1h-7l-3 3v-10a1 1 0 0 1 1 -1h2"/>',
     'robot': '<path d="M6 6a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2l0 -4"/><path d="M12 2v2"/><path d="M9 12v9"/><path d="M15 12v9"/><path d="M5 16l4 -2"/><path d="M15 14l4 2"/><path d="M9 18h6"/><path d="M10 8v.01"/><path d="M14 8v.01"/>',
@@ -1803,6 +1805,7 @@ TABLER = {
     'brain': '<path d="M15.5 13a3.5 3.5 0 0 0 -3.5 3.5v1a3.5 3.5 0 0 0 7 0v-1.8"/><path d="M8.5 13a3.5 3.5 0 0 1 3.5 3.5v1a3.5 3.5 0 0 1 -7 0v-1.8"/><path d="M17.5 16a3.5 3.5 0 0 0 0 -7h-.5"/><path d="M19 9.3v-2.8a3.5 3.5 0 0 0 -7 0"/><path d="M6.5 16a3.5 3.5 0 0 1 0 -7h.5"/><path d="M5 9.3v-2.8a3.5 3.5 0 0 1 7 0v10"/>',
     'download': '<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 11l5 5l5 -5"/><path d="M12 4l0 12"/>',
     'layout-sidebar': '<path d="M4 6a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12"/><path d="M9 4l0 16"/>',
+    'browser': '<path d="M4 8h16"/><path d="M4 6a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12"/><path d="M8 4v4"/>',
     # The page's own icons, for the next steps' guide
     'login': '<path d="M9 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2"/><path d="M3 12h13l-3 -3"/><path d="M13 15l3 -3"/>',
     'user-plus': '<path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M16 19h6"/><path d="M19 16v6"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4"/>',
@@ -1821,8 +1824,9 @@ def ti(name):
 SAMPLE_NPUB = "npub1qm\u20268k3a"
 
 
-# Settings' left column with a community open, in Buzz 1.0.0's order (src/app/settings-sections.ts). Buzz's
-# group runs on past the drawing's edge, which fades out. Mobile app is Pair mobile in builds without Builderlab.
+# Settings' left column with a community open, in Buzz 1.0.5's order (src/app/settings-sections.ts, the same as in
+# 1.0.0). Buzz's group runs on past the drawing's edge, which fades out. Mobile app is Pair mobile in builds without
+# Builderlab (src/bundled/pairing/index.tsx).
 COMMUNITY_GROUPS = [
     ("Community", [("user", "Profile"), ("settings", "Local settings"), ("mood-smile", "Custom emoji"),
                    ("device-mobile", "Mobile app"), ("logout", "Leave or remove")]),
@@ -1851,14 +1855,18 @@ def settings_modal(nav, page, over=""):
 
 def drawn_app(menu=""):
     """Buzz's window in Personal space, with no community open (src/app/shell/AppShell.tsx): the sidebar button,
-    back, forward and Search across the top, and the app dock down the left, Messages then Agents as a new install
-    has them. At the dock's foot, the community button shows a globe, above your profile picture. Messages shows
-    its page for no community. A menu opens to the right of the dock's foot."""
+    back, forward and Search across the top, and the app dock down the left as a new install has it. Since 1.0.1 a
+    new install turns Bestie on (src/bundled/index.ts), and the dock puts it first (dockOrder in
+    src/app/shell/presentation.ts). With no community open it shows neither an agent's picture nor Create an agent's
+    (BestieNavigation.tsx), so it has the default page icon, a browser window; then Messages, which opens at launch,
+    and Agents. At the dock's foot, the community button shows a globe, above your profile picture. Messages shows its
+    page for no community. A menu opens to the right of the dock's foot."""
     return (
         '<div class="mb-app"><div class="mb-head"><span class="mb-hist"><i>' + ti("layout-sidebar") + "</i>"
         + ti("arrow-left") + ti("arrow-right") + '</span><span class="mb-find">' + ti("search") + "Search</span></div>"
-        '<div class="mb-dock"><span class="mb-tile on">' + ti("messages") + '</span><span class="mb-tile">'
-        + ti("robot") + '</span><span class="mb-foot"><span class="mb-comm">' + ti("world") + "</span>"
+        '<div class="mb-dock"><span class="mb-tile">' + ti("browser") + '</span><span class="mb-tile on">'
+        + ti("messages") + '</span><span class="mb-tile">' + ti("robot") + '</span><span class="mb-foot">'
+        '<span class="mb-comm">' + ti("world") + "</span>"
         '<span class="mb-me id-me">' + ti("user") + "</span></span></div>"
         '<div class="mb-panel"><div class="mb-side"><span class="mb-seg"><i class="on">All</i><i>Solo</i><i>Team</i>'
         '</span><span class="mb-bar"></span><span class="mb-bar short"></span><span class="mb-bar"></span></div>'
@@ -1890,38 +1898,31 @@ def drawn_join(url):
 
 
 def drawn_membership(host, inviting=False):
-    """Settings, Membership, in a new community (src/bundled/moderation/CommunityAdmin.tsx): the owner alone,
-    named by the end of their public ID until they set a name. Inviting opens Add or invite people over it, as
-    Buzz 1.0.0 has it: the invite link first, with its expiry, its use limit and its QR code, then adding someone
-    by their public ID."""
-    page = (
-        '<section class="mb-page"><h5>Membership</h5><p class="mb-sub">Manage members and access to ' + esc(host) + ".</p>"
-        '<div class="mb-btns"><span class="mb-btn">Refresh</span><span class="mb-btn dark' + ("" if inviting else " hot")
-        + '">Invite members</span></div><h6>Members <em>1</em></h6>'
-        '<div class="mb-box"><p class="mb-search">' + ti("search") + "Search members</p>"
-        '<div class="mb-row"><span class="mb-av"><i>N</i></span><span class="mb-who"><b>npub…k3a' + ti("crown")
-        + "</b><small>Owner · You</small></span></div></div></section>"
-    )
-    over = ""
+    """Settings, Membership, in a new community (src/bundled/moderation/CommunityAdmin.tsx at v1.0.5): since 1.0.1
+    (block/buzz-app#3147) a Members and an Invite tab, as text with a bar under the open one (Tabs, variant panel),
+    and no Add directly tab (DIRECT_MEMBER_ADD_ENABLED = false in features.ts). Members opens first: the search, then
+    the owner alone, named by the end of their public ID until they set a name, with their role at the row's end.
+    Inviting, the Invite tab: the link's QR code, and beside it the link with Copy link, then its expiry and use limit
+    (CommunityAdmin.module.css, .invitePanel). Opening the tab makes the link."""
+    tabs = ('<p class="mb-tabs"><span' + ("" if inviting else ' class="on"') + ">Members</span><span class=\""
+            + ("on" if inviting else "hot") + '">Invite</span></p>')
     if inviting:
-        over = (
-            '<div class="mb-shade on-modal"></div><div class="mb-dlg inv"><div class="mb-dlg-h">'
-            "<b>Add or invite people</b>"
-            '<span class="mb-x">' + ti("x") + "</span></div>"
-            '<p class="mb-sub">Share a link someone can use to join, or add them by their exact identity.</p>'
-            "<h6>Invite with a link</h6>"
-            '<p class="mb-sub">Anyone with this link can use it to join until it expires.</p>'
+        body = (
+            '<div class="mb-inv"><div class="mb-inv-qr">' + QR + "</div><div>"
             '<div class="mb-line"><span class="mb-in"><span class="mono">https://' + esc(host) + "/invite/v2.nOvr6DwA6u"
-            '</span><span class="mb-copy hot">Copy link</span></span></div>'
-            '<p class="mb-opts"><span>Expires after<span class="mb-choice">3 days' + ti("chevron-down")
-            + '</span></span><span>Max uses<span class="mb-choice">No limit' + ti("chevron-down") + "</span></span></p>"
-            '<div class="mb-inv-qr">' + QR + "</div>"
-            "<h6>Add directly</h6><p class=\"mb-sub\">Paste the person’s npub or 64-character public key.</p>"
-            '<div class="mb-line"><span class="mb-in"><span class="ph">npub1… or public key</span>'
-            '<span class="mb-choice">Member' + ti("chevron-down") + '</span></span><span class="mb-btn dark off">'
-            "Add member</span></div></div>"
+            '</span><span class="mb-copy hot">Copy link</span></span></div><div class="mb-group">'
+            '<p>Expires after<span class="mb-choice">3 days' + ti("chevron-down") + "</span></p>"
+            '<p>Max uses<span class="mb-choice">No limit' + ti("chevron-down") + "</span></p></div></div></div>"
         )
-    return settings_modal(settings_nav(COMMUNITY_GROUPS, "Membership", host), page, over)
+    else:
+        body = (
+            '<p class="mb-search">' + ti("search") + 'Search members</p><p class="mb-cap">Members · 1</p>'
+            '<div class="mb-row"><span class="mb-av"><i>N</i></span><b class="mb-who">npub…k3a' + ti("crown")
+            + "</b><small>Owner · You</small></div>"
+        )
+    page = ('<section class="mb-page"><h5>Membership</h5><p class="mb-sub">Manage members and access to ' + esc(host)
+            + ".</p>" + tabs + body + "</section>")
+    return settings_modal(settings_nav(COMMUNITY_GROUPS, "Membership", host), page)
 
 
 def qr_cells():
@@ -1995,8 +1996,9 @@ def screen(drawing):
 
 # The guide's drawings, each as (title, drawing, caption, more): more is HTML under the caption.
 def join_steps(domain):
-    # Buzz 1.0.0: the community button sits at the foot of the left dock; with no community saved, Buzz opens
-    # on a full-page Join a community instead. The join dialog asks Continue twice, then publishes the profile.
+    # Buzz 1.0.5, as 1.0.0: the community button sits at the foot of the left dock (CommunityPicker.tsx); with no
+    # community saved, Buzz opens on a full-page Join a community instead (CommunityLanding.tsx, firstRun in
+    # src/app/App.tsx). The join dialog asks Continue twice, then publishes the profile (CommunityDialog.tsx).
     return [
         ("Open Join a community", screen(drawn_switcher()),
          "In Buzz, click the community button at the bottom left, then <b>Join a community</b>. Not <b>Create "
@@ -2009,20 +2011,25 @@ def join_steps(domain):
 
 
 def member_steps(domain):
-    # Buzz 1.0.0 still adds members by public ID; its next release drops that (block/buzz-app#3147), and makes
-    # Invite a tab
+    # Since Buzz 1.0.1 (block/buzz-app#3147) Membership has Members and Invite tabs, and adding someone by public ID
+    # is switched off (DIRECT_MEMBER_ADD_ENABLED = false in src/bundled/moderation/features.ts at v1.0.5)
     return [
         ("Open Membership", screen(drawn_membership(domain)),
-         "In Buzz, open <b>Settings</b>. Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite "
-         "members</b>, or the <b>Invite</b> tab in newer versions of Buzz.", ""),
+         "In Buzz, open <b>Settings</b>. Under <b>Community admin</b>, choose <b>Membership</b>, then the "
+         "<b>Invite</b> tab.", ""),
         ("Send an invite link", screen(drawn_membership(domain, inviting=True)),
-         "Copy the link and send it. Anyone with the link can join until it expires or runs out of uses. To invite one "
-         "person, set <b>Max uses</b> to <b>1 use</b> first. In Buzz 1.0.0 you can also paste someone's public ID under "
-         "<b>Add directly</b> and choose <b>Add member</b>, then send them the address.", ""),
+         "Choose <b>Copy link</b> and send it. Anyone with the link can join until it expires or runs out of uses. To "
+         "invite one person, set <b>Max uses</b> to <b>1 use</b> first.", ""),
     ]
 
 
 def phone_steps(domain):
+    # The computer's side, Settings, Mobile app, is PairingSettings.tsx and MobileApp.tsx at v1.0.5, the same as in
+    # 1.0.0. The phone's labels come from Buzz's mobile app, which lives in block/buzz (mobile/), not in buzz-app:
+    # "Scan a QR code" and "or sign in with email" (pairing_welcome_view.dart), "Add Community"
+    # (community_grid_add.dart), "Enter a community link" (community_link_form.dart), and the protect prompt's buttons
+    # (sas_verification_view.dart, sensitive_action_authorizer.dart), the same at mobile-v1.0.0-rc.3,
+    # mobile-v1.1.0-rc.3 and main on 2026-11-13
     return [
         ("Scan the code", screen(drawn_pair(domain)),
          "In Buzz on your computer, open <b>Settings</b>, then <b>Mobile app</b>. On the phone, choose <b>Scan a QR "
@@ -2338,9 +2345,10 @@ def drawn_paste():
 
 
 def how_to_find_npub():
-    # The shortcut first: Buzz 1.0.0 with no community opens a full-page Join a community, with no dock and no
-    # profile picture, and the shortcut still opens Settings there. First run's own Connect to a community page,
-    # which follows Create account, has neither: the app isn't loaded until first run ends (Welcome.tsx).
+    # The shortcut first: Buzz 1.0.5, as 1.0.0, with no community opens a full-page Join a community, with no dock
+    # and no profile picture, and the shortcut (Open Settings, Mod+, in src/app/shortcuts.ts) still opens Settings
+    # there. First run's own Connect to a community page, which follows Create account, has neither: the app isn't
+    # loaded until first run ends (Welcome.tsx).
     return how_to("Where to find your public ID", [
         ("Open Settings", drawn_profile_menu(),
          "In Buzz, press <code>\u2318,</code> on a Mac or <code>Ctrl+,</code> on Windows and Linux. Or click your "
@@ -2354,14 +2362,16 @@ def how_to_find_npub():
 
 
 def no_identity():
-    """For owners new to Buzz: a key of their own. Buzz 1.0 on a computer makes a key only with a Builderlab
-    account, Block's, which keeps a backup Block can decrypt. Either way this page gets only the public ID."""
+    """For owners new to Buzz: a key of their own. Buzz 1.0.5 on a computer, as 1.0.0, makes a key only with a
+    Builderlab account, Block's, which keeps a backup Block can decrypt: Other options leads to Sign in with
+    Builderlab or Use an existing key (Welcome.tsx, ConnectChoice.tsx). Either way this page gets only the public ID."""
     return (
         '<details class="alt"><summary>No Buzz identity yet?</summary><div class="inner">'
         "<p>Make your own key. It's yours alone, and nobody else keeps a copy. Use an open-source tool like "
         '<a href="' + NAK + '" target="_blank" rel="noopener">nak</a>, or a Nostr app you already use. Paste the '
         "public ID (npub1...) here. Keep the private key (nsec1...) safe, and never paste it on this page. "
-        # nak key generate prints hex; Buzz 1.0's Use an existing key takes nsec1 only (key-import.ts)
+        # nak key generate prints hex; Buzz's Use an existing key takes nsec1 only, and refuses ncryptsec1
+        # (src/features/identity/key-import.ts at v1.0.5, the same as in 1.0.0)
         "nak prints keys in hex. Buzz takes the private key only as nsec1: convert it with <code>nak encode "
         "nsec</code>.</p>"
         "<p>Once your community is live, open Buzz and choose <b>Other options</b>. Paste the community's address "
@@ -2384,7 +2394,7 @@ def setup_page(error="", values=None):
         '<form method="post" action="save" data-guided>'
         '<div class="step on"><span class="num">1</span><div class="step-body"><h2>Owner</h2>'
         "<p class=\"muted\">A new community starts with no members, and you'll be the first. Enter your public ID "
-        "from Buzz: the relay records it as the owner when it starts. As the owner, you add the other members "
+        "from Buzz: the relay records it as the owner when it starts. As the owner, you invite the other members "
         "and choose admins in Buzz. Your Umbrel never sees your private key.</p>"
         '<label class="field" for="owner">Public ID (npub)</label>'
         '<input type="text" id="owner" name="owner" placeholder="npub1..." autocomplete="off" spellcheck="false" '
@@ -2726,10 +2736,11 @@ def guide_frame(n, total, title, drawing, caption, more, ends, step_title):
 
 # The safety step, between inviting people and pairing a phone: what an agent can touch, what anyone who joins can
 # read, then notes on private channels, invite links and bans, for the owner to share with members. What they state,
-# from Buzz 1.0.0 and relay 0.3.0: in the relay's default media mode any member with a file's link can open it, one
-# from a private channel included; invite links last 3 days with no use limit by default, 30 days at most, and can't
-# be canceled; removing a member isn't a ban, and Buzz 1.0 offers the owner of a self-hosted community no ban unless
-# Moderation is on, which needs the owner's own domain.
+# from Buzz 1.0.5 (the same as in 1.0.0) and relay 0.3.0: in the relay's default media mode any member with a file's
+# link can open it, one from a private channel included; invite links last 3 days with no use limit by default, 30 days
+# at most (EXPIRY and USES in src/bundled/moderation/CommunityAdmin.tsx), and can't be canceled; removing a member isn't
+# a ban, and Buzz offers the owner of a self-hosted community no ban unless Moderation is on, which needs the owner's
+# own domain.
 SAFE_INTRO = ("Opening your community to the internet exposes you to risk. So does adding agents with access to personal "
               "data. Here are some tips to keep yourself and your community safe.")
 # The private network isn't on the internet
@@ -2789,8 +2800,9 @@ def guide_part(setup, domain):
     open a step."""
     private = setup["mode"] == "private"
     address = "https://" + domain
-    # Buzz 1.0's own link for a community's address (docs/deep-links.md in block/buzz-app): it opens the join
-    # screen with the address filled in, and joins nothing by itself
+    # Buzz's own link for a community's address (docs/deep-links.md in block/buzz-app at v1.0.5, the same as in
+    # 1.0.0): it opens the join screen with the address filled in, or switches to the community if this computer
+    # already belongs to it, and joins nothing by itself
     actions = ('<div class="g-acts"><a class="btn" href="buzz://connect?relay='
                + esc(urllib.parse.quote("wss://" + domain, safe="")) + '">Open in Buzz</a>'
                + copy_button(address, "Copy the address", "btn ghost") + "</div>"
@@ -2922,9 +2934,10 @@ def moderation_part(setup, live, current, error, values):
                  "community is live. To turn it off, clear the box and save.</p>" + save_button)
     else:
         # Buzz keeps Moderation out of Settings without a word when its check fails, and says why only under
-        # Manage plugins, as the tooltip of the plugin's button beside "Unavailable" (src/app/Settings.tsx in
-        # block/buzz-app v1.0.0): its three messages, and what each means here. It shows the third for any 401 or 403
-        # that isn't an HTML page (relay-staff/staff.ts), Cloudflare's plain-text refusal and a lost port's included.
+        # Manage plugins, as the tooltip of the plugin's button beside "Unavailable" (accessMessage in
+        # src/app/Settings.tsx in block/buzz-app v1.0.5, the same as in 1.0.0): its three messages, and what each
+        # means here. It shows the third for any 401 or 403 that isn't an HTML page (relay-staff/staff.ts), Cloudflare's
+        # plain-text refusal and a lost port's included.
         inner = (
             '<form method="post" action="moderation"><p class="muted small">Moderation is on. To open it, choose this '
             "community in Buzz on your computer, then open Settings. A Moderation group appears in the sidebar, with "
@@ -3030,8 +3043,9 @@ def main_page(setup, error="", values=None):
 
 # The safety drawings' people and agent, each drawn once and used wherever it shows: #sq-maya and #sq-leo, cut round,
 # and #sq-ops. Maya and Leo are Notionists by Zoish (CC0 1.0), made with DiceBear, as the self-hosting guide has them
-# (site/src/assets/avatars on main), less their metadata. Ops, the agent, is a Fuzzy from Buzz 1.0's agent avatar
-# packs (block/buzz-app, src/features/agents/avatar-packs, Apache 2.0), resized to 112 pixels, as WebP.
+# (site/src/assets/avatars on main), less their metadata. Ops, the agent, is a Fuzzy from Buzz's agent avatar packs
+# (block/buzz-app, src/features/agents/avatar-packs, Apache 2.0, the same at v1.0.5 as at v1.0.0), resized to 112
+# pixels, as WebP.
 AVATAR_MAYA = (
     '<rect fill="#c0aede" width="1744" height="1744"/><g transform="translate(531 487)"><path d="M554 727.7c-99.2 297'
     '-363.8 388.6-503.7 19.8-19.3-50.7 31-69.5 66.2-91.9 24.1-15.3 36.8-28.5 35.3-42.2-7-64.4-36.9-243.8-36.9-243.8l-'

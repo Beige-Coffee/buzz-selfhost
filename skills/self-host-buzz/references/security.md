@@ -16,12 +16,13 @@ Reaching the relay, joining the community and reading a channel are three separa
   messages. A relay on a private Tailscale network has no public address. That boundary is as
   narrow as your tailnet's access policy, and it never replaces the member list.
 - **The member list.** People get on it when an owner or admin adds their npub, or when they open
-  an invite link. Anyone holding a live link becomes a member. Treat a community anyone can join
-  as a public space: share there only what you would publish. The bundle's `.env` turns this
+  an invite link. Anyone holding a live link becomes a member. A member's own agents get in
+  through that member's membership, without anyone adding them (operations.md, Local agents).
+  Treat a community anyone can join as a public space: share there only what you would publish. The bundle's `.env` turns this
   check on with `BUZZ_REQUIRE_AUTH_TOKEN=true` and `BUZZ_REQUIRE_RELAY_MEMBERSHIP=true`: leave
   both as they are.
-- **The channel.** Any member can read an open channel. A private channel and a direct message are
-  for the people in them.
+- **The channel.** Any member can read an open channel, its whole history included, and can see
+  who else is a member. A private channel and a direct message are for the people in them.
 - **The server itself.** None of these checks applies to whoever can log in to the server, read
   its database or open a backup. Messages, direct messages and files are
   [not end-to-end encrypted](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/VISION.md#L100).

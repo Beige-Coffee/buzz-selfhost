@@ -115,7 +115,7 @@ const NEED_ICONS = ["key", "login", "robot", "tag", "hash", "at"];
 const NEEDS = () =>
   part("agent-remote-needs", "What Buzz needs") +
   `<div class="fq-vis"><ul class="fq-check ga-needs">${skill.agents.needs
-    .map((n, i) => `<li${/is_agent/.test(n.title) ? ' class="opt"' : ""}><span class="fq-dep-i">${icon(NEED_ICONS[i] ?? "check")}</span><div><b>${n.title}</b><p>${n.html}</p></div></li>`)
+    .map((n, i) => `<li${/is_agent/.test(n.title) ? ' class="opt"' : ""}><span class="fq-dep-i">${icon(NEED_ICONS[i] ?? "robot")}</span><div><b>${n.title}</b><p>${n.html}</p></div></li>`)
     .join("")}</ul></div>`;
 
 // the fold's link sits beside it: a link inside a summary is a control inside a control

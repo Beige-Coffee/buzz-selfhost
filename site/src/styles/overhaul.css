@@ -96,7 +96,8 @@
 .sq-text h3 { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: start; margin: 0 0 8px; font-size: 20px; font-weight: 500; line-height: 1.2; letter-spacing: -0.03em; }
 .sq-text h3 i { display: grid; place-items: center; width: 30px; height: 30px; margin-top: -2px; border-radius: 9px; background: var(--accent); font: 500 11.5px var(--mono); font-style: normal; letter-spacing: 0; }
 .sq-text p { margin: 0 0 0 42px; font-size: 15.5px; line-height: 1.55; color: var(--ink-2); }
-.sq-text .sq-links { margin-top: 12px; font-size: 14.5px; font-weight: 500; }
+.sq-text p + p { margin-top: 8px; }
+.sq-text .sq-links { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 12px; font-size: 14.5px; font-weight: 500; }
 .sq-links a::after, .sq-ref::after { content: "\00a0\2192"; }
 .sq-also { margin: 22px 0 0; font-size: 14.5px; color: var(--ink-2); }
 /* the rest of security, as links to answers that already exist */
@@ -431,3 +432,33 @@
   .ga-msgs td { padding: 2px 0; border: 0; }
   .ga-msgs tr { padding: 9px 0; border-bottom: 1px solid var(--line); }
 }
+
+/* ═══ Running your relay: each group's label folds it (the owner's pick, 2026-11-18) ═══ */
+.fq-g-t { width: calc(100% - 16px); padding: 0 0 8px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; cursor: pointer; }
+.fq-g-t em { margin-left: auto; padding: 1px 8px; border-radius: 99px; background: #f2f2ee; font: 500 11px var(--mono); font-style: normal; letter-spacing: 0; color: var(--ink-3); }
+.fq-g-t:hover em { background: var(--accent); color: var(--ink); }
+.fq-g-t:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
+.fq-chev { flex: none; width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s; }
+.fq-grp.shut .fq-chev { transform: rotate(-90deg); }
+.fq-grp.shut > :is([data-q], .fq-pane) { display: none; }
+.fq-grp.shut .fq-g-t { margin-bottom: 4px; padding-bottom: 0; border-bottom-color: transparent; }
+
+/* ═══ No ticks anywhere (the owner's call, 2026-11-18) ═══ */
+/* the roles table says Yes and No in words */
+.fq-y, .fq-n { width: auto; height: auto; padding: 2px 10px; border-radius: 99px; font: 500 12px var(--mono); }
+/* the leaving list is numbered, in the order to work through it */
+.fq-numbered { padding: 0; }
+.fq-num { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border: 1.5px solid var(--line-2); border-radius: 50%; font: 600 11.5px var(--mono); color: var(--ink-2); }
+/* Before the team arrives: five links, no boxes */
+.pl-list li { display: block; padding-left: 12px; border-left: 2px solid var(--accent); }
+/* the setup steps' numbers are only numbers */
+.tl-n, .tl-n:hover { cursor: default; transform: none; }
+/* Get ready, kept short: every detail but a warning in one fold under the list */
+.ag-fine { margin-top: 10px; }
+.ag-fine > summary { font-size: 14px; color: var(--ink-2); }
+.ag-fine dl { display: grid; margin: 10px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+.ag-fine dt { margin-top: 10px; font-weight: 600; color: var(--ink); }
+.ag-fine dt:first-child { margin-top: 0; }
+.ag-fine dd { margin: 2px 0 0; }
+/* Get ready's items are a plain list, not boxes to tick */
+.ag-ready li::before { width: 5px; height: 5px; top: 16px; left: 4px; border: 0; background: rgb(35 30 30 / 35%); }

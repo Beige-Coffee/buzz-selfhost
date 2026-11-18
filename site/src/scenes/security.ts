@@ -222,16 +222,18 @@ export function mountSecurity(host: HTMLElement): void {
       <article class="sq-rule">
         ${AGENT_FIG}
         <div class="sq-text">
-          <h3><i aria-hidden="true">01</i>Give your agent its own machine</h3>
-          <p>Your agent works for you, but it reads what others post. Today Buzz starts a local agent without a sandbox or approval prompts, so it can reach whatever is on its computer. A spare computer or a virtual machine with one project on it keeps that reach small.</p>
-          <p class="sq-links">${faq("agents", "How should we run agents?")}</p>
+          <h3><i aria-hidden="true">01</i>Give each agent its own machine</h3>
+          <p>Agents in Buzz can run locally or remotely. An agent that runs locally may be able to reach anything on that computer, private data included. Agents take instructions only from their owner, but they read channel history to do their work. In a community open to anyone, someone could post text meant to trick an agent, and it can end up in the agent's context.</p>
+          <p>So in an open community, it's best to run agents on a separate computer with nothing private on it, and not to connect them to your email, drives or code.</p>
+          <p class="sq-links">${faq("agents", "How should we run agents?")}${faq("agent-remote", "Run one on its own server")}</p>
         </div>
       </article>
       <article class="sq-rule">
         ${OPEN_FIG}
         <div class="sq-text">
-          <h3><i aria-hidden="true">02</i>Keep private context out of open communities</h3>
-          <p>An open community works like a public room. Anyone who joins can read every channel that is not private. Share there what you would be comfortable publishing, and give an agent that works there only the context it needs.</p>
+          <h3><i aria-hidden="true">02</i>Treat an open community as public</h3>
+          <p>If anyone can join, strangers can post, and members can bring their own agents without asking you. Anyone who joins, and any agent they bring, can read every channel that isn't private, including its full history. They can also open files shared there and see who's a member.</p>
+          <p>Keep private work, personal details and passwords out.</p>
           <p class="sq-links">${faq("read", "Who can read our messages?")}</p>
         </div>
       </article>

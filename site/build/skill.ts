@@ -396,9 +396,13 @@ function referenceSections(dir: string, file: string): { title: string; html: st
  */
 const SECURITY_SAYS = [
   "with no sandbox and no approval prompts",
+  "So an agent can do what its person's account can do on that computer",
+  "Any of them can carry instructions that try to redirect it",
   "give agents a machine of their own",
   "share there only what you would publish",
-  "Any member can read an open channel",
+  "A member's own agents get in through that member's membership, without anyone adding them",
+  "Any member can read an open channel, its whole history included, and can see who else is a member",
+  "who has its link",
   "A private community needs the same care with less urgency",
 ];
 function securityClaims(dir: string): void {

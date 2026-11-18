@@ -1,15 +1,17 @@
 """The setup page's scripts in headless Chrome, on the page's previews (preview.py), with nothing real behind them:
 the guide's stepper across its four steps and at its ends, a step opened by the address, the step drawn before the
 script runs, a step's link moving focus to it, the safety step's drawings and notes on each option, its stepper
-staying put on a phone, Moderation's link to it and Back after that link, the 5-second refresh keeping an open list
-open and focus where it was and saying what changed, the private network's device check against answers held back
-and let through in a chosen order, a new phase keeping the reader's step, and the page without scripts, where every
-drawing fits from a computer's width to a phone's, Buzz's drawn Membership whole inside its page.
+staying put on a phone, Moderation's link to it and Back after that link, back to the link, Settings' Moderation row and
+its fold at a phone's width, the setup and Settings forms at a phone's width and the full address under the address
+boxes, the 5-second refresh keeping an open list open and focus where it was and saying what changed, the private
+network's device check against answers held back and let through in a chosen order, a new phase keeping the reader's
+step, and the page without scripts, where every drawing fits from a computer's width to a phone's, Buzz's drawn
+Membership whole inside its page.
 
 Chrome runs over a pipe, with no port, and every name but 127.0.0.1 fails to resolve, so nothing leaves this machine.
 The page's 5-second refresh and the device check's 6-second limit are held, and fired by the test, and the device
 check's requests are held by Chrome until the test answers them: nothing depends on how long anything takes. The
-previews use ports 8771 to 8774, or the four from BROWSER_PORT. Without Chrome it says so and exits 0.
+previews use ports 8771 to 8775, or the five from BROWSER_PORT. Without Chrome it says so and exits 0.
 
   python3 tests/umbrel/local/browser.py
 """
@@ -18,8 +20,9 @@ import base64, fcntl, json, os, select, shutil, signal, socket, subprocess, sys,
 HERE = os.path.dirname(os.path.abspath(__file__))
 CHROME = os.environ.get("CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 PORT = int(os.environ.get("BROWSER_PORT", "8771"))
-PREVIEWS = {"domain-live": PORT, "private-live": PORT + 1, "domain-dns": PORT + 2, "domain-moderation": PORT + 3}
-LIVE, PRIVATE, CONNECTING, MODERATED = ("http://127.0.0.1:%d/" % PREVIEWS[name] for name in PREVIEWS)
+PREVIEWS = {"domain-live": PORT, "private-live": PORT + 1, "domain-dns": PORT + 2, "domain-moderation": PORT + 3,
+            "setup": PORT + 4}
+LIVE, PRIVATE, CONNECTING, MODERATED, SETUP = ("http://127.0.0.1:%d/" % PREVIEWS[name] for name in PREVIEWS)
 DEVICE = "buzz.tail1234.ts.net"  # the private-live preview's address
 PASSED = FAILED = 0
 
@@ -239,7 +242,7 @@ class Page:
         return fired == 1 and bool(self.wait("window.__held(5000) === 1"))
 
     def key(self, key, shift=False):
-        codes = {"Enter": (13, "\r"), "Tab": (9, "")}
+        codes = {"Enter": (13, "\r"), "Tab": (9, ""), "Backspace": (8, "")}
         code, text = codes[key]
         down = {"type": "keyDown" if text else "rawKeyDown", "key": key, "code": key, "windowsVirtualKeyCode": code,
                 "modifiers": 8 if shift else 0}
@@ -255,6 +258,12 @@ class Page:
                          % json.dumps(selector))
         for kind in ("mousePressed", "mouseReleased"):
             self.call("Input.dispatchMouseEvent", {"type": kind, "x": x, "y": y, "button": "left", "clickCount": 1})
+
+    def type(self, selector, text):
+        """Text typed at the end of a box, as a reader types it: Chrome fires the box's input events."""
+        self.eval("(() => { const el = document.querySelector(%s); el.focus(); "
+                  "el.setSelectionRange(el.value.length, el.value.length); })()" % json.dumps(selector))
+        self.call("Input.insertText", {"text": text})
 
     def held(self, count, timeout=15):
         """The device check's requests Chrome holds, in the order the page made them, once there are this many."""
@@ -625,46 +634,190 @@ def safety_step(chrome):
        "moderation is on, and on the private network an intro without the internet", seen)
 
 
-def settings_link(chrome):
-    """Moderation's link to the safety step, in Settings: as a step's link, it opens the step at its first drawing, in
-    view, and moves focus to its heading, also when the address is at #safe already, and adds nothing to the history,
-    so Back after it doesn't open the step the address named before."""
-    moderation = ("[...document.querySelectorAll('.set-card details')].find((d) => d.querySelector('summary').textContent"
+MODERATION_ROW = ("[...document.querySelectorAll('.set-card > details')].find((d) => d.querySelector('summary').textContent"
                   ".startsWith('Moderation'))")
+# Where the reader is after Back from Moderation's link: the guide, the address, and Moderation's link with focus or not,
+# in view or not, in its row open or not
+RETURNED = """(() => {
+  const link = document.querySelector('.set-card a[href="#safe"]');
+  if (!link) { return { href: location.href }; }
+  const g = %s, r = link.getBoundingClientRect();
+  return Object.assign(g, { href: location.href, onLink: document.activeElement === link,
+    inView: r.top >= 0 && r.bottom <= innerHeight, rowOpen: link.closest(".set-card > details").open });
+})()""" % GUIDE
+
+
+def settings_link(chrome):
+    """Moderation's link to the safety step and Back after it, in Settings: the link opens the step at its first
+    drawing, in view, and moves focus to its heading, also when the address is at #safe already. It adds one entry to
+    the history, so Back returns to the link, focus on it, in its row, and leaves the guide as it is; Forward opens the
+    step again. The guide's own links add no entry, and a step typed into the address bar still opens it."""
     seen = ("(() => { const r = document.getElementById('safe').getBoundingClientRect(); "
             "return r.top > -1 && r.top < innerHeight; })()")
     opened = "(() => { const g = %s; return g.at === 'safe:1' && g; })()" % GUIDE
-    # The reader opened Pair your phone with its link, which put #phone in the address, then reached Moderation
+    returned = "(() => { const s = %s; return s.onLink && s.inView && s; })()" % RETURNED
+    # The reader opened Pair your phone with its link, which put #phone in the address and added no entry, then reached
+    # Moderation
     page = Page(chrome)
     page.goto(LIVE)
+    start = page.call("Page.getNavigationHistory")
     page.click('.g-step[href="#phone"]')
-    page.eval(moderation + ".open = true")
-    before = page.call("Page.getNavigationHistory")["entries"]
+    page.eval(MODERATION_ROW + ".open = true")
+    before = page.call("Page.getNavigationHistory")
     page.click('.set-card a[href="#safe"]')
     now = page.wait(opened)
-    ok(now and now["hash"] == "#safe" and now["focus"] == "h2@safe" and now["current"] == ["#safe"] and page.eval(seen),
-       "Moderation's link to the safety step opens it in view and moves focus to its heading", now)
+    after = page.call("Page.getNavigationHistory")
+    entries = [len(h["entries"]) for h in (start, before, after)]
+    ok(now and now["hash"] == "#safe" and now["focus"] == "h2@safe" and now["current"] == ["#safe"] and page.eval(seen)
+       and entries[1] == entries[0] and entries[2] == entries[1] + 1 and after["currentIndex"] == entries[2] - 1,
+       "Moderation's link to the safety step opens it in view and moves focus to its heading, and adds one entry to the "
+       "history, where a step's own link adds none", (now, entries))
     # Back, as the browser's button goes: to the entry before this one
-    history = page.call("Page.getNavigationHistory")
-    page.call("Page.navigateToHistoryEntry", {"entryId": history["entries"][history["currentIndex"] - 1]["id"]})
-    back = page.wait("location.href === 'about:blank' && location.href", timeout=10)
-    ok(len(history["entries"]) == len(before) and back == "about:blank", "it adds nothing to the history, as a step's "
-       "own link does: Back after it leaves the page instead of opening the step the address named before (#phone)",
-       ([e["url"] for e in before], [e["url"] for e in history["entries"]], back))
+    page.call("Page.navigateToHistoryEntry", {"entryId": after["entries"][after["currentIndex"] - 1]["id"]})
+    back = page.wait(returned) or page.eval(RETURNED)
+    ok(back.get("onLink") and back.get("inView") and back.get("rowOpen") and back["href"] == LIVE + "#phone"
+       and back.get("at") == "safe:1" and back.get("panes") == 1 and back.get("current") == ["#safe"],
+       "Back returns to Moderation's link, focus on it, in view, its row open, and opens no other step: the guide stays "
+       "at the safety step, though the address names #phone again", back)
+    # Forward: the step again
+    page.call("Page.navigateToHistoryEntry", {"entryId": after["entries"][after["currentIndex"]]["id"]})
+    forward = page.wait("(() => { const g = %s; return g.focus === 'h2@safe' && g; })()" % GUIDE) or page.eval(GUIDE)
+    ok(forward["at"] == "safe:1" and forward["hash"] == "#safe" and page.eval(seen),
+       "Forward opens the safety step again, in view, focus on its heading", forward)
+    # A step's name typed into the address bar: a new entry, and the step opens
+    page.call("Page.navigate", {"url": LIVE + "#invite"})
+    typed = page.wait("(() => { const g = %s; return g.focus === 'h2@invite' && g; })()" % GUIDE) or page.eval(GUIDE)
+    ok(typed["at"] == "invite:1" and typed["hash"] == "#invite" and typed["current"] == ["#invite"]
+       and len(page.call("Page.getNavigationHistory")["entries"]) == entries[2] + 1,
+       "a step typed into the address bar still opens it, focus on its heading", typed)
     page.close()
     # The address at #safe already, and the reader on the step's second drawing: no hashchange comes, and the link still
-    # opens the step, here with Enter
+    # opens the step, here with Enter; Back, with the same address, returns to the link
     page = Page(chrome)
     page.goto(LIVE + "#safe")
     page.eval("document.querySelector('#safe .g-frame [data-go=\"1\"]').click()")
-    page.eval(moderation + ".open = true")
+    page.eval(MODERATION_ROW + ".open = true")
     page.eval("document.querySelector('.set-card a[href=\"#safe\"]').focus()")
     page.key("Enter")
     again = page.wait(opened)
     ok(again and again["hash"] == "#safe" and again["focus"] == "h2@safe" and page.eval(seen),
        "with the address at #safe already and the reader on its second drawing, the link opens the step again at its "
        "first, in view, focus on its heading", again)
+    history = page.call("Page.getNavigationHistory")
+    page.call("Page.navigateToHistoryEntry", {"entryId": history["entries"][history["currentIndex"] - 1]["id"]})
+    back = page.wait(returned) or page.eval(RETURNED)
+    ok(back.get("onLink") and back.get("inView") and back["href"] == LIVE + "#safe" and back.get("at") == "safe:1",
+       "and Back, to the same address, returns to the link, focus on it, in view", back)
     page.close()
+
+
+# Every form shown and all in it, against the page's width: what runs past either side, and whether the page scrolls
+# sideways
+WIDE = """(() => {
+  const page = document.documentElement.clientWidth, out = [];
+  const forms = [...document.querySelectorAll("form")].filter((f) => f.getClientRects().length);
+  forms.forEach((f) => [f, ...f.querySelectorAll("*")].filter((el) => el.getClientRects().length).forEach((el) => {
+    const r = el.getBoundingClientRect();
+    if (r.right > page + 0.5 || r.left < -0.5) { out.push((f.getAttribute("action") || "") + ":" + el.tagName.toLowerCase()
+      + (el.className && el.className.baseVal === undefined ? "." + el.className : "") + ":" + Math.round(r.right)); }
+  }));
+  return { forms: forms.length, out: out.slice(0, 8), width: document.documentElement.scrollWidth, page: page };
+})()"""
+# The address boxes' full address, as the form shows it
+PREVIEW = """(() => { const p = document.querySelector("%s [data-preview]");
+  return (p.hidden || getComputedStyle(p).display === "none" ? "hidden" : "shown") + ":" + p.textContent; })()"""
+
+
+def forms_on_a_phone(chrome):
+    """The setup and Settings forms at a phone's width, 375 pixels: none wider than the page, with each option chosen
+    and every Settings row open; the What happens next folds closed; and under the address boxes, nothing until a
+    domain is typed, then the full address, on the setup page and in Settings, Address."""
+    wide = {}
+    page = Page(chrome, width=375, height=812)
+    page.goto(SETUP)
+    wide["setup"] = page.eval(WIDE)
+    folds = page.eval("[...document.querySelectorAll('.choice-more details')].map((d) => d.querySelector('summary')"
+                      ".textContent + ':' + d.open)")
+    for mode in ("private", "funnel", "domain"):
+        page.click('.choice-head:has(input[value="%s"])' % mode)
+        wide["setup " + mode] = page.eval(WIDE)
+    shown = [page.eval(PREVIEW % "form[action=save]")]
+    page.type("form[action=save] input[name=subdomain]", "-chat")
+    shown.append(page.eval(PREVIEW % "form[action=save]"))
+    page.type("form[action=save] input[name=base]", "yourteam.com")
+    shown.append(page.eval(PREVIEW % "form[action=save]"))
+    wide["setup domain typed"] = page.eval(WIDE)
+    page.close()
+    ok(folds == ["What happens next:false"] * 3, "the setup page's three What happens next folds are closed at first", folds)
+    ok(shown == ["hidden:", "hidden:", "shown:Members will use https://buzz-chat.yourteam.com"],
+       "on the setup page, nothing shows under the address boxes until a domain is typed, a name alone included, then "
+       "the full address", shown)
+    # Settings on the live pages, every row open: moderation on and its fold open, then each way in chosen in Address
+    shown = []
+    for name, url in (("domain", LIVE), ("moderation", MODERATED), ("private", PRIVATE)):
+        page = Page(chrome, width=375, height=812)
+        page.goto(url)
+        page.eval("document.querySelectorAll('.set-card > details, .set-card > details details').forEach((d) => { d.open = true; })")
+        wide["settings " + name] = page.eval(WIDE)
+        for mode in ("private", "funnel", "domain"):
+            if page.eval("!document.querySelector('form[action=address] input[value=%s]').disabled" % mode):
+                page.click('form[action=address] .opt:has(input[value="%s"])' % mode)
+                wide["settings %s %s" % (name, mode)] = page.eval(WIDE)
+        if name == "domain":
+            shown.append(page.eval(PREVIEW % "form[action=address]"))
+            page.type("form[action=address] input[name=base]", "yourteam.com")
+            shown.append(page.eval(PREVIEW % "form[action=address]"))
+            wide["settings domain typed"] = page.eval(WIDE)
+        page.close()
+    ok(shown == ["hidden:", "shown:Members will use https://buzz.yourteam.com"],
+       "in Settings, Address, nothing shows under the address boxes until a domain is typed, then the full address", shown)
+    bad = {key: value for key, value in wide.items() if value["out"] or value["width"] > value["page"] or not value["forms"]}
+    ok(not bad and len(wide) == 17, "at 375 pixels no form is wider than the page: the setup form with each option "
+       "chosen and a domain typed, and Settings on three live pages with every row open and each way in chosen (%d "
+       "views)" % len(wide), bad or sorted(wide))
+
+
+# Settings, Moderation with its fold open: how the fold inside the row and a small fold of the guide look, the fold's
+# body against its summary, and what in the row runs past the card or out of its own box
+MODERATION_FOLD = """(() => {
+  const row = %s;
+  row.open = true;
+  const fold = row.querySelector(":scope > .inner details"), summary = fold.querySelector(":scope > summary");
+  fold.open = true;
+  const body = fold.querySelector(":scope > .inner"), card = row.closest(".set-card").getBoundingClientRect();
+  const look = (s) => { const c = getComputedStyle(s), b = getComputedStyle(s, "::before"), a = getComputedStyle(s, "::after");
+    return [c.display, c.paddingLeft, c.paddingTop, b.display, b.content, b.width, a.content].join(" "); };
+  const shown = [...row.querySelectorAll("*")].filter((el) => el.getClientRects().length);
+  return {
+    look: look(summary), small: look(document.querySelector("details.g-more > summary")),
+    inline: Math.round(summary.getBoundingClientRect().width) < Math.round(fold.getBoundingClientRect().width) - 20,
+    indent: Math.round(body.firstElementChild.getBoundingClientRect().left - summary.getBoundingClientRect().left),
+    body: getComputedStyle(body).marginTop + " " + getComputedStyle(body).paddingLeft + " " + getComputedStyle(body).paddingRight,
+    out: shown.filter((el) => { const r = el.getBoundingClientRect(); return r.left < card.left - 0.5 || r.right > card.right + 0.5; })
+      .map((el) => el.tagName.toLowerCase()),
+    over: shown.filter((el) => el.scrollWidth > el.clientWidth + 0.5 && el.clientWidth > 0).map((el) => el.tagName.toLowerCase()),
+    sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    texts: [...fold.querySelectorAll(":scope > .inner > p, :scope > .inner b")].map((el) => el.textContent.slice(0, 32)),
+  };
+})()""" % MODERATION_ROW
+
+
+def moderation_row(chrome):
+    """Settings' Moderation row, on, at a phone's width: the Moderation doesn't show in Buzz? fold inside the row is a
+    small fold like the guide's, its summary inline with its arrow before the words and none after, its body indented,
+    and nothing in the row runs past the card or out of its box."""
+    page = Page(chrome, width=375, height=812)
+    page.goto(MODERATED)
+    found = page.eval(MODERATION_FOLD)
+    page.close()
+    ok(found["look"] == found["small"] == 'inline-flex 0px 0px block "" 6px none' and found["inline"]
+       and found["indent"] == 14 and found["body"] == "8px 14px 0px",
+       "the fold inside Moderation's row is a small fold like the guide's: its summary inline, the arrow before its words "
+       "and none after, and its body indented 14 pixels", found)
+    ok(not found["out"] and not found["over"] and not found["sideways"]
+       and found["texts"][0] == "If this page shows a moderation ",
+       "nothing in the row runs past the card or out of its box at 375 pixels, and the fold opens with the page's own "
+       "check", found)
 
 
 def without_scripts(chrome):
@@ -721,8 +874,8 @@ def main():
                 time.sleep(0.1)
         chrome = Chrome()
         print(chrome.call("Browser.getVersion")["product"])
-        for test in (first_paint_and_hash, stepper, step_links, safety_step, settings_link, refresh_swap, device_check,
-                     new_phase, without_scripts):
+        for test in (first_paint_and_hash, stepper, step_links, safety_step, settings_link, moderation_row,
+                     forms_on_a_phone, refresh_swap, device_check, new_phase, without_scripts):
             print("== " + test.__doc__.split(":")[0].split(",")[0].strip().rstrip("."))
             try:
                 test(chrome)

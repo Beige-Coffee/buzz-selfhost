@@ -912,7 +912,7 @@ input[type=file] { display: block; width: 100%; margin-top: 7px; font: 14px var(
 input[type=file]::file-selector-button { margin-right: 12px; padding: 7px 14px; border: 1px solid var(--line-2);
   border-radius: 999px; background: #fff; color: var(--ink); font: 500 13.5px var(--sans); cursor: pointer; }
 input[type=file]::file-selector-button:hover { border-color: var(--ink); }
-.choices { display: grid; gap: 12px; margin-top: 16px; }
+.choices { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 16px; }
 .choice { position: relative; display: block; padding: 18px 20px; background: #fff; border: 1px solid var(--line-2);
   border-radius: 18px; box-shadow: var(--shadow-1); cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s, transform 0.3s var(--ease); }
 .choice:hover { border-color: rgb(35 30 30 / 28%); }
@@ -1048,7 +1048,8 @@ dl.values dd { margin: 0; display: flex; align-items: center; gap: 8px; flex-wra
 
 # Buzz's drawn screens and the live page's guide. The stepper's count, title and buttons line up on the title's first
 # line, the buttons at the top of their row: on a phone a drawing's title can wrap to more lines than the next one's,
-# and buttons centered on it would move.
+# and buttons centered on it would move. A card's rows (.set-card) are its own folds, its children: a fold inside a
+# row, such as Moderation's, is a small fold like the page's others.
 HOW_STYLE = """
 details.how { margin-top: 12px; }
 details.alt { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -1117,17 +1118,17 @@ details.how[open] > summary { background: var(--chip); }
 [data-frame="2"] .guide:not(.ready) .g-frame:not(:nth-child(2)) { display: none; }
 @media (forced-colors: active) { .g-nav a[aria-current] { border: 2px solid CanvasText; padding: 8px 10px 8px 8px; } }
 .set-card { margin-top: 14px; border: 1px solid var(--line-2); border-radius: 14px; background: #fff; overflow: hidden; }
-.set-card details { margin: 0; }
-.set-card details + details { border-top: 1px solid var(--line); }
-.set-card details > summary { display: flex; box-sizing: border-box; width: 100%; gap: 12px; padding: 14px 16px; }
-.set-card summary:focus-visible { outline-offset: -3px; border-radius: 12px; }
-.set-card details > summary::before { display: none; }
-.set-card details > summary::after { content: ""; flex: none; width: 6px; height: 6px; margin: 0 2px 0 4px; border-right: 1.5px solid var(--ink-3); border-bottom: 1.5px solid var(--ink-3); transform: rotate(-45deg); }
-.set-card details[open] > summary::after { transform: rotate(45deg); }
-.set-card summary .val { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 13px var(--mono); color: var(--ink-2); }
-.set-card summary .val.word { font: 400 14px var(--sans); }
+.set-card > details { margin: 0; }
+.set-card > details + details { border-top: 1px solid var(--line); }
+.set-card > details > summary { display: flex; box-sizing: border-box; width: 100%; gap: 12px; padding: 14px 16px; }
+.set-card > details > summary:focus-visible { outline-offset: -3px; border-radius: 12px; }
+.set-card > details > summary::before { display: none; }
+.set-card > details > summary::after { content: ""; flex: none; width: 6px; height: 6px; margin: 0 2px 0 4px; border-right: 1.5px solid var(--ink-3); border-bottom: 1.5px solid var(--ink-3); transform: rotate(-45deg); }
+.set-card > details[open] > summary::after { transform: rotate(45deg); }
+.set-card > details > summary .val { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 13px var(--mono); color: var(--ink-2); }
+.set-card > details > summary .val.word { font: 400 14px var(--sans); }
 .ck-all > summary .val { flex: none; }
-.set-card .inner { margin: 0; padding: 0 16px 18px; }
+.set-card > details > .inner { margin: 0; padding: 0 16px 18px; }
 .how-b { margin-top: 12px; }
 .how-b > p { margin: 0; font-size: 14px; color: var(--ink-2); }
 .how-tabs { display: none; flex-wrap: wrap; gap: 6px; margin: 14px 0 10px; }
@@ -1575,30 +1576,58 @@ function guide(box) {
     frame.querySelector('[data-go="' + by + '"]').focus();
     if (say) { say.textContent = frame.getAttribute("data-say"); }
   }
-  // Any link to a step, the guide's own or one elsewhere on the page such as Settings, Moderation, opens the step at
-  // its first drawing and moves focus to its heading, as the link's jump does without scripts. Like Next, it puts the
-  // step in the address without a new entry in the history, so Back never opens another step. A link from outside
-  // the guide brings the step into view first.
+  // A step at its first drawing, focus on its heading, and from outside the guide in view first
+  function open(i, outside) {
+    show(i, 0);
+    if (outside) { panes[i].scrollIntoView(); }
+    panes[i].querySelector("h2").focus({ preventScroll: outside });
+  }
+  // Any link to a step opens it, as the link's jump does without scripts. The guide's own links put the step in the
+  // address without a new entry in the history, as Next does, so Back never opens another step. A link elsewhere on
+  // the page, such as Settings, Moderation, takes the reader away from where they were: it adds one entry, and the
+  // entry it leaves keeps the link, so Back returns to it.
+  var anchors = function () { return Array.prototype.slice.call(document.querySelectorAll('a[href^="#"]')); };
   document.addEventListener("click", function (event) {
     var link = event.target.closest ? event.target.closest('a[href^="#"]') : null;
     var i = link ? ids.indexOf(link.getAttribute("href").slice(1)) : -1;
     if (i < 0) { return; }
     event.preventDefault();
-    history.replaceState(null, "", "#" + ids[i]);
-    show(i, 0);
     var outside = !box.contains(link);
-    if (outside) { panes[i].scrollIntoView(); }
-    panes[i].querySelector("h2").focus({ preventScroll: outside });
+    if (outside) {
+      history.replaceState({ buzzFrom: anchors().indexOf(link) }, "");
+      history.pushState({ buzzStep: ids[i] }, "", "#" + ids[i]);
+    } else {
+      history.replaceState(null, "", "#" + ids[i]);
+    }
+    open(i, outside);
   });
   box.querySelectorAll("[data-go]").forEach(function (button) {
     button.addEventListener("click", function () {
       if (button.getAttribute("aria-disabled") !== "true") { go(Number(button.getAttribute("data-go"))); }
     });
   });
-  // A step's name typed into the address bar opens it the same way
+  // Back to that entry: the link again, its fold open and focus on it, in view, and the guide as it is. After this
+  // event the browser goes to the element the address names, and takes focus from anything outside it, so focus moves
+  // in the next task. Forward: the step again.
+  window.addEventListener("popstate", function (event) {
+    var state = event.state || {}, link = anchors()[state.buzzFrom], i = ids.indexOf(state.buzzStep);
+    if (typeof state.buzzFrom === "number" && link) {
+      setTimeout(function () {
+        for (var fold = link.closest("details"); fold; fold = fold.parentElement.closest("details")) { fold.open = true; }
+        link.focus({ preventScroll: true });
+        var r = link.getBoundingClientRect();
+        if (r.top < 0 || r.bottom > innerHeight) { link.scrollIntoView({ block: "center" }); }
+      }, 0);
+    } else if (i >= 0) {
+      open(i, true);
+    }
+  });
+  // A step's name typed into the address bar opens it the same way. Back or Forward to the entries above changes the
+  // address too: the popstate handler did what they need.
   window.addEventListener("hashchange", function () {
-    var i = ids.indexOf(location.hash.slice(1));
-    if (i >= 0) { show(i, 0); panes[i].scrollIntoView(); panes[i].querySelector("h2").focus({ preventScroll: true }); }
+    var state = history.state || {}, i = ids.indexOf(location.hash.slice(1));
+    if (typeof state.buzzFrom === "number" || state.buzzStep) { return; }
+    if (i >= 0) { open(i, true); }
   });
   box.classList.add("ready");
   var first = Math.max(0, ids.indexOf(root.getAttribute("data-step")));
@@ -1668,8 +1697,10 @@ def layout(body, signed_in=True, title="Buzz Relay", safety=False):
         "<style>" + STYLE + HOW_STYLE + (SAFE_STYLE if safety else "") + "</style><script>" + SCRIPT + "</script></head><body>"
         '<header class="hd"><span class="brand">' + BEE + "<span>Buzz Relay</span></span>" + logout + "</header>"
         "<main>" + body + '<p class="foot">Buzz is open source, from Block. The relay is at '
-        '<a href="https://github.com/block/buzz" target="_blank" rel="noopener">github.com/block/buzz</a>, and the app '
-        'at <a href="https://github.com/block/buzz-app" target="_blank" rel="noopener">github.com/block/buzz-app</a>.</p>'
+        '<a href="https://github.com/block/buzz" target="_blank" rel="noopener">github.com/block/buzz</a>, the desktop '
+        'app at <a href="https://github.com/block/buzz-app" target="_blank" rel="noopener">github.com/block/buzz-app</a>, '
+        'and the phone app at <a href="https://github.com/block/buzz-mobile" target="_blank" rel="noopener">'
+        "github.com/block/buzz-mobile</a>.</p>"
         "</main></body></html>"
     )
 
@@ -1757,7 +1788,8 @@ def address_fields(values, setup):
                  "new one. If you're building a community to keep, choose your own domain now.",
                  more=next_steps("You sign in to Tailscale, and it gives you the address. It stays the same as long "
                                  "as you keep this Tailscale account."))
-        + choice("private", "Recommended when the server must stay off the internet", "", "A private Tailscale network",
+        + choice("private", "Recommended when the server must not be reachable from the internet", "",
+                 "A private Tailscale network",
                  "Nothing is reachable from the internet. Only devices you allow on your Tailscale network can "
                  "connect.",
                  "Tailscale on every member's device, phones included, and access to your Tailscale network.",
@@ -2045,14 +2077,22 @@ def phone_steps(domain):
          # sign-in, offered only with no community yet, restores that key; from mobile-v1.2.0-rc.5 (block/buzz#9262) it
          # lists self-hosted addresses saved to the account, and its first screen's button reads Enter community link
          # (add_community_connection.dart). Joining any community while signed in saves its address to the Builderlab
-         # account (known-communities/sync.ts).
+         # account (known-communities/sync.ts). Signed out, Mobile app shows the code. In a Builderlab build that sign-in
+         # is managed in Settings, Identity, where the Builderlab card's Manage account leads (login/Login.tsx): under
+         # Community sign-ins, the account's card, named by its host, app.builderlab.xyz, as the built-in server has no
+         # organization name (built-in-server.json), has Sign out, then a dialog that says the identity stays on this
+         # device, and Sign out again (IdentitySettings.tsx). Remove from device, under the Buzz ID card, removes the
+         # key from this computer instead (features/identity/SignOut.tsx).
          '<details class="g-more"><summary>Signed in with Builderlab?</summary><p>If your Builderlab account backs '
          "up this computer's key, your computer shows <b>Get Buzz on your phone</b> instead of a code. On the phone, "
          "choose <b>or sign in with email</b> and use the same account. Choose <code>" + esc(domain) + "</code> if it's "
          "listed. If not, choose <b>Enter community link</b> (or <b>Add Community</b>, then <b>Enter a community "
          "link</b>), paste <code>https://" + esc(domain) + "</code>, choose <b>Continue</b>, then your saved identity. "
-         "A phone that already has a community doesn't offer email sign-in: sign out of Builderlab on your computer to "
-         "get the code instead. Buzz also saves this community's address to your Builderlab account.</p></details>"),
+         "Buzz also saves this community's address to your Builderlab account.</p>"
+         "<p>A phone that already has a community doesn't offer email sign-in. To get the code instead, sign out of "
+         "Builderlab on your computer: open <b>Settings</b>, then <b>Identity</b>, and choose <b>Sign out</b> on your "
+         "Builderlab account, app.builderlab.xyz. Your Buzz identity stays on the computer. Don't use <b>Remove from "
+         "device</b>: it's a different button, and it removes your key from the computer.</p></details>"),
         ("Check the code", screen(drawn_pair(domain, verifying=True)),
          # The phone either asks for the computer's code or shows its own to compare, as the drawing says
          # (PairingSettings.tsx). Once the code is right, the phone asks to protect your identity (Use Face ID, Use
@@ -2412,8 +2452,8 @@ def setup_page(error="", values=None):
         'value="' + esc(owner) + '">' + how_to_find_npub() + no_identity() + "</div></div>"
         '<div class="step on"><span class="num">2</span><div class="step-body"><h2>How members reach it</h2>'
         "<p class=\"muted\">How you set this up depends on what it's for: trying Buzz out, hosting an existing "
-        "community, or a private group behind a VPN that only certain people can reach. Pick the option that fits "
-        "you best.</p>" + address_fields(values, None) + "</div></div>"
+        "community, or a private group whose server must not be reachable from the internet. Pick the option that "
+        "fits you best.</p>" + address_fields(values, None) + "</div></div>"
         '<div class="step on"><span class="num">3</span><div class="step-body"><h2>Create it</h2>'
         '<label class="confirm-box"><input type="checkbox" name="ack" value="yes"' + (" checked" if values.get("ack") == "yes" else "") + ">"
         "<span><b>I understand that changing the address later starts a new, empty community.</b> Buzz can't move "
@@ -2764,9 +2804,8 @@ AGENT_CAPTION = ("Agents in Buzz can run locally or remotely. An agent that runs
                  "channel history to do their work. In a community open to anyone, someone could post text meant to "
                  "trick an agent, and it can end up in the agent's context. So in an open community, it's best to run "
                  "agents on a separate computer with nothing private on it, and not to connect them to your email, "
-                 "drives or code. "
-                 "<a href=\"" + GUIDE_AGENTS + "\" target=\"_blank\" rel=\"noopener\">The self-hosting guide</a> shows "
-                 "how to run an agent on its own server.")
+                 "drives or code. The self-hosting guide shows <a href=\"" + GUIDE_AGENTS + "\" target=\"_blank\" "
+                 "rel=\"noopener\">how to run an agent on its own server</a>.")
 OPEN_CAPTION = ("If anyone can join, strangers can post, and members can bring their own agents without asking you. Anyone "
                 "who joins, and any agent they bring, can read every channel that isn't private, including its full "
                 "history. They can also open files shared there and see who's a member. Keep private work, personal "
@@ -2868,7 +2907,7 @@ def address_change(setup, values, current):
     chosen = values.get("mode", "")
     rows = [("domain", "Your own domain", "Recommended for most communities"),
             ("funnel", "A free Tailscale address", "Recommended for trying Buzz out"),
-            ("private", "A private Tailscale network", "Recommended when the server must stay off the internet")]
+            ("private", "A private Tailscale network", "Recommended when the server must not be reachable from the internet")]
     options = "".join(
         '<label class="opt"><input type="radio" name="mode" value="' + mode + '"' + (" checked" if mode == chosen else "")
         # the same Tailscale option again changes nothing; another domain is a change
@@ -2924,8 +2963,8 @@ def moderation_points(domain, live):
                           "members, so tell them." + share)
         + moderation_note("ban", "Bans.", "A ban keeps one identity out, with the agents that join through it. A new "
                           "identity can still join with a link that works.")
-        + moderation_note("world", "Its own address.", "<code>" + esc(admin_origin(domain)) + "</code>, open only to "
-                          "requests you or your staff sign.")
+        + moderation_note("world", "Its own address.", "<code>" + esc(admin_origin(domain)) + "</code>, on the internet, "
+                          "open only to requests you or your staff sign.")
         + "</ul>"
     )
 
@@ -2958,16 +2997,18 @@ def moderation_part(setup, live, current, error, values):
         # Buzz keeps Moderation out of Settings without a word when its check fails, and says why only under
         # Manage plugins, as the tooltip of the plugin's button beside "Unavailable" (accessMessage in
         # src/app/Settings.tsx in block/buzz-app v1.0.5, the same as in 1.0.0): its three messages, and what each
-        # means here. It shows the third for any 401 or 403 that isn't an HTML page (relay-staff/staff.ts), Cloudflare's
-        # plain-text refusal and a lost port's included.
+        # means here. A problem the page's own check shows can be behind the first or the third (toAccess in
+        # src/bundled/relay-staff/staff.ts): Buzz shows the first for an HTML page or a 5xx too, not only a network that
+        # blocks the port, and the third for any 401 or 403 that isn't an HTML page, Cloudflare's plain-text refusal
+        # and a lost port's included. So the fold starts with the page's own check.
         inner = (
             '<form method="post" action="moderation"><p class="muted small"><b>To open it:</b> in Buzz on your '
             "computer, choose this community and open <b>Settings</b>. Moderation is the group in the sidebar with "
             "Reports, Feedback, Communities and Staff. Use the identity you entered as the owner, and if Settings was "
             "already open, close it and open it again.</p>" + moderation_points(current, live)
             + '<details class="alt"><summary>Moderation doesn\'t show in Buzz?</summary><div class="inner">'
-            '<p class="muted small">In Buzz, open Settings, then Plugins, Manage plugins. If Moderation says '
-            "Unavailable, point at its button to see why:</p>"
+            '<p class="muted small">If this page shows a moderation problem, fix that first. In Buzz, open Settings, '
+            "then Plugins, Manage plugins. If Moderation says Unavailable, point at its button to see why:</p>"
             '<ul class="g-notes mod-notes" role="list">'
             + moderation_note("alert-circle", "Could not check access.", "Your computer couldn't reach <code>"
                               + esc(admin_origin(current)) + "</code>. Some networks block port 8443 or send the name "
@@ -2977,8 +3018,7 @@ def moderation_part(setup, live, current, error, values):
                               "community chosen.")
             + moderation_note("user", "Select a community on a relay where you have staff access.", "Use the identity "
                               "you entered as the owner, or ask the owner to add you as staff. Also check that your "
-                              "computer sets its clock automatically. If this page shows a moderation problem, fix "
-                              "that first.")
+                              "computer sets its clock automatically.")
             + '</ul><p class="muted small">If Moderation says Enable instead, choose it.</p></div></details>' + box
             + '<p class="muted small">To turn it off, clear the box and save. Buzz restarts for a few seconds. Bans, '
             "timeouts and staff stay as they are. Staff with the operator role can still rename public channels while "

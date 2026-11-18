@@ -1,0 +1,325 @@
+# tests/umbrel/pre-submit.sh: Intel, umbrelOS 2.0.2 in Docker on a DigitalOcean droplet (x86_64), relay 0.3.0 (ghcr.io/block/buzz:0.3.0), setup page image ghcr.io/beige-coffee/buzz-umbrel-setup:1.1.0, package at 09e726b
+# Wed Nov 18 13:20 PST 2026
+
+== Droplet
+created buzz-umbrel-test in sfo2
+buzz-umbrel-test at <ip>
+x86_64
+== umbrelOS and Buzz Relay, installed through Umbrel
+{
+  "state": "ready",
+  "progress": 0
+}
+== Memory, installed, before setup (after two minutes)
+buzz_cloudflared_1 0.18% 728KiB / 7.755GiB
+buzz_gateway_1 0.01% 11.86MiB / 7.755GiB
+buzz_pair_1 0.01% 880KiB / 7.755GiB
+buzz_postgres_1 0.01% 25.83MiB / 7.755GiB
+buzz_redis_1 0.70% 3.199MiB / 7.755GiB
+buzz_relay_1 0.00% 972KiB / 7.755GiB
+buzz_silo_1 0.04% 69.34MiB / 7.755GiB
+buzz_tailscale_1 0.00% 656KiB / 7.755GiB
+buzz_web_1 0.03% 19.89MiB / 7.755GiB
+TOTAL 133 MiB
+== End to end
+== Tunnel
+PASS  relay address https://combined-recorder-routing-keno.trycloudflare.com
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://combined-recorder-routing-keno.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://combined-recorder-routing-keno.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Moderation: the relay's admin API, turned on and off on the app's page
+PASS  moderation is off by default: NIP-11 advertises no admin API
+PASS  and combined-recorder-routing-keno.trycloudflare.com:8443 has no admin API (HTTP 404)
+PASS  the page turns it on: one line in the relay's settings, BUZZ_ADMIN_HOST=combined-recorder-routing-keno.trycloudflare.com:8443
+PASS  the relay restarts with it: NIP-11 advertises admin_api https://combined-recorder-routing-keno.trycloudflare.com:8443
+PASS  the relay process has that alone: no open mode, no other operators, and no browser dashboard
+INFO  from this machine, through Cloudflare, https://combined-recorder-routing-keno.trycloudflare.com:8443/ answered HTTP 404 (404 when Cloudflare carries port 8443 to it)
+PASS  through the gateway, combined-recorder-routing-keno.trycloudflare.com:8443 is the relay's admin host (404 with its own security policy)
+PASS  a browser there gets no page: the dashboard is off
+PASS  an unsigned request to the admin API is refused (HTTP 401)
+PASS  a member's signature is refused (HTTP 403)
+PASS  the owner's signature gets in (HTTP 200): the operator, as the relay's owner
+PASS  the same signature sent for the community's own address is refused (HTTP 403)
+PASS  the owner bans member A through the admin API (HTTP 200)
+PASS  member A's posts are refused: banned from this community
+PASS  member B still posts
+PASS  member A can't come back with the owner's new invite link (HTTP 403, invite_restricted)
+PASS  a new identity joins with the same link
+PASS  the page turns it off: the line is gone from the relay's settings
+PASS  the relay restarts without it: NIP-11 advertises no admin API
+PASS  and combined-recorder-routing-keno.trycloudflare.com:8443 has no admin API again (HTTP 404)
+PASS  the ban holds with moderation off
+PASS  the page turns it on again, and NIP-11 advertises it
+PASS  the owner lifts member A's ban through the admin API (HTTP 204)
+PASS  member A posts again
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+PASS  moderation stays on through the restart: NIP-11 advertises https://combined-recorder-routing-keno.trycloudflare.com:8443
+PASS  then the page turns it off
+
+passed: 61  failed: 0
+community address: https://combined-recorder-routing-keno.trycloudflare.com
+== What each service can reach, and how fast the page stops
+OWN cloudflared
+MOUNTS buzz_cloudflared_1
+SETTINGS buzz_relay_1 false
+TSCONTROL buzz_tailscale_1
+CFCONTROL buzz_cloudflared_1
+SETTINGS buzz_web_1 true
+TSCONTROL buzz_web_1
+CFCONTROL buzz_web_1
+SETTINGS buzz_gateway_1 false
+STOPPED 0
+PASS  Cloudflare's sign-in and tunnel files are in a folder only its own service mounts
+PASS  only the page writes the relay's settings, and each helper shares only its own folder with the page
+PASS  the page, relay, pairing, Tailscale and gateway services run under an init process
+PASS  the setup page stops in under 5 s
+== Another app on this Umbrel, trying the app's services directly
+PAGE_GET 303
+PAGE_SAVE 401
+PAGE_NEGLEN 413 0
+PAGE_FRAME DENY
+PAGE_IDLE 20 200
+RELAY_XPUBKEY 401
+GATEWAY_OTHER 404
+GATEWAY_OWN 200
+SILO_ANON 403
+METRICS 200
+PG refused
+REDIS NOAUTH Authentication required.
+PASS  another app can't use the setup page without its password
+PASS  a request with a bad length is refused at once, not read
+PASS  the setup page refuses to be shown inside another app's page
+PASS  20 half-sent requests are dropped after the time limit, and the page still answers
+PASS  the relay refuses a request that only claims to be the owner in a header
+PASS  the gateway answers the community's address and no other
+PASS  file storage refuses requests without its keys
+PASS  the database refuses a guessed password
+PASS  Redis refuses commands without its password
+INFO  the relay's metrics port answers other apps with HTTP 200: counts only, no keys or messages (block/buzz#7989, fix open in #8004)
+== The relay's settings, written to by something other than the page
+READY tampered
+ENV BUZZ_REQUIRE_RELAY_MEMBERSHIP=true
+READY again
+PASS  lines added to the relay's settings run nothing and can't turn off its checks
+PASS  nor turn on moderation for another name, open it to anyone or add operators, and Block's dashboard stays off
+PASS  the relay starts again with the page's own settings
+== Memory with a community
+buzz_cloudflared_1 0.00% 15.1MiB / 7.755GiB
+buzz_gateway_1 0.01% 12.05MiB / 7.755GiB
+buzz_pair_1 0.01% 880KiB / 7.755GiB
+buzz_postgres_1 1.89% 65.19MiB / 7.755GiB
+buzz_redis_1 0.68% 3.418MiB / 7.755GiB
+buzz_relay_1 0.19% 12.07MiB / 7.755GiB
+buzz_silo_1 0.05% 170.5MiB / 7.755GiB
+buzz_tailscale_1 0.01% 656KiB / 7.755GiB
+buzz_web_1 0.02% 20.54MiB / 7.755GiB
+TOTAL 300 MiB
+== Load: 20 members send 10 messages each, ten at a time
+PASS  20 members added
+INFO  memory under the load:
+buzz_cloudflared_1 0.00% 15.1MiB / 7.755GiB
+buzz_gateway_1 0.31% 13.98MiB / 7.755GiB
+buzz_pair_1 0.01% 880KiB / 7.755GiB
+buzz_postgres_1 1.28% 142.5MiB / 7.755GiB
+buzz_redis_1 0.76% 3.492MiB / 7.755GiB
+buzz_relay_1 0.61% 14.86MiB / 7.755GiB
+buzz_silo_1 0.00% 172MiB / 7.755GiB
+buzz_tailscale_1 0.01% 660KiB / 7.755GiB
+buzz_web_1 0.03% 20.54MiB / 7.755GiB
+TOTAL 384 MiB
+PASS  200 messages sent in 23s, and all 200 read back
+INFO  memory after the load:
+buzz_cloudflared_1 0.29% 15.11MiB / 7.755GiB
+buzz_gateway_1 0.33% 13.99MiB / 7.755GiB
+buzz_pair_1 0.00% 880KiB / 7.755GiB
+buzz_postgres_1 0.13% 142.7MiB / 7.755GiB
+buzz_redis_1 0.74% 3.742MiB / 7.755GiB
+buzz_relay_1 0.66% 15MiB / 7.755GiB
+buzz_silo_1 4.51% 172MiB / 7.755GiB
+buzz_tailscale_1 0.01% 652KiB / 7.755GiB
+buzz_web_1 0.07% 20.54MiB / 7.755GiB
+TOTAL 385 MiB
+INFO  the app's data: 74M
+== Files and videos
+PASS  a 20 MB image goes up, in 5s
+PASS  another member downloads it intact
+PASS  a 60 MB image is refused: images stop at 50 MiB, Buzz's default
+INFO  memory while it goes up:
+buzz_cloudflared_1 0.31% 15.12MiB / 7.755GiB
+buzz_gateway_1 16.02% 14.18MiB / 7.755GiB
+buzz_pair_1 0.00% 880KiB / 7.755GiB
+buzz_postgres_1 0.34% 144.3MiB / 7.755GiB
+buzz_redis_1 0.79% 3.492MiB / 7.755GiB
+buzz_relay_1 38.45% 44.05MiB / 7.755GiB
+buzz_silo_1 0.11% 173.9MiB / 7.755GiB
+buzz_tailscale_1 0.18% 664KiB / 7.755GiB
+buzz_web_1 0.05% 20.54MiB / 7.755GiB
+TOTAL 417 MiB
+PASS  a 96 MB video goes up, in 14s
+PASS  another member downloads it intact
+PASS  a 100.5 MB video is refused at the package's 100 MB limit (HTTP 413)
+== What the community's public address shows
+PASS  the public address never shows the setup page
+== Secrets in the app's logs
+settings checked: 16, log lines: 464
+PASS  no setting's secret value shows up in the app's logs
+== Restarting the whole Umbrel
+INFO  back after 25s
+PASS  every table has the same rows after the restart
+PASS  the setup survives the restart
+== Umbrel's own backup, restored onto a second umbrelOS that was never set up
+PASS  three markers wait for the backup: in the shared Cloudflare folder, as an uploaded sign-in, and as Cloudflare's sign-in
+PASS  Umbrel backs up the app, in 13s
+INFO  the second Umbrel ran Buzz from the backup after 82s
+PASS  every table has the rows it had at the backup
+PASS  the setup came back
+PASS  the relay serves the community's address
+PASS  the stored files are byte for byte the same
+PASS  the backup skipped Cloudflare's sign-in and an uploaded one, and kept the rest of the shared folder
+PASS  Postgres starts with no errors
+INFO  Postgres recovered as after a power cut, since Umbrel copies its files while it runs: 2 lines
+INFO  memory on the second Umbrel:
+buzz_cloudflared_1 0.00% 14.77MiB / 7.755GiB
+buzz_gateway_1 0.01% 12.36MiB / 7.755GiB
+buzz_pair_1 0.00% 1.062MiB / 7.755GiB
+buzz_postgres_1 10.27% 79.26MiB / 7.755GiB
+buzz_redis_1 5.43% 3.293MiB / 7.755GiB
+buzz_relay_1 0.25% 13.77MiB / 7.755GiB
+buzz_silo_1 4.61% 105.3MiB / 7.755GiB
+buzz_tailscale_1 0.19% 656KiB / 7.755GiB
+buzz_web_1 0.02% 19.91MiB / 7.755GiB
+TOTAL 250 MiB
+== Cloudflare and Tailscale, up to their sign-in links, and what each can see
+PASS  your own domain: the app's Cloudflare tunnel waits for a sign-in, with Cloudflare's link
+PASS  switching to the free Tailscale address is accepted
+PASS  Tailscale waits for a sign-in, with a link (funnel)
+PASS  the Cloudflare tunnel turns off and waits
+PASS  switching to the private network is accepted
+PASS  the page shows the private network's sign-in
+PASS  the relay can't see Tailscale's status, and neither helper can see the relay's settings
+== Uninstall, then install again
+PASS  Umbrel uninstalls the app
+PASS  uninstalling removes the app's data
+PASS  installing again starts at a fresh setup page
+== Tunnel
+PASS  relay address https://bloggers-mpeg-intense-coins.trycloudflare.com
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://bloggers-mpeg-intense-coins.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://bloggers-mpeg-intense-coins.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Moderation: the relay's admin API, turned on and off on the app's page
+PASS  moderation is off by default: NIP-11 advertises no admin API
+PASS  and bloggers-mpeg-intense-coins.trycloudflare.com:8443 has no admin API (HTTP 404)
+PASS  the page turns it on: one line in the relay's settings, BUZZ_ADMIN_HOST=bloggers-mpeg-intense-coins.trycloudflare.com:8443
+PASS  the relay restarts with it: NIP-11 advertises admin_api https://bloggers-mpeg-intense-coins.trycloudflare.com:8443
+PASS  the relay process has that alone: no open mode, no other operators, and no browser dashboard
+INFO  from this machine, through Cloudflare, https://bloggers-mpeg-intense-coins.trycloudflare.com:8443/ answered HTTP 404 (404 when Cloudflare carries port 8443 to it)
+PASS  through the gateway, bloggers-mpeg-intense-coins.trycloudflare.com:8443 is the relay's admin host (404 with its own security policy)
+PASS  a browser there gets no page: the dashboard is off
+PASS  an unsigned request to the admin API is refused (HTTP 401)
+PASS  a member's signature is refused (HTTP 403)
+PASS  the owner's signature gets in (HTTP 200): the operator, as the relay's owner
+PASS  the same signature sent for the community's own address is refused (HTTP 403)
+PASS  the owner bans member A through the admin API (HTTP 200)
+PASS  member A's posts are refused: banned from this community
+PASS  member B still posts
+PASS  member A can't come back with the owner's new invite link (HTTP 403, invite_restricted)
+PASS  a new identity joins with the same link
+PASS  the page turns it off: the line is gone from the relay's settings
+PASS  the relay restarts without it: NIP-11 advertises no admin API
+PASS  and bloggers-mpeg-intense-coins.trycloudflare.com:8443 has no admin API again (HTTP 404)
+PASS  the ban holds with moderation off
+PASS  the page turns it on again, and NIP-11 advertises it
+PASS  the owner lifts member A's ban through the admin API (HTTP 204)
+PASS  member A posts again
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+PASS  moderation stays on through the restart: NIP-11 advertises https://bloggers-mpeg-intense-coins.trycloudflare.com:8443
+PASS  then the page turns it off
+
+passed: 61  failed: 0
+community address: https://bloggers-mpeg-intense-coins.trycloudflare.com
+
+passed: 168  failed: 0
+
+== Deleting the droplet
+deleted droplet buzz-umbrel-test
+deleted firewall buzz-umbrel-test-ssh-only

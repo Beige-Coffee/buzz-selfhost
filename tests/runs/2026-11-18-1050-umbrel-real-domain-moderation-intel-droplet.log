@@ -1,0 +1,71 @@
+# Intel: umbrelOS 2.0.1 in Docker on a DigitalOcean droplet, the package at 09e726b (relay 0.3.0, the setup page's image 1.1.0), set up by its owner (a real person) on the owner's own Cloudflare domain at <name C>, then moderation turned on with the page's switch and used by the owner in Buzz 1.0.5 on a Mac, with made-up members, messages, reports and feedback. Scripts: tests/umbrel/{server.py,install.sh,moderation.sh}, check-relay.sh, and the session's setup and seed scripts (below).
+
+## droplet, install.sh 2.0.1
+Wed Nov 18 10:50 PST 2026
+created buzz-umbrel-test in sfo2
+{
+  "state": "ready",
+  "progress": 0
+}
+INFO  buzz_web_1 ghcr.io/beige-coffee/buzz-umbrel-setup:1.1.0
+INFO  buzz_relay_1 ghcr.io/block/buzz:0.3.0 (healthy), buzz_pair_1 ghcr.io/block/buzz:0.3.0
+INFO  buzz_postgres_1, buzz_redis_1, buzz_silo_1 healthy; buzz_cloudflared_1, buzz_tailscale_1, buzz_gateway_1 up
+
+## setup through the page, as e2e.sh signs in (the app password from the page's own environment, never printed)
+PASS  the app password signs in to the page (POST /login 303)
+PASS  set up: owner <npub>, your own domain at <name C> (POST /save 303); setup.json names them
+PASS  cloudflare-state is signin, with Cloudflare's sign-in link, after 6 s
+
+## Cloudflare's sign-in, by the owner
+INFO  first try: the owner authorized about 12 minutes after the link was made. Cloudflare's page said
+      "Success", but the tunnel kept logging "Waiting for login...". Not cloudflare/cloudflared#1252: no
+      file was saved in the browser. The link had run out: cloudflared's login polls ten times, about 53 s
+      each, then exits, and the service starts a new login with a new link (the page shows the new one; the
+      link was relayed by hand here, so the owner used the old one).
+INFO  the next login's link lasted 17 s before another replaced it (its log is overwritten on restart, so
+      why isn't known); the one after that held
+PASS  second try, on the current link: cloudflare-state is running within a minute of authorizing (20:50:53 UTC)
+PASS  https://<name C>/_liveness answers ok 7 s later
+PASS  no Cloudflare sign-in (.cloudflared/, cert.pem) is kept. data/cloudflare holds: routed 27 B, tunnel-name 18 B, tunnel.token 181 B
+
+## moderation.sh on <name C>, then the probes from this Mac through Cloudflare
+PASS  the page turned moderation on: BUZZ_ADMIN_HOST=<name C>:8443 in the relay's settings
+PASS  the relay process has that alone: no open mode, no other operators, no browser dashboard
+PASS  https://<name C>/_liveness answers
+PASS  NIP-11 at https://<name C>/ advertises admin_api https://<name C>:8443: moderation is on
+passed: 4  failed: 0
+PASS  https://<name C>:8443/api/admin/v1/probe, no credential: HTTP 401 unauthorized from the relay's admin API (WWW-Authenticate: Nostr)
+PASS  https://<name C>/api/admin/v1/probe, no credential: HTTP 401 unauthorized from the relay's admin API (WWW-Authenticate: Nostr)
+
+## check-relay.sh https://<name C>
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://<name C>/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  buzz-admin list-members: the page's owner is the relay's owner
+
+## made-up data for the owner to moderate (test keys made on this Mac, added with buzz-admin add-member)
+INFO  five members with profiles; #general (the relay's own) and #meetups; a thread reply
+INFO  two DMs (the buzz CLI's dms open gives dm_id, not channel_id)
+INFO  reports with the buzz CLI's messages report: an ad twice (spam), a rude message (profanity), a
+      phishing DM (spam, on a DM channel), an account (other), and an ad its author deleted after it was
+      reported (spam)
+INFO  feedback as Buzz sends it: kind 42000 with a category tag (praise, bug, needs-work), POST /events signed with NIP-98
+PASS  the relay keeps them for moderators: 6 rows in moderation_reports, 3 in product_feedback
+
+## the owner in Buzz 1.0.5 on a Mac
+PASS  the owner joined with Join a community and the address
+PASS  Buzz shows Moderation in Settings for this community, with the reports above in it
+INFO  the owner asked whether moderators see everyone's messages: Moderation lists reports and feedback,
+      not messages. The admin API has no route that lists messages (relay 0.3.0's api/admin/mod.rs);
+      events/{id} previews one stored message by its ID, which Buzz 1.0.5 asks for under Communities,
+      Delete message, Event id, before anything is deleted. The page's Private messages note says "by its ID".
+INFO  not done by hand this time: a ban (e2e.sh bans and lifts one through the admin API in the runs below) and turning moderation off
+
+## cleanup
+deleted droplet buzz-umbrel-test
+deleted firewall buzz-umbrel-test-ssh-only
+INFO  the owner deleted the test tunnels, DNS names and the sign-ins' API tokens in Cloudflare, and the Nov 12 cert.pem

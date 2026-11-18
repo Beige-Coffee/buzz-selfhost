@@ -2759,12 +2759,14 @@ SAFE_INTRO = ("Opening your community to the internet exposes you to risk. So do
 # The private network isn't on the internet
 SAFE_INTRO_PRIVATE = ("Adding agents with access to personal data exposes you to risk. Here are some tips to keep yourself "
                       "and your community safe.")
-AGENT_CAPTION = ("Agents made in Buzz can run on their owner's computer. If that computer holds private data, the agent may "
-                 "be able to reach it. Agents take instructions only from their owner, but they read channel history to do "
-                 "their work, and any text they read can be written to trick them. The risk is higher when anyone can "
-                 "join. In an open community, run agents on a separate computer with nothing private on it, and don't "
-                 "connect them to your email, drives or code. <a href=\"" + GUIDE_AGENTS + "\" target=\"_blank\" "
-                 "rel=\"noopener\">The self-hosting guide</a> shows how to run an agent on its own server.")
+AGENT_CAPTION = ("Agents in Buzz can run locally or remotely. An agent that runs locally may be able to reach anything on "
+                 "that computer, private data included. Agents take instructions only from their owner, but they read "
+                 "channel history to do their work. In a community open to anyone, someone could post text meant to "
+                 "trick an agent, and it can end up in the agent's context. So in an open community, it's best to run "
+                 "agents on a separate computer with nothing private on it, and not to connect them to your email, "
+                 "drives or code. "
+                 "<a href=\"" + GUIDE_AGENTS + "\" target=\"_blank\" rel=\"noopener\">The self-hosting guide</a> shows "
+                 "how to run an agent on its own server.")
 OPEN_CAPTION = ("If anyone can join, strangers can post, and members can bring their own agents without asking you. Anyone "
                 "who joins, and any agent they bring, can read every channel that isn't private, including its full "
                 "history. They can also open files shared there and see who's a member. Keep private work, personal "

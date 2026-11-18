@@ -1,0 +1,145 @@
+# Intel: umbrelOS 2.0.2 in Docker on a DigitalOcean droplet. The live PR's package (fork 5d03829: relay sha-744f394, the page as a Python template) installed through Umbrel and set up on its page through a quick tunnel with a test owner, then updated through Umbrel to this branch's package (09e726b: relay 0.3.0, the page's image 1.1.0) with update.sh, then e2e.sh on the updated app, moderation included. Script: below the log.
+
+Wed Nov 18 13:11:53 PST 2026
+created buzz-umbrel-test in sfo2
+buzz-umbrel-test at <ip>
+== Install the live PR's package (5d03829, version 744f394) on umbrelOS 2.0.2
+{
+  "state": "ready",
+  "progress": 0
+}
+== Set up on the old page, through a quick tunnel
+== Tunnel
+PASS  relay address https://grades-apnic-regions-walt.trycloudflare.com
+== Setup, through the app's page
+PASS  without the app password, a direct request can't save settings (HTTP 401)
+PASS  the app password signs in to the page (HTTP 303)
+PASS  the page refuses a bad public ID (HTTP 400)
+PASS  the page refuses to create without the acknowledgement (HTTP 400)
+PASS  the page saves the owner and domain (HTTP 303)
+setup only: passed 6, failed 0
+== Update through Umbrel to this branch's package (0.3.0, page 1.1.0)
+== Before the update
+INFO  relay image ghcr.io/block/buzz:sha-744f394
+PASS  member posts
+PASS  member uploads a file
+== Update through Umbrel to 0.3.0
+PASS  Umbrel updated the app and reports it ready
+PASS  the relay now runs 0.3.0
+== After the update
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://grades-apnic-regions-walt.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the message from before the update is still there
+PASS  the file from before the update comes back intact
+PASS  the member still belongs and posts
+
+passed: 14  failed: 0
+UPDATE EXIT 0
+== e2e.sh on the updated app
+== Tunnel
+PASS  relay address https://grades-apnic-regions-walt.trycloudflare.com
+== The relay, at its public address
+PASS  liveness: ok
+PASS  relay version 0.3.0
+PASS  relay identity (Buzz 1.0 needs it to join)
+PASS  channel labels (nip-cl): Buzz 1.0 can start chats
+PASS  WebSocket upgrade (what Buzz joins over)
+PASS  phone pairing at wss://grades-apnic-regions-walt.trycloudflare.com/pair
+PASS  Buzz 0.X allowed (CORS; Buzz 1.0 doesn't need it)
+PASS  the page's owner is the relay's owner
+== Members
+INFO  add-member: added <hex> as member
+INFO  add-member: added <hex> as member
+PASS  member creates a channel
+PASS  member A posts
+PASS  member B joins the channel
+PASS  member B posts
+PASS  stranger refused
+PASS  member B reads both messages
+== Files
+PASS  member A uploads a file
+PASS  member B downloads it intact
+== Invites: what Buzz 1.0's Invite members, Invite with a link does
+PASS  owner creates an invite link
+PASS  the link is https://grades-apnic-regions-walt.trycloudflare.com/invite/<code>
+PASS  a member who isn't an admin can't create one (HTTP 403)
+PASS  a new identity joins with the link
+PASS  the invited member posts
+== Buzz 1.0: New chat, with an agent admitted through its owner
+PASS  NIP-11 lists NIPs 29 and 43 (channels, membership)
+PASS  a chat that names an agent starts (kind 9007, label buzz.solo)
+PASS  the relay keeps the chat's label
+PASS  the agent posts in the chat, admitted through its owner
+PASS  the agent's owner reads its message
+PASS  the agent's key alone is refused
+== Moderation: the relay's admin API, turned on and off on the app's page
+PASS  moderation is off by default: NIP-11 advertises no admin API
+PASS  and grades-apnic-regions-walt.trycloudflare.com:8443 has no admin API (HTTP 404)
+PASS  the page turns it on: one line in the relay's settings, BUZZ_ADMIN_HOST=grades-apnic-regions-walt.trycloudflare.com:8443
+PASS  the relay restarts with it: NIP-11 advertises admin_api https://grades-apnic-regions-walt.trycloudflare.com:8443
+PASS  the relay process has that alone: no open mode, no other operators, and no browser dashboard
+INFO  from this machine, through Cloudflare, https://grades-apnic-regions-walt.trycloudflare.com:8443/ answered HTTP 404 (404 when Cloudflare carries port 8443 to it)
+PASS  through the gateway, grades-apnic-regions-walt.trycloudflare.com:8443 is the relay's admin host (404 with its own security policy)
+PASS  a browser there gets no page: the dashboard is off
+PASS  an unsigned request to the admin API is refused (HTTP 401)
+PASS  a member's signature is refused (HTTP 403)
+PASS  the owner's signature gets in (HTTP 200): the operator, as the relay's owner
+PASS  the same signature sent for the community's own address is refused (HTTP 403)
+PASS  the owner bans member A through the admin API (HTTP 200)
+PASS  member A's posts are refused: banned from this community
+PASS  member B still posts
+PASS  member A can't come back with the owner's new invite link (HTTP 403, invite_restricted)
+PASS  a new identity joins with the same link
+PASS  the page turns it off: the line is gone from the relay's settings
+PASS  the relay restarts without it: NIP-11 advertises no admin API
+PASS  and grades-apnic-regions-walt.trycloudflare.com:8443 has no admin API again (HTTP 404)
+PASS  the ban holds with moderation off
+PASS  the page turns it on again, and NIP-11 advertises it
+PASS  the owner lifts member A's ban through the admin API (HTTP 204)
+PASS  member A posts again
+== Restart through Umbrel
+PASS  Umbrel reports the app ready after restart
+PASS  messages survive the restart
+PASS  the file survives the restart
+PASS  moderation stays on through the restart: NIP-11 advertises https://grades-apnic-regions-walt.trycloudflare.com:8443
+PASS  then the page turns it off
+
+passed: 56  failed: 0
+community address: https://grades-apnic-regions-walt.trycloudflare.com
+E2E EXIT 0
+== Delete the droplet
+deleted droplet buzz-umbrel-test
+deleted firewall buzz-umbrel-test-ssh-only
+Wed Nov 18 13:20:43 PST 2026
+
+## the script (update-run.sh)
+```bash
+#!/usr/bin/env bash
+# Nate's path: the live PR's package (5d03829, relay 744f394) installed on umbrelOS 2.0.2 and set up
+# through a quick tunnel, then updated to this branch's package, then e2e.sh again on the update.
+set -uo pipefail
+cd ~/code/buzz-selfhost-main
+S=<scratch>
+export BUZZ_CLI=$HOME/.local/bin/buzz
+K=$S/update-run; mkdir -p "$K"; chmod 700 "$K"
+python3 tests/lib/keygen.py > "$K/owner.keys"; chmod 600 "$K/owner.keys"
+export DOMAIN_FILE=$K/domain
+date
+python3 tests/umbrel/server.py up || exit 1
+trap 'echo "== Delete the droplet"; python3 tests/umbrel/server.py down; date' EXIT
+echo "== Install the live PR's package (5d03829, version 744f394) on umbrelOS 2.0.2"
+PKG_ROOT=$S/fork-pr bash tests/umbrel/install.sh 2.0.2 || exit 1
+echo "== Set up on the old page, through a quick tunnel"
+OWNER_KEYS=$K/owner.keys SETUP_ONLY=1 bash tests/umbrel/e2e.sh
+echo "== Update through Umbrel to this branch's package (0.3.0, page 1.1.0)"
+PKG_DIR=umbrel/buzz bash tests/umbrel/update.sh
+echo "UPDATE EXIT $?"
+echo "== e2e.sh on the updated app"
+OWNER_KEYS=$K/owner.keys SKIP_SETUP=1 DOMAIN=$(cat "$DOMAIN_FILE") bash tests/umbrel/e2e.sh
+echo "E2E EXIT $?"
+```

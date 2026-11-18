@@ -20,7 +20,7 @@ would, passed 115 of 115 on an Intel droplet. On 2026-11-10 Umbrel's reviewer ra
 image for the setup page; Buzz 1.0 came out the same day. On 2026-11-11 all three went in, with relay
 0.3.0, Block's tagged release, in place of a build of main, the page's steps and drawings for Buzz 1.0,
 and safety tips on the live page. `pre-submit.sh` passed 115 of 115 on an Intel droplet with the relay and the page's
-image. On 2026-11-12 the page gained two features for its next image, 1.1.0, not yet published: when Cloudflare's
+image. On 2026-11-12 the page gained two features for its next image, 1.1.0: when Cloudflare's
 page saves `cert.pem` in the browser instead of passing it to the app, the owner can upload that file, and an owner
 on their own domain can turn on moderation (below). Both passed the page's local tests and the package's containers on Docker. Since 2026-11-18 the
 package pins the 1.1.0 image (tag `umbrel-setup-v1.1.0`, built with provenance by CI). On 2026-11-13, also for 1.1.0 and from approved mockups, the live page's next steps became a
@@ -32,7 +32,10 @@ and the texts that name them, moved to Buzz 1.0.5, the current stable release: t
 Invite tab. The same day, from the owner's review and a last review of the page: each address option says who it's
 for, with its next steps folded away; the Moderation row became short notes; Back after its link to Keep it safe
 returns to the link; and the footer links Buzz's three repos. With them the page passed its local tests and the
-package's containers on Docker, and the screenshots were retaken. It lives on this `umbrel` branch, not on `main`,
+package's containers on Docker, and the screenshots were retaken. Then, with the 1.1.0 image published and pinned, on
+Intel droplets with umbrelOS 2.0.2: `pre-submit.sh` passed 168 of 168, and Umbrel's update from the PR's last push
+(relay `sha-744f394`) to this package passed 76 of 76. On a real domain with a real Cloudflare sign-in, the page
+turned moderation on and the owner used it in Buzz 1.0.5. It lives on this `umbrel` branch, not on `main`,
 until Umbrel accepts it.
 
 ## Why our own package
@@ -851,15 +854,31 @@ this Mac at no cost ([log](../tests/runs/2026-11-18-0529-umbrel-setup-page-1.1.0
 - **Real:** `check.py` 80 of 80 on the package's containers on Docker Desktop, with the page on port 8859.
 - Umbrel's linter with image checks: no issues. Screenshots 01, 02, 03, 05 and 06 retaken; 04 came out the same.
 
+2026-11-18, the package as it goes to the PR (09e726b: relay 0.3.0, the page's image 1.1.0, published and pinned),
+on Intel droplets:
+
+- **Pre-submit,** umbrelOS 2.0.2 ([log](../tests/runs/2026-11-18-1320-umbrel-pre-submit-intel-droplet.log)): 168 of
+  168, `e2e.sh` 61 of 61 before and after the reinstall, moderation on and off with a ban and its lift. Memory: 133
+  MiB before setup, 300 MiB with a community, 384 MiB while 20 members sent 200 messages in 23 s, 417 MiB while a
+  96 MB video went up in 14 s. The whole Umbrel back after a restart in 25 s. Umbrel's backup, restored onto a second
+  umbrelOS: Buzz ran from it after 82 s, and the backup skipped Cloudflare's sign-in and an uploaded one.
+- **The update from the PR's last push,** umbrelOS 2.0.2
+  ([log](../tests/runs/2026-11-18-1311-umbrel-update-from-pr-intel-droplet.log)): the live PR's package (fork
+  5d03829) installed through Umbrel and set up on its page, then updated through Umbrel to this one: 76 of 76, with
+  `update.sh` (the message, the file and the member from before) and `e2e.sh` on the update.
+- **A real domain and a real Cloudflare sign-in,** umbrelOS 2.0.1
+  ([log](../tests/runs/2026-11-18-1050-umbrel-real-domain-moderation-intel-droplet.log)): setup by the owner (a real
+  person), the app's tunnel and name, `cert.pem` deleted once they were set up, moderation turned on with the page's
+  switch (`moderation.sh on`), and the owner in Buzz 1.0.5 with Moderation and made-up reports and feedback. The
+  first sign-in authorized an expired link (Gotchas).
+- Quick tunnels carry port 8443: in both droplet runs, `https://<quick tunnel>:8443/` answered with the relay's 404.
+- The page's published arm64 image started on an Apple Silicon Mac and served its sign-in (`/login` 200).
+
 ## Not yet tested
 
 - Buzz 1.0.5's screens as drawn here, next to the running app: they come from its source. So do the Builderlab
   fold's labels: Identity, Sign out on the card named app.builderlab.xyz, and Remove from device. The phone's labels
   come from block/buzz's mobile tags and main, not from the build in the App Store.
-- The page's image 1.1.0 on umbrelOS: it isn't published yet. Then `pre-submit.sh`, whose `e2e.sh` now
-  turns moderation on and off on the page, asks the admin API through the gateway, bans a member, checks
-  the ban against an invite link, lifts it and keeps moderation on through a restart, and whose tamper
-  step adds admin settings to the relay's settings file.
 - The live page's guide and checks card, and the progress bar, behind Umbrel's proxy, in Safari and
   Firefox, on a real phone, and with a screen reader: so far a Chromium browser and headless Chrome on a
   Mac, and the page's own tests. The safety step only in headless Chrome so far, and its drawings in a
@@ -871,12 +890,9 @@ this Mac at no cost ([log](../tests/runs/2026-11-18-0529-umbrel-setup-page-1.1.0
   failure off the tailnet, and answers held back and let through in headless Chrome (`browser.py`).
 - An upload of a real `cert.pem` that Cloudflare saved in the browser, by hand: so far made-up files,
   in a browser and on the real Cloudflare service, which Cloudflare refused.
-- Umbrel's backup skipping an uploaded sign-in, the new `backupIgnore` line: `pre-submit.sh`'s markers
-  check it on a droplet, and it hasn't run since the line went in.
-- Moderation turned on from the page on a real domain, then Buzz's Moderation, a ban and turning it off:
-  the by-hand test of 2026-11-12 set the line in the compose file, with the dashboard on.
-  `tests/umbrel/moderation.sh` has the steps, and hasn't run on a real domain in its committed form.
-- Whether a quick tunnel (`*.trycloudflare.com`) carries port 8443: `e2e.sh` prints what it gets as INFO.
+- A ban and turning moderation off by hand in Buzz, on a real domain: on 2026-11-18 the page's switch
+  turned it on there and the owner used Moderation in Buzz 1.0.5; the ban and its lift ran through the
+  admin API in `e2e.sh`, on quick tunnels.
 - Moderation through Umbrel's Cloudflare Tunnel app instead of the app's own tunnel, and on Cloudflare
   accounts with Bot Fight Mode or other stricter security settings.
 - "Sign in to Cloudflare again" after a failed step, with a real account: so far only with a
@@ -1031,6 +1047,12 @@ edits before any image is published; the droplet runs use the published image.
   by hand let the setup carry on. The page now takes that file as an upload, under "Cloudflare saved a
   file named cert.pem instead?". In local tests the service takes it like one that arrived; a real one
   isn't tested yet (Not yet tested, above).
+- Cloudflare's sign-in link lasts about nine minutes: `cloudflared tunnel login` polls ten times, about
+  53 s each, then exits, and the service starts a new login with a new link. Authorizing a link that
+  ran out still shows Cloudflare's "Success", but nothing arrives and no file is saved. The page shows
+  the current link and reloads when it changes, so this bites a link passed on by hand, as on
+  2026-11-18. Once, a login exited after 17 s and its link went with it; the login's log is
+  overwritten on restart, so the cause isn't known.
 - An install stuck on a failing service can't be uninstalled until its compose run is stopped.
 - `buzz-admin add-member` takes the key with `--pubkey`.
 - With `Referrer-Policy: no-referrer`, browsers send a page's own form posts with `Origin: null`.

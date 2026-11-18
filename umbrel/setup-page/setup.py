@@ -919,6 +919,8 @@ input[type=file]::file-selector-button:hover { border-color: var(--ink); }
 .choice-head { display: block; cursor: pointer; }
 .choice-more { margin-top: 16px; padding-top: 4px; border-top: 1px solid var(--line); }
 .choice-more .small { margin-top: 10px; color: var(--ink-2); }
+.choice-more details.alt { margin-top: 16px; padding-top: 12px; }
+.choice-more > details.alt:first-child { margin-top: 0; padding-top: 10px; border-top: 0; }
 .confirm-box { display: flex; gap: 12px; align-items: flex-start; margin-top: 16px; padding: 14px 16px; border-radius: 12px; background: rgb(215 215 46 / 32%); font-size: 14.5px; cursor: pointer; }
 .confirm-box input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--ink); flex: none; }
 .confirm-box b { font-weight: 500; }
@@ -1735,9 +1737,9 @@ def address_fields(values, setup):
     mode = values.get("mode") or (setup or {}).get("mode") or ""
     return (
         '<div class="choices">'
-        + choice("domain", "Recommended for communities on the internet", "", "Your own domain",
-                 "A name you own, like <code>buzz.yourteam.com</code>. Anyone you invite can reach it from anywhere, "
-                 "and the address stays yours, even on another server.",
+        + choice("domain", "Recommended for most communities", "", "Your own domain",
+                 "A name you own, like <code>buzz.yourteam.com</code>. Only people you invite can join, from "
+                 "anywhere. The address stays yours, even on another server.",
                  "a domain (around 10 US dollars a year) on a free Cloudflare account.", mode == "domain",
                  more=domain_field(values, "Your address")
                  + next_steps("You sign in to Cloudflare and choose your domain. This page sets up the rest and checks "
@@ -1751,7 +1753,7 @@ def address_fields(values, setup):
                  "new one. If you're building a community to keep, choose your own domain now.",
                  more=next_steps("You sign in to Tailscale, and it gives you the address. It stays the same as long "
                                  "as you keep this Tailscale account."))
-        + choice("private", "Recommended for teams that need privacy", "", "A private Tailscale network",
+        + choice("private", "Recommended when the server must stay off the internet", "", "A private Tailscale network",
                  "Nothing is reachable from the internet. Only devices you allow on your Tailscale network can "
                  "connect.",
                  "Tailscale on every member's device, phones included, and access to your Tailscale network.",
@@ -2834,9 +2836,9 @@ def address_change(setup, values, current):
     """What changing the address does, the three ways in a short list, and the address typed to confirm."""
     now = setup["mode"]
     chosen = values.get("mode", "")
-    rows = [("domain", "Your own domain", "Recommended for communities on the internet"),
+    rows = [("domain", "Your own domain", "Recommended for most communities"),
             ("funnel", "A free Tailscale address", "Recommended for trying Buzz out"),
-            ("private", "A private Tailscale network", "Recommended for teams that need privacy")]
+            ("private", "A private Tailscale network", "Recommended when the server must stay off the internet")]
     options = "".join(
         '<label class="opt"><input type="radio" name="mode" value="' + mode + '"' + (" checked" if mode == chosen else "")
         # the same Tailscale option again changes nothing; another domain is a change

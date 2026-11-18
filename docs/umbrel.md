@@ -29,7 +29,11 @@ did the fixes from four reviews of them, the same day, with a new test in a brow
 collapsed safety tips became a step of the guide, Keep it safe, with the self-hosting guide's two Security drawings, and
 passed the same tests, and so did the fixes from two reviews of it. On 2026-11-18 the page's drawings of Buzz's screens,
 and the texts that name them, moved to Buzz 1.0.5, the current stable release: the invite step now shows Membership's
-Invite tab. It lives on this `umbrel` branch, not on `main`, until Umbrel accepts it.
+Invite tab. The same day, from the owner's review and a last review of the page: each address option says who it's
+for, with its next steps folded away; the Moderation row became short notes; Back after its link to Keep it safe
+returns to the link; and the footer links Buzz's three repos. With them the page passed its local tests and the
+package's containers on Docker, and the screenshots were retaken. It lives on this `umbrel` branch, not on `main`,
+until Umbrel accepts it.
 
 ## Why our own package
 
@@ -61,13 +65,19 @@ Credit #5928 when we submit.
   Max uses, and nothing adds a member by public ID (its Add directly tab is switched off). So the invite
   step shows the Invite tab, and the page mentions invite links only. Also since 1.0.1, a new install
   turns on Bestie, first in the app dock, which the drawings of Buzz's window show. The phone's screens
-  come from the mobile app, which lives in block/buzz (`mobile/`), not in buzz-app.
+  come from the mobile app, not from buzz-app: it lived in block/buzz (`mobile/`), and on 2026-11-17 moved
+  to its own repo, block/buzz-mobile.
 - **Reaching the community is separate from joining it.** Every option keeps the community
   members-only: the relay requires membership, so only people the owner invites, and the agents they
   bring, can read or post. The
-  options differ in how members' apps reach the Umbrel.
+  options differ in how members' apps reach the Umbrel. Each option's card says who it's for:
+  Recommended for most communities (your own domain), for trying Buzz out (a free Tailscale address),
+  and when the server must not be reachable from the internet (the private network). Settings, Address
+  lists them with the same words. The two public options' cards say members join from anywhere with an
+  invite. What happens after each choice sits in a What happens next fold, closed until opened.
   - **Your own domain (recommended):** the owner types a name (`buzz` unless changed or cleared)
-    and the domain in two boxes. The app's own Cloudflare tunnel connects the name to
+    and the domain in two boxes. Under them the page says the first part is up to the owner, and once
+    a domain is typed, the full address members will use. The app's own Cloudflare tunnel connects the name to
     `http://buzz-gateway:80`, with no router ports opened. The owner signs in to Cloudflare from
     the page with `cloudflared tunnel login` and chooses the domain; the `cloudflared` service then
     creates a tunnel, adds the name to the domain's DNS (refusing a name that already has a
@@ -174,7 +184,8 @@ Credit #5928 when we submit.
   pins it by digest. Umbrel's review suggested the image: the store package stays small, and the
   page keeps its tests and CI here. Styled after the guide site: three steps (the owner, how
   members reach it, the acknowledgement), with the npub's checksum checked and a private key
-  refused. The owner step points new owners to a key of their own, made with an open-source tool
+  refused. The owner step's link to install Buzz goes to Block's own page, buzz.xyz, which offers it for
+  every platform. The owner step points new owners to a key of their own, made with an open-source tool
   such as nak or a Nostr app, and brought into Buzz with Other options, then Use an existing key,
   as nsec1 (nak prints hex; the page says to convert it with `nak encode nsec`). Buzz 1.0 on a
   computer otherwise makes a key only with a Builderlab account (Block's, which keeps a backup
@@ -203,15 +214,26 @@ Credit #5928 when we submit.
   with a line under them on what Open in Buzz does. Keeping it safe has the self-hosting guide's two
   drawings from its Security section, what an agent can touch and what anyone who joins can read, then
   notes on private channels, invite links and, on the owner's own domain, bans, for the owner to share
-  with members (Moderation, below, and Security review). The phone step says the phone needs Tailscale
-  too on the private option, and whether phones get notifications. A step's two drawings are one height,
-  so the stepper stays put between them, on a phone too. Any link to a step, such as Moderation's in
-  Settings, opens it at its first drawing with focus on its heading, and puts the step in the address
-  without a new entry in the browser's history, as Next does. When the page opens itself again at
-  a new phase, the guide stays at the reader's step and drawing. Without scripts every step shows, one
-  after the other, and the copy buttons hide; `#join`, `#invite`, `#safe` and `#phone` open a step.
+  with members (Moderation, below, and Security review). The first drawing's caption says agents can run
+  locally or remotely and that a local one may reach what's on that computer, and links the self-hosting
+  guide's answer on how to run an agent on its own server, with those words as the link. The phone step
+  says the phone needs Tailscale too on the private option, and whether phones get notifications. Under
+  its first drawing, Signed in with Builderlab? covers a computer whose key Builderlab backs up: Buzz shows
+  Get Buzz on your phone there instead of a code, and the phone signs in with email, which it offers only
+  before it has a community. Otherwise the owner signs the computer out of Builderlab to get the code: in
+  Settings, Identity, Sign out on the account's card, which Buzz 1.0.5 names by its host,
+  app.builderlab.xyz. The fold warns that Remove from device is a different button, which removes the key
+  from the computer. A step's two drawings are one height, so the stepper stays put between them, on a
+  phone too. Any link to a step opens it at its first drawing with focus on its heading. The guide's own
+  links put the step in the address without a new entry in the browser's history, as Next does.
+  Moderation's link in Settings adds one entry, so Back returns to the link, with focus on it, and leaves
+  the guide as it is. When the page opens itself again at a new phase, the guide stays at the reader's
+  step and drawing. Without scripts every step shows, one after the other, and the copy buttons hide;
+  `#join`, `#invite`, `#safe` and `#phone` open a step, typed into the address bar too.
   Settings: change the owner (the old one becomes an admin), turn phone notifications off or on, turn
   moderation on or off on the owner's own domain, change the address, and how moving servers works.
+  Every page's footer links Buzz's three repos: the relay's (block/buzz), the desktop app's
+  (block/buzz-app) and the phone app's (block/buzz-mobile).
   Umbrel's rules require a page like this for an app with no web interface of its own.
 - **Relay:** waits for the settings, makes its own key on first start, and restarts itself when the
   settings change (it compares the file's content: two saves within a second share a modification
@@ -255,7 +277,10 @@ Credit #5928 when we submit.
 Buzz 1.0 gives the owner of a self-hosted community no ban of its own. Relay 0.3.0 has an admin API,
 and Buzz on a computer shows it as **Moderation** in Settings (Reports, Feedback, Communities and
 Staff): reports, ban or time out members, delete messages. The page's Settings has a Moderation row
-that turns it on. Built for the page's image 1.1.0, not yet published.
+that turns it on. It says what moderation does in four short notes, in the guide's style: reports and
+feedback, private messages, bans, and its own address, on the internet and open only to requests the
+owner or staff sign. Once it's on and the community is live, the row says how to open it in Buzz.
+Built for the page's image 1.1.0, not yet published.
 
 - **What turning it on does.** The page stores `"moderation": true` in `setup.json` and adds one line,
   `BUZZ_ADMIN_HOST=<domain>:8443`, to the relay's settings, which restarts the relay, as phone
@@ -320,13 +345,15 @@ that turns it on. Built for the page's image 1.1.0, not yet published.
   page never shows what NIP-11 advertises: it compares it with its own address.
 - **When Buzz's check fails**, Buzz keeps Moderation out of Settings without a word and says why only in
   Settings, Plugins, Manage plugins, Moderation, and even there only as a tooltip: the plugin says
-  "Unavailable", and pointing at its button shows the reason (`src/app/Settings.tsx`). The row says so, and
-  explains Buzz's three messages, the same in 1.0.5 as in 1.0.0 (Could not check access; Access is unavailable
-  in this build or on this relay; Select a community on a relay where you have staff access) and what each
-  likely means here.
-  Buzz shows the third for any 401 or 403 that isn't an HTML page (`relay-staff/staff.ts`), so also for
-  Cloudflare's plain-text refusal and the relay's refusal of a Host that lost its port: the row sends the
-  owner to the page's own check first.
+  "Unavailable", and pointing at its button shows the reason (`src/app/Settings.tsx`). The row's fold,
+  Moderation doesn't show in Buzz?, says so, and explains Buzz's three messages, the same in 1.0.5 as in
+  1.0.0 (Could not check access; Access is unavailable in this build or on this relay; Select a community on
+  a relay where you have staff access) and what each likely means here. A problem the page's own check
+  shows can be behind the first or the third (`toAccess` in `relay-staff/staff.ts`): Buzz shows the first
+  for an HTML page or a 5xx too, not only for a network that blocks the port, and the third for any 401 or
+  403 that isn't an HTML page, so also for Cloudflare's plain-text refusal and the relay's refusal of a
+  Host that lost its port. So the fold starts by sending the owner to the page's own check. Inside a
+  Settings row, it's a small fold like the page's others.
 
 ## Security review
 
@@ -801,10 +828,34 @@ published), on this Mac at no cost ([log](../tests/runs/2026-11-13-1633-umbrel-s
   will change: the owner step's text (01, 02), the dock in the join step's drawing (05), and the invite step's drawing
   and caption (06).
 
+2026-11-18, the owner's review of the page and a last review's fixes, for the page's image 1.1.0 (not published), on
+this Mac at no cost ([log](../tests/runs/2026-11-18-0529-umbrel-setup-page-1.1.0-final-local.log)):
+
+- **The changes:** the three options' labels, with the private network's saying when the server must not be reachable
+  from the internet, and Step 2's intro to match; the public options' members joining with an invite; What happens next
+  folds;
+  the hint and the full address under the address boxes; the `cert.pem` note's delete-it sentence in bold; the buzz.xyz
+  link; the Moderation row as short notes, its address on the internet, and its fold starting with the page's own
+  check, styled as a small fold; the Builderlab fold saying where to sign out; the agents caption's link named by
+  where it goes; the footer's three repos; the setup page no wider than a phone with your own domain chosen (it was
+  561 pixels wide at 375); and Back after Moderation's link returning to the link.
+- **Mocked:** `render.py` 2147 page states, also on the image's Python 3.13 on Linux, now with each of those texts,
+  the labels on the setup page and in Settings, Address, the folds closed, and Settings' row rules reaching no fold
+  inside a row. Each of 22 changes to the page, made in a copy of it, made it fail. `security.py` 110, `cloudflare.py`
+  63. `preview.py`'s 14 screens, each with the footer.
+- **Browser:** `browser.py` 42 of 42, six runs, adding Back after Moderation's link (focus back on the link, in view,
+  the guide as it was), Forward, a step typed into the address bar, Settings' Moderation row and its fold at 375
+  pixels, every setup and Settings form at 375 pixels with each option chosen, and the full address under the address
+  boxes once a domain is typed, on the setup page and in Settings. On the page before these fixes, 6 fail, and each of
+  4 changes to the page's script, made in a copy, made it fail.
+- **Real:** `check.py` 80 of 80 on the package's containers on Docker Desktop, with the page on port 8859.
+- Umbrel's linter with image checks: no issues. Screenshots 01, 02, 03, 05 and 06 retaken; 04 came out the same.
+
 ## Not yet tested
 
-- Buzz 1.0.5's screens as drawn here, next to the running app: they come from its source. The phone's labels come
-  from block/buzz's mobile tags and main, not from the build in the App Store.
+- Buzz 1.0.5's screens as drawn here, next to the running app: they come from its source. So do the Builderlab
+  fold's labels: Identity, Sign out on the card named app.builderlab.xyz, and Remove from device. The phone's labels
+  come from block/buzz's mobile tags and main, not from the build in the App Store.
 - The page's image 1.1.0 on umbrelOS: it isn't published yet. Then `pre-submit.sh`, whose `e2e.sh` now
   turns moderation on and off on the page, asks the admin API through the gateway, bans a member, checks
   the ban against an invite link, lifts it and keeps moderation on through a restart, and whose tamper
@@ -814,7 +865,8 @@ published), on this Mac at no cost ([log](../tests/runs/2026-11-13-1633-umbrel-s
   Mac, and the page's own tests. The safety step only in headless Chrome so far, and its drawings in a
   real contrast theme not at all: headless Chrome emulates forced colors without forcing them (Gotchas).
   Its lists say `role="list"`, since Safari drops the role from a list drawn without bullets; not yet
-  heard in Safari with VoiceOver.
+  heard in Safari with VoiceOver. Back after Moderation's link only in headless Chrome so far: Chrome
+  takes focus from the link after `popstate` (Gotchas), and Safari and Firefox may do it differently.
 - The private network's device check passing on a real tailnet, as the card shows it: so far its
   failure off the tailnet, and answers held back and let through in headless Chrome (`browser.py`).
 - An upload of a real `cert.pem` that Cloudflare saved in the browser, by hand: so far made-up files,
@@ -925,7 +977,7 @@ bash tests/umbrel/local/down.sh                       # removes the run, data in
 reachable or turned away by Cloudflare, and `domain-moderation-starting` a check still waiting on a live
 page. `domain-working` and `private-consent` show the progress bar with a stage at work and with the private
 network's HTTPS consent. On a live page, `#join`, `#invite`, `#safe` and `#phone` open that step of the next steps.
-`browser.py` starts four previews on ports 8771 to 8774, or from `BROWSER_PORT`; with `BUZZ_LOCAL_PORT` set for
+`browser.py` starts five previews on ports 8771 to 8775, or from `BROWSER_PORT`; with `BUZZ_LOCAL_PORT` set for
 `up.sh`, `check.py` needs it too.
 `check.py` turns moderation on and off with the page's form on
 the real relay image and asks its admin API through the gateway, with test keys it makes and keeps in
@@ -995,10 +1047,20 @@ edits before any image is published; the droplet runs use the published image.
 - A plain link to `#safe` adds an entry to the browser's history, while the guide's own links and Next
   replace the address. So Back after Moderation's link fired `hashchange` for the step the address named
   before, opened that step and scrolled away from Settings; and with the address at `#safe` already, the
-  link fired nothing and focus fell to the page. The script now handles every link to a step itself.
+  link fired nothing and focus fell to the page. The script then handled every link to a step itself, the
+  address replaced, and Back left the page instead. Now Moderation's link adds one entry, marked in its
+  state, and the entry it leaves keeps the link, so Back returns to it; `hashchange` skips those entries.
+- On Back to an entry whose address names an element, Chrome 157 goes to that element after `popstate` and
+  takes focus from anything outside it, so focus moved to the link during `popstate` fell to the page. The
+  page moves it in the next task.
+- A grid's column without a size grows to its widest item: choosing your own domain made the setup page
+  561 pixels wide at 375. The options' grid has `minmax(0, 1fr)` now, and `browser.py` checks every setup
+  and Settings form at 375 pixels.
 - SVG text doesn't wrap: with text spaced out as WCAG 1.4.12 lets a reader do, the tall drawing's drawn-in
   labels ran into each other. They're the page's text under the drawing now, at its scale.
 - The submission's screenshots 01 to 03 come from DevTools on a Chrome started without `--disable-gpu`,
   and 04 to 06 from Chrome's `--screenshot` with it. Each way draws text a little differently, so to
   compare pixels, retake each the way it was taken. Without `--disable-gpu`, the setup page's numbered
-  circles also come out a few pixels different from one capture to the next.
+  circles also come out a few pixels different from one capture to the next, and so do the gradients in
+  02's drawing. Chrome's `--screenshot` now and then leaves one tile of the page blank, a white rectangle:
+  take each at least twice and keep a whole one.

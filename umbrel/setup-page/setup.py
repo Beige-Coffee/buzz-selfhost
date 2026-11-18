@@ -52,7 +52,7 @@ CLOUDFLARE_RESET = os.path.join(CLOUDFLARE_DIR, "cloudflare-reset")
 CLOUDFLARE_UPLOAD = os.path.join(CLOUDFLARE_DIR, "cloudflare-upload.pem")
 GATEWAY_URL = "buzz-gateway:80"
 RELAY_HOST = "buzz_relay_1"
-BUZZ_APP = "https://github.com/block/buzz-app/releases/latest"
+BUZZ_APP = "https://buzz.xyz"
 APP_STORE = "https://apps.apple.com/app/id6779728271"
 GOOGLE_PLAY = "https://play.google.com/store/apps/details?id=xyz.block.buzz.mobile"
 NAK = "https://github.com/fiatjaf/nak"

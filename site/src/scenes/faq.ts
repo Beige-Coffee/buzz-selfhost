@@ -45,12 +45,28 @@ const ct = (name: string) => `<div class="fq-ct" data-ct="${name}"></div>`;
 const PRIVATE_PEOPLE =
   "Your relay is on a private network, so each person also joins your Tailscale network, with every device they use Buzz on. A company pays Tailscale for each person, from $8 a month.";
 
+/**
+ * The iPhone app's two starter channels (block/buzz mobile/lib/app.dart, the same in mobile-v1.0.0-rc.3,
+ * v1.1.0-rc.3 and main). After someone joins with an invite link, it looks for open, unarchived streams
+ * named general and welcome-everyone, and creates any that's missing; whoever creates a channel owns it
+ * (buzz-db store/channel.rs). If the relay refuses, the join fails with "Starter channels could not be set
+ * up". A private channel doesn't hold the name, so the phone adds an open one beside it. An archived
+ * channel or a forum does hold it: phones before 0.28 then fail (app.dart:150 at mobile-v0.27.2-rc.1), and
+ * later ones fail on an archived holder their channel list doesn't show (app.dart:171-196 at v1.1.0-rc.3).
+ */
+const chan = (lock: boolean, name: string, tag: string, cls = "") =>
+  `<p class="fq-ch${cls}">${icon(lock ? "lock" : "hash")}<span>${name}</span><em>${tag}</em></p>`;
+const STARTERS = `<div class="fq-vis fq-starters">
+  <div class="fq-side"><span class="fq-tag yes">Do</span>${chan(false, "general", "Open · Starter", " st")}${chan(false, "welcome-everyone", "Open · Starter", " st")}${chan(true, "team", "Private")}</div>
+  <div class="fq-side bad"><span class="fq-tag no">Avoid</span>${chan(true, "general", "Private: phones add an open one")}${chan(false, "<s>general</s>", "Archived: phones may fail to join")}${chan(false, "<s>welcome-everyone</s>", "Missing: the first phone owns it")}</div>
+</div>`;
+
 const CLICK_THROUGHS: Record<string, Flow[]> = {
   identity: identityFlows,
   lost: lostFlows,
   role: peopleFlows().filter((f) => f.id === "role"),
-  // the invite link as we recommend it, first: a day, and the people you expect. Adding by npub follows.
-  add: ["link", "add"].map((id) => peopleFlows("1 day", "5").find((f) => f.id === id)!),
+  // the invite link as we recommend it: a day, and the people you expect. Buzz can't add an npub since 1.0.1.
+  add: peopleFlows("1 day", "5").filter((f) => f.id === "link"),
   remove: peopleFlows().filter((f) => f.id === "remove"),
   agents: agentFlows,
 };
@@ -74,12 +90,12 @@ const IF_STAFF = `<span class="fq-if">If on Staff</span>`;
 const roles = (t: Track) => `<div class="fq-vis"><table class="fq-roles">
   <thead><tr><th></th><th>${icon("crown")}Owner</th><th>${icon("shield")}Admin</th><th>${icon("user")}Member</th></tr></thead>
   <tbody>
-    <tr><td>Add members</td><td>${YES}</td><td>${YES}</td><td>${NO}</td></tr>
     <tr><td>Make invite links</td><td>${YES}</td><td>${YES}</td><td>${NO}</td></tr>
     <tr><td>Remove members</td><td>${YES}</td><td>${YES}</td><td>${NO}</td></tr>
     <tr><td>Add, promote or remove admins</td><td>${YES}</td><td>${NO}</td><td>${NO}</td></tr>
     <tr><td>Report a message</td><td>${YES}</td><td>${YES}</td><td>${YES}</td></tr>
     <tr><td>Ban, time out, delete others' messages</td><td>${YES}</td>${hasConsole(t) ? `<td>${IF_STAFF}</td><td>${IF_STAFF}</td>` : `<td>${YES}</td><td>${NO}</td>`}</tr>
+    <tr><td>Add someone by npub</td><td colspan="3" class="fq-srv">${icon("server")}On the server, by whoever runs it</td></tr>
     <tr><td>Change the owner</td><td colspan="3" class="fq-srv">${icon("server")}On the server, by whoever runs it</td></tr>
   </tbody></table></div>`;
 
@@ -102,12 +118,33 @@ const moderation = (t: Track) =>
         `${NO_CONSOLE[t] ?? "On a private network, Buzz's moderation screens can't reach your relay."} So the owner or an admin moderates with the <code>buzz</code> command line that comes with Buzz 1.0 (on a Mac, <code>/Applications/Buzz.app/Contents/Resources/bin/buzz</code>), signed with their own key: <code>buzz moderation</code> lists the reports members send, and bans or times people out, and <code>buzz messages delete</code> removes a message.`,
       );
 
+/**
+ * Who lets agents in (block/buzz 0.3.0): with BUZZ_ALLOW_NIP_OA_AUTH on, as the bundle and the chart
+ * ship it, a member's agents get in with their owner's proof; off, only keys on the member list do
+ * (handlers/auth.rs). A key on the list counts as a person: no owner recorded, 60 messages a minute
+ * instead of an agent's 120 (buzz-auth rate_limit.rs). Buzz 1.0.5 shows a refused agent's turn as
+ * "Couldn't finish" (ActivityOutcome.tsx).
+ */
+const DOOR = (t: Track) => {
+  const k8s = t === "k8s" || t === "k8s-private";
+  const line = (on: boolean) => (k8s ? `relay.allowNipOaAuth: ${on}` : `BUZZ_ALLOW_NIP_OA_AUTH=${on}`);
+  return (
+    note("<b>Approve each agent yourself?</b> A member's own agents get in with them, without anyone adding them. To approve each one, switch that off and add the agents you allow as members.") +
+    `<div class="fq-vis fq-door">
+      <div><code>${line(true)}</code><p><b>This guide's setting.</b> A member's agents get in with them.</p></div>
+      <div class="on"><code>${line(false)}</code><p><b>You approve.</b> Only agents you add as members get in.</p><small>Ask your agent to switch it and restart the relay.</small></div>
+    </div>` +
+    note("Add the agents you keep as members first, or they're locked out. A member's new agent then ends with <b>Couldn't finish</b>, and Buzz doesn't say why, so tell members to ask an admin.") +
+    note("An agent added as a member counts as a person: 60 messages a minute instead of an agent's 120, and Buzz doesn't record who owns it.")
+  );
+};
+
 /** A lost device: one question decides everything, whether the key is exposed. */
 const CASES = `<div class="fq-vis fq-cases">
   <p class="fq-cases-q">${icon("device-mobile")}<span><b>Could someone get into the lost device?</b>It was unlocked, had no disk encryption, or someone knows its password.</span></p>
   <div class="fq-case bad">
     <p class="fq-case-h"><span class="fq-tag no">Yes, or not sure</span><b>The key is exposed: retire it</b></p>
-    <ol><li>Have the old identity banned, by the owner or a moderator. Removing it isn't enough: a live invite link lets it back in. If it was the owner's, change the owner on the server first, then remove and ban the old key, which stays an admin until you do.</li><li>Make a new key on the new device. Not the saved copy: whoever has the device has that key too.</li><li>An admin adds the new npub.</li><li>Pair the phone, start their agents again, and tell any other community they joined.</li></ol>
+    <ol><li>Have the old identity banned, by the owner or a moderator. Removing it isn't enough: a live invite link lets it back in. If it was the owner's, change the owner on the server first, then remove and ban the old key, which stays an admin until you do.</li><li>Make a new key on the new device. Not the saved copy: whoever has the device has that key too.</li><li>An admin sends a 1-use invite link, or whoever runs the server adds the new npub.</li><li>Pair the phone, start their agents again, and tell any other community they joined.</li></ol>
   </div>
   <div class="fq-case good">
     <p class="fq-case-h"><span class="fq-tag yes">No</span><b>The key is safe: bring it back</b></p>
@@ -249,7 +286,7 @@ const mobile = (t: Track) =>
   PUSH +
   // docs/research.md: Block's bundle notes name "the public gateway"; block/buzz#5206 is where self-hosters asked for it
   note(
-    `It worked in this guide's tests on 23 and 27 October 2026. Block calls push experimental and promises no level of service (<a href="https://github.com/block/buzz/issues/5206">block/buzz#5206</a>), so run the locked-phone test below before your team relies on it.`,
+    `It worked in this guide's tests on 23 and 27 October and on 12 November 2026, the last with relay 0.3.0. Block calls push experimental and promises no level of service (<a href="https://github.com/block/buzz/issues/5206">block/buzz#5206</a>), so run the locked-phone test below before your team relies on it.`,
   ) +
   `<div class="fq-mobile">${PHONE_OPEN.map((x) => `<h4>${x}</h4>${phone(x)}`).join("")}</div>` +
   PHONE_FOLDED.map((x) => fold(x, phone(x))).join("");
@@ -259,7 +296,7 @@ const mobile = (t: Track) =>
  */
 const PRELAUNCH: [id: string, title: string, text: string][] = [
   ["server", "Two operators", "A primary and a backup, each with their own way in."],
-  ["add", "A working door", "A second member gets in. A stranger does not."],
+  ["add", "A working door", "A new account joins from a phone and from desktop with no error, and sees no private channel. A stranger can't get in."],
   ["backup", "Keys and a backup", "Both keys saved, and a backup off the server that you have restored once."],
   ["notifications", "Phones", "A locked phone shows a real notification."],
   ["moderate", "An open community", "Moderators named, and agents on a machine of their own."],
@@ -289,17 +326,20 @@ const GROUPS: [string, Question[]][] = [
         icon: "users",
         q: "How should we add people?",
         a: (t) =>
-          rec("Send an invite link that expires after a day, limited to the people you expect. To add someone without a link, add their npub.") +
+          rec("Send an invite link that expires after a day, limited to the people you expect. To add someone without a link, add their npub on the server.") +
           ct("add") +
           note(
             `Each person needs a key first (<a href="#operations" data-q-link="identity">how to get one</a>). With a link they join by themselves. To be added by npub they send it to you: the key script prints it, and Buzz shows it if they try to join before you add them.`,
           ) +
-          // block/buzz-app: v1.0.0's dialog has Add directly; from v0.7.0-preview.265.1 on, moderation/features.ts turns it off
+          // block/buzz-app: v1.0.0's Add directly is off in every release from v1.0.1 (src/bundled/moderation/features.ts)
           note(
-            `<b>Add directly</b> is in Buzz 1.0.0. Preview builds after it show <b>Members</b> and <b>Invite</b> tabs in Membership and offer only the link. If yours has no Add directly, ask your agent to add the npub, or run the skill's <a href="${ADD_MEMBER}">add-member command</a> on the server.`,
+            `Buzz can't add an npub itself since 1.0.1. Ask your agent to add it, or run the skill's <a href="${ADD_MEMBER}">add-member command</a> on the server.`,
           ) +
-          // starter channels, from block/buzz#8594 (in the pin): invite claims and adds in Buzz, not buzz-admin add-member
-          note("In a public channel's settings, turn on <b>Starter channel for new members</b>: everyone who joins by link, or whom you add in Buzz, joins it. People added from the server's command line aren't.") +
+          // starter channels, from block/buzz#8594 (in the pin): invite claims, not buzz-admin add-member
+          note("In a public channel's settings, turn on <b>Starter channel for new members</b>: everyone who joins by link joins it. People added on the server don't, so add them to the channels they need.") +
+          note("<b>Before the first phone joins</b>, create two open channels named exactly <code>general</code> and <code>welcome-everyone</code>, and turn on Starter channel for new members in both. Buzz on iPhone looks for them by name after someone joins with a link.") +
+          STARTERS +
+          note("Keep both open, unarchived and not forums. Give a private team channel another name, such as <code>team</code>.") +
           // links last 30 days at most (block/buzz crates/buzz-core/src/invite.rs); nothing revokes one (#8529 open)
           note(
             `For a public project, once you've set up <a href="#operations" data-q-link="moderate">moderation</a>, post an invite link on your site or README with a use limit, and replace it when it fills or expires. A link lasts 30 days at most, and Buzz can't cancel one early. Banning the person who made a link cancels every link they made.`,
@@ -315,13 +355,15 @@ const GROUPS: [string, Question[]][] = [
           rec("Make the person who runs Buzz the owner, and name at least two admins, so someone can always add or remove people.") +
           roles(t) +
           ct("role") +
-          note(`The owner is set on the server, so whoever runs it changes it. The old owner stays on as an admin. Banning is a separate tool: see <a href="#operations" data-q-link="moderate">How do we moderate?</a>`),
+          note(`The owner is set on the server, so whoever runs it changes it. The old owner stays on as an admin. Banning is a separate tool: see <a href="#operations" data-q-link="moderate">How do we moderate?</a>`) +
+          // block/buzz 0.3.0 crates/buzz-core/src/channel.rs decide_member_put: anyone who can post adds; only owners and admins grant admin
+          note("<b>Private channels are separate.</b> Anyone in one can add people to it, except a guest, and only its owners and admins can make someone an admin of it. Keep its members to people you'd trust with its guest list."),
       },
       {
         id: "moderate",
         icon: "shield",
         q: "How do we moderate?",
-        a: moderation,
+        a: (t) => moderation(t) + DOOR(t),
       },
       {
         id: "leave",
@@ -343,25 +385,8 @@ const GROUPS: [string, Question[]][] = [
       },
     ],
   ],
-  [
-    "Agents",
-    [
-      {
-        id: "agents",
-        icon: "robot",
-        q: "How should we run agents?",
-        a:
-          rec("Choose the agent's environment before connecting it. For a community anyone can join, use an isolated device or virtual machine with only that project's files and scoped credentials.") +
-          note(`<a href="#security">See what an agent can touch</a>, drawn in Security. A Workspace folder is not a sandbox. Keep personal accounts, private repositories and production credentials off a machine whose agent reads an open community.`) +
-          ct("agents") +
-          // block/buzz-app v1.0.0, src/features/agents/owner-attestation.ts: the owner's messages start an agent's work
-          note(
-            `An agent made in Buzz answers its owner, not every member. Next: <a href="#operations" data-q-link="agent-brief">what to tell it</a>, <a href="#operations" data-q-link="agent-model">which harness and model</a>, <a href="#operations" data-q-link="agent-on">keeping it answering</a> and <a href="#operations" data-q-link="agent-safe">keeping it safe</a>.`,
-          ),
-      },
-      ...agentQuestions({ rec, note }),
-    ],
-  ],
+  // the six agent answers live in agents.ts, "How should we run agents?" first
+  ["Agents", agentQuestions({ rec, note, ct })],
   [
     "Identity and keys",
     [
@@ -442,7 +467,7 @@ const GROUPS: [string, Question[]][] = [
           ) +
           // reads check community membership only (block/buzz crates/buzz-relay/src/api/media.rs); #8444 and #9077 start off
           note(
-            `Files are shared with the whole community, not one channel. Any member with a file's link can open it, even from a private channel or a direct message they're not in. A link can't be guessed, but removing someone from a channel, or deleting the message, doesn't take a file back. Removing them from the community stops the relay serving it to them, not the copies they saved. Newer relay images can limit files to their channels (<a href="https://github.com/block/buzz/pull/9077">block/buzz#9077</a>); the image this guide installs is older, and the setting starts off. Until it's on and checked, keep files that not every member may see out of Buzz.`,
+            `Files are shared with the whole community, not one channel. Any member with a file's link can open it, even from a private channel or a direct message they're not in. A link can't be guessed, but removing someone from a channel, or deleting the message, doesn't take a file back. Removing them from the community stops the relay serving it to them, not the copies they saved. The relay this guide installs can limit files to their channels (<a href="https://github.com/block/buzz/pull/9077">block/buzz#9077</a>), but that setting starts off, and turning it on is a rollout of its own. Until it's on and checked, keep files that not every member may see out of Buzz.`,
           ) +
           // block/buzz#8376's buzz_relay::access lines, at info in the bundle's RUST_LOG
           note("The relay's log names each member, by their public key, with what they read, so treat logs like the data."),

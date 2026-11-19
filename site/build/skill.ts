@@ -407,6 +407,9 @@ const SECURITY_SAYS = [
   "Any member can read an open channel, its whole history included, and can see who else is a member",
   "who has its link",
   "A private community needs the same care with less urgency",
+  // the Agents answers' "One agent per audience" (src/scenes/agents.ts) rests on these two
+  "Give each audience its own agent",
+  "can repeat it in an open channel or a direct message, asked plainly or tricked",
 ];
 function securityClaims(dir: string): void {
   const text = readFileSync(join(dir, "references", "security.md"), "utf8").replace(/\s+/g, " ");
@@ -443,6 +446,13 @@ const AGENTS_SAYS = [
   "This is the agent mark",
   "Buzz never sets it on its own agents",
   "Buzz on phones doesn't read the flag",
+  // "How should we run agents?": its three cards
+  "Decide who an agent works for before setting it up",
+  "It gets in through your membership and takes requests only from you",
+  "that answers the people you list",
+  "It belongs in open channels only",
+  "Buzz on phones [tags everyone in a direct message]",
+  "`buzz channels set-add-policy --policy anyone` publishes that profile",
 ];
 /** A Markdown table's rows, header and rule left out, as inline HTML cells. */
 function tableRows(markdown: string, cells: number, where: string): string[][] {

@@ -1,7 +1,7 @@
 # Decisions
 
 What was decided for the guide and the skill, and why. Facts behind these are in
-[research.md](research.md). Last updated 2026-11-13.
+[research.md](research.md). Last updated 2026-11-18.
 
 ## The public domain moves (2026-11-11)
 
@@ -50,9 +50,9 @@ done: the work they call for is listed where it is still owed.
   shut, since it holds the private key, and Moderation shows for relay staff only. What was seen
   is in [research.md](research.md).
 - **Invite links first.** The people answer and the skill lead with a link that expires after a
-  day and is limited to the people expected. Adding by npub follows: from the server's command
-  line, which works in every version, or with Add directly, which Buzz 1.0.0 has and preview
-  builds after it hide.
+  day and is limited to the people expected. Adding by npub follows, from the server's command
+  line: Add directly is only in Buzz 1.0.0, and every release since 1.0.1 hides it, not only
+  preview builds (corrected 2026-11-18).
 - **The relay moves to 0.3.0 before launch.** Done on 2026-11-12, as recorded in the next section:
   the test harness takes the release tag, and the five prepared runs in
   [tests/README.md](../tests/README.md) were run. During the public
@@ -119,6 +119,25 @@ done: the work they call for is listed where it is still owed.
   "We tested these steps", "We have not tested buzz-acp", and two phrases from agents.md, through
   `CURRENT` in `site/build/skill.ts`). `agents.md` keeps its test notes for agents, and
   `docs/remote-agent-test.md` keeps the record.
+- **Checked against Buzz 1.0.5, and what a community's first week added (2026-11-18).** Two
+  source checks compared every claim with Buzz 1.0.5 (the release most people run), the phone app
+  (mobile-v1.1.0-rc.3), relay 0.3.0 and main. Corrected: no release since 1.0.1 has Add directly,
+  so the guide sends npubs to the server and draws Membership's Members and Invite tabs; opening
+  the Invite tab makes a link, and each change makes another; without the moderation console the
+  owner or an admin still moderates with the `buzz` command line; phones tag everyone in a direct
+  message, and show a key as an agent once it publishes an agent profile (`buzz channels
+  set-add-policy`); relay 0.3.0 can already limit files to their channels, with the setting off;
+  `buzz-acp` has four `--respond-to` choices; Block publishes a rolling `sprig-latest` build; the
+  phone notes link to the pin and record the 2026-11-12 notification test. From a self-hosted
+  community's first week on Buzz, the owner chose five additions: phones need open channels named
+  `general` and `welcome-everyone` (the iPhone app creates any that's missing, and the join fails
+  if it can't); one agent per audience; approving each agent with `BUZZ_ALLOW_NIP_OA_AUTH=false`;
+  anyone in a private channel can add people to it; and a newcomer's test before launch. "How
+  should we run agents?" now starts from who the agent works for (you, your team, the public
+  in an open community), the owner's pick of three options, and its click-through of creating an agent moved
+  to "What should we tell an agent?". App bugs, feature requests and that community's own setup
+  stay out. Not yet released: on main, an agent with a known owner stops posting in most direct
+  messages (block/buzz#9371), so the direct-message lines need another look when the pin moves.
 
 ## The relay moves to 0.3.0 (2026-11-12)
 
@@ -151,10 +170,9 @@ in [research.md](research.md).
   for one node, says what happens with more, and names Block's setting for more nodes,
   `persistence.git.enabled: false`, as not tested here.
 
-Open, for the owner:
-
-- **One line of site copy.** `site/src/scenes/faq.ts` says the image this guide installs is older
-  than the one that can limit files to their channels. With 0.3.0 that is no longer true.
+- **One line of site copy.** `site/src/scenes/faq.ts` said the image this guide installs is older
+  than the one that can limit files to their channels. With 0.3.0 that is no longer true: fixed
+  on 2026-11-18, in `security.md` too.
 
 ## Security redrawn, and what an independent review corrected (2026-11-11, draft)
 

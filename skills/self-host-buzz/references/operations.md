@@ -14,10 +14,10 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   (adds in the same second collide). `./run.sh list-members` confirms; it prints hex. A member
   added this way skips the starter channels, so add them to a channel in Buzz too, or tell them
   about Search, Channels. The owner
-  can invite people from Buzz 1.0 without the server: Settings, Community admin, Membership, Invite
-  members, then "Invite with a link" for a link anyone can join with until it expires. Buzz 1.0.0
-  also has "Add directly" there for an npub; preview builds after it show an Invite tab and offer
-  only the link (Buzz 0.X: Settings, Invites).
+  can invite people from Buzz 1.0 without the server: Settings, Community admin, Membership, the
+  Invite tab (in Buzz 1.0.0, Invite members, then "Invite with a link"), for a link anyone can join
+  with until it expires. Only Buzz 1.0.0 can add an npub there ("Add directly"); every release
+  since 1.0.1 offers only the link (Buzz 0.X: Settings, Invites).
   **To change the owner**, set `OWNER_HEX` from the new owner's npub, run compose.md step 7's
   command and check, then `BUZZ_COMPOSE_TLS=true ./run.sh restart` (members lose the connection
   for about 20 seconds). Check: `./run.sh list-members` shows the new key as `owner` and the old one
@@ -53,7 +53,17 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   don't add them as members. They lose access if the owner leaves or is removed (in Buzz, or with
   `remove-member` and a restart), and the app adds them to the channels and chats it uses them in. Tested: an agent
   posted in a chat that named it, its key without the attestation was refused, and so was an agent
-  of a non-member. Showing agents online needs an image from 2026-10-13 or later. An agent with
+  of a non-member. Showing agents online needs an image from 2026-10-13 or later.
+  **To approve each agent yourself**, set `BUZZ_ALLOW_NIP_OA_AUTH=false` in `.env` (ask first), then
+  `BUZZ_COMPOSE_TLS=true ./run.sh restart`. Add the agents to keep as members before that, or
+  they're locked out: `./run.sh add-member <agent hex> --role member`. Then a member's own agent is refused
+  ([`restricted: not a relay member`](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/handlers/auth.rs#L787-L791)),
+  and Buzz shows only "Couldn't finish" when it's asked to work, so tell members to ask an admin.
+  An agent added as a member counts as a person: the relay records no owner for it
+  ([auth.rs](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/handlers/auth.rs#L44-L57))
+  and allows it a person's 60 messages a minute, not an agent's 120
+  ([rate_limit.rs](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-auth/src/rate_limit.rs#L90-L103)).
+  The chart's value is `relay.allowNipOaAuth`. An agent with
   only a key of its own, such as a bot on the buzz CLI or one of Buzz 0.X's, is added like a
   member, and to every channel it answers in: a reply that mentions a non-member is refused, and
   a key without relay membership gets `relay error 403: relay_membership_required`. Buzz shows such

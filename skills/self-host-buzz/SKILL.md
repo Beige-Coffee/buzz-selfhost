@@ -232,24 +232,35 @@ community, whose box takes an address but not an invite link.
 (https://self-host.buzz/skills/self-host-buzz/scripts/new-identity.py), or with a
 Builderlab account, which is Block's: Create account on Buzz's first screen asks for their details,
 and Block can keep a copy of the key. The owner invites them from Buzz 1.0 with a link: Settings,
-Community admin, Membership, Invite members, then "Invite with a link" and Copy link. Anyone with
-the link can join until it expires: they paste it into Other options' "Community address or invite
-link", or open it and choose Accept invite in Buzz. To add someone without a link, they send the
-owner their npub: the script prints it, and Buzz 1.0 shows it on "This community needs an invite"
-before they've joined, and in Settings, Identity after. The owner adds it from the server
-([operations.md](references/operations.md)), or in Buzz 1.0.0 with "Add directly" in the same
-dialog. Preview builds after 1.0.0 show Members and Invite tabs in Membership and offer only the
-link. In Buzz 0.X, the same things are in Settings, Invites. `Relay request failed (403)` in
+Community admin, Membership, the Invite tab, then Copy link (in Buzz 1.0.0: Invite members, then
+"Invite with a link"). Anyone with the link can join until it expires: they paste it into Other
+options' "Community address or invite link", or open it and choose Accept invite in Buzz. To add
+someone without a link, they send the owner their npub: the script prints it, and Buzz 1.0 shows it
+on "This community needs an invite" before they've joined, and in Settings, Identity after. The
+owner adds it from the server ([operations.md](references/operations.md)): no Buzz release since
+1.0.1 can add an npub
+([features.ts](https://github.com/block/buzz-app/blob/f315ef59b87160d23f5789f4e1458d753674cd8a/src/bundled/moderation/features.ts#L2)),
+and Buzz 1.0.0 did it with "Add directly". In Buzz 0.X, the same things are in Settings, Invites. `Relay request failed (403)` in
 Buzz 1.0, or `Not a member yet` in Buzz 0.X, means the relay works but doesn't know that identity
 ([troubleshooting](references/troubleshooting.md)).
 
 New members join any starter channel an owner or admin turns on: Starter channel for new members,
-in a public channel's settings. That covers invite links and Add directly; people added with
-`add-member` from the server's command line aren't added to it. Everyone finds open channels in
-Search, Channels. Opening Invite members, or the Invite tab in later builds, makes a link at once,
-valid for 3 days with no use limit, and each change of its expiry or use limit makes another. This
-guide has no single-link cancellation procedure; banning an issuer revokes its v2 links, while
+in a public channel's settings. That covers invite links (and Buzz 1.0.0's Add directly); people
+added with `add-member` from the server's command line aren't added to it. Everyone finds open
+channels in Search, Channels. Opening the Invite tab (Invite members in Buzz 1.0.0) makes a link at
+once, valid for 3 days with no use limit, and each change of its expiry or use limit makes another.
+This guide has no single-link cancellation procedure; banning an issuer revokes its v2 links, while
 legacy links differ. For one person choose 1 use and 1 day.
+
+**Before anyone joins by phone.** After someone joins with an invite link, Buzz on iPhone looks for
+open channels named exactly `general` and `welcome-everyone`, and creates any that's missing, which
+makes that person its owner
+([the app's setup](https://github.com/block/buzz/blob/5bfbda4c3355771601b921f90d8941a7c80c9899/mobile/lib/app.dart#L139-L215)).
+If the relay refuses, their join stops at "Starter channels could not be set up". So before the
+first invite, the owner creates both in Buzz as open channels, not forums, and turns on Starter
+channel for new members in both. Keep them unarchived, and give a private channel another name: a
+private `general` makes the phone add an open one beside it, and an archived channel or a forum with
+either name can stop the join. Pairing a phone from the desktop app doesn't run this.
 
 **Removing people.** Remove someone in Buzz 1.0 (Settings, Community admin, Membership, the … on
 their row, Remove): that also disconnects them and their agents. `./run.sh remove-member` only

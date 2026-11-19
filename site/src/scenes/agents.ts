@@ -6,9 +6,9 @@ import { esc, fillRich } from "../lib/values";
 import { BUZZ_ROBOT, TABLER } from "./tabler";
 
 /**
- * The Agents answers in Running your relay, after "How should we run agents?" (faq.ts): what to
- * tell an agent, which harness to pick, keeping one answering, keeping it safe, and an agent on your
- * own server. Each leads with the recommendation, then one drawing.
+ * The Agents answers in Running your relay: how to run agents (who each works for), what to tell an
+ * agent, which harness to pick, keeping one answering, keeping it safe, and an agent on your own
+ * server. Each leads with the recommendation, then one drawing.
  *
  * The steps, commands, tables and the example instruction come from the skill's agents.md, parsed
  * at build time (build/skill.ts, SkillAgents), so the page and the skill can't say different
@@ -28,16 +28,19 @@ const OWN: Record<string, string> = {
   robot: BUZZ_ROBOT,
   login: `<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 16l4-4-4-4"/><path d="M14 12H4"/>`,
   tag: `<path d="M4 7.5V12a2 2 0 0 0 .6 1.4l6.8 6.8a2 2 0 0 0 2.8 0l5-5a2 2 0 0 0 0-2.8L12.4 5.6A2 2 0 0 0 11 5H6.5A2.5 2.5 0 0 0 4 7.5z"/><path d="M8.5 9.5h.01"/>`,
+  // Tabler's world
+  world: `<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M3.6 9h16.8"/><path d="M3.6 15h16.8"/><path d="M11.5 3a17 17 0 0 0 0 18"/><path d="M12.5 3a17 17 0 0 1 0 18"/>`,
 };
 const icon = (n: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${OWN[n] ?? TABLER[n]}</svg>`;
 
 /** A part of a long answer: a heading with its own link, #<answer>-<part>, which faq.ts opens. */
 const part = (id: string, title: string) => `<h4 class="ga-h" id="${id}">${title}${linkButton(`#${id}`, "Copy a link to this part")}</h4>`;
 
-/** faq.ts's own pieces, so every answer looks alike. */
+/** faq.ts's own pieces, so every answer looks alike: ct places one of its click-throughs of Buzz. */
 export interface AnswerKit {
   rec: (t: string) => string;
   note: (t: string) => string;
+  ct: (name: string) => string;
 }
 /** A link to another answer in Running your relay. */
 const go = (id: string, text: string) => `<a href="#operations" data-q-link="${id}">${text}</a>`;
@@ -47,6 +50,23 @@ const flow = (rows: AgentStep[]) =>
   `<ol class="opx-flow ga-flow">${rows
     .map((s, i) => `<li><span class="opx-flow-n">${i + 1}</span><div><p class="opx-flow-t">${s.title}</p><div class="opx-flow-d tl-md">${fillRich(s.html)}</div></div></li>`)
     .join("")}</ol>`;
+
+/* ── How should we run agents? ── */
+
+/**
+ * Three agents, by who they work for, as agents.md's opening list has them: where each runs, who can
+ * ask it, how it gets in and where it belongs, with the answer that says how.
+ */
+const WHO_ROWS = ["Runs on", "Who can ask", "Gets in", "Belongs in"];
+const who = (i: string, title: string, cells: string[], link: string, cls = "") =>
+  `<div class="ga-who-c${cls}"><p class="ga-who-h"><i>${icon(i)}</i>${title}</p><dl>${cells
+    .map((c, n) => `<div><dt>${WHO_ROWS[n]}</dt><dd>${c}</dd></div>`)
+    .join("")}</dl>${link}</div>`;
+const WHO = () => `<div class="fq-vis ga-who">
+  ${who("user", "For you", ["A computer that stays on, with Buzz open", "Only you", "Through your membership", "The channels you add it to"], go("agent-on", "Keep it answering →"))}
+  ${who("users", "For your team", ["Your own server, as a program you run", "The people you list", "Added as a member, on the server", "Your team's channels"], go("agent-remote", "Run one on your server →"))}
+  ${who("world", "For the public", ["A machine with nothing private on it", "Anyone who mentions it", "Added as a member, on the server", "Open channels only"], go("agent-safe", "Keep it safe →"), " open")}
+</div>`;
 
 /* ── What should we tell an agent? ── */
 
@@ -87,6 +107,8 @@ const RISKS = `<div class="fq-vis"><ul class="fq-check">${[
   risk("user", "It takes requests from its owner", "Other people can't start its work. It still reads what they post, and that text can steer it. An ownership proof you make for an outside agent lets that agent ask too."),
   risk("device-desktop", "A machine of its own", `For a community anyone can join, keep personal accounts, private repositories and production credentials off the agent's computer. <a href="#security">Drawn in Security</a>.`),
   risk("eye", "What it reads leaves the computer", "It goes to the model's provider. Keep agents out of channels whose content shouldn't reach that computer or the provider."),
+  // security.md: Give each audience its own agent (block/buzz-app docs/practical-information-flow-for-buzz-agents.md is a draft)
+  risk("users", "One agent per audience", "An agent that reads a private channel can repeat it in an open channel or a direct message, asked plainly or tricked. Buzz doesn't stop that yet. Keep the agent that serves an open channel out of private ones."),
   risk("download", "Plugins are code", `Install only plugins you trust. A plugin is unsandboxed code, and <a href="https://buzz.xyz/support">Block's support page</a> says one can reach your files and your Buzz private key.`),
 ].join("")}</ul></div>`;
 
@@ -107,7 +129,7 @@ const MARKED = `<div class="fq-vis ga-mark">
     <pre class="ga-ev"><i>its profile, kind 0</i>
 "tags": <s>[]</s>
 "content": {"name": "Helper"}</pre>
-    <p class="ga-mk-f">No proof tag on its profile. Buzz shows a person, so a direct message never tags it and it never wakes.</p></div>
+    <p class="ga-mk-f">No proof tag on its profile. Buzz shows a person, and a direct message from Buzz on desktop never tags it, so it doesn't wake.</p></div>
 </div>`;
 
 /** What Buzz needs before it treats a program on your own server as your agent, from agents.md, in its order. */
@@ -131,14 +153,26 @@ const SYMPTOMS = () => `${part("agent-remote-fixes", "Shows as a person, or neve
 
 const WARN = `<div class="ga-warn" id="agent-remote-proof">${icon("alert")}<p><b>The proof can't be taken back.</b>${linkButton("#agent-remote-proof", "Copy a link to this part")} It never expires, and it isn't tied to one community. Whoever holds the agent's key and the proof can act as your agent, and your own Buzz agents take requests from it. Keep that key on the agent's server, and make a proof only for a key you made. If the key leaks, ${go("moderate", "ban it")}.</p></div>`;
 
-export function agentQuestions({ rec, note }: AnswerKit) {
+export function agentQuestions({ rec, note, ct }: AnswerKit) {
   return [
+    {
+      id: "agents",
+      icon: "robot",
+      q: "How should we run agents?",
+      a: () =>
+        rec("Decide who the agent works for first. That settles where it runs, who can ask it for things, and which channels it belongs in.") +
+        WHO() +
+        note("<b>One agent per audience.</b> An agent that reads a private channel can repeat it anywhere it posts, and Buzz doesn't stop that yet.") +
+        // block/buzz-app v1.0.5, src/features/agents/owner-attestation.ts: only the owner's messages start an agent's work
+        note(`An agent made in Buzz answers only its owner. A helper others can ask is a program you run: Buzz has no built-in one yet. Then: ${go("agent-brief", "what to tell it")} and ${go("agent-model", "which harness and model")}.`),
+    },
     {
       id: "agent-brief",
       icon: "message-circle",
       q: "What should we tell an agent?",
       a: () =>
         rec("Write a few plain sentences in Instructions: what the agent is for, what it must ask you first, and how it reports back. Leave out how to behave in a channel. Buzz already tells every agent that.") +
+        ct("agents") +
         INSTRUCTIONS() +
         note("Instructions shape how the agent answers. They don't give it tools, logins or permissions.") +
         note("Write them when you create the agent, or later: <b>Agents</b>, the agent, then its <b>Identity</b> tab.") +
@@ -184,7 +218,7 @@ export function agentQuestions({ rec, note }: AnswerKit) {
       q: "How do we run an agent on our own server?",
       a: () =>
         `<p class="ga-status">${icon("alert")}Not built into Buzz yet</p>` +
-        rec("Give the agent a key of its own, sign it in with your ownership proof, and publish its profile with that proof. The proof on its profile is the agent mark: without it, Buzz shows a person and never wakes it.") +
+        rec("Give the agent a key of its own, sign it in with your ownership proof, and publish its profile with that proof. The proof on its profile is the agent mark: without it, Buzz shows a person, and direct messages from desktop don't wake it.") +
         NEEDS() +
         MARKED +
         note("Buzz has no built-in way to run an agent on your own server yet. Block ships the two pieces it takes: a key authorization in Settings, and the <code>buzz</code> command.") +
@@ -193,8 +227,8 @@ export function agentQuestions({ rec, note }: AnswerKit) {
         MESSAGES() +
         SYMPTOMS() +
         WARN +
-        note("Who the agent answers is up to the program you run. Block's own, <code>buzz-acp</code> in its relay's source, hands mentions to Goose, Codex or Claude. It answers only its owner unless you start it with <code>--respond-to anyone</code> or an allowlist. Without the proof, or <code>--agent-owner</code>, it has no owner, so it answers nobody.") +
-        note(`A helper that answers everyone needs no proof. Add its key as a member (${go("add", "How should we add people?")}), and have its own client publish its profile with <code>"is_agent": true</code> in the content. Buzz on desktop shows it as an agent with no owner, and nothing it does acts for you. Buzz on phones doesn't read the flag: there it shows as an agent only in channels where it has the bot role. The <code>buzz</code> command has no option for that field.`),
+        note("Who the agent answers is up to the program you run. Block's own, <code>buzz-acp</code> in its relay's source, hands mentions to Goose, Codex or Claude. It answers only its owner unless you start it with <code>--respond-to anyone</code> or an allowlist. Without the proof, or <code>--agent-owner</code>, it has no owner: by default it then answers nobody, and with <code>--respond-to anyone</code> it answers anyone's mentions in channels, but no direct messages.") +
+        note(`A helper that answers everyone needs no proof. Add its key as a member (${go("add", "How should we add people?")}), and have its own client publish its profile with <code>"is_agent": true</code> in the content. Buzz on desktop shows it as an agent with no owner, and nothing it does acts for you. The <code>buzz</code> command has no option for that field. Buzz on phones doesn't read the flag: it shows the helper as an agent once the helper publishes an agent profile, which <code>buzz channels set-add-policy --policy anyone</code> does, also letting any member add it to a channel.`),
     },
   ];
 }

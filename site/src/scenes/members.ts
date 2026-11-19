@@ -4,13 +4,15 @@ import { joinCard } from "./joinmock";
 import { BUZZ_ROBOT, TABLER } from "./tabler";
 
 /**
- * Managing people, as click-throughs of Buzz 1.0's own screens, in light mode: four flows, each
- * starting from the profile menu. Drawn from block/buzz-app as released in v1.0.0: the
- * window with its dock (#2626: src/app/shell/AppShell.tsx, presentation.ts, ProfileButton.tsx and its
- * .module.css, src/features/communities/CommunityPicker.tsx, src/shared/styles/globals.css), Settings
- * (src/app/settings-sections.ts), Membership, its row menu, the confirmations and "Add or invite people"
- * (src/bundled/moderation/CommunityAdmin.tsx, api.ts allowedActions), and first run's Join a community
- * (joinmock.ts). Icons are Buzz's own: Tabler's outline set, and its robot for agents. Names are
+ * Managing people, as click-throughs of Buzz 1.0's own screens, in light mode: three flows, each
+ * starting from the profile menu. Drawn from block/buzz-app: the window with its dock (v1.0.0, #2626:
+ * src/app/shell/AppShell.tsx, presentation.ts, ProfileButton.tsx and its .module.css,
+ * src/features/communities/CommunityPicker.tsx, src/shared/styles/globals.css), Settings
+ * (src/app/settings-sections.ts), and Membership as v1.0.5 draws it: its Members and Invite tabs, the
+ * Invite tab's link, code and choices, the row menu and the confirmations
+ * (src/bundled/moderation/CommunityAdmin.tsx, api.ts allowedActions). Since v1.0.1 there is no Add
+ * directly (moderation/features.ts), so an npub is added on the server. First run's Join a community is
+ * joinmock.ts. Icons are Buzz's own: Tabler's outline set, and its robot for agents. Names are
  * illustrative.
  */
 
@@ -83,21 +85,51 @@ const nav = communityNav("Membership");
 
 type Spot = "invite" | "dots" | "make-admin" | "remove" | "";
 const pic = (src: string) => `<img src="${src}" alt="">`;
-const row = (av: string, name: string, npub: string, role: string, badge: string, dots: boolean, spot: Spot) =>
-  `<div class="mb-row"><span class="mb-av">${av}</span><span class="mb-who"><b>${name} · <em>${npub}</em>${badge}</b><small>${role}</small></span>${
+/** A member's row, as v1.0.5 lists it: picture, name and role mark, the … menu, then the role. */
+const row = (av: string, name: string, role: string, badge: string, dots: boolean, spot: Spot) =>
+  `<div class="mb-row"><span class="mb-av">${av}</span><span class="mb-who"><b>${name}${badge}</b></span>${
     dots ? `<span class="mb-dots${spot === "dots" ? " hot" : spot === "make-admin" || spot === "remove" ? " open" : ""}">${ti("dots")}</span>` : ""
-  }</div>`;
-const membership = (spot: Spot) => `<section class="mb-page">
-  <h5>Membership</h5>
+  }<small class="mb-role">${role}</small></div>`;
+/** Membership's two tabs since v1.0.1: Members, and Invite, which makes a link as soon as it opens. */
+const tabs = (on: "members" | "invite", spot: Spot) =>
+  `<p class="mb-tabs"><span class="${on === "members" ? "on" : ""}">Members</span><span class="${on === "invite" ? "on" : ""}${ring(spot === "invite")}">Invite</span></p>`;
+const head = (on: "members" | "invite", spot: Spot) => `<h5>Membership</h5>
   <p class="mb-sub">Manage members and access to ${HOST}.</p>
-  <div class="mb-btns"><span class="mb-btn">Refresh</span><span class="mb-btn dark${ring(spot === "invite")}">Invite members</span></div>
-  <h6>Members <em>3</em></h6>
+  ${tabs(on, spot)}`;
+const membership = (spot: Spot) => `<section class="mb-page">
+  ${head("members", spot)}
+  <div class="mb-find-row"><p class="mb-search">${ti("search")}Search members</p><span class="mb-btn">Refresh</span></div>
+  <h6>Members · <em>3</em></h6>
   <div class="mb-box">
-    <p class="mb-search">${ti("search")}Search members</p>
-    ${row(pic(maya), "Maya", "npub1…7x2a", "Owner · You", ti("crown"), false, spot)}
-    ${row("<i>S</i>", "Sam", "npub1…hgjq", "Admin", ti("shield"), true, spot)}
-    ${row(pic(leo), "Leo", "npub1…9vlx", "Member", "", true, spot)}
+    ${row(pic(maya), "Maya", "Owner · You", ti("crown"), false, spot)}
+    ${row("<i>S</i>", "Sam", "Admin", ti("shield"), true, spot)}
+    ${row(pic(leo), "Leo", "Member", "", true, spot)}
     ${spot === "make-admin" || spot === "remove" ? `<div class="mb-rmenu"><p class="${ring(spot === "make-admin")}">${ti("shield")}Make admin</p><p class="${ring(spot === "remove")}">${ti("minus")}Remove</p></div>` : ""}
+  </div>
+</section>`;
+/** The use limit as the menu words it: No limit, or 1 use, 5 uses and so on. */
+const usesLabel = (uses: string) => (/^\d+$/.test(uses) ? `${uses} ${uses === "1" ? "use" : "uses"}` : uses);
+/** A QR code's look, not a working code: three corner squares and a fixed scatter of dots. */
+const QR = (() => {
+  const n = 21;
+  const finder = (x: number, y: number) => `<path d="M${x} ${y}h7v7h-7z M${x + 1} ${y + 1}v5h5v-5z M${x + 2} ${y + 2}h3v3h-3z" fill-rule="evenodd"/>`;
+  const inFinder = (x: number, y: number) => (x < 8 && y < 8) || (x > 12 && y < 8) || (x < 8 && y > 12);
+  let dots = "";
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (!inFinder(x, y) && (x * 7 + y * 13 + x * y) % 5 < 2) dots += `M${x} ${y}h1v1h-1z`;
+  return `<svg class="mb-qr-code" viewBox="-1 -1 23 23" aria-hidden="true">${finder(0, 0)}${finder(14, 0)}${finder(0, 14)}<path d="${dots}"/></svg>`;
+})();
+/** The Invite tab (v1.0.5): the code and Share, the link with Copy link, then Expires after and Max uses. */
+const invitePage = (spot: "copy" | "", expiry: string, uses: string) => `<section class="mb-page">
+  ${head("invite", "")}
+  <div class="mb-inv">
+    <div class="mb-qr">${QR}<span class="mb-btn">Share</span></div>
+    <div class="mb-inv-r">
+      <div class="mb-line"><span class="mb-in"><span class="mono">${LINK}</span><span class="mb-copy${ring(spot === "copy")}">Copy link</span></span></div>
+      <div class="mb-grp">
+        <p class="mb-opt">Expires after<span class="mb-choice${expiry === "3 days" ? "" : " set"}">${expiry}${ti("chevron-down")}</span></p>
+        <p class="mb-opt">Max uses<span class="mb-choice${uses === "No limit" ? "" : " set"}">${usesLabel(uses)}${ti("chevron-down")}</span></p>
+      </div>
+    </div>
   </div>
 </section>`;
 /** Settings, a modal over the app: its column, a page, and anything open over it. */
@@ -109,22 +141,10 @@ export const settingsModal = (navHTML: string, page: string, over = "") => `<div
 </div>`;
 export const settings = (spot: Spot, over = "") => settingsModal(nav, membership(spot), over);
 
+/** Settings open at Membership's Invite tab, with a link set this way. */
+export const invite = (spot: "copy" | "", expiry = "3 days", uses = "No limit") => settingsModal(nav, invitePage(spot, expiry, uses));
+
 /* ── dialogs over Settings ── */
-/** The use limit as the menu words it: No limit, or 1 use, 5 uses and so on. */
-const usesLabel = (uses: string) => (/^\d+$/.test(uses) ? `${uses} ${uses === "1" ? "use" : "uses"}` : uses);
-export const invite = (spot: "add" | "copy", expiry = "3 days", uses = "No limit") => `<div class="mb-shade on-modal"></div>
-<div class="mb-dlg">
-  <div class="mb-dlg-h"><b>Add or invite people</b><span class="mb-x">${ti("x")}</span></div>
-  <p class="mb-sub">Share a link someone can use to join, or add them by their exact identity.</p>
-  <h6>Invite with a link</h6>
-  <p class="mb-sub">Anyone with this link can use it to join until it expires.</p>
-  <div class="mb-line"><span class="mb-in"><span class="mono">${LINK}</span><span class="mb-copy${ring(spot === "copy")}">Copy link</span></span></div>
-  <p class="mb-opt">Expires after<span class="mb-choice${expiry === "3 days" ? "" : " set"}">${expiry}${ti("chevron-down")}</span></p>
-  <p class="mb-opt">Max uses<span class="mb-choice${uses === "No limit" ? "" : " set"}">${usesLabel(uses)}${ti("chevron-down")}</span></p>
-  <h6>Add directly</h6>
-  <p class="mb-sub">Paste the person's npub or 64-character public key.</p>
-  <div class="mb-line"><span class="mb-in">${spot === "add" ? `<span class="typed">npub1qk3f8w…7x2a</span>` : `<span class="ph">npub1… or public key</span>`}<span class="mb-choice">Member${ti("chevron-down")}</span></span><span class="mb-btn${spot === "add" ? " dark hot" : " off"}">Add member</span></div>
-</div>`;
 /** The confirmation, as CommunityAdmin.tsx words it. */
 export const confirm = (what: "admin" | "remove") => `<div class="mb-shade on-modal"></div>
 <div class="mb-dlg small">
@@ -156,38 +176,24 @@ const OPEN: Step = {
 const MEMBERS = (spot: Spot, t: string): Step => ({ k: "Open Membership", t, frame: settings(spot) });
 
 /**
- * Managing people, in four flows: add by npub, an invite link, a role, removing someone. The FAQ
- * shows the invite link first, set the way it recommends (a short expiry and a use limit). The
- * screens are Buzz 1.0.0's: preview builds after it replace the dialog with Members and Invite tabs
- * and hide Add directly.
+ * Managing people, in three flows: an invite link, a role, removing someone. The FAQ shows the invite
+ * link set the way it recommends (a short expiry and a use limit). Since v1.0.1 Buzz can't add an npub
+ * itself: the FAQ sends that to the server.
  */
 export const peopleFlows = (expiry = "3 days", uses = "No limit"): Flow[] => [
-  {
-    id: "add",
-    label: "Add someone",
-    steps: [
-      OPEN,
-      MEMBERS("invite", "Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite members</b>. Only the owner and admins see Membership."),
-      {
-        k: "Add them by their npub",
-        t: "Paste the npub they send you. As the owner you can pick <b>Member</b> or <b>Admin</b>. Then choose <b>Add member</b>. They're added to each channel with <b>Starter channel for new members</b> on; add them to any other they need.",
-        frame: settings("", invite("add")),
-      },
-    ],
-  },
   {
     id: "link",
     label: "Invite with a link",
     steps: [
       OPEN,
-      MEMBERS("invite", "Under <b>Community admin</b>, choose <b>Membership</b>, then <b>Invite members</b>."),
+      MEMBERS("invite", "Under <b>Community admin</b>, choose <b>Membership</b>, then the <b>Invite</b> tab. Only the owner and admins see Membership."),
       {
         k: expiry === "3 days" ? "Copy the link" : "Set it, then copy it",
         t:
           expiry === "3 days"
             ? "Copy it and send it. Anyone with it can join until it expires: after 3 days unless you pick 1, 7 or 30, and as many times as you allow: no limit, or 1, 5, 10 or 25 uses. A link can't be taken back, so for one person pick 1 use."
-            : `Set <b>Expires after</b> to <b>${expiry}</b> and the use limit to the number of people you expect, then <b>Copy link</b> and send it. Links can't be taken back, and opening this dialog already made one valid for 3 days, so don't open it on a shared screen.`,
-        frame: settings("", invite("copy", expiry, uses)),
+            : `Set <b>Expires after</b> to <b>${expiry}</b> and <b>Max uses</b> to the number of people you expect, then <b>Copy link</b> and send it. Opening the tab made a link valid for 3 days with no use limit, and each change makes another. None can be taken back, so don't open the tab on a shared screen.`,
+        frame: invite("copy", expiry, uses),
       },
       {
         k: "They join",

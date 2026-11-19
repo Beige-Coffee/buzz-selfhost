@@ -9,6 +9,18 @@ start its work, and so does a message that carries the owner's ownership proof. 
 can't start it. A helper that answers every member is a program of your own: see "Run an agent on
 your own server".
 
+Decide who an agent works for before setting it up. That settles where it runs, who can ask it for
+things, and which channels it belongs in:
+
+- **For you.** Make it in Buzz, on a computer that stays on with Buzz open ("Keep an agent
+  answering"). It gets in through your membership and takes requests only from you.
+- **For your team.** A program you run on your own server, with its own key added as a member, that
+  answers the people you list ("Run an agent on your own server"). It belongs in your team's
+  channels.
+- **For the public.** In an open community, the same kind of program, on a machine with nothing
+  private on it, that answers anyone. It belongs in open channels only (security.md, Give each
+  audience its own agent).
+
 ## Tell an agent its job
 
 Buzz 1.0 takes an agent's instructions in **Instructions**: in Create agent (Agents, then Create
@@ -91,7 +103,8 @@ of these hold:
   proof tag on its profile (kind 0) as an agent, names you as its owner, and wakes it for a direct
   message. Without the mark, it shows as a person.
 - **`"is_agent": true` in its profile, if you like.** Next to your proof it adds nothing Buzz reads
-  today. It is the only agent mark for a helper with no proof, and only Buzz on desktop reads it.
+  today. For a helper with no proof it is the mark Buzz on desktop reads; phones read an agent
+  profile instead ("A shared helper needs no proof", below).
 - **A seat in each channel.** It joins an open channel by itself. A member adds it to a private
   one, with the bot role.
 - **It listens for its mentions.** It subscribes to messages that tag its key, and replies in the
@@ -106,8 +119,11 @@ replied, and Buzz showed it as that member's agent. The proof in the test was ma
 formula from a test key, not in Buzz's dialog.
 
 1. **Get the `buzz` command.** It ships inside Buzz 1.0
-   (`/Applications/Buzz.app/Contents/Resources/bin/buzz` on a Mac). On a server, build it from
-   Block's source with `cargo build --release -p buzz-cli` (not tested).
+   (`/Applications/Buzz.app/Contents/Resources/bin/buzz` on a Mac). For a Linux server, Block's
+   rolling [`sprig-latest` release](https://github.com/block/buzz/releases/tag/sprig-latest) has a
+   ready-made program that works as `buzz` and as `buzz-acp`, with no version number. To match the
+   relay this guide installs, build the pinned commit from Block's source instead, with
+   `cargo build --release -p buzz-cli` (not tested).
 2. **Make a key for the agent, on its server.** Each agent gets its own. Never use a person's key.
 
    ```bash
@@ -165,10 +181,12 @@ Buzz on desktop also reads `"is_agent": true`
 ([profiles.ts](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/features/relay/profiles.ts#L74-L76));
 the other two don't, and Buzz never sets it on its own agents. Buzz 1.0.5 reads both the same
 way. A marked agent gets a robot and a rounded-square picture, and its profile shows Managed by
-and the owner. Buzz tags an agent in a one-to-one direct message
+and the owner. Buzz on desktop tags an agent in a one-to-one direct message
 [only when its profile is marked](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/features/relay/messages.ts#L91-L106),
-and a program listening for mentions hears only what is tagged. A bot added as a member with no
-proof on its profile shows as a person, and a direct message never wakes it. Seen in the test.
+and a program listening for mentions hears only what is tagged. Buzz on phones
+[tags everyone in a direct message](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/mobile/lib/features/channels/message_mention_pubkeys.dart#L3-L18).
+A bot added as a member with no proof on its profile shows as a person, and a direct message from
+Buzz on desktop never wakes it. Seen in the test.
 
 **The proof can't be taken back.** It has no expiry, and
 [Block's spec](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/docs/nips/NIP-OA.md#L94-L99)
@@ -185,15 +203,22 @@ someone): a ban on an agent's key
 [its relay's source](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-acp/README.md#L143-L181),
 listens for mentions and hands them to Goose, Codex or Claude. It answers only its owner unless
 started with `--respond-to anyone` or an allowlist, and direct messages only from its owner in any
-case. Without the proof, or `--agent-owner`, it has no owner, so it answers nobody. Not tested.
+case. The choices are `owner-only`, the default, `allowlist`, `anyone` and `nobody`. Without the
+proof, or `--agent-owner`, it has no owner, so by default it answers nobody; with `anyone` it still
+answers anyone's mentions in channels. It takes a `ws://` or `wss://` relay address, not
+`https://`. Not tested.
 
 **A shared helper needs no proof.** An agent that answers everyone reads requests from anyone, so
 keep your proof out of it. Add its key as a member (operations.md, add a member), and have its own
 client publish its profile with `"is_agent": true` in the profile's content. Buzz shows it as an
 agent, with no owner, and nothing it does acts for you. Seen in the test. The `buzz` command has no
-option for that field. Buzz on phones doesn't read the flag: there it shows as an agent only in
-channels where a member added it with the bot role
+option for that field. Buzz on phones doesn't read the flag. It shows the helper as an agent once
+the helper publishes an agent profile
+([the phone's agent list](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/mobile/lib/shared/mentions/agent_identity_provider.dart#L80-L90)),
+and in any channel where a member added it with the bot role
 ([the phone app's source](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/mobile/lib/shared/mentions/agent_identity_provider.dart#L345-L351)).
+`buzz channels set-add-policy --policy anyone` publishes that profile, and lets any member add the
+helper to a channel.
 
 ## The messages
 
@@ -219,6 +244,6 @@ treat a message as their owner's only when it carries it.
 |---|---|
 | It shows as a person | Its newest profile has no proof. Publish the profile again with `BUZZ_AUTH_TAG` set. A later save without it removes the mark, as the test showed: `buzz users set-profile` takes its tags only from `BUZZ_AUTH_TAG`, and keeps only the name, picture, about and nip05, so it also drops `"is_agent"`. |
 | `relay_membership_required`, or `restricted: not a relay member` | The proof wasn't sent, its owner isn't a member, or the relay has `BUZZ_ALLOW_NIP_OA_AUTH` off. |
-| It never answers a direct message | Buzz tags an agent in a direct message only when its profile is marked. Fix the profile. A program that reads its direct-message channel without the `#p` filter sees every message there. |
+| It never answers a direct message | Buzz on desktop tags an agent in a direct message only when its profile is marked; phones tag everyone. Fix the profile. A program that reads its direct-message channel without the `#p` filter sees every message there. |
 | It stopped hearing a channel | The relay closes its subscription when it is removed from a channel (`restricted: channel access revoked`). Subscribe again when the 44100 notice arrives. |
 | `buzz-acp` answers nobody | It answers only its owner, and learns who that is from the proof in `BUZZ_AUTH_TAG`, or from `--agent-owner`. |

@@ -12,7 +12,7 @@ import { communityNav, CURSOR, invite, settings, settingsModal, ti, type Flow } 
  */
 
 const NPUB = "npub1qm…8k3a";
-/** The new key after a lost device: the npub the admin's Add member then pastes (members.ts invite). */
+/** The new key after a lost device: the npub whoever runs the server adds, unless an admin sends a link. */
 const NEW_NPUB = "npub1qk3f8w…7x2a";
 
 /**
@@ -155,7 +155,7 @@ export const lostFlows: Flow[] = [
     steps: [
       { k: "Remove the old key now", t: "An admin opens <b>Membership</b>, the <b>…</b> on the person's row, then <b>Remove</b>. That disconnects the key at once, but an invite link that hasn't expired would still let it back in.", frame: settings("remove") },
       { k: "Make a new key", t: "On the new device, make a new key with the guide's key script. Not the saved copy: whoever has the old device has that key too.", frame: keyScript(NEW_NPUB) },
-      { k: "An admin adds the new npub", t: "Send the npub the script shows to an admin, who adds it: <b>Membership</b>, <b>Invite members</b>, paste it, <b>Add member</b>. Or the admin sends you an invite link set to 1 use.", frame: settings("", invite("add")) },
+      { k: "Get back in with a new link", t: "An admin sends you an invite link set to 1 use and 1 day, from <b>Membership</b>'s <b>Invite</b> tab. Or whoever runs the server adds the npub the script shows: Buzz can't add an npub itself.", frame: invite("copy", "1 day", "1") },
       { k: "Sign in with the new key", t: "On the new device: <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>, and drop in the new key file. Save the new key in your password manager and delete the file, as when you first joined. Then pair the phone again, and start your agents again from the new identity.", frame: connect },
     ],
   },

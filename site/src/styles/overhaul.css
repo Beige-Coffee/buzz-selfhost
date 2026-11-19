@@ -462,3 +462,58 @@
 .ag-fine dd { margin: 2px 0 0; }
 /* Get ready's items are a plain list, not boxes to tick */
 .ag-ready li::before { width: 5px; height: 5px; top: 16px; left: 4px; border: 0; background: rgb(35 30 30 / 35%); }
+
+/* ═══ How should we run agents? Three agents, by who they work for ═══ */
+.ga-who { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.ga-who-c { display: grid; align-content: start; gap: 10px; padding: 14px 14px 12px; border-radius: 14px; background: #fff; border: 1px solid var(--line-2); box-shadow: 0 1px 2px #18140e0d; }
+.ga-who-h { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; }
+.ga-who-h i { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 11px; background: #f4f4f0; }
+.ga-who-c.open .ga-who-h i { background: var(--accent); }
+.ga-who-h svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ga-who-c dl { margin: 0; }
+.ga-who-c dl div { display: grid; gap: 1px; padding: 7px 0; border-top: 1px solid var(--line); }
+.ga-who-c dt { font: 600 10px var(--mono); letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3); }
+.ga-who-c dd { margin: 0; font-size: 13.5px; line-height: 1.4; color: var(--ink); }
+.ga-who-c > a { font-size: 13px; font-weight: 500; }
+
+/* ═══ How should we add people? The two channels phones look for ═══ */
+.fq-starters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.fq-side { display: grid; align-content: start; gap: 2px; padding: 12px 12px 10px; border-radius: 14px; background: #fff; border: 1px solid var(--line-2); }
+.fq-side.bad { border-color: #e7b3b1; }
+.fq-side > .fq-tag { justify-self: start; margin-bottom: 6px; }
+.fq-ch { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; align-items: center; margin: 0; padding: 7px 8px; border-radius: 9px; font-size: 13.5px; }
+.fq-ch:nth-child(even) { background: #f7f7f4; }
+.fq-ch svg { width: 15px; height: 15px; fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fq-ch em { font: 500 11px var(--mono); font-style: normal; color: var(--ink-3); white-space: nowrap; }
+.fq-ch.st em { padding: 1px 7px; border-radius: 99px; background: var(--accent); color: var(--ink); }
+.fq-side.bad .fq-ch { grid-template-columns: 16px minmax(0, 1fr); row-gap: 2px; }
+.fq-side.bad .fq-ch em { grid-column: 2; justify-self: start; white-space: normal; color: #9e2f2a; }
+.fq-ch s { color: var(--ink-3); }
+
+/* ═══ How do we moderate? Who lets agents in ═══ */
+.fq-door { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.fq-door > div { display: grid; gap: 8px; align-content: start; padding: 13px 14px; border-radius: 14px; background: #fff; border: 1px solid var(--line-2); }
+.fq-door > div.on { border-color: rgb(215 215 46 / 85%); box-shadow: 0 0 0 3px rgb(215 215 46 / 20%); }
+.fq-door code { justify-self: start; padding: 3px 8px; border-radius: 7px; background: var(--code); font-size: 12px; color: #e9e6df; }
+.fq-door p { margin: 0; font-size: 14px; line-height: 1.45; }
+.fq-door small { font-size: 12.5px; color: var(--ink-3); }
+
+/* ═══ Membership as Buzz 1.0.5 draws it: Members and Invite tabs ═══ */
+.mb-tabs { display: inline-flex; gap: 2px; margin: 8px 0 6px; padding: 2px; border-radius: 999px; background: #f0f0f1; font-size: 11px; }
+.mb-tabs span { padding: 4px 12px; border-radius: 999px; color: #5f5f5f; }
+.mb-tabs span.on { background: #fff; color: #0f0f0f; box-shadow: 0 1px 2px rgb(0 0 0 / 12%); }
+.mb-find-row { display: flex; align-items: center; gap: 6px; }
+.mb-canvas .mb-find-row .mb-search { flex: 1; margin: 0; }
+.mb-role { flex: none; font-size: 10px; color: #5f5f5f; }
+.mb-inv { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 6px; }
+.mb-qr { display: grid; justify-items: center; gap: 8px; }
+.mb-qr-code { width: 84px; height: 84px; padding: 5px; border-radius: 10px; background: #fff; box-shadow: 0 0 0 1px #ececec; fill: #0f0f0f; shape-rendering: crispEdges; }
+.mb-inv-r { display: grid; gap: 8px; min-width: 0; }
+.mb-inv-r > * { min-width: 0; }
+.mb-grp { padding: 2px 10px 6px; border-radius: 12px; background: #f7f7f8; }
+
+@media (max-width: 640px) {
+  .fq-starters, .fq-door { grid-template-columns: minmax(0, 1fr); }
+  .fq-ch { grid-template-columns: 16px minmax(0, 1fr); row-gap: 2px; }
+  .fq-ch em { grid-column: 2; justify-self: start; white-space: normal; }
+}

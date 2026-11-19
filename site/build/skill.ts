@@ -55,12 +55,12 @@ export interface SkillAgents {
   harness: [string, string, string][];
   /** keeping an agent answering: a computer that stays on, with Buzz open */
   stayOn: AgentStep[];
-  /** what Buzz needs before it treats a program on your own server as your agent: the list that opens that section */
+  /** how an agent on your own server works: the list that opens that section */
   needs: AgentStep[];
-  /** an agent on your own server */
+  /** an agent on your own server: your part */
   server: AgentStep[];
-  /** the messages a client of your own sends: step, what to send */
-  messages: [string, string][];
+  /** the prompt that sets it up, for your coding agent, with the skill's $ORIGIN as {{HTTP_ORIGIN}} */
+  prompt: string;
   /** symptom, cause and fix */
   symptoms: [string, string][];
 }
@@ -426,7 +426,6 @@ const AGENT_SECTIONS = [
   "Pick a harness and model",
   "Keep an agent answering",
   "Run an agent on your own server",
-  "The messages",
   "When it shows as a person, or never answers",
 ];
 const AGENTS_SAYS = [
@@ -451,7 +450,13 @@ const AGENTS_SAYS = [
   "It gets in through your membership and takes requests only from you",
   "that answers the people you list",
   "It belongs in open channels only",
-  "Buzz on phones [tags everyone in a direct message]",
+  // "How do we run an agent on our own server?": the answer's own words
+  "one prompt to your coding agent puts them together",
+  "Block publishes it as a",
+  "Tested: the relay then doesn't",
+  "it gets a person's rate limit",
+  "To cut an agent off, delete its",
+  "The agent's own tools can read that key",
   "`buzz channels set-add-policy --policy anyone` publishes that profile",
 ];
 /** A Markdown table's rows, header and rule left out, as inline HTML cells. */
@@ -492,14 +497,17 @@ function agents(dir: string): SkillAgents {
       const rest = head[2].split(/\n\n/)[0].replace(/\n\s+/g, " ").trim();
       return { title: md.parseInline(head[1].replace(/\.$/, "")) as string, html: links(md.parseInline(vars(current(presentation(rest)))) as string, "references") };
     });
-  if (needs.length !== 6) fail(`agents.md: the server section opens with ${needs.length} needs, and the page shows six`);
+  if (needs.length !== 3) fail(`agents.md: the server section opens with ${needs.length} points, and the page shows three`);
+  // the prompt for your coding agent: the section's only text block, its $ORIGIN filled in by the page
+  const prompt = vars(section("Run an agent on your own server").match(/```text\n([\s\S]*?)```/)?.[1].trim() ?? fail('agents.md "Run an agent on your own server": no ```text prompt'));
+  if (/<(?!user>|server IP>|agent name>|its job>|model>)[^>]+>/.test(prompt)) fail("agents.md: the prompt has a <...> that isn't one of the page's blanks (user, server IP, agent name, its job, model)");
   return {
     instruction: example,
     harness: tableRows(section("Pick a harness and model"), 3, "agents.md harness table") as [string, string, string][],
     stayOn: numbered("Keep an agent answering", 4),
     needs,
-    server: numbered("Run an agent on your own server", 7),
-    messages: tableRows(section("The messages"), 2, "agents.md messages table") as [string, string][],
+    server: numbered("Run an agent on your own server", 4),
+    prompt,
     symptoms: tableRows(section("When it shows as a person, or never answers"), 2, "agents.md symptoms table") as [string, string][],
   };
 }
@@ -532,7 +540,7 @@ export function parseSkill(dir: string): SkillData {
   if (charts.size !== 1) fail(`the skill installs ${charts.size ? [...charts].join(" and ") : "no"} chart version: the page shows one`);
   const chart = [...charts][0];
   const data = { steps, fixes: fixes(dir), ops: ops(dir), mobile: referenceSections(dir, "mobile.md"), agents: agents(dir), home: HOME, preparation: toHTML(readFileSync(join(dir, "references", "manual.md"), "utf8").replace(/^# .*\n/, ""), "references"), pin: { tag: tag!, digest: digest!, commit: commit!, chart } };
-  const agentText = [...data.agents.stayOn, ...data.agents.needs, ...data.agents.server].map((x) => x.html).concat(data.agents.instruction, data.agents.harness.flat(), data.agents.messages.flat(), data.agents.symptoms.flat());
+  const agentText = [...data.agents.stayOn, ...data.agents.needs, ...data.agents.server].map((x) => x.html).concat(data.agents.instruction, data.agents.harness.flat(), data.agents.prompt, data.agents.symptoms.flat());
   for (const text of [...data.steps.map((x) => x.html), ...data.ops.map((x) => x.html), ...data.fixes.flatMap((x) => [x.symptom, x.fix]), ...agentText]) {
     const old = text.match(OLD);
     if (old) fail(`the site would show "${old[0]}": add a rule to CURRENT in build/skill.ts (${text.replace(/<[^>]+>/g, "").slice(0, 80)})`);
@@ -553,6 +561,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   console.log(`chart: ${data.pin.chart}`);
   for (const t of TRACKS) console.log(`ops ${t}: ${data.ops.filter((o) => o.tracks.includes(t)).map((o) => `${o.kind}/${o.title}`).join(", ")}`);
   const a = data.agents;
-  console.log(`agents: ${a.instruction.length} instruction lines, ${a.harness.length} harnesses, ${a.stayOn.length} stay-on steps, ${a.needs.length} needs, ${a.server.length} server steps, ${a.messages.length} messages, ${a.symptoms.length} symptoms`);
+  console.log(`agents: ${a.instruction.length} instruction lines, ${a.harness.length} harnesses, ${a.stayOn.length} stay-on steps, ${a.needs.length} needs, ${a.server.length} server steps, a ${a.prompt.split("\n").length}-line prompt, ${a.symptoms.length} symptoms`);
   for (const n of a.needs) console.log(`  need: ${n.title.replace(/<[^>]+>/g, "")} | ${n.html.replace(/<[^>]+>/g, "").slice(0, 90)}`);
 }

@@ -62,3 +62,38 @@ the bot role in a channel; it never reads `is_agent` (`inbox_row.dart`,
 `picture`, `about` and `nip05` (`buzz-sdk` `build_profile`) and takes its tags from
 `BUZZ_AUTH_TAG`, so a later save drops `is_agent`. The proof tag together with `is_agent` was not
 sent in the test; read from the source, Buzz on desktop shows both as an agent with its owner.
+
+# The test of 2026-11-19: one prompt, Buzz's own dialog, a cloud server
+
+What the rewritten "Run an agent on your own server" (agents.md) and its answer on the site rest on.
+
+**Setup.** A test community on a DigitalOcean droplet: relay 0.3.0 (`ghcr.io/block/buzz:0.3.0`,
+Compose, this guide's access settings). Agents on two other droplets (Ubuntu 24.04, x86_64; the
+last one 1 vCPU, 1 GB). Buzz 1.0.5 on a Mac made every ownership proof in Settings, Security,
+Authorize external identity, signed by a real member's identity; each proof was checked offline
+against BIP-340 before use. Sprig from `sprig-latest` (`9bcb3e4` in the morning, `729cb10` by the
+afternoon: the rolling build moved during the test). Model: `anthropic/claude-haiku-4.5` on
+OpenRouter, $0.07 in all. The coding agent was a fresh `claude -p` with only SSH, given the prompt
+and, at its two stops, the proof and "I replied". Every agent key was deleted at the end, with the
+droplets.
+
+| Case | Result |
+|---|---|
+| A key with no proof | `relay error 403: relay_membership_required` |
+| The key with a proof from Buzz's dialog | admitted; `buzz-acp` logs `owner resolved from BUZZ_AUTH_TAG`; the relay records the owner |
+| `buzz users set-profile` with `BUZZ_AUTH_TAG` set | the profile carries the proof; Buzz 1.0.5 shows the agent with the robot and "Agent" |
+| `BUZZ_RELAY_URL` as `https://` or `wss://` for the `buzz` command | both work; `buzz-acp` was given `wss://` |
+| `BUZZ_ALLOW_NIP_OA_AUTH=false`, proof only | `relay_membership_required` |
+| The same, then `./run.sh add-member <agent hex>` | admitted, but the relay records no owner (`users.agent_owner_pubkey` empty; block/buzz#4223) |
+| New message to the agent from Buzz 1.0.5 | refused: "A selected agent is no longer available" (NewMessage.tsx accepts only agents the viewer's Buzz runs or lists) |
+| The agent opens a direct message itself (`buzz dms open`) and posts | the owner sees it under Direct messages; `buzz-acp` subscribes to it on its own; the owner's reply wakes the agent |
+| `BUZZ_AGENT_REQUIRE_REPLY` unset | the turn ran and nothing was posted: the model answered in its own output |
+| Set to 1 | reply posted in about 10 s |
+| A private channel: the owner mentions the agent, Buzz asks "Mention people outside this channel?", Invite | agent added; `buzz-acp` subscribes on its own; replied in the thread |
+| No instructions | asked a question that used its name, it answered "I'm Claude, not Scout" |
+| `BUZZ_ACP_SYSTEM_PROMPT_FILE` with its name and job | "I'm Scout, your server agent. This server runs Ubuntu 24.04.5 LTS." |
+| Loading `agent.env` in a shell (`. agent.env`) | the proof's quotes are stripped; `systemd-run -p EnvironmentFile=` keeps them |
+| `sudo -u buzzagent sh -c 'buzz …'` | `buzz: not found` (sudo resets the path) |
+| Sprig's tarball | its folder is mode 700, so another user gets "Permission denied" until `chmod 755` |
+| Key with `openssl ecparam -name secp256k1` and DER slicing | matched a pure-Python derivation on 150 of 150 random keys |
+| The final prompt, cold, three times as it was refined | the last run, of the text on the site, needed nothing beyond the proof and "I replied": 31 s to the key, 2 min 15 s to "online", answered in the DM |

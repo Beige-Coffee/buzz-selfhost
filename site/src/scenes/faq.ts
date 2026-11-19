@@ -1,7 +1,7 @@
 import skill from "virtual:skill-steps";
 import { linkButton } from "../lib/permalink";
-import { agentFlows } from "./agentflow";
-import { agentQuestions } from "./agents";
+import { agentFlows, remoteFlows } from "./agentflow";
+import { agentQuestions, remotePrompt } from "./agents";
 import { identityFlows, lostFlows } from "./identity";
 import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members";
 import { promptText, runningOnHTML, taskHTML } from "./operations";
@@ -69,6 +69,7 @@ const CLICK_THROUGHS: Record<string, Flow[]> = {
   add: peopleFlows("1 day", "5").filter((f) => f.id === "link"),
   remove: peopleFlows().filter((f) => f.id === "remove"),
   agents: agentFlows,
+  remote: remoteFlows,
 };
 
 /**
@@ -670,7 +671,7 @@ export function mountFaq(host: HTMLElement): void {
     // the upgrade prompt, for your agent
     const copy = t.closest<HTMLButtonElement>(".ag-copy");
     if (copy) {
-      copyText(promptText(trackOf(), "upgrade"), () => {
+      copyText(copy.dataset.prompt === "agent-remote" ? remotePrompt() : promptText(trackOf(), "upgrade"), () => {
         copy.textContent = "Copied";
         window.setTimeout(() => (copy.textContent = "Copy prompt"), 1600);
       });

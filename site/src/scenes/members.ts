@@ -41,7 +41,7 @@ const CHANNEL = `<p class="mb-chan"><span class="mb-stack"><img src="${maya}" al
  * Buzz's window: back and forward and Search across the top; Messages and Agents down the
  * dock, with the community button and your profile picture at its foot; one white panel for the page.
  */
-export const app = (page: Page, main: string, over = "") => `<div class="mb-app">
+export const app = (page: Page, main: string, over = "", side = SIDE) => `<div class="mb-app">
   <div class="mb-hd">
     <div class="b1-lights" aria-hidden="true"><i></i><i></i><i></i></div>
     <span class="mb-hd-nav">${page === "messages" ? ti("layout-sidebar") : ""}${ti("arrow-left")}<i>${ti("arrow-right")}</i></span>
@@ -52,7 +52,7 @@ export const app = (page: Page, main: string, over = "") => `<div class="mb-app"
     <span class="mb-comm">B</span>
     <span class="mb-me"><img src="${maya}" alt=""><i></i></span>
   </div>
-  <div class="mb-panel">${page === "messages" ? SIDE : ""}<div class="mb-main">${main}</div></div>
+  <div class="mb-panel">${page === "messages" ? side : ""}<div class="mb-main">${main}</div></div>
   ${over}
 </div>`;
 

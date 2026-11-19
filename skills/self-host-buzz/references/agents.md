@@ -14,7 +14,7 @@ things, and which channels it belongs in:
 
 - **For you.** Make it in Buzz, on a computer that stays on with Buzz open ("Keep an agent
   answering"). It gets in through your membership and takes requests only from you.
-- **For your team.** A program you run on your own server, with its own key added as a member, that
+- **For your team.** An agent on a server of its own, signed in with your ownership proof, that
   answers the people you list ("Run an agent on your own server"). It belongs in your team's
   channels.
 - **For the public.** In an open community, the same kind of program, on a machine with nothing
@@ -89,161 +89,133 @@ computer:
 Builderlab, and [Block's support page](https://buzz.xyz/support) says the paid ones are available
 in the United States only. Not tested with a self-hosted community.
 
-**A program on your own server**, with no Buzz app: the next section.
+**An agent on your own server**, with no Buzz app: the next section.
 
 ## Run an agent on your own server
 
-Buzz 1.0 has no built-in way to do this, but it works. Buzz treats a program as your agent when all
-of these hold:
+An agent on a server of its own answers all day, with no Buzz app open. Buzz 1.0 has no built-in
+way to do this, but Block ships the pieces, and one prompt to your coding agent puts them
+together. Tested on 2026-11-19 with relay 0.3.0, Buzz 1.0.5 and Block's Sprig build `729cb10` on
+a 1 GB Ubuntu 24.04 server: a fresh `claude -p` given only the prompt below set the agent up, and
+it answered its owner in a direct message and in a channel.
 
-- **Its own key.** Never a person's key.
-- **Your proof at every sign-in.** The relay then lets it in through your membership. Without the
-  proof, its key has to be added as a member.
-- **Your proof on its profile.** This is the agent mark. Buzz on desktop and on phones reads the
-  proof tag on its profile (kind 0) as an agent, names you as its owner, and wakes it for a direct
-  message. Without the mark, it shows as a person.
-- **`"is_agent": true` in its profile, if you like.** Next to your proof it adds nothing Buzz reads
-  today. For a helper with no proof it is the mark Buzz on desktop reads; phones read an agent
-  profile instead ("A shared helper needs no proof", below).
-- **A seat in each channel.** It joins an open channel by itself. A member adds it to a private
-  one, with the bot role.
-- **It listens for its mentions.** It subscribes to messages that tag its key, and replies in the
-  thread with your proof tag.
+How it works:
 
-Block ships the two pieces it takes: Settings, Security, Authorize external identity, which
-[makes an ownership proof for a program that holds its own agent key](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/buzz-help.md#L130-L137),
-and the `buzz` command line. Tested on 2026-11-12 on a local Compose relay with this guide's three
-access settings, using the `buzz` that ships inside Buzz 1.0: an agent with a key of its own and a
-proof from a member signed in, published its profile, joined a channel, read a mention and
-replied, and Buzz showed it as that member's agent. The proof in the test was made with Buzz's
-formula from a test key, not in Buzz's dialog.
+- **Its own key, made on the server.** The key never leaves it. Never use a person's key.
+- **Your ownership proof.** Buzz makes it in Settings, Security, Authorize external identity. The
+  agent signs in with it, so the relay lets it in through your membership, and puts it on its
+  profile. This is the agent mark: Buzz shows it as your agent, and it takes requests from you.
+- **Block's Sprig.** One Linux program that is the `buzz` command, the `buzz-acp` runner that
+  listens for mentions and direct messages, and the `buzz-agent` agent that calls your model, with
+  a shell and the server's files. Block publishes it as a
+  [rolling build of `main`](https://github.com/block/buzz/releases/tag/sprig-latest), with no
+  version number.
 
-1. **Get the `buzz` command.** It ships inside Buzz 1.0
-   (`/Applications/Buzz.app/Contents/Resources/bin/buzz` on a Mac). For a Linux server, Block's
-   rolling [`sprig-latest` release](https://github.com/block/buzz/releases/tag/sprig-latest) has a
-   ready-made program that works as `buzz` and as `buzz-acp`, with no version number. To match the
-   relay this guide installs, build the pinned commit from Block's source instead, with
-   `cargo build --release -p buzz-cli` (not tested).
-2. **Make a key for the agent, on its server.** Each agent gets its own. Never use a person's key.
+The prompt, for your coding agent. Fill in the first lines:
 
-   ```bash
-   python3 $SKILL/scripts/new-identity.py --out ~/helper-agent.key
-   python3 $SKILL/scripts/npub-to-hex.py <the npub it printed>
-   ```
+```text
+Set up an always-on agent for our Buzz community on a Linux server. Run the commands on the server over SSH: ssh <user>@<server IP>
 
-3. **The owner makes the proof**, in their own Buzz: Settings, Security, Authorize external
-   identity. They paste the agent's public key as hex, choose Authorize identity, confirm with
-   Authorize this key, then Copy ownership proof. The proof is a tag,
-   `["auth", "<owner's public key>", "", "<owner's signature>"]`. It isn't a secret, and it is
-   useless without the agent's key.
-4. **Tell `buzz` who it is**, on the server:
+Community address: $ORIGIN
+Agent name: <agent name>
+Its job: <its job>
+Model: OpenRouter, model <model>. The API key is in /root/model.key on the server.
+It answers: only me.
 
-   ```bash
-   export BUZZ_RELAY_URL=$ORIGIN
-   export BUZZ_PRIVATE_KEY="$(cat ~/helper-agent.key)"
-   export BUZZ_AUTH_TAG='<the proof the owner copied>'
-   ```
+Rules: never print, log or send the agent's private key or the model key. Where a step says Stop, stop and wait for me.
 
-5. **Publish its profile.** This is the step that puts the agent mark on it: with `BUZZ_AUTH_TAG`
-   set, `buzz` adds your proof to the profile. It writes only the name, picture, about and nip05,
-   so it can't add `"is_agent"`.
+1. Install Block's Sprig, one program that is the buzz command, the buzz-acp runner and the buzz-agent agent. Download sprig-ARCH-unknown-linux-musl.tar.gz and its .sha256 for the server's architecture (ARCH is x86_64 or aarch64) from https://github.com/block/buzz/releases/download/sprig-latest/, check the checksum, unpack into /opt/sprig, then run `chmod 755 /opt/sprig` and `ln -sf sprig /opt/sprig/buzz`.
+2. Create a system user buzzagent with home /var/lib/buzzagent and no login shell, and a folder /etc/buzz-agent, mode 700, owned by buzzagent. Move the model key into it, mode 600.
+3. Make the agent's own key, in /etc/buzz-agent, with umask 077:
+   openssl ecparam -name secp256k1 -genkey -noout -out agent.pem
+   openssl ec -in agent.pem -outform DER 2>/dev/null | head -c 39 | tail -c 32 | od -An -v -tx1 | tr -d ' \n' > agent.key
+   openssl ec -in agent.pem -pubout -outform DER 2>/dev/null | tail -c 64 | head -c 32 | od -An -v -tx1 | tr -d ' \n' > agent.pub
+   Delete agent.pem, give both files to buzzagent, and show me the public key in agent.pub.
+4. Stop. I will make an ownership proof for that key in Buzz (Settings, Security, Authorize external identity) and paste it here. It is a JSON array of four strings: "auth", 64 hex characters, an empty string, 128 hex characters. Check that, then save it as /etc/buzz-agent/proof.json.
+5. Write /etc/buzz-agent/agent.env, mode 600, owned by buzzagent, one KEY=value per line:
+   BUZZ_RELAY_URL: the community address, with wss:// in place of https://
+   BUZZ_PRIVATE_KEY: the contents of agent.key
+   BUZZ_AUTH_TAG: the proof, on one line
+   BUZZ_ACP_AGENT_COMMAND=buzz-agent
+   BUZZ_ACP_MCP_COMMAND=buzz-dev-mcp
+   BUZZ_ACP_RESPOND_TO=owner-only
+   BUZZ_AGENT_REQUIRE_REPLY=1
+   BUZZ_AGENT_PROVIDER=openrouter
+   OPENROUTER_API_KEY: the model key
+   OPENROUTER_MODEL: the model
+   BUZZ_ACP_SYSTEM_PROMPT_FILE=/etc/buzz-agent/instructions.md
+   For Anthropic use BUZZ_AGENT_PROVIDER=anthropic with ANTHROPIC_API_KEY and ANTHROPIC_MODEL; for OpenAI, openai with OPENAI_COMPAT_API_KEY and OPENAI_COMPAT_MODEL.
+   Then write /etc/buzz-agent/instructions.md, mode 600, owned by buzzagent: "Your name is AGENT NAME. You are my agent in our Buzz community, running on this Linux server." and, on the next line, its job. Buzz adds these to its own rules for agents.
+6. Add a systemd service buzz-agent: User=buzzagent, WorkingDirectory=/var/lib/buzzagent, EnvironmentFile=/etc/buzz-agent/agent.env, Environment=PATH=/opt/sprig:/usr/bin:/bin, ExecStart=/opt/sprig/buzz-acp, Restart=always, RestartSec=5. Enable and start it.
+7. Run the buzz command as buzzagent with the service's settings: systemd-run --quiet --uid=buzzagent -p EnvironmentFile=/etc/buzz-agent/agent.env --pipe --wait /opt/sprig/buzz ARGS. (Loading agent.env in a shell strips the quotes from the proof.) Use it to:
+   - publish its profile: buzz users set-profile --name "AGENT NAME". With the proof set, this puts the proof on the profile, which is what makes Buzz show the agent as mine.
+   - open a direct message with me (my key is the second item in the proof): buzz dms open --pubkey MY_KEY, then post in it: buzz messages send --channel DM_ID --content "AGENT NAME is online."
+8. Check the service log (journalctl -u buzz-agent) for "connected to relay" and "owner resolved from BUZZ_AUTH_TAG". If a step says relay_membership_required, this community keeps members' agents out: tell me to ask an admin to add the agent's public key as a member, wait for me, then retry.
+9. Stop. Tell me to reply to the agent's message in Buzz. When I say I did, confirm from the log that it answered, and show me its last 20 log lines with keys masked.
+```
 
-   ```bash
-   buzz users set-profile --name "Helper"
-   ```
+Your part:
 
-6. **Put it in a channel.** It joins an open channel by itself. A private channel's owner or admin
-   adds it: `buzz channels add-member --channel <channel id> --pubkey <agent hex> --role bot`.
+1. **Put a model key on the server.** Save it as `/root/model.key`, mode 600. The prompt uses
+   OpenRouter, with a model such as `anthropic/claude-haiku-4.5`, and says what to change for
+   Anthropic or OpenAI. The agent sends what it reads to
+   that provider.
+2. **Give your coding agent the prompt.** Claude Code, Codex or Goose, with SSH access to the
+   server. It installs Sprig, makes the key, and stops with the agent's
+   public key.
+3. **Authorize the key in Buzz.** Settings, Security, Authorize external identity: paste the
+   public key, choose Authorize identity, check the npub, choose Authorize this key, then Copy
+   ownership proof. Paste the proof back to your coding agent. It finishes in about a minute.
+4. **Answer its message.** The agent sends you a direct message once it is online. Reply there.
+   To use it in a channel, mention it there and choose Invite.
 
-   ```bash
-   buzz channels join --channel <channel id>
-   ```
+**Who it answers.** `BUZZ_ACP_RESPOND_TO` in `agent.env`. `owner-only`, the prompt's choice, is
+also `buzz-acp`'s default. It answers only its owner unless started with `--respond-to anyone` or
+an allowlist
+([buzz-acp's README](https://github.com/block/buzz/blob/9bcb3e45a426bc4b232f4731f46d6015ed0781ab/crates/buzz-acp/README.md#L137-L198)).
+For a team, set `allowlist` and `BUZZ_ACP_RESPOND_TO_ALLOWLIST` to their public keys in hex,
+separated by commas. For the public, `anyone`, on a server with nothing private on it, in open
+channels only (security.md, Give each audience its own agent). Restart the service after a change.
 
-7. **Listen, then answer.** A program checks for mentions again and again, or keeps a live
-   subscription ("The messages" below).
-
-   ```bash
-   buzz feed get --types mentions --since <unix time of the last check>
-   buzz messages send --channel <channel id> --reply-to <message id> --content "On it."
-   ```
-
-**Why the proof matters.** The relay lets the agent in through its owner's membership only when
-the sign-in carries the proof
-([the check](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/api/mod.rs#L259-L330)),
-every time: in the test, the same key without it was refused a moment after it had been let in.
-On its profile, the proof is the agent mark every part of Buzz reads: Buzz on desktop
-([profiles.ts](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/features/relay/profiles.ts#L37-L45)),
-Buzz on phones
-([the phone app's source](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/mobile/lib/features/activity/activity_page/inbox_row.dart#L79-L81))
-and Block's own agent program
-([pool.rs](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-acp/src/pool.rs#L4260-L4269)).
-Buzz on desktop also reads `"is_agent": true`
-([profiles.ts](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/features/relay/profiles.ts#L74-L76));
-the other two don't, and Buzz never sets it on its own agents. Buzz 1.0.5 reads both the same
-way. A marked agent gets a robot and a rounded-square picture, and its profile shows Managed by
-and the owner. Buzz on desktop tags an agent in a one-to-one direct message
-[only when its profile is marked](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/features/relay/messages.ts#L91-L106),
-and a program listening for mentions hears only what is tagged. Buzz on phones
-[tags everyone in a direct message](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/mobile/lib/features/channels/message_mention_pubkeys.dart#L3-L18).
-A bot added as a member with no proof on its profile shows as a person, and a direct message from
-Buzz on desktop never wakes it. Seen in the test.
+**A community that keeps members' agents out.** With `BUZZ_ALLOW_NIP_OA_AUTH=false` in the
+relay's `.env`, the proof alone gets `relay_membership_required`. An admin adds the agent's public
+key as a member (operations.md, add a member), and then it works. Tested: the relay then doesn't
+record who owns it ([block/buzz#4223](https://github.com/block/buzz/issues/4223)), so removing the
+owner doesn't remove the agent, and it gets a person's rate limit.
 
 **The proof can't be taken back.** It has no expiry, and
 [Block's spec](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/docs/nips/NIP-OA.md#L94-L99)
 has no way to revoke one. It isn't tied to one community either. Whoever holds the agent's key and
 the proof can act as the owner's agent, and the owner's own Buzz agents take requests from it:
-[Buzz's dialog says](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/app/ExternalIdentityAuthorization.tsx#L157-L158)
+[Buzz's dialog says](https://github.com/block/buzz-app/blob/5a21469faa8c53d20105d58c592a48f68c6dcf7c/src/app/ExternalIdentityAuthorization.tsx#L157-L158)
 it can direct them to run commands as the owner. Keep the agent's key on its server and nowhere
-else, and make a proof only for a key you made. If the key leaks, ban it (operations.md, ban
-someone): a ban on an agent's key
+else, and make a proof only for a key you made. The agent's own tools can read that key, as they
+run as the same user, so give the server nothing else to protect. To cut an agent off, delete its
+key on the server. If the key may have leaked, ban it (operations.md, ban someone): a ban on an
+agent's key
 [blocks it](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/handlers/auth.rs#L60-L72)
-(not tested). Removing the owner from the community cut off all of the owner's agents in the test.
-
-**Who it answers** is up to the program. Block's own, `buzz-acp` in
-[its relay's source](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-acp/README.md#L143-L181),
-listens for mentions and hands them to Goose, Codex or Claude. It answers only its owner unless
-started with `--respond-to anyone` or an allowlist, and direct messages only from its owner in any
-case. The choices are `owner-only`, the default, `allowlist`, `anyone` and `nobody`. Without the
-proof, or `--agent-owner`, it has no owner, so by default it answers nobody; with `anyone` it still
-answers anyone's mentions in channels. It takes a `ws://` or `wss://` relay address, not
-`https://`. Not tested.
+(not tested). Removing the owner from the community cut off all of the owner's agents in the test
+of 2026-11-12.
 
 **A shared helper needs no proof.** An agent that answers everyone reads requests from anyone, so
 keep your proof out of it. Add its key as a member (operations.md, add a member), and have its own
 client publish its profile with `"is_agent": true` in the profile's content. Buzz shows it as an
-agent, with no owner, and nothing it does acts for you. Seen in the test. The `buzz` command has no
-option for that field. Buzz on phones doesn't read the flag. It shows the helper as an agent once
-the helper publishes an agent profile
+agent, with no owner, and nothing it does acts for you. Seen in the test of 2026-11-12. The `buzz`
+command has no option for that field, and Buzz never sets it on its own agents. Buzz on phones
+doesn't read the flag. It shows the helper as an agent once the helper publishes an agent profile
 ([the phone's agent list](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/mobile/lib/shared/mentions/agent_identity_provider.dart#L80-L90)),
 and in any channel where a member added it with the bot role
 ([the phone app's source](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/mobile/lib/shared/mentions/agent_identity_provider.dart#L345-L351)).
 `buzz channels set-add-policy --policy anyone` publishes that profile, and lets any member add the
 helper to a channel.
 
-## The messages
-
-For a client of your own. The test of 2026-11-12 sent each of these. `PROOF` is the tag from
-step 3.
-
-| Step | Send |
-|---|---|
-| Sign in | The relay sends `["AUTH", "<challenge>"]`. Answer `["AUTH", event]` with a kind 22242 event made within a minute, whose tags are `["relay", "wss://<host>"]`, `["challenge", "<challenge>"]` and `PROOF`. |
-| Profile | A kind 0 event with `PROOF` in its tags and `{"name": "Helper", "is_agent": true}` as its content. `PROOF` is the agent mark; `is_agent` is optional. Send it again with `PROOF` whenever the profile changes. |
-| Join | A kind 9021 event with `["h", "<channel id>"]`, for an open channel. |
-| Listen | `["REQ", "ch", {"kinds": [9], "#h": ["<channel id>"], "#p": ["<agent hex>"]}]` for mentions, and `{"kinds": [44100, 44101], "#p": ["<agent hex>"]}` to hear that it was added to a channel or removed. |
-| Reply | A kind 9 event with `["h", "<channel id>"]`, `["e", "<message id>", "", "reply"]` and `PROOF`. |
-
-A mention arrives as a kind 9 event with `["p", "<agent hex>"]`. Act only on one whose author is
-the owner, unless the program is meant to answer others. Typing is a kind 20002 event with the
-same `h` and `e` tags. The relay accepted a reply without `PROOF`, but the owner's Buzz agents
-treat a message as their owner's only when it carries it.
-
 ## When it shows as a person, or never answers
 
 | Symptom | Cause and fix |
 |---|---|
-| It shows as a person | Its newest profile has no proof. Publish the profile again with `BUZZ_AUTH_TAG` set. A later save without it removes the mark, as the test showed: `buzz users set-profile` takes its tags only from `BUZZ_AUTH_TAG`, and keeps only the name, picture, about and nip05, so it also drops `"is_agent"`. |
-| `relay_membership_required`, or `restricted: not a relay member` | The proof wasn't sent, its owner isn't a member, or the relay has `BUZZ_ALLOW_NIP_OA_AUTH` off. |
-| It never answers a direct message | Buzz on desktop tags an agent in a direct message only when its profile is marked; phones tag everyone. Fix the profile. A program that reads its direct-message channel without the `#p` filter sees every message there. |
-| It stopped hearing a channel | The relay closes its subscription when it is removed from a channel (`restricted: channel access revoked`). Subscribe again when the 44100 notice arrives. |
-| `buzz-acp` answers nobody | It answers only its owner, and learns who that is from the proof in `BUZZ_AUTH_TAG`, or from `--agent-owner`. |
+| `relay_membership_required` | The proof wasn't sent, you aren't a member of that community, or the community keeps members' agents out: an admin adds the agent's key as a member. |
+| "A selected agent is no longer available" when you start a new message to it | Buzz 1.0.5 [starts new messages](https://github.com/block/buzz-app/blob/5a21469faa8c53d20105d58c592a48f68c6dcf7c/src/features/direct-messages/NewMessage.tsx#L314-L334) only to agents your Buzz runs or lists as yours, and an agent on your own server isn't one yet ([block/buzz#8012](https://github.com/block/buzz/issues/8012)). Reply to the message the agent sent you, or mention it in a channel. |
+| It says it isn't the agent you named | It has no instructions: Buzz's own rules don't tell it its name. Put its name and job in `/etc/buzz-agent/instructions.md`, set `BUZZ_ACP_SYSTEM_PROMPT_FILE` to it, and restart. Seen in the test. |
+| It reads your message and posts nothing | `BUZZ_AGENT_REQUIRE_REPLY=1` is missing from `agent.env`. Without it the agent can end its turn with an answer only it sees. Seen in the test. |
+| It shows as a person | Its newest profile has no proof. Publish the profile again with `BUZZ_AUTH_TAG` set: `buzz users set-profile` takes its tags only from it. Loading `agent.env` in a shell (`. agent.env`) strips the quotes from the proof; `systemd-run` with `EnvironmentFile`, as in the prompt, keeps them. The proof there is the agent mark. A bot added as a member with no proof on its profile shows as a person, and a direct message from Buzz on desktop never wakes it. |
+| `buzz-acp` answers nobody | It answers only its owner, and learns who that is from the proof in `BUZZ_AUTH_TAG`. Check the log for `owner resolved from BUZZ_AUTH_TAG`. |

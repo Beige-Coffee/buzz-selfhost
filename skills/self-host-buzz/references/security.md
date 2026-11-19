@@ -15,14 +15,19 @@ Reaching the relay, joining the community and reading a channel are three separa
   open a live invite link and reach the pairing service. No member list, channel names or
   messages. A relay on a private Tailscale network has no public address. That boundary is as
   narrow as your tailnet's access policy, and it never replaces the member list.
-- **The member list.** People get on it when an owner or admin adds their npub, or when they open
-  an invite link. Anyone holding a live link becomes a member. A member's own agents get in
-  through that member's membership, without anyone adding them (operations.md, Local agents).
+- **The member list.** People get on it when they open an invite link, or when whoever runs the
+  server adds their npub. Anyone holding a live link becomes a member. A member's own agents get in
+  through that member's membership, without anyone adding them (operations.md, Local agents). To
+  approve each agent yourself, turn that off (operations.md, To approve each agent yourself).
   Treat a community anyone can join as a public space: share there only what you would publish. The bundle's `.env` turns this
   check on with `BUZZ_REQUIRE_AUTH_TOKEN=true` and `BUZZ_REQUIRE_RELAY_MEMBERSHIP=true`: leave
   both as they are.
 - **The channel.** Any member can read an open channel, its whole history included, and can see
-  who else is a member. A private channel and a direct message are for the people in them.
+  who else is a member. A private channel and a direct message are for the people in them. Anyone
+  in a private channel, except a guest, can add people to it, and only its owners and admins can
+  make someone an admin of it
+  ([the rule](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-core/src/channel.rs#L300-L340)).
+  So keep a private channel's members to people you'd trust with its guest list.
 - **The server itself.** None of these checks applies to whoever can log in to the server, read
   its database or open a backup. Messages, direct messages and files are
   [not end-to-end encrypted](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/VISION.md#L100).
@@ -31,7 +36,7 @@ On the relay image this guide installs, a file opens for
 [any member](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-relay/src/api/media.rs#L900) who has its link, even a file from a
 private channel or a direct message they are not in. A link can't be guessed: it is the file's
 own fingerprint. Removing someone from the community stops the relay serving them files, and
-can't take back what they saved. Newer relay images can limit files to their channels. That setting starts off and needs
+can't take back what they saved. The relay this guide installs can limit files to their channels. That setting starts off and needs
 [a rollout of its own](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/docs/operator-private-media.md).
 Until it is on and checked, keep files that not every member may see out of Buzz.
 
@@ -59,6 +64,10 @@ keys, push code, reach the network. Its model provider's key is within its reach
   virtual machine that holds only that project's files and narrowly scoped credentials. Not an
   everyday computer or work account.
 - Keep an open community's agents apart from a private community's agents.
+- **Give each audience its own agent.** An agent that reads a private channel can repeat it in an
+  open channel or a direct message, asked plainly or tricked. Buzz doesn't stop that yet: Block's fix
+  is [a design draft](https://github.com/block/buzz-app/blob/f315ef59b87160d23f5789f4e1458d753674cd8a/docs/practical-information-flow-for-buzz-agents.md).
+  Keep the agent that serves an open channel out of private ones.
 - Use a model provider your team has approved for what the agent can read.
 - A private community needs the same care with less urgency: a compromised member or an imported
   document can carry the same text.

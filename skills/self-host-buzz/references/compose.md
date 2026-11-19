@@ -315,8 +315,9 @@ validated that unattended workflow yet.
 
 **Moderation console (`server`; optional, ask first).** Offer it for a community that strangers
 can join (these steps and the Staff screen were tested on 2026-11-12; reports, bans and timeouts
-were not). Without it, members can report a message, but nobody sees reports in Buzz,
-and nobody can ban someone, time them out or delete their messages. Remove isn't a ban: a removed
+were not). Without it, members can report a message, but Buzz's own screens can't show reports,
+ban someone, time them out or delete their messages: the owner or an admin does that with the `buzz`
+command line (operations.md). Remove isn't a ban: a removed
 person comes back with any invite link that hasn't expired. Buzz 1.0's Moderation screens do all of
 that once the relay serves its admin API at a second name, `admin.$DOMAIN`, which Buzz finds in the
 relay's info. Every request to it must be signed by the owner or by staff the owner adds. Buzz

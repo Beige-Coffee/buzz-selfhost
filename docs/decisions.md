@@ -114,6 +114,11 @@ done: the work they call for is listed where it is still owed.
   and a minimal Get ready: one line per item, a warning beside its item, every other detail in
   one fold, and the key left out of the list since the skill makes it. He kept Follow the steps
   yourself: it is the skill's own commands, so it adds nothing to maintain.
+- **The Agents answers read as tips (2026-11-18).** The owner wants them to be best practices,
+  not a test log, so the page drops what was or wasn't tested there (the "Not tested here" chip,
+  "We tested these steps", "We have not tested buzz-acp", and two phrases from agents.md, through
+  `CURRENT` in `site/build/skill.ts`). `agents.md` keeps its test notes for agents, and
+  `docs/remote-agent-test.md` keeps the record.
 
 ## The relay moves to 0.3.0 (2026-11-12)
 

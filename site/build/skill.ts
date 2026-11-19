@@ -171,6 +171,9 @@ const CURRENT: [RegExp, string][] = [
   [phrase(" (half a minute when the upgrade swaps MinIO for Silo)"), ""],
   [/\s+From a tag before 2026-10-07 to a later one,[\s\S]*?describes\.\s+Either way, list/g, " List"],
   [phrase(" on a bundle from 2026-10-07 on"), ""],
+  // agents.md: the page's Agents answers are tips, so they leave out the skill's notes on what was tested
+  [phrase("`cargo build --release -p buzz-cli` (not tested)."), "`cargo build --release -p buzz-cli`."],
+  [phrase("removes the mark, as the test showed:"), "removes the mark:"],
   // troubleshooting.md
   [phrase("(Buzz 1.0: Settings, Identity)"), "(Settings, Identity)"],
   [phrase("; Buzz 0.X needs it byte for byte"), ""],

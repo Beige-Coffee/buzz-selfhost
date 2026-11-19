@@ -75,7 +75,7 @@ const place = (i: string, title: string, text: string, chips: string, pick = fal
 const PLACES = `<div class="fq-vis ga-on">
   ${place("laptop", "Your laptop", "Answers while Buzz is open and the lid is up.", chip("Built into Buzz", " yes"))}
   ${place("device-desktop", "A computer that stays on", "Buzz open on a spare computer, or a virtual machine with a desktop. Answers all day.", chip("Recommended", " rec") + chip("Built into Buzz", " yes"), true)}
-  ${place("cloud", "Hosted by Block", "Block calls these remote agents. They run on Block's machines through Builderlab, paid, in the United States only.", chip("Built into Buzz", " yes") + chip("Not tested here", " no"))}
+  ${place("cloud", "Hosted by Block", "Block calls these remote agents. They run on Block's machines through Builderlab, paid, in the United States only.", chip("Built into Buzz", " yes"))}
   ${place("server", "Your own server, without Buzz", "A program you run holds the agent's key and speaks to your relay. Answers all day.", chip("Not built in yet", " no"))}
 </div>`;
 
@@ -187,13 +187,13 @@ export function agentQuestions({ rec, note }: AnswerKit) {
         rec("Give the agent a key of its own, sign it in with your ownership proof, and publish its profile with that proof. The proof on its profile is the agent mark: without it, Buzz shows a person and never wakes it.") +
         NEEDS() +
         MARKED +
-        note("Buzz has no built-in way to run an agent on your own server yet. Block ships the two pieces it takes: a key authorization in Settings, and the <code>buzz</code> command. We tested these steps on 12 November 2026.") +
+        note("Buzz has no built-in way to run an agent on your own server yet. Block ships the two pieces it takes: a key authorization in Settings, and the <code>buzz</code> command.") +
         part("agent-remote-steps", "Set it up") +
         flow(skill.agents.server) +
         MESSAGES() +
         SYMPTOMS() +
         WARN +
-        note("Who the agent answers is up to the program you run. Block's own, <code>buzz-acp</code> in its relay's source, hands mentions to Goose, Codex or Claude. It answers only its owner unless you start it with <code>--respond-to anyone</code> or an allowlist. Without the proof, or <code>--agent-owner</code>, it has no owner, so it answers nobody. We have not tested <code>buzz-acp</code>.") +
+        note("Who the agent answers is up to the program you run. Block's own, <code>buzz-acp</code> in its relay's source, hands mentions to Goose, Codex or Claude. It answers only its owner unless you start it with <code>--respond-to anyone</code> or an allowlist. Without the proof, or <code>--agent-owner</code>, it has no owner, so it answers nobody.") +
         note(`A helper that answers everyone needs no proof. Add its key as a member (${go("add", "How should we add people?")}), and have its own client publish its profile with <code>"is_agent": true</code> in the content. Buzz on desktop shows it as an agent with no owner, and nothing it does acts for you. Buzz on phones doesn't read the flag: there it shows as an agent only in channels where it has the bot role. The <code>buzz</code> command has no option for that field.`),
     },
   ];

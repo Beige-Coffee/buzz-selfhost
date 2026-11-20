@@ -129,6 +129,18 @@ const withOrigin = (prompt: string) =>
   trackOf() === "practice" || !getValues().domain.trim() ? prompt.replace("{{HTTP_ORIGIN}}", "<community address>") : prompt;
 /** The prompt as plain text, for its copy button. */
 export const remotePrompt = () => fill(fillBlanks(withOrigin(skill.agents.prompt)).replace("<instructions>", "none"), false);
+/** Beside the instructions blank: the example from agents.md's "Tell an agent its job", and a way to use it. */
+const INFO = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>`;
+const TIP = () => `<span class="ga-tip"><button type="button" class="ga-tip-b" aria-label="Example instructions" aria-expanded="false">${INFO}</button><span class="ga-tip-pop" role="note"><b>For example</b>${skill.agents.instruction
+  .map((l) => `<span>${esc(l)}</span>`)
+  .join("")}<em>Change the names. Keep passwords and keys out.</em><button type="button" class="ga-tip-use">Use this example</button></span></span>`;
+/** "Use this example": the example goes into every instructions blank, as if typed. */
+export function useExampleInstructions(): void {
+  document.querySelectorAll<HTMLInputElement>('input[data-blank="instructions"]').forEach((i, n) => {
+    i.value = skill.agents.instruction.join(" ");
+    if (n === 0) i.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
 /** The lines to fill in, then its steps folded: Copy takes all of it. */
 const PROMPT = () => {
   const text = withOrigin(skill.agents.prompt);
@@ -136,7 +148,7 @@ const PROMPT = () => {
   const head = text.slice(0, cut);
   const steps = text.slice(cut + 2);
   return `<div class="ag-prompt opx-prompt ga-prompt">
-    <p class="ag-prompt-text ga-prompt-head">${fillRich(blanksHTML(esc(head)))}</p>
+    <p class="ag-prompt-text ga-prompt-head">${fillRich(blanksHTML(esc(head))).replace(/(data-blank="instructions"[\s\S]*?<\/span><\/span>)/, `$1${TIP()}`)}</p>
     <details class="ga-prompt-more"><summary>The steps it follows</summary><pre>${esc(steps)}</pre></details>
     <div class="opx-foot"><button type="button" class="ag-copy" data-prompt="agent-remote">Copy prompt</button></div>
   </div>`;

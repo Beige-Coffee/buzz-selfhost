@@ -119,7 +119,7 @@ const THREE: [string, string, string][] = [
   ["shield", "Approve the key in Buzz", "Settings, Security, Authorize external identity. Paste the key, copy the proof, and paste the proof back to your agent."],
   ["robot", "Talk to it in Buzz", "It sends you a direct message in Buzz. Reply there, or mention it in a channel."],
 ];
-const OVERVIEW = `<ol class="ga-three">${THREE.map(([i, t, d], n) => `<li><span class="ga-three-h"><em>${n + 1}</em>${icon(i)}</span><b>${t}</b><p>${d}</p></li>`).join("")}</ol>`;
+const OVERVIEW = `<ol class="ga-three">${THREE.map(([i, t, d]) => `<li><span class="ga-three-h">${icon(i)}</span><b>${t}</b><p>${d}</p></li>`).join("")}</ol>`;
 
 /**
  * agents.md's prompt for the agent itself. The community's address comes from the Running on box;
@@ -215,9 +215,9 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
         `<p class="ga-status">${icon("alert")}Not built into Buzz yet</p>` +
         rec("Your agent sets itself up from one prompt, then talks to you in Buzz. It keeps running on its own server, and you do three things:") +
         OVERVIEW +
-        part("agent-remote-prompt", "1. The prompt") +
+        part("agent-remote-prompt", "The prompt") +
         PROMPT() +
-        part("agent-remote-buzz", "2 and 3, step by step") +
+        part("agent-remote-buzz", "Step by step") +
         ct("remote") +
         note(`It answers only you. For a team, ask it to set <code>BUZZ_ACP_RESPOND_TO=allowlist</code> with their public keys. For the public, read ${go("agent-safe", "keep it safe")} first.`) +
         SYMPTOMS() +

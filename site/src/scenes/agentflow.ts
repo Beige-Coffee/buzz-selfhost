@@ -71,14 +71,21 @@ export const agentFlows: Flow[] = [
  * agent it doesn't run (NewMessage.tsx), so the agent writes first. The key is shortened, never real.
  */
 const AGENT_HEX = "557ddc54…9ce1";
-/** The reader's own chat with their agent: it shows its key, then the reader pastes the proof back. */
-const chat = (pasted: boolean) => `<div class="id-term rs-chat">
+/** The reader's own chat with their agent: the prompt pasted, then its key, then the proof pasted back. */
+type ChatStage = "prompt" | "key" | "proof";
+const chat = (stage: ChatStage) => `<div class="id-term rs-chat">
   <p class="id-term-h"><i></i><i></i><i></i><span>your chat with your agent</span></p>
-  <pre><span class="p">agent</span> Sprig installed, my key made.
+  <pre>${
+    stage === "prompt"
+      ? `<span class="rs-you hot"><span class="p">you</span>   Connect yourself to our Buzz community,
+      so I can talk to you there. …</span>
+<span class="p">agent</span> On it. Installing Sprig.`
+      : `<span class="p">agent</span> Sprig installed, my key made.
       My public key: <b>${AGENT_HEX}</b>
       Stopped: paste the ownership proof.
-${pasted ? `<span class="rs-you hot"><span class="p">you</span>   ["auth","d3a8…71f0","","9c1e…44b2"]</span>
-<span class="p">agent</span> Proof saved. Running, and I messaged you in Buzz.` : `<span class="rs-you"><span class="p">you</span>   <i>|</i></span>`}</pre>
+${stage === "proof" ? `<span class="rs-you hot"><span class="p">you</span>   ["auth","d3a8…71f0","","9c1e…44b2"]</span>
+<span class="p">agent</span> Proof saved. Running, and I messaged you in Buzz.` : `<span class="rs-you"><span class="p">you</span>   <i>|</i></span>`}`
+  }</pre>
 </div>`;
 /** Settings, Security: Authorize external identity, with the key pasted, or with the proof it made. */
 const security = (proof: boolean) => `<section class="mb-page rs-page">
@@ -129,11 +136,12 @@ export const remoteFlows: Flow[] = [
     id: "remote",
     label: "Your part",
     steps: [
-      { k: "Copy its key", t: "After you paste the prompt, your agent sets itself up on its server and replies in your chat with its public key. Copy it.", frame: chat(false) },
+      { k: "Paste the prompt to your agent", t: "Fill in the blanks in the prompt above, choose <b>Copy prompt</b>, and paste it into the chat you use with your agent.", frame: chat("prompt") },
+      { k: "Copy its key", t: "Your agent sets itself up on its server and replies in your chat with its public key. Copy it.", frame: chat("key") },
       { k: "Paste it in Security", t: "In Buzz: <b>Settings</b>, under <b>Buzz</b> choose <b>Security</b>. Under <b>Authorize external identity</b>, paste the key, then choose <b>Authorize identity</b>.", frame: settingsModal(securityNav, security(false)) },
       { k: "Authorize this key", t: "Check the npub, then choose <b>Authorize this key</b>. Only do this for a key you made: the proof never expires.", frame: settingsModal(securityNav, security(false), authorize) },
       { k: "Copy the proof", t: "Buzz shows the ownership proof. Choose <b>Copy ownership proof</b>.", frame: settingsModal(securityNav, security(true)) },
-      { k: "Paste it back to your agent", t: "Go back to your chat with the agent and paste the proof there. It finishes setting itself up in a minute or two.", frame: chat(true) },
+      { k: "Paste it back to your agent", t: "Go back to your chat with the agent and paste the proof there. It finishes setting itself up in a minute or two.", frame: chat("proof") },
       { k: "It messages you in Buzz", t: "When it's done, the agent sends you a direct message in Buzz. Reply to check it works. It writes first because Buzz can't start a message to it yet. To use it in a channel, mention it there and choose <b>Invite</b>.", frame: dm },
     ],
   },

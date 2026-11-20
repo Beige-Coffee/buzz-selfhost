@@ -31,6 +31,13 @@ Reaching the relay, joining the community and reading a channel are three separa
 - **The server itself.** None of these checks applies to whoever can log in to the server, read
   its database or open a backup. Messages, direct messages and files are
   [not end-to-end encrypted](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/VISION.md#L100).
+- **A second factor.** Buzz has no second factor of its own: a member signs in with their key
+  alone. The relay can require company sign-in, where an identity provider vouches for each key
+  ([`BUZZ_NIP_FI_MODE`](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/nip_fi_config.rs#L8-L32)),
+  but the Buzz apps send that proof only to the sign-in services built into them, for communities
+  Block hosts ([the app's routing](https://github.com/block/buzz-app/blob/f315ef59b87160d23f5789f4e1458d753674cd8a/src-tauri/src/federated_identity/mod.rs#L373-L376)).
+  So for a private team, put the relay on a private network whose login asks for a second factor,
+  and keep the member list as the next check. For an open community, keep anything sensitive out.
 
 On the relay image this guide installs, a file opens for
 [any member](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-relay/src/api/media.rs#L900) who has its link, even a file from a
@@ -90,7 +97,10 @@ the limits above still apply. This guide has not tested any isolation product.
 - **Your public ID (npub).** Safe to share. It can't restore anything.
 - **Your private key.** It is you, in every community you join. Keep a copy in your own password
   manager, where nobody else can open it. Never in a shared vault, a chat, an agent prompt, an
-  issue or a screenshot.
+  issue or a screenshot. Buzz on desktop holds one key at a time, for every community
+  ([Identity](https://github.com/block/buzz-app/blob/f315ef59b87160d23f5789f4e1458d753674cd8a/src/app/IdentitySettings.tsx#L285)):
+  an identity kept apart needs a second user account on the computer, or another device. Removing
+  the key to switch takes every community off that computer until it signs in again.
 - **The relay's private key.** It is the community's identity. It lives in the server's `.env` (a
   Secret on Kubernetes), in a shared vault that two operators can open, and inside every backup.
 - **An agent's files and credentials.** These are separate: a copy of a person's key does not back

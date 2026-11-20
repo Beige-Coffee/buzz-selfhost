@@ -138,6 +138,20 @@ done: the work they call for is listed where it is still owed.
   to "What should we tell an agent?". App bugs, feature requests and that community's own setup
   stay out. Not yet released: on main, an agent with a known owner stops posting in most direct
   messages (block/buzz#9371), so the direct-message lines need another look when the pin moves.
+- **What a self-hosting community asked for, added (2026-11-20).** From a call with a team that
+  self-hosts, the owner picked these from live mockups. "Can we require two-factor sign-in?": not
+  in Buzz, since the relay checks no second factor and the apps send company sign-in only to
+  Block-hosted addresses; a private network whose login asks for one is the answer for a team, and
+  an open community keeps sensitive things out. "Can someone use a different identity in each
+  community?": no, Buzz on desktop holds one key for every community. The owner ruled out
+  signing out to switch as an answer, since removing the key takes every community off that
+  computer; a second user account or another device keeps an identity apart. "How should we welcome
+  new members?": `welcome-everyone` view-only, `general` open, and an agent for a personal welcome,
+  since workflows have no trigger for someone joining. Two notes: no admins keeps invitations to
+  the owner, and agents that get in through their owner don't appear in Membership. The agent
+  walkthrough's chat frames became a chat window that fills the frame, the owner's pick over a
+  bigger terminal. An untested lead stays out: the phone app keeps a key with each community it
+  adds, so phones may allow an identity per community.
 
 ## The relay moves to 0.3.0 (2026-11-12)
 

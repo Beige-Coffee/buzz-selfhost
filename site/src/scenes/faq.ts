@@ -177,6 +177,52 @@ const LOCKS = `<div class="fq-vis fq-locks">
   <div class="fq-lk-end">${icon("server")}<b>Your relay</b><span>private network</span></div>
 </div>`;
 
+/**
+ * Two-factor sign-in, researched 2026-11-19: the relay checks no second factor (no amr, acr or step-up
+ * in block/buzz 0.3.0 or main). It can require company sign-in through NIP-FI (BUZZ_NIP_FI_MODE,
+ * crates/buzz-relay/src/nip_fi_config.rs), but the Buzz apps send that proof only to the sign-in
+ * servers built into them: Builderlab for Block-hosted and Builderlab customer addresses (block/buzz-app
+ * src-tauri/src/federated_identity/mod.rs server_for; built-in-server.json). So a private network whose
+ * login asks for a second factor is what a self-hosted community can use. Drawn: today, and with one.
+ */
+const tfaStep = (i: string, t: string, d: string) => `<div class="fq-tfa-step"><span class="fq-tfa-i">${icon(i)}</span><div><b>${t}</b><small>${d}</small></div></div>`;
+const TWO_FACTOR = `<div class="fq-vis fq-tfa">
+  <div class="fq-tfa-col"><p class="fq-tfa-h"><span class="fq-tag no">Buzz today</span>one factor</p>
+    ${tfaStep("key", "Their key", "Whoever holds the key signs in as them.")}
+  </div>
+  <div class="fq-tfa-col good"><p class="fq-tfa-h"><span class="fq-tag yes">With a private network</span>two factors</p>
+    ${tfaStep("lock", "Your company login", "A password and a second factor, through Tailscale, before the relay can be reached.")}
+    ${tfaStep("key", "Their key", "Then the member list lets them in.")}
+  </div>
+</div>`;
+
+/**
+ * One key per computer account: Buzz on desktop holds one identity for every community ("Your identity
+ * is shared across communities", block/buzz-app v1.0.5 src/app/IdentitySettings.tsx), and Remove from
+ * device takes it off for all of them (src/features/identity/SignOut.tsx). Names are illustrative.
+ */
+const keyRow = (who: string, key: string, comms: string[], cls = "") =>
+  `<div class="fq-onekey${cls}"><span class="fq-ok-who">${icon("user")}<b>${who}</b></span><span class="fq-ok-key">${icon("key")}${key}</span><span class="fq-ok-arrow" aria-hidden="true">→</span><span class="fq-ok-comms">${comms.map((c) => `<em>${c}</em>`).join("")}</span></div>`;
+const ONE_KEY = `<div class="fq-vis fq-onekeys">
+  ${keyRow("Your account on this computer", "Key A", ["Your team", "An open community", "Any other"])}
+  ${keyRow("A second account, or another device", "Key B", ["The community kept apart"], " b")}
+</div>`;
+
+/**
+ * A channel's General access, set to View only, as Buzz 1.0.5 draws it: Manage members, then General
+ * (block/buzz-app src/bundled/channels/ChannelGeneralAccess.tsx and src/features/channels/general-access.ts).
+ * View only keeps the channel open and gives people who join the guest role, who can read but not post
+ * or react (block/buzz 0.3.0 crates/buzz-core/src/channel.rs can_post).
+ */
+const VIEW_ONLY = `<div class="fq-vis"><div class="fq-access"><p class="fq-acc-t">General</p>
+  <div class="fq-acc-row"><span class="fq-acc-i">${icon("eye")}</span><div><b>Anyone in the community</b><span>New people can only view.</span></div><em>View only ▾</em></div>
+  <div class="fq-acc-menu">
+    <div class="fq-radio"><i></i><div><b>Public</b><span>Anyone in the community can participate.</span></div></div>
+    <div class="fq-radio on"><i></i><div><b>View only</b><span>Anyone in the community can read.</span></div></div>
+    <div class="fq-radio"><i></i><div><b>Private</b><span>Only people you add can access.</span></div></div>
+  </div>
+</div></div>`;
+
 /** A leak: what to do, by which key leaked. */
 const lane = (head: string, cls: string, chips: string[]) =>
   `<div class="fq-lane${cls}"><span class="fq-lane-k">${head}</span>${chips.map((c) => `<span class="fq-chip">${c}</span>`).join("")}</div>`;
@@ -347,6 +393,19 @@ const GROUPS: [string, Question[]][] = [
           ) +
           (isPrivate(t) ? note(PRIVATE_PEOPLE) : ""),
       },
+      {
+        id: "welcome",
+        icon: "message-circle",
+        q: "How should we welcome new members?",
+        a:
+          rec("Make <code>welcome-everyone</code> a view-only welcome channel, with what a newcomer needs in one message, and keep <code>general</code> open for talk. Phones open <code>welcome-everyone</code> when someone joins.") +
+          note("In the channel, choose <b>Manage members</b> at the top, then set <b>General access</b> to <b>View only</b>.") +
+          VIEW_ONLY +
+          note("People who join can read, and can't post or react. People already in it keep their role, so set it before you invite anyone.") +
+          // block/buzz 0.3.0 crates/buzz-workflow/src/schema.rs TriggerDef: message_posted, reaction_added, diff_posted, schedule, webhook
+          note("Buzz can't greet people by itself: workflows have no trigger for someone joining. For a personal welcome, have an agent watch for new members and message each one.") +
+          note(`Both channels need those exact names, for phones: see <a href="#operations" data-q-link="add">How should we add people?</a>`),
+      },
       { id: "notifications", icon: "device-mobile", q: "How do phones and notifications work?", a: mobile },
       {
         id: "roles",
@@ -355,6 +414,7 @@ const GROUPS: [string, Question[]][] = [
         a: (t) =>
           rec("Make the person who runs Buzz the owner, and name at least two admins, so someone can always add or remove people.") +
           roles(t) +
+          note("<b>Keep invitations to yourself?</b> Make no admins: members can't make invite links.") +
           ct("role") +
           note(`The owner is set on the server, so whoever runs it changes it. The old owner stays on as an admin. Banning is a separate tool: see <a href="#operations" data-q-link="moderate">How do we moderate?</a>`) +
           // block/buzz 0.3.0 crates/buzz-core/src/channel.rs decide_member_put: anyone who can post adds; only owners and admins grant admin
@@ -403,6 +463,16 @@ const GROUPS: [string, Question[]][] = [
           note("A saved key or completed Builderlab backup can restore the same identity. Without a recovery copy, create a new identity; changing community ownership does not recover the old key."),
       },
       {
+        id: "separate-identity",
+        icon: "user",
+        q: "Can someone use a different identity in each community?",
+        a:
+          rec("No: Buzz on desktop uses one key in every community you join. Pick the identity you'll use for Buzz before joining. For one kept apart, use a second user account on your computer, or another device.") +
+          ONE_KEY +
+          note("Signing out to switch isn't an answer: removing the key takes every community off that computer until you sign in with it again.") +
+          note("A key made for Buzz with this guide's key script works in every community, and keeps your other Nostr identity out of it."),
+      },
+      {
         id: "lost",
         icon: "device-mobile",
         q: "What do we do when a laptop or phone is lost?",
@@ -436,6 +506,21 @@ const GROUPS: [string, Question[]][] = [
             ["Sign up for Tailscale with your identity provider", "Google, Microsoft, Okta or GitHub, among others, so only company accounts can join your network. On Tailscale's paid plans, provisioning from your identity provider, such as Okta, suspends someone in Tailscale when you deactivate them."],
             ["Keep the member list as the second lock", "The network gets someone to the relay; only Membership lets them in. When someone leaves, remove them in both places."],
           ]),
+      },
+      {
+        id: "two-factor",
+        icon: "shield",
+        q: "Can we require two-factor sign-in?",
+        a:
+          rec("Not in Buzz yet: a member signs in with their key alone. For a private team, put the relay on a private network whose login asks for a second factor. For an open community, keep anything sensitive out.") +
+          TWO_FACTOR +
+          steps([
+            ["Run the relay on a private network", `With <b>Private network</b> on in the setup. <a href="#guide" data-go-private>Set it up</a>.`],
+            ["Make your identity provider ask for a second factor", "Sign up for Tailscale with Google, Microsoft, Okta or GitHub, and require two-factor there. Nobody reaches the relay without it."],
+            ["Protect the key too", "It is the first factor: a password manager with two-factor, disk encryption and a screen lock on every device."],
+          ]) +
+          note("A private network suits a team, not an open community of thousands: each member needs Tailscale on every device.") +
+          note(`The relay can require sign-in through a company identity provider, but the Buzz apps people download only do that for communities Block hosts, Builderlab included. See <a href="#operations" data-q-link="sso">Can we use single sign-on?</a>`),
       },
     ],
   ],

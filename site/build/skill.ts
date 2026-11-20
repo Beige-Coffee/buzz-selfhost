@@ -410,6 +410,11 @@ const SECURITY_SAYS = [
   // the Agents answers' "One agent per audience" (src/scenes/agents.ts) rests on these two
   "Give each audience its own agent",
   "can repeat it in an open channel or a direct message, asked plainly or tricked",
+  // "Can we require two-factor sign-in?" and "Can someone use a different identity in each community?" (faq.ts)
+  "Buzz has no second factor of its own",
+  "put the relay on a private network whose login asks for a second factor",
+  "Buzz on desktop holds one key at a time, for every community",
+  "an identity kept apart needs a second user account on the computer, or another device",
 ];
 function securityClaims(dir: string): void {
   const text = readFileSync(join(dir, "references", "security.md"), "utf8").replace(/\s+/g, " ");

@@ -113,6 +113,14 @@ const RISKS = `<div class="fq-vis"><ul class="fq-check">${[
 
 /* ── How do we run an agent on our own server? ── */
 
+/** What happens, in the order the reader sees it: their chat with the agent, then Buzz, then Buzz again. */
+const THREE: [string, string, string][] = [
+  ["message-circle", "Paste the prompt to your agent", "In the chat you already use with it. It sets itself up on its server and replies there with a key."],
+  ["shield", "Approve the key in Buzz", "Settings, Security, Authorize external identity. Paste the key, copy the proof, and paste the proof back to your agent."],
+  ["robot", "Talk to it in Buzz", "It sends you a direct message in Buzz. Reply there, or mention it in a channel."],
+];
+const OVERVIEW = `<ol class="ga-three">${THREE.map(([i, t, d], n) => `<li><span class="ga-three-h"><em>${n + 1}</em>${icon(i)}</span><b>${t}</b><p>${d}</p></li>`).join("")}</ol>`;
+
 /**
  * agents.md's prompt for the agent itself. The community's address comes from the Running on box;
  * until a domain is typed there, or on a local test (a server can't reach it), it's a blank too.
@@ -205,8 +213,11 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       q: "How do we run an agent on our own server?",
       a: () =>
         `<p class="ga-status">${icon("alert")}Not built into Buzz yet</p>` +
-        rec("Ask your agent to connect itself. Paste this prompt into the agent you already run on your server, then approve its key in Buzz. From then on it answers you there.") +
+        rec("Your agent sets itself up from one prompt, then talks to you in Buzz. It keeps running on its own server, and you do three things:") +
+        OVERVIEW +
+        part("agent-remote-prompt", "1. The prompt") +
         PROMPT() +
+        part("agent-remote-buzz", "2 and 3, step by step") +
         ct("remote") +
         note(`It answers only you. For a team, ask it to set <code>BUZZ_ACP_RESPOND_TO=allowlist</code> with their public keys. For the public, read ${go("agent-safe", "keep it safe")} first.`) +
         SYMPTOMS() +

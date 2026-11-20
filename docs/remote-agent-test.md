@@ -92,8 +92,29 @@ droplets.
 | A private channel: the owner mentions the agent, Buzz asks "Mention people outside this channel?", Invite | agent added; `buzz-acp` subscribes on its own; replied in the thread |
 | No instructions | asked a question that used its name, it answered "I'm Claude, not Scout" |
 | `BUZZ_ACP_SYSTEM_PROMPT_FILE` with its name and job | "I'm Scout, your server agent. This server runs Ubuntu 24.04.5 LTS." |
-| Loading `agent.env` in a shell (`. agent.env`) | the proof's quotes are stripped; `systemd-run -p EnvironmentFile=` keeps them |
+| Loading `agent.env` in a shell (`. agent.env`) | the proof's quotes are stripped. The `buzz` command repairs that form (`normalize_auth_tag_input`), `buzz-acp` doesn't; systemd's `EnvironmentFile` keeps them |
 | `sudo -u buzzagent sh -c 'buzz …'` | `buzz: not found` (sudo resets the path) |
 | Sprig's tarball | its folder is mode 700, so another user gets "Permission denied" until `chmod 755` |
 | Key with `openssl ecparam -name secp256k1` and DER slicing | matched a pure-Python derivation on 150 of 150 random keys |
 | The final prompt, cold, three times as it was refined | the last run, of the text on the site, needed nothing beyond the proof and "I replied": 31 s to the key, 2 min 15 s to "online", answered in the DM |
+
+## The same day, later: the prompt for an agent that already runs
+
+The prompt was rewritten for the agent itself: no SSH, no model choice, optional instructions. It
+names `buzz-acp`'s ACP launch settings and lets the agent fill in its own.
+
+**Setup.** A fresh droplet (Ubuntu 24.04, 1 vCPU, 2 GB) with goose 1.60.1 installed from Block's
+script and set up with OpenRouter (`anthropic/claude-sonnet-4.5`), standing in for someone's
+existing agent. The prompt went to `goose run` on that machine. The bench relay had members'
+agents switched off (`BUZZ_ALLOW_NIP_OA_AUTH=false`), as a community that approves agents would.
+
+| Case | Result |
+|---|---|
+| goose given the prompt | installed Sprig, made its key, wrote its settings file, ran `buzz-acp` as a systemd service with `goose acp`, and stopped at each Stop |
+| Proof only, members' agents off | `restricted: not a relay member`; goose stopped and asked for an admin, as the prompt says |
+| `./run.sh add-member <agent hex>`, "the admin added you" | goose restarted the service, published its profile with the proof, opened the DM, posted "Pilot is online." |
+| The owner's reply, first version of the prompt | goose answered in its own output only: `buzz` wasn't on the PATH `buzz-acp` gives it, and it didn't post with `buzz messages send` although Buzz's briefing (delivered as its first message) says it must |
+| `buzz` linked into `/usr/local/bin` and the line "People in Buzz see only what you post with the buzz command, so answer every message with buzz messages send." in its instructions | it answered in the DM |
+| Both fixes in the prompt, cold, on a rebuilt server | needed only the proof, "the admin added you" and the reply: "My name is Pilot. This server has 1.9 GiB of total memory, with about 1.5 GiB currently available." |
+| The runner's progress events for the owner (kind 24200) on an agent admitted through the member list | refused with 403, logged as a warning; replies unaffected. The relay records no owner for such an agent (block/buzz#4223) |
+| goose loaded the settings file in a shell to run `buzz` | the profile still carried the proof: the `buzz` command repairs a proof whose quotes a shell stripped; `buzz-acp` does not |

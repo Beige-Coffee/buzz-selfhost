@@ -93,11 +93,11 @@ in the United States only. Not tested with a self-hosted community.
 
 ## Run an agent on your own server
 
-An agent on a server of its own answers all day, with no Buzz app open. Buzz 1.0 has no built-in
-way to do this, but Block ships the pieces, and one prompt to your coding agent puts them
-together. Tested on 2026-11-19 with relay 0.3.0, Buzz 1.0.5 and Block's Sprig build `729cb10` on
-a 1 GB Ubuntu 24.04 server: a fresh `claude -p` given only the prompt below set the agent up, and
-it answered its owner in a direct message and in a channel.
+An agent you already run on a server of its own can join your community and answer you there all
+day, with no Buzz app open. Buzz 1.0 has no built-in way to do this, but Block ships the pieces,
+and the agent can put them together itself from the prompt below. Tested on 2026-11-19 with relay
+0.3.0, Buzz 1.0.5, Block's Sprig build `729cb10`, and goose 1.60.1 as the agent: given only the
+prompt, it set itself up and answered in a direct message.
 
 How it works:
 
@@ -105,77 +105,60 @@ How it works:
 - **Your ownership proof.** Buzz makes it in Settings, Security, Authorize external identity. The
   agent signs in with it, so the relay lets it in through your membership, and puts it on its
   profile. This is the agent mark: Buzz shows it as your agent, and it takes requests from you.
-- **Block's Sprig.** One Linux program that is the `buzz` command, the `buzz-acp` runner that
-  listens for mentions and direct messages, and the `buzz-agent` agent that calls your model, with
-  a shell and the server's files. Block publishes it as a
-  [rolling build of `main`](https://github.com/block/buzz/releases/tag/sprig-latest), with no
-  version number.
+- **Block's Sprig.** One Linux program that is the `buzz` command and `buzz-acp`, the runner that
+  listens for mentions and direct messages and hands them to your agent over ACP. Block publishes
+  it as a [rolling build of `main`](https://github.com/block/buzz/releases/tag/sprig-latest), with
+  no version number.
 
-The prompt, for your coding agent. Fill in the first lines:
+The prompt, for your agent. Fill in its name, and its instructions if you like:
 
 ```text
-Set up an always-on agent for our Buzz community on a Linux server. Run the commands on the server over SSH: ssh <user>@<server IP>
+Connect yourself to our Buzz community, so I can talk to you there. Keep running on this machine.
 
-Community address: $ORIGIN
-Agent name: <agent name>
-Its job: <its job>
-Model: OpenRouter, model <model>. The API key is in /root/model.key on the server.
-It answers: only me.
+Community: $ORIGIN
+Your name in Buzz: <agent name>
+Instructions for you in Buzz (optional): <instructions>
 
-Rules: never print, log or send the agent's private key or the model key. Where a step says Stop, stop and wait for me.
+Never print or send your Buzz private key. Where a step says Stop, stop and wait for me.
 
-1. Install Block's Sprig, one program that is the buzz command, the buzz-acp runner and the buzz-agent agent. Download sprig-ARCH-unknown-linux-musl.tar.gz and its .sha256 for the server's architecture (ARCH is x86_64 or aarch64) from https://github.com/block/buzz/releases/download/sprig-latest/, check the checksum, unpack into /opt/sprig, then run `chmod 755 /opt/sprig` and `ln -sf sprig /opt/sprig/buzz`.
-2. Create a system user buzzagent with home /var/lib/buzzagent and no login shell, and a folder /etc/buzz-agent, mode 700, owned by buzzagent. Move the model key into it, mode 600.
-3. Make the agent's own key, in /etc/buzz-agent, with umask 077:
+1. Install Block's Sprig, one program that is the buzz command and buzz-acp, the runner that hands you messages from Buzz. Download sprig-ARCH-unknown-linux-musl.tar.gz and its .sha256 for this machine (ARCH is x86_64 or aarch64) from https://github.com/block/buzz/releases/download/sprig-latest/, check the checksum, unpack into /opt/sprig, then run `chmod 755 /opt/sprig` and `ln -sf /opt/sprig/sprig /usr/local/bin/buzz`, so your tools can run buzz.
+2. Make your own Buzz key, in a new folder with mode 700, with umask 077:
    openssl ecparam -name secp256k1 -genkey -noout -out agent.pem
    openssl ec -in agent.pem -outform DER 2>/dev/null | head -c 39 | tail -c 32 | od -An -v -tx1 | tr -d ' \n' > agent.key
    openssl ec -in agent.pem -pubout -outform DER 2>/dev/null | tail -c 64 | head -c 32 | od -An -v -tx1 | tr -d ' \n' > agent.pub
-   Delete agent.pem, give both files to buzzagent, and show me the public key in agent.pub.
-4. Stop. I will make an ownership proof for that key in Buzz (Settings, Security, Authorize external identity) and paste it here. It is a JSON array of four strings: "auth", 64 hex characters, an empty string, 128 hex characters. Check that, then save it as /etc/buzz-agent/proof.json.
-5. Write /etc/buzz-agent/agent.env, mode 600, owned by buzzagent, one KEY=value per line:
-   BUZZ_RELAY_URL: the community address, with wss:// in place of https://
+   Delete agent.pem and show me agent.pub, your public key.
+3. Stop. I will paste an ownership proof from Buzz: a JSON array of four strings that starts with "auth". Save it.
+4. Write a settings file in that folder, mode 600, one KEY=value per line:
+   BUZZ_RELAY_URL: the community, with wss:// in place of https://
    BUZZ_PRIVATE_KEY: the contents of agent.key
    BUZZ_AUTH_TAG: the proof, on one line
-   BUZZ_ACP_AGENT_COMMAND=buzz-agent
-   BUZZ_ACP_MCP_COMMAND=buzz-dev-mcp
-   BUZZ_ACP_RESPOND_TO=owner-only
-   BUZZ_AGENT_REQUIRE_REPLY=1
-   BUZZ_AGENT_PROVIDER=openrouter
-   OPENROUTER_API_KEY: the model key
-   OPENROUTER_MODEL: the model
-   BUZZ_ACP_SYSTEM_PROMPT_FILE=/etc/buzz-agent/instructions.md
-   For Anthropic use BUZZ_AGENT_PROVIDER=anthropic with ANTHROPIC_API_KEY and ANTHROPIC_MODEL; for OpenAI, openai with OPENAI_COMPAT_API_KEY and OPENAI_COMPAT_MODEL.
-   Then write /etc/buzz-agent/instructions.md, mode 600, owned by buzzagent: "Your name is AGENT NAME. You are my agent in our Buzz community, running on this Linux server." and, on the next line, its job. Buzz adds these to its own rules for agents.
-6. Add a systemd service buzz-agent: User=buzzagent, WorkingDirectory=/var/lib/buzzagent, EnvironmentFile=/etc/buzz-agent/agent.env, Environment=PATH=/opt/sprig:/usr/bin:/bin, ExecStart=/opt/sprig/buzz-acp, Restart=always, RestartSec=5. Enable and start it.
-7. Run the buzz command as buzzagent with the service's settings: systemd-run --quiet --uid=buzzagent -p EnvironmentFile=/etc/buzz-agent/agent.env --pipe --wait /opt/sprig/buzz ARGS. (Loading agent.env in a shell strips the quotes from the proof.) Use it to:
-   - publish its profile: buzz users set-profile --name "AGENT NAME". With the proof set, this puts the proof on the profile, which is what makes Buzz show the agent as mine.
-   - open a direct message with me (my key is the second item in the proof): buzz dms open --pubkey MY_KEY, then post in it: buzz messages send --channel DM_ID --content "AGENT NAME is online."
-8. Check the service log (journalctl -u buzz-agent) for "connected to relay" and "owner resolved from BUZZ_AUTH_TAG". If a step says relay_membership_required, this community keeps members' agents out: tell me to ask an admin to add the agent's public key as a member, wait for me, then retry.
-9. Stop. Tell me to reply to the agent's message in Buzz. When I say I did, confirm from the log that it answered, and show me its last 20 log lines with keys masked.
+   BUZZ_ACP_AGENT_COMMAND and BUZZ_ACP_AGENT_ARGS: how to start you over ACP, such as goose with acp, claude-agent-acp, codex-acp, or openclaw with acp
+   BUZZ_ACP_SYSTEM_PROMPT_FILE: a file with your name in Buzz, the instructions above, and this line: "People in Buzz see only what you post with the buzz command, so answer every message with buzz messages send."
+   and anything else you need to start, such as your model's settings. If your tools run in a separate process, such as a gateway, give it the three BUZZ_ settings too.
+5. Run /opt/sprig/buzz-acp as a service that starts at boot and restarts when it stops, with that settings file. With systemd, use EnvironmentFile: buzz-acp needs the proof's quotes, which loading the file in a shell strips.
+6. With the same settings (systemd-run -p EnvironmentFile=... --pipe --wait works), run buzz to:
+   - publish your profile: buzz users set-profile --name "YOUR NAME". This puts the proof on your profile, so Buzz shows you as my agent.
+   - open a direct message with me (my key is the second item in the proof): buzz dms open --pubkey MY_KEY, then post in it: buzz messages send --channel DM_ID --content "YOUR NAME is online."
+   If Buzz answers relay_membership_required or "not a relay member", this community keeps members' agents out: tell me to ask an admin to add your public key as a member, wait, then retry.
+7. Stop. Tell me to reply to your message in Buzz. When I say I did, check your service's log to confirm you answered.
 ```
 
 Your part:
 
-1. **Put a model key on the server.** Save it as `/root/model.key`, mode 600. The prompt uses
-   OpenRouter, with a model such as `anthropic/claude-haiku-4.5`, and says what to change for
-   Anthropic or OpenAI. The agent sends what it reads to
-   that provider.
-2. **Give your coding agent the prompt.** Claude Code, Codex or Goose, with SSH access to the
-   server. It installs Sprig, makes the key, and stops with the agent's
-   public key.
-3. **Authorize the key in Buzz.** Settings, Security, Authorize external identity: paste the
+1. **Give your agent the prompt.** It installs Sprig, makes its key, and stops with its public key.
+2. **Authorize the key in Buzz.** Settings, Security, Authorize external identity: paste the
    public key, choose Authorize identity, check the npub, choose Authorize this key, then Copy
-   ownership proof. Paste the proof back to your coding agent. It finishes in about a minute.
-4. **Answer its message.** The agent sends you a direct message once it is online. Reply there.
+   ownership proof. Paste the proof back to your agent. It finishes in a minute or two.
+3. **Answer its message.** The agent sends you a direct message once it is online. Reply there.
    To use it in a channel, mention it there and choose Invite.
 
-**Who it answers.** `BUZZ_ACP_RESPOND_TO` in `agent.env`. `owner-only`, the prompt's choice, is
+**Who it answers.** `BUZZ_ACP_RESPOND_TO` in its settings file. `owner-only`, the prompt's choice, is
 also `buzz-acp`'s default. It answers only its owner unless started with `--respond-to anyone` or
 an allowlist
 ([buzz-acp's README](https://github.com/block/buzz/blob/9bcb3e45a426bc4b232f4731f46d6015ed0781ab/crates/buzz-acp/README.md#L137-L198)).
 For a team, set `allowlist` and `BUZZ_ACP_RESPOND_TO_ALLOWLIST` to their public keys in hex,
 separated by commas. For the public, `anyone`, on a server with nothing private on it, in open
-channels only (security.md, Give each audience its own agent). Restart the service after a change.
+channels only (security.md, Give each audience its own agent). Restart its service after a change.
 
 **A community that keeps members' agents out.** With `BUZZ_ALLOW_NIP_OA_AUTH=false` in the
 relay's `.env`, the proof alone gets `relay_membership_required`. An admin adds the agent's public
@@ -215,7 +198,5 @@ helper to a channel.
 |---|---|
 | `relay_membership_required` | The proof wasn't sent, you aren't a member of that community, or the community keeps members' agents out: an admin adds the agent's key as a member. |
 | "A selected agent is no longer available" when you start a new message to it | Buzz 1.0.5 [starts new messages](https://github.com/block/buzz-app/blob/5a21469faa8c53d20105d58c592a48f68c6dcf7c/src/features/direct-messages/NewMessage.tsx#L314-L334) only to agents your Buzz runs or lists as yours, and an agent on your own server isn't one yet ([block/buzz#8012](https://github.com/block/buzz/issues/8012)). Reply to the message the agent sent you, or mention it in a channel. |
-| It says it isn't the agent you named | It has no instructions: Buzz's own rules don't tell it its name. Put its name and job in `/etc/buzz-agent/instructions.md`, set `BUZZ_ACP_SYSTEM_PROMPT_FILE` to it, and restart. Seen in the test. |
-| It reads your message and posts nothing | `BUZZ_AGENT_REQUIRE_REPLY=1` is missing from `agent.env`. Without it the agent can end its turn with an answer only it sees. Seen in the test. |
-| It shows as a person | Its newest profile has no proof. Publish the profile again with `BUZZ_AUTH_TAG` set: `buzz users set-profile` takes its tags only from it. Loading `agent.env` in a shell (`. agent.env`) strips the quotes from the proof; `systemd-run` with `EnvironmentFile`, as in the prompt, keeps them. The proof there is the agent mark. A bot added as a member with no proof on its profile shows as a person, and a direct message from Buzz on desktop never wakes it. |
-| `buzz-acp` answers nobody | It answers only its owner, and learns who that is from the proof in `BUZZ_AUTH_TAG`. Check the log for `owner resolved from BUZZ_AUTH_TAG`. |
+| It shows as a person | Its newest profile has no proof. Publish the profile again with `BUZZ_AUTH_TAG` set: `buzz users set-profile` takes its tags only from it. A bot added as a member with no proof on its profile shows as a person, and a direct message from Buzz on desktop never wakes it. |
+| It says it isn't the agent you named | Buzz's own rules don't tell it its name. Put its name in the file `BUZZ_ACP_SYSTEM_PROMPT_FILE` names, and restart. Seen in the test. |

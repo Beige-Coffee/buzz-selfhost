@@ -96,8 +96,8 @@ in the United States only. Not tested with a self-hosted community.
 An agent you already run on a server of its own can join your community and answer you there all
 day, with no Buzz app open. Buzz 1.0 has no built-in way to do this, but Block ships the pieces,
 and the agent can put them together itself from the prompt below. Tested on 2026-11-19 with relay
-0.3.0, Buzz 1.0.5, Block's Sprig build `729cb10`, and goose 1.60.1 as the agent: given only the
-prompt, it set itself up and answered in a direct message.
+0.3.0, Buzz 1.0.5 and Block's Sprig, with goose 1.60.1 and with Claude Code 2.1.329 as the agent:
+given only the prompt, each set itself up and answered in a direct message.
 
 How it works:
 
@@ -132,7 +132,7 @@ Never print or send your Buzz private key. Where a step says Stop, stop and wait
    BUZZ_RELAY_URL: the community, with wss:// in place of https://
    BUZZ_PRIVATE_KEY: the contents of agent.key
    BUZZ_AUTH_TAG: the proof, on one line
-   BUZZ_ACP_AGENT_COMMAND and BUZZ_ACP_AGENT_ARGS: how to start you over ACP, such as goose with acp, claude-agent-acp, codex-acp, or openclaw with acp
+   BUZZ_ACP_AGENT_COMMAND and BUZZ_ACP_AGENT_ARGS: how to start you over ACP. goose: goose with acp. Claude Code: run npm install -g @zed-industries/claude-code-acp@0.16.2, then claude-code-acp. Codex: run npm install -g @agentclientprotocol/codex-acp@2.1.1, then codex-acp. OpenClaw: openclaw with acp. Use exactly these versions: newer Claude and Codex adapters refuse buzz-acp's handshake. Use the full path if the service's PATH may not have it.
    BUZZ_ACP_SYSTEM_PROMPT_FILE: a file with your name in Buzz, the instructions above, and this line: "People in Buzz see only what you post with the buzz command, so answer every message with buzz messages send."
    and anything else you need to start, such as your model's settings. If your tools run in a separate process, such as a gateway, give it the three BUZZ_ settings too.
 5. Run /opt/sprig/buzz-acp as a service that starts at boot and restarts when it stops, with that settings file. With systemd, use EnvironmentFile: buzz-acp needs the proof's quotes, which loading the file in a shell strips.

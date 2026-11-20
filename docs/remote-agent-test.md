@@ -118,3 +118,17 @@ agents switched off (`BUZZ_ALLOW_NIP_OA_AUTH=false`), as a community that approv
 | Both fixes in the prompt, cold, on a rebuilt server | needed only the proof, "the admin added you" and the reply: "My name is Pilot. This server has 1.9 GiB of total memory, with about 1.5 GiB currently available." |
 | The runner's progress events for the owner (kind 24200) on an agent admitted through the member list | refused with 403, logged as a warning; replies unaffected. The relay records no owner for such an agent (block/buzz#4223) |
 | goose loaded the settings file in a shell to run `buzz` | the profile still carried the proof: the `buzz` command repairs a proof whose quotes a shell stripped; `buzz-acp` does not |
+
+## Claude Code as the agent
+
+**Setup.** A fresh droplet (Ubuntu 24.04, 1 vCPU, 2 GB), a sudo user, Node 22 and Claude Code
+2.1.329 from npm, pointed at OpenRouter (`anthropic/claude-sonnet-4.5`), standing in for someone's
+existing Claude Code. The prompt went to `claude -p` on that machine, with members' agents off.
+
+| Case | Result |
+|---|---|
+| The prompt naming `claude-agent-acp` | Claude Code installed `@agentclientprotocol/claude-agent-acp` 0.109.0, but `buzz-acp` stopped at the handshake every time: `agent initialize failed: Invalid params`. Claude Code then switched to Sprig's `buzz-agent`, which answered only in its own output |
+| The handshake by hand | `buzz-acp` sends ACP protocol version 2 with `clientInfo` (since block/buzz f08588245, June 2026). `claude-agent-acp` 0.105 to 0.109 and `codex-acp` 2.8.0 want `info` for version 2 and refuse. `@zed-industries/claude-code-acp` 0.16.2 and `@agentclientprotocol/codex-acp` 2.1.1 (the version Buzz desktop pins) answer with version 1 and work |
+| `claude-code-acp` 0.16.2 in place of it | Claude Code answered in the direct message as itself: "My name is Scribe, and I'm running on Ubuntu 24.04.5 LTS" |
+| The prompt with the pinned adapters, cold, on a rebuilt server | Claude Code installed `claude-code-acp` 0.16.2, ran `buzz-acp` with it, stopped for the proof and for the admin, and answered: "My name is Quill. The server has 45G of free disk space available (7% used, 48G total)." |
+| Codex | handshake checked only (2.1.1 works, 2.8.0 doesn't); not run end to end |

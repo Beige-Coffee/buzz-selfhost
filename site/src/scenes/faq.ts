@@ -1,7 +1,7 @@
 import skill from "virtual:skill-steps";
 import { linkButton } from "../lib/permalink";
 import { agentFlows, remoteFlows } from "./agentflow";
-import { agentQuestions, remotePrompt } from "./agents";
+import { agentQuestions, remotePrompt, useExampleInstructions } from "./agents";
 import { identityFlows, lostFlows } from "./identity";
 import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members";
 import { promptText, runningOnHTML, taskHTML } from "./operations";
@@ -679,6 +679,22 @@ export function mountFaq(host: HTMLElement): void {
       e.preventDefault();
       show(jump.dataset.qLink!, true);
       return showLink();
+    }
+    // the example beside the instructions blank: a tap opens and closes it; its button fills the blank
+    const tipUse = t.closest<HTMLButtonElement>(".ga-tip-use");
+    if (tipUse) {
+      useExampleInstructions();
+      const tip = tipUse.closest<HTMLElement>(".ga-tip")!;
+      tip.classList.remove("open");
+      tip.querySelector(".ga-tip-b")!.setAttribute("aria-expanded", "false");
+      (document.activeElement as HTMLElement | null)?.blur();
+      return;
+    }
+    const tipB = t.closest<HTMLButtonElement>(".ga-tip-b");
+    if (tipB) {
+      const open = tipB.closest<HTMLElement>(".ga-tip")!.classList.toggle("open");
+      tipB.setAttribute("aria-expanded", String(open));
+      return;
     }
     // the upgrade prompt, for your agent
     const copy = t.closest<HTMLButtonElement>(".ag-copy");

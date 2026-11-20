@@ -611,6 +611,14 @@ export function mountFaq(host: HTMLElement): void {
         ? `#${x.id}&${trackHash(trackOf())}`
         : `#${x.id}`;
   let open = hashQuestion() ?? all[0].id;
+  /** The open answer's own link, in the address bar, so it can be copied from there. */
+  const showLink = () => {
+    try {
+      history.replaceState(null, "", linkFor(all.find((x) => x.id === open)!));
+    } catch {
+      /* a sandboxed frame may refuse; the link button still works */
+    }
+  };
   // each click-through's flow and step, from the start again with each new question
   let state: Record<string, [number, number]> = {};
   const draw = (slot: HTMLElement) => {
@@ -661,12 +669,16 @@ export function mountFaq(host: HTMLElement): void {
     const fold = t.closest<HTMLButtonElement>(".fq-g-t");
     if (fold) return setShut(fold.closest<HTMLElement>(".fq-grp")!, fold.getAttribute("aria-expanded") === "true");
     const tab = t.closest<HTMLButtonElement>("[data-q]");
-    if (tab) return show(tab.dataset.q!);
+    if (tab) {
+      show(tab.dataset.q!);
+      return showLink();
+    }
     // a link from one answer to another
     const jump = t.closest<HTMLElement>("[data-q-link]");
     if (jump) {
       e.preventDefault();
-      return show(jump.dataset.qLink!, true);
+      show(jump.dataset.qLink!, true);
+      return showLink();
     }
     // the upgrade prompt, for your agent
     const copy = t.closest<HTMLButtonElement>(".ag-copy");
@@ -705,6 +717,7 @@ export function mountFaq(host: HTMLElement): void {
     if (next === undefined) return;
     e.preventDefault();
     show(all[(next + all.length) % all.length].id, true);
+    showLink();
   });
   // a link to an answer from elsewhere on the page, such as the limits: open it, then go there
   document.addEventListener("click", (e) => {
@@ -713,6 +726,7 @@ export function mountFaq(host: HTMLElement): void {
     e.preventDefault();
     e.stopImmediatePropagation();
     show(a.dataset.qLink!);
+    showLink();
     if (!narrow.matches) return jumpTo("operations");
     // on a phone the answer opens under its question, so land on the question
     const q = list.querySelector<HTMLElement>(`[data-q="${open}"]`)!;

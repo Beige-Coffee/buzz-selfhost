@@ -451,7 +451,7 @@ const AGENTS_SAYS = [
   "that answers the people you list",
   "It belongs in open channels only",
   // "How do we run an agent on our own server?": the answer's own words
-  "one prompt to your coding agent puts them together",
+  "the agent can put them together itself",
   "Block publishes it as a",
   "Tested: the relay then doesn't",
   "it gets a person's rate limit",
@@ -500,13 +500,15 @@ function agents(dir: string): SkillAgents {
   if (needs.length !== 3) fail(`agents.md: the server section opens with ${needs.length} points, and the page shows three`);
   // the prompt for your coding agent: the section's only text block, its $ORIGIN filled in by the page
   const prompt = vars(section("Run an agent on your own server").match(/```text\n([\s\S]*?)```/)?.[1].trim() ?? fail('agents.md "Run an agent on your own server": no ```text prompt'));
-  if (/<(?!user>|server IP>|agent name>|its job>|model>)[^>]+>/.test(prompt)) fail("agents.md: the prompt has a <...> that isn't one of the page's blanks (user, server IP, agent name, its job, model)");
+  // the page shows the lines before the rules, and folds the rest
+  if (!prompt.includes("\n\nNever print")) fail("agents.md: the prompt needs its rules to start a paragraph with \"Never print\": the page folds from there");
+  if (/<(?!agent name>|instructions>)[^>]+>/.test(prompt)) fail("agents.md: the prompt has a <...> that isn't one of the page's blanks (agent name, instructions)");
   return {
     instruction: example,
     harness: tableRows(section("Pick a harness and model"), 3, "agents.md harness table") as [string, string, string][],
     stayOn: numbered("Keep an agent answering", 4),
     needs,
-    server: numbered("Run an agent on your own server", 4),
+    server: numbered("Run an agent on your own server", 3),
     prompt,
     symptoms: tableRows(section("When it shows as a person, or never answers"), 2, "agents.md symptoms table") as [string, string][],
   };

@@ -65,16 +65,16 @@ export const agentFlows: Flow[] = [
 
 /**
  * Running an agent on your own server, as tested on 2026-11-19 (agents.md, "Run an agent on your own
- * server"): your coding agent shows the new key, you authorize it in Settings, Security (block/buzz-app
+ * server"): your agent shows its new key, you authorize it in Settings, Security (block/buzz-app
  * src/app/ExternalIdentityAuthorization.tsx at 5a21469, its labels and confirmation as Buzz 1.0.5 shows
  * them), then answer the direct message the agent opens. Buzz 1.0.5 won't start a new message to an
  * agent it doesn't run (NewMessage.tsx), so the agent writes first. The key is shortened, never real.
  */
 const AGENT_HEX = "557ddc54…9ce1";
 const coding = `<div class="id-term">
-  <p class="id-term-h"><i></i><i></i><i></i><span>your coding agent</span></p>
-  <pre><span class="p">›</span> Sprig installed, key made.
-Agent public key:
+  <p class="id-term-h"><i></i><i></i><i></i><span>your agent, on its server</span></p>
+  <pre><span class="p">›</span> Sprig installed, my key made.
+My public key:
 <b>${AGENT_HEX}</b>
 Stopped: paste the ownership proof.</pre>
 </div>`;
@@ -127,10 +127,10 @@ export const remoteFlows: Flow[] = [
     id: "remote",
     label: "Your part in Buzz",
     steps: [
-      { k: "Copy the agent's key", t: "Your coding agent installs everything, makes the agent's key on the server, and stops with its public key.", frame: coding },
+      { k: "Copy its key", t: "Your agent installs Block's Sprig, makes a Buzz key of its own, and stops with its public key.", frame: coding },
       { k: "Paste it in Security", t: "In Buzz: <b>Settings</b>, under <b>Buzz</b> choose <b>Security</b>. Under <b>Authorize external identity</b>, paste the key, then choose <b>Authorize identity</b>.", frame: settingsModal(securityNav, security(false)) },
       { k: "Authorize this key", t: "Check the npub, then choose <b>Authorize this key</b>. Only do this for a key you made: the proof never expires.", frame: settingsModal(securityNav, security(false), authorize) },
-      { k: "Copy the proof back", t: "Choose <b>Copy ownership proof</b> and paste it to your coding agent. It finishes in about a minute.", frame: settingsModal(securityNav, security(true)) },
+      { k: "Paste the proof back", t: "Choose <b>Copy ownership proof</b> and paste it to your agent. It finishes in a minute or two.", frame: settingsModal(securityNav, security(true)) },
       { k: "Answer its message", t: "The agent writes to you once it's online. Reply there. To use it in a channel, mention it and choose <b>Invite</b>.", frame: dm },
     ],
   },

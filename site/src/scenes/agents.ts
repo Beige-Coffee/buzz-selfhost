@@ -113,37 +113,30 @@ const RISKS = `<div class="fq-vis"><ul class="fq-check">${[
 
 /* ── How do we run an agent on our own server? ── */
 
-/** How it works, from agents.md's opening list: the agent's own key, your proof, Block's Sprig. */
-const HOW_ICONS = ["key", "login", "server"];
-const HOW = () =>
-  part("agent-remote-how", "How it works") +
-  `<div class="fq-vis"><ul class="fq-check ga-needs">${skill.agents.needs
-    .map((n, i) => `<li><span class="fq-dep-i">${icon(HOW_ICONS[i] ?? "robot")}</span><div><b>${n.title}</b><p>${n.html}</p></div></li>`)
-    .join("")}</ul></div>`;
-
 /**
- * agents.md's prompt for your coding agent. The community's address comes from the Running on box;
+ * agents.md's prompt for the agent itself. The community's address comes from the Running on box;
  * until a domain is typed there, or on a local test (a server can't reach it), it's a blank too.
  */
 const withOrigin = (prompt: string) =>
   trackOf() === "practice" || !getValues().domain.trim() ? prompt.replace("{{HTTP_ORIGIN}}", "<community address>") : prompt;
 /** The prompt as plain text, for its copy button. */
-export const remotePrompt = () => fill(fillBlanks(withOrigin(skill.agents.prompt)), false);
+export const remotePrompt = () => fill(fillBlanks(withOrigin(skill.agents.prompt)).replace("<instructions>", "none"), false);
 /** The lines to fill in, then its steps folded: Copy takes all of it. */
 const PROMPT = () => {
   const text = withOrigin(skill.agents.prompt);
-  const cut = text.indexOf("\n\nRules:");
+  const cut = text.indexOf("\n\nNever print");
   const head = text.slice(0, cut);
   const steps = text.slice(cut + 2);
   return `<div class="ag-prompt opx-prompt ga-prompt">
     <p class="ag-prompt-text ga-prompt-head">${fillRich(blanksHTML(esc(head)))}</p>
-    <details class="ga-prompt-more"><summary>Its rules and nine steps</summary><pre>${esc(steps)}</pre></details>
+    <details class="ga-prompt-more"><summary>The steps it follows</summary><pre>${esc(steps)}</pre></details>
     <div class="opx-foot"><button type="button" class="ag-copy" data-prompt="agent-remote">Copy prompt</button></div>
   </div>`;
 };
 
-const SYMPTOMS = () => `${part("agent-remote-fixes", "Shows as a person, or never answers?")}
-<div class="fq-vis ga-sym">${skill.agents.symptoms.map(([s, f]) => `<div class="ga-sym-row"><b>${icon("alert")}<span>${s}</span></b><p>${f}</p></div>`).join("")}</div>`;
+const SYMPTOMS = () => `<div class="ga-fold-wrap"><details class="ga-fold" id="agent-remote-fixes"><summary>If it doesn't work</summary>
+  <div class="fq-vis ga-sym">${skill.agents.symptoms.map(([s, f]) => `<div class="ga-sym-row"><b>${icon("alert")}<span>${s}</span></b><p>${f}</p></div>`).join("")}</div>
+</details></div>`;
 
 const WARN = `<div class="ga-warn" id="agent-remote-proof">${icon("alert")}<p><b>The proof can't be taken back.</b>${linkButton("#agent-remote-proof", "Copy a link to this part")} It never expires, and it isn't tied to one community. Whoever holds the agent's key and the proof can act as your agent, and your own Buzz agents take requests from it. Keep that key on the agent's server, and make a proof only for a key you made. To cut the agent off, delete its key. If the key may have leaked, ${go("moderate", "ban it")}.</p></div>`;
 
@@ -212,16 +205,12 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       q: "How do we run an agent on our own server?",
       a: () =>
         `<p class="ga-status">${icon("alert")}Not built into Buzz yet</p>` +
-        rec("Give the agent a small server and a key of its own, and let your coding agent set it up with one prompt. Put a model key on the server as <code>/root/model.key</code> first. Then you authorize the agent's key in Buzz and answer its first message.") +
+        rec("Ask your agent to connect itself. Paste this prompt into the agent you already run on your server, then approve its key in Buzz. From then on it answers you there.") +
         PROMPT() +
         ct("remote") +
-        HOW() +
-        note("Tested on 2026-11-19: a fresh coding agent given only this prompt set up an agent on a 1 GB Ubuntu server in about three minutes, and the agent answered its owner in a direct message and in a channel. Sprig is a rolling build with no version number, so a later one may differ.") +
-        note(`<b>Who it answers.</b> Only you, as the prompt sets it. For a team, ask your coding agent to set <code>BUZZ_ACP_RESPOND_TO=allowlist</code> with their public keys. For the public, <code>anyone</code>, on a server with nothing private on it: ${go("agent-safe", "keep it safe")}.`) +
-        note("<b>Members' agents switched off?</b> Then the proof alone gets <code>relay_membership_required</code>, and an admin adds the agent's key as a member. It works, but Buzz then doesn't record who owns it, so removing you doesn't remove the agent.") +
+        note(`It answers only you. For a team, ask it to set <code>BUZZ_ACP_RESPOND_TO=allowlist</code> with their public keys. For the public, read ${go("agent-safe", "keep it safe")} first.`) +
         SYMPTOMS() +
-        WARN +
-        note(`A helper that answers everyone needs no proof. Add its key as a member (${go("add", "How should we add people?")}), and have its own client publish its profile with <code>"is_agent": true</code> in the content. Buzz on desktop shows it as an agent with no owner, and nothing it does acts for you. Buzz on phones doesn't read the flag: it shows the helper as an agent once the helper publishes an agent profile, which <code>buzz channels set-add-policy --policy anyone</code> does, also letting any member add it to a channel.`),
+        WARN,
     },
   ];
 }

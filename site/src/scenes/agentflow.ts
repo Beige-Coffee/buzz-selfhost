@@ -71,21 +71,21 @@ export const agentFlows: Flow[] = [
  * agent it doesn't run (NewMessage.tsx), so the agent writes first. The key is shortened, never real.
  */
 const AGENT_HEX = "557ddc54…9ce1";
-/** The reader's own chat with their agent: the prompt pasted, then its key, then the proof pasted back. */
+/**
+ * The reader's own chat with their agent, as a chat window that fills the frame (the owner's pick of
+ * 2026-11-20 over a terminal): the prompt pasted, then its key, then the proof pasted back.
+ */
 type ChatStage = "prompt" | "key" | "proof";
-const chat = (stage: ChatStage) => `<div class="id-term rs-chat">
-  <p class="id-term-h"><i></i><i></i><i></i><span>your chat with your agent</span></p>
-  <pre>${
+const bubble = (who: "you" | "agent", text: string, on = false) =>
+  `<div class="rs-b ${who}${on ? " on" : ""}"><span>${who === "you" ? "You" : "Your agent"}</span><p>${text}</p></div>`;
+const chat = (stage: ChatStage) => `<div class="rs-bub">
+  <p class="rs-bub-h"><i></i><i></i><i></i><span>Your chat with your agent</span></p>
+  <div class="rs-bub-b">${
     stage === "prompt"
-      ? `<span class="rs-you hot"><span class="p">you</span>   Connect yourself to our Buzz community,
-      so I can talk to you there. …</span>
-<span class="p">agent</span> On it. Installing Sprig.`
-      : `<span class="p">agent</span> Sprig installed, my key made.
-      My public key: <b>${AGENT_HEX}</b>
-      Stopped: paste the ownership proof.
-${stage === "proof" ? `<span class="rs-you hot"><span class="p">you</span>   ["auth","d3a8…71f0","","9c1e…44b2"]</span>
-<span class="p">agent</span> Proof saved. Running, and I messaged you in Buzz.` : `<span class="rs-you"><span class="p">you</span>   <i>|</i></span>`}`
-  }</pre>
+      ? bubble("you", "Connect yourself to our Buzz community, so I can talk to you there. Keep running on this machine. …", true) + bubble("agent", "On it. Installing Sprig.")
+      : bubble("agent", `Sprig installed, my key made. My public key: <b>${AGENT_HEX}</b>. Stopped: paste the ownership proof.`) +
+        (stage === "proof" ? bubble("you", `<code>["auth","d3a8…71f0","","9c1e…44b2"]</code>`, true) + bubble("agent", "Proof saved. Running, and I messaged you in Buzz.") : "")
+  }<p class="rs-bub-in">Message your agent${stage === "key" ? "<i>|</i>" : ""}</p></div>
 </div>`;
 /** Settings, Security: Authorize external identity, with the key pasted, or with the proof it made. */
 const security = (proof: boolean) => `<section class="mb-page rs-page">

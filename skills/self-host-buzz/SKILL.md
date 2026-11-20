@@ -250,7 +250,8 @@ added with `add-member` from the server's command line aren't added to it. Every
 channels in Search, Channels. Opening the Invite tab (Invite members in Buzz 1.0.0) makes a link at
 once, valid for 3 days with no use limit, and each change of its expiry or use limit makes another.
 This guide has no single-link cancellation procedure; banning an issuer revokes its v2 links, while
-legacy links differ. For one person choose 1 use and 1 day.
+legacy links differ. For one person choose 1 use and 1 day. Only the owner and admins make links,
+so with no admins, only the owner invites.
 
 **Before anyone joins by phone.** After someone joins with an invite link, Buzz on iPhone looks for
 open channels named exactly `general` and `welcome-everyone`, and creates any that's missing, which
@@ -261,6 +262,16 @@ first invite, the owner creates both in Buzz as open channels, not forums, and t
 channel for new members in both. Keep them unarchived, and give a private channel another name: a
 private `general` makes the phone add an open one beside it, and an archived channel or a forum with
 either name can stop the join. Pairing a phone from the desktop app doesn't run this.
+
+**A welcome channel.** Phones open `welcome-everyone` after joining, so it makes a good view-only
+welcome channel, with `general` left open for talk. In Buzz: the channel's Manage members, then
+General access, View only, before anyone is invited (people already in it keep their role). People
+who join it can read, and can't post or react
+([View only](https://github.com/block/buzz-app/blob/f315ef59b87160d23f5789f4e1458d753674cd8a/src/features/channels/general-access.ts#L34-L46)
+gives them the guest role). Buzz can't greet people by itself: workflows have
+[no trigger](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-workflow/src/schema.rs#L38)
+for someone joining, so a personal welcome takes an agent that watches for new members and
+messages each one.
 
 **Removing people.** Remove someone in Buzz 1.0 (Settings, Community admin, Membership, the … on
 their row, Remove): that also disconnects them and their agents. `./run.sh remove-member` only

@@ -50,7 +50,7 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
 - **Local agents.** Buzz 1.0 can run agents on the owner's computer, each with its own key and the
   owner's signed attestation (NIP-OA). The relay admits them through the owner's membership,
   because `.env` has `BUZZ_ALLOW_NIP_OA_AUTH=true` (the bundle's default, as in the chart):
-  don't add them as members. They lose access if the owner leaves or is removed (in Buzz, or with
+  don't add them as members. So they don't appear in Membership. They lose access if the owner leaves or is removed (in Buzz, or with
   `remove-member` and a restart), and the app adds them to the channels and chats it uses them in. Tested: an agent
   posted in a chat that named it, its key without the attestation was refused, and so was an agent
   of a non-member. Showing agents online needs an image from 2026-10-13 or later.

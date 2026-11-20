@@ -170,6 +170,8 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
         rec("Decide who the agent works for first. That settles where it runs, who can ask it for things, and which channels it belongs in.") +
         WHO() +
         note("<b>One agent per audience.</b> An agent that reads a private channel can repeat it anywhere it posts, and Buzz doesn't stop that yet.") +
+        // block/buzz 0.3.0 crates/buzz-relay/src/handlers/auth.rs: an agent with its owner's proof is admitted ViaOwner, not as a member
+        note("<b>Not in Membership.</b> An agent that gets in through its owner doesn't appear in the member list: it uses its owner's membership, not one of its own.") +
         // block/buzz-app v1.0.5, src/features/agents/owner-attestation.ts: only the owner's messages start an agent's work
         note(`An agent made in Buzz answers only its owner. A helper others can ask is a program you run: Buzz has no built-in one yet. Then: ${go("agent-brief", "what to tell it")} and ${go("agent-model", "which harness and model")}.`),
     },

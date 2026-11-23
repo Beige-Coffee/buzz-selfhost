@@ -52,7 +52,7 @@ export interface SkillAgents {
   /** the example instruction, one sentence a line; the page names what each line is for */
   instruction: string[];
   /** Harness, You need, Runs on */
-  harness: [string, string, string][];
+  harness: [string, string, string, string][];
   /** keeping an agent answering: a computer that stays on, with Buzz open */
   stayOn: AgentStep[];
   /** how an agent on your own server works: the list that opens that section */
@@ -510,7 +510,7 @@ function agents(dir: string): SkillAgents {
   if (/<(?!agent name>|instructions>)[^>]+>/.test(prompt)) fail("agents.md: the prompt has a <...> that isn't one of the page's blanks (agent name, instructions)");
   return {
     instruction: example,
-    harness: tableRows(section("Pick a harness and model"), 3, "agents.md harness table") as [string, string, string][],
+    harness: tableRows(section("Pick a harness and model"), 4, "agents.md harness table") as [string, string, string, string][],
     stayOn: numbered("Keep an agent answering", 4),
     needs,
     server: numbered("Run an agent on your own server", 3),

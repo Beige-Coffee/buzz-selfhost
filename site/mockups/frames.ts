@@ -11,7 +11,7 @@ import "../src/styles/overhaul.css";
 import { SVG_DEFS } from "../src/defs";
 import { peopleFlows, type Flow } from "../src/scenes/members";
 import { identityFlows, lostFlows, pairFlows } from "../src/scenes/identity";
-import { agentFlows, remoteFlows } from "../src/scenes/agentflow";
+import { agentFlows, harnessFlows, remoteFlows } from "../src/scenes/agentflow";
 
 document.body.insertAdjacentHTML("afterbegin", SVG_DEFS);
 const sets: [string, Flow[]][] = [
@@ -20,6 +20,7 @@ const sets: [string, Flow[]][] = [
   ["lost", lostFlows],
   ["pair", pairFlows],
   ["agents", agentFlows],
+  ["harness", harnessFlows],
   ["remote", remoteFlows],
 ];
 document.querySelector(".fr-page")!.innerHTML = sets

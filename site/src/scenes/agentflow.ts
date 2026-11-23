@@ -4,60 +4,100 @@ import reviewer from "../assets/avatars/reviewer.webp";
 import { app, communityNav, settingsModal, sidebar, ti, type Flow } from "./members";
 
 /**
- * Starting an agent in Buzz 1.0, as a click-through of its own screens, in light mode. Drawn from
- * block/buzz-app as released in v1.0.0: the window with Agents open in its dock (#2626,
- * members.ts), the Agents page and its New agent menu (src/bundled/agents/AgentsPage.tsx), and Create
- * agent (src/bundled/agents/AgentCreateDialog.tsx with the Claude harness's model, thinking and
- * instructions; its first-agent tile and the existing-agent toolbar menu).
- * The agent's picture is one of Buzz's own avatar packs; names and messages are illustrative.
+ * Where an agent's instructions go, as Buzz 1.0.5 shows it (captured 2026-11-23): Agents, with a tile
+ * for each agent (its picture, name and model), then the agent's own panel beside the list, on its
+ * Identity tab: Harness, Model and Thinking, then Instructions. The pictures are from Buzz's own avatar
+ * packs; the names and the instructions are illustrative (the skill's example, agents.md).
  */
-
-/** Agents: Your agents, Your teams and Marketplace, with New agent and its menu. */
-const agentsPage = (menu: boolean) =>
+const CLAUDE_MARK = `<svg class="ax-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6 6 18"/></svg>`;
+const tile = (img: string, name: string, tint: string, on = false) =>
+  `<div class="ax-card ${tint}${on ? " hot" : ""}"><i class="ax-more">•••</i><img src="${img}" alt=""><b>${name}</b><span class="ax-chip">${CLAUDE_MARK}sonnet${ti("chevron-down")}</span></div>`;
+const INSTRUCTIONS_TEXT = "You help the Riverbend Tool Library volunteers in this community. Answer questions about opening hours and loans from the files in this workspace.";
+/** The agent's panel, on its Identity tab. */
+const pane = `<div class="ax-pane">
+  <p class="ax-pane-h"><span class="ax-tabchip"><img src="${ops}" alt="">Ops${ti("x")}</span></p>
+  <div class="ax-pane-hero peach"><img src="${ops}" alt=""><b>Ops</b><p><span class="ax-btn">Message</span><span class="ax-btn sq">•••</span></p></div>
+  <p class="ax-ptabs"><b>Identity</b><span>Memory</span><span>Activity</span><span>Attention</span><span>Settings</span></p>
+  <div class="ax-rows">
+    <p>Harness<span class="ax-pick">${CLAUDE_MARK}Claude${ti("chevron-down")}</span></p>
+    <p>Model<span class="ax-pick">${CLAUDE_MARK}sonnet${ti("chevron-down")}</span></p>
+    <p>Thinking<span class="ax-pick">High${ti("chevron-down")}</span></p>
+  </div>
+  <p class="ax-lab">Instructions</p>
+  <p class="ax-box hot">${INSTRUCTIONS_TEXT}</p>
+</div>`;
+const agentsPage = (open: boolean) =>
   app(
     "agents",
-    `<div class="ax-page">
-    <p class="ax-h">${ti("robot")}Agents</p>
-    <div class="ax-tabs"><b>Your agents</b><span>Your teams</span><span>Marketplace</span>${menu ? `<em>New agent${ti("chevron-down")}</em>` : ""}</div>
-    <div class="ax-empty"><span class="ax-tile ax-start"><img class="a1" src="${ops}" alt=""><img class="a2" src="${reviewer}" alt=""><b class="hot">Create your first agent</b></span><span class="ax-tile ax-start"><img class="a1" src="${reviewer}" alt=""><img class="a2" src="${ops}" alt=""><b>Explore the marketplace</b></span></div>
-    ${menu ? `<div class="ax-menu"><p class="hot">${ti("plus")}Create a new agent</p><p>${ti("download")}Import an agent</p></div>` : ""}
+    `<div class="ax-split${open ? " open" : ""}">
+    <div class="ax-page">
+      <p class="ax-h">${ti("robot")}Agents</p>
+      <div class="ax-tabs"><b>Your agents</b><span>Your teams</span><span>Marketplace</span><em>New agent${ti("chevron-down")}</em></div>
+      <div class="ax-grid">${tile(ops, "Ops", "peach", !open)}${tile(reviewer, "Reviewer", "sky")}</div>
+    </div>
+    ${open ? `${pane}<span class="ax-callout">Write or paste your instructions here</span>` : ""}
   </div>`,
   );
-
-/** Create agent: its picture and name, the harness, model and thinking, optional instructions. */
-const create = `<div class="mb-shade"></div>
-<div class="mb-dlg ax-dlg">
-  <div class="mb-dlg-h"><b>Create agent</b><span class="mb-x">${ti("x")}</span></div>
-  <div class="ax-hero"><img src="${ops}" alt=""><b>Ops</b></div>
-  <div class="ax-rows">
-    <p>Harness<span class="ax-pick">Claude${ti("chevron-down")}</span></p>
-    <p>Model<span class="ax-pick">Sonnet 5.5 · Default${ti("chevron-down")}</span></p>
-    <p>Thinking<span class="ax-pick">Automatic · Default${ti("chevron-down")}</span></p>
-  </div>
-  <p class="ax-lab">Instructions <em>Optional</em></p>
-  <p class="ax-text">Check each release's notes before it ships.</p>
-  <div class="ax-go"><span class="mb-btn dark hot">Create agent</span></div>
-</div>`;
-
-/** The agent at work in a channel: mentioned by its owner, it answers as itself. */
-const channel = app(
-  "messages",
-  `<div class="ax-chan">
-    <p class="ax-chan-h"><span class="mb-stack"><img src="${maya}" alt=""></span>release</p>
-    <div class="ax-msg"><img src="${maya}" alt=""><div><b>Maya <time>10:02</time></b><p><span class="ax-at">@Ops</span> can you check the release notes?</p></div></div>
-    <div class="ax-msg"><img class="sq" src="${ops}" alt=""><div><b>Ops <i>Agent</i> <time>10:03</time></b><p>Checked. Two links were broken; both are fixed in the draft.</p></div></div>
-    <p class="ax-comp">Message #release</p>
-  </div>`,
-);
 
 export const agentFlows: Flow[] = [
   {
     id: "agents",
-    label: "Start an agent",
+    label: "Write its instructions",
     steps: [
-      { k: "Open Agents", t: "Choose <b>Agents</b>, the robot in the dock. Then choose <b>Create your first agent</b>. If you already have agents, choose <b>New agent</b> and then <b>Create a new agent</b>.", frame: agentsPage(false) },
-      { k: "Pick its harness and model", t: "Give the agent a name. Pick a harness, such as Claude, Codex or Goose, and pick a model. Then choose <b>Create agent</b>. The agent gets its own key, and Buzz marks it as yours with an ownership proof.", frame: create },
-      { k: "Use it in a channel", t: "Mention the agent in the channel where you need it. The relay lets the agent in through your membership. Nobody has to add it as a member.", frame: channel },
+      { k: "Open the agent", t: "Choose <b>Agents</b>, the robot in the dock. Then choose the agent. For a new agent, choose <b>New agent</b>, then <b>Create a new agent</b>. Create agent has the same <b>Instructions</b> box.", frame: agentsPage(false) },
+      { k: "Write them in Instructions", t: "The agent's panel opens on its <b>Identity</b> tab. Type a few plain sentences in the <b>Instructions</b> box, below Harness, Model and Thinking. Then choose <b>Save</b>.", frame: agentsPage(true) },
+    ],
+  },
+];
+
+/**
+ * Settings, Agent setup, where each harness signs in, as Buzz 1.0.5 shows it (captured 2026-11-23):
+ * Harness defaults with Builderlab, Claude, Codex and Goose, then Agent behavior; Claude's own dialog
+ * (an API key, or the Claude CLI's own sign-in and Refresh) and Goose's (pick a provider). The Codex row
+ * is drawn signed in, with the default model the capture showed; signed out it shows Sign in.
+ */
+const MK_BL = `<span class="as-mk bl">B</span>`;
+const MK_CODEX = `<svg class="as-mk" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a4 4 0 0 1 3.9 3.1 4 4 0 0 1 3.4 5.6 4 4 0 0 1-2.4 6.4 4 4 0 0 1-6.6 1.5 4 4 0 0 1-5.8-3.4 4 4 0 0 1-.6-6.6A4 4 0 0 1 9 4.4a4 4 0 0 1 3-.9z"/></svg>`;
+const MK_GOOSE = `<svg class="as-mk" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l14 16M19 4 5 20"/></svg>`;
+const setupNav = communityNav("Agent setup", false);
+const agentSetup = (spot: "" | "claude" | "goose") => `<section class="mb-page as-page">
+  <h5>Agent setup</h5>
+  <p class="as-h">Harness defaults</p>
+  <div class="as-card">
+    <p class="as-row">${MK_BL}<b>Builderlab</b><span class="as-btn">Edit configuration</span></p>
+    <p class="as-row">${CLAUDE_MARK}<b>Claude</b><span class="as-btn${spot === "claude" ? " hot" : ""}">Add Claude API key</span></p>
+    <p class="as-row">${MK_CODEX}<b>Codex</b><span class="as-def">Default model<span class="ax-pick">${MK_CODEX}GPT-6.2-Sol · Default <em>Automatic</em>${ti("chevron-down")}</span></span></p>
+    <p class="as-row">${MK_GOOSE}<b>Goose</b><span class="as-btn${spot === "goose" ? " hot" : ""}">Set up Goose</span></p>
+  </div>
+  <p class="as-h">Agent behavior</p>
+  <div class="as-card">
+    <p class="as-row2"><span><b>Remember mentioned agents</b><small>Keep the same agents selected for your next message in this channel or thread.</small></span><i class="as-tog"></i></p>
+    <p class="as-row2"><span><b>Keep this Mac awake</b><small>So agents can keep answering. Closing the lid still puts it to sleep.</small></span><span class="ax-pick">Off${ti("chevron-down")}</span></p>
+  </div>
+</section>`;
+const claudeKey = `<div class="mb-dlg as-dlg">
+  <div class="mb-dlg-h"><b>${CLAUDE_MARK}Claude</b><span class="mb-x">${ti("x")}</span></div>
+  <p class="as-p">Buzz can help you configure your Claude setup with an API key, or use the Claude CLI to configure your own connection and refresh Buzz. Create a key at console.anthropic.com and paste it below.</p>
+  <p class="as-lab">Anthropic API key</p>
+  <p class="as-in hot"><span></span><em>Save</em></p>
+  <p class="as-note">Your key will be stored securely on this computer.</p>
+  <div class="as-foot"><span class="mb-btn">Refresh</span><span class="mb-btn">Cancel</span></div>
+</div>`;
+const gooseSetup = `<div class="mb-dlg as-dlg">
+  <div class="mb-dlg-h"><b>${MK_GOOSE}Goose</b><span class="mb-x">${ti("x")}</span></div>
+  <p class="as-lab">Provider</p>
+  <p class="as-sel hot">Choose a provider${ti("chevron-down")}</p>
+  <div class="as-foot"><span class="mb-btn">Close</span><span class="mb-btn off">Save defaults</span></div>
+</div>`;
+
+export const harnessFlows: Flow[] = [
+  {
+    id: "setup",
+    label: "Sign in to a harness",
+    steps: [
+      { k: "Open Agent setup", t: "Open <b>Settings</b> and choose <b>Agent setup</b>. Under <b>Harness defaults</b>, each harness shows what it still needs. Codex shows <b>Sign in</b> until you sign in with your ChatGPT plan. After that, it shows its default model.", frame: settingsModal(setupNav, agentSetup("")) },
+      { k: "Claude: add a key", t: "Choose <b>Add Claude API key</b>. Paste a key from console.anthropic.com and choose <b>Save</b>. If Claude Code is already signed in on this computer, choose <b>Refresh</b> instead.", frame: settingsModal(setupNav, agentSetup(""), claudeKey) },
+      { k: "Goose: pick a provider", t: "Choose <b>Set up Goose</b>. Pick a provider, such as OpenRouter or Ollama for a model on your own computer, and paste its key if it needs one. Then choose <b>Save defaults</b>.", frame: settingsModal(setupNav, agentSetup(""), gooseSetup) },
     ],
   },
 ];

@@ -444,9 +444,27 @@ screens): the desktop ones were redrawn from captures of Buzz 1.0.5 (the window 
 Membership with its menu and dialogs, Identity, Security, Pair mobile, the Agents page), and the
 phone ones from the owner's iPhone screenshots, with placeholder names. Pairing shows two paths:
 a community on its own server joins once the codes match; one Block hosts goes through Builderlab's
-sign-in and a key backup it can decrypt. Not yet checked against the app: the Invite tab, the code
-step of pairing, first run, Create agent and agent chats. `site/mockups/frames.html` shows every
+sign-in and a key backup it can decrypt. Its click-through has a switch for the computer's screens
+or the phone's, then a pick of a self-hosted or a Builderlab community (owner's ask), so each
+device's steps read on their own. Not yet checked against the app: the Invite tab, the code and
+paired steps of pairing on both devices, the phone's camera, Mobile app for a Builderlab account
+(Buzz's source shows "Get Buzz on your phone" there instead of a QR code), first run, Create agent
+and agent chats. Moderation's screens need a relay with Buzz's admin API on, which none of the
+owner's relays had, so "How do you moderate?" has no click-through yet. `site/mockups/frames.html` shows every
 click-through step at once, for comparing with screenshots.
+
+Also 2026-11-23, from the owner's review of the Agents answers: an answer whose right choice depends
+on the community says so in its recommendation. How should you run agents? has Private team and Open
+community cases, and its drawing shows, for each kind of community, an agent for you and one other
+people can ask: where it runs, what it can reach and how it gets in. Which harness and model should
+you pick? starts from the account you already have. The skill's harness table says what each harness
+needs and where it signs in, drawn from Buzz 1.0.5's Agent setup and its Claude and Goose dialogs.
+"Which account to use" covers a personal plan being one person's (Anthropic's and OpenAI's terms),
+usage limits, training on data, and a local model through Goose. What should you tell an agent?
+shows where instructions go: Agents, then the agent's Identity tab with Instructions called out,
+both drawn from captures. The last-day checklist names the shared vault as the team's password
+manager vault that holds the server's `.env`. Pairing, a separate identity, single sign-on, who can
+read messages and what depends on Block gained cases too.
 
 Also 2026-11-23: Running your relay has a search over the questions (owner's ask). It searches each
 answer's text for the current setup, its folds and every click-through step, ranks title matches

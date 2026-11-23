@@ -175,8 +175,11 @@ export interface Step {
 export interface Flow {
   id: string;
   label: string;
+  /** Which device's screens the flow shows, when a click-through has a computer and a phone side. */
+  view?: "computer" | "phone";
   steps: Step[];
 }
+const VIEWS = { computer: ["device-desktop", "On your computer"], phone: ["device-mobile", "On your phone"] } as const;
 const OPEN: Step = {
   k: "Open Settings",
   t: "Press ⌘, on a Mac or Ctrl+, on Windows and Linux. You can also choose your profile picture in the bottom left corner, then choose <b>Settings</b>.",
@@ -243,8 +246,16 @@ export function clickThroughHTML(flows: Flow[], flow: number, step: number): str
   const f = flows[Math.max(0, Math.min(flows.length - 1, flow))];
   const n = Math.max(0, Math.min(f.steps.length - 1, step));
   const s = f.steps[n];
+  // the computer or the phone first, keeping the same kind of flow on the other side
+  const views = [...new Set(flows.map((x) => x.view).filter((v) => !!v))] as (keyof typeof VIEWS)[];
+  const side = f.view ? flows.filter((x) => x.view === f.view) : flows;
+  const pick = (v: keyof typeof VIEWS) => {
+    const same = flows.findIndex((x) => x.view === v && x.label === f.label);
+    return same >= 0 ? same : flows.findIndex((x) => x.view === v);
+  };
   return `<div class="mb">
-    ${flows.length > 1 ? `<div class="mb-flows" role="tablist" aria-label="What to do">${flows.map((x, i) => `<button type="button" role="tab" data-mb-flow="${i}" aria-selected="${x === f}">${x.label}</button>`).join("")}</div>` : ""}
+    ${views.length > 1 ? `<div class="mb-views" role="tablist" aria-label="Which device">${views.map((v) => `<button type="button" role="tab" data-mb-flow="${pick(v)}" aria-selected="${v === f.view}">${ti(VIEWS[v][0])}${VIEWS[v][1]}</button>`).join("")}</div>` : ""}
+    ${side.length > 1 ? `<div class="mb-flows" role="tablist" aria-label="What to do">${side.map((x) => `<button type="button" role="tab" data-mb-flow="${flows.indexOf(x)}" aria-selected="${x === f}">${x.label}</button>`).join("")}</div>` : ""}
     <div class="mb-stage"><div class="mb-canvas${s.loop ? " loop" : ""}">${s.frame}</div></div>
     <div class="mb-text">
       <p class="mb-n"><span>0${n + 1}</span> / 0${f.steps.length}</p>

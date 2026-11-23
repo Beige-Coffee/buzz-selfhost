@@ -1,6 +1,6 @@
 import skill from "virtual:skill-steps";
 import { linkButton } from "../lib/permalink";
-import { agentFlows, remoteFlows } from "./agentflow";
+import { agentFlows, harnessFlows, remoteFlows } from "./agentflow";
 import { agentQuestions, remotePrompt, useExampleInstructions } from "./agents";
 import { identityFlows, lostFlows, pairFlows } from "./identity";
 import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members";
@@ -81,6 +81,7 @@ const CLICK_THROUGHS: Record<string, Flow[]> = {
   add: peopleFlows("1 day", "5").filter((f) => f.id === "link"),
   remove: peopleFlows().filter((f) => f.id === "remove"),
   agents: agentFlows,
+  harness: harnessFlows,
   remote: remoteFlows,
 };
 
@@ -282,7 +283,7 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5…7fA sam@laptop</pre></div>
 const KEY_HOME = `<div class="fq-vis fq-keyhome">
   <div class="fq-card"><p class="fq-card-h">${icon("server")}<code>.env</code> on the server</p><code class="fq-line">BUZZ_RELAY_PRIVATE_KEY=••••••••</code><code class="fq-line">POSTGRES_PASSWORD=••••••••</code><code class="fq-line">REDIS_PASSWORD=••••••••</code></div>
   <span class="fq-arrow">copy</span>
-  <div class="fq-card dark"><p class="fq-card-h">${icon("lock")}A shared vault</p><p class="fq-vitem">${icon("key")}<span><b>.env</b><small>buzz.yourteam.org</small></span></p><p class="fq-people"><span>Maya</span><span>Sam</span></p><p class="fq-dim">Each signs in with two-factor</p></div>
+  <div class="fq-card dark"><p class="fq-card-h">${icon("lock")}A shared vault in your password manager</p><p class="fq-vitem">${icon("key")}<span><b>.env</b><small>buzz.yourteam.org</small></span></p><p class="fq-people"><span>Maya</span><span>Sam</span></p><p class="fq-dim">Each signs in with two-factor</p></div>
   <span class="fq-arrow">and</span>
   <div class="fq-card"><p class="fq-card-h">${icon("archive")}Backups</p><p>They include <code>.env</code> too.</p><p class="fq-dim">Encrypt them before they leave the server</p></div>
 </div>`;
@@ -430,7 +431,10 @@ const GROUPS: [string, Question[]][] = [
         icon: "device-mobile",
         q: "How do you pair a phone?",
         a:
-          rec("Pair each phone from the Buzz desktop app. Pairing copies your private key from your computer to the phone. Do it where nobody else can see your screen.") +
+          rec("Pair each phone from the Buzz desktop app. Pairing copies your private key from your computer to the phone. Do it where nobody else can see your screen.", [
+            ["On the internet", "The phone reaches your server's pairing service over the internet, so it needs nothing else."],
+            ["On a private network", "Connect Tailscale on the phone before you pair, and keep it connected. The phone reaches the pairing service and its messages through your Tailscale network. A phone runs one VPN at a time, so another VPN turns Tailscale off."],
+          ]) +
           ct("pair") +
           // mobile.md, Pair a phone: the pairing service at /pair, which Block's Compose bundle doesn't start (block/buzz#7721)
           `<div class="fq-chans">
@@ -470,7 +474,7 @@ const GROUPS: [string, Question[]][] = [
         q: "What do you do when someone leaves?",
         a:
           rec("", [
-            [TEAM, "On their last day, go through the checklist below. It covers Buzz, Tailscale, Staff, the server and the shared vault."],
+            [TEAM, "On their last day, go through the checklist below. It covers Buzz, Tailscale, Staff, the server and your team's shared password vault."],
             [OPEN, "If someone leaves on their own, you don't need to do anything. If you remove someone for cause, ban them too, because removing them alone lets them rejoin with any invite link that's still active."],
           ]) +
           checklist([
@@ -480,7 +484,7 @@ const GROUPS: [string, Question[]][] = [
             ["Remove them from Staff", "In Buzz, open <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>, and remove them there.", "if they were on Staff"],
             ["Ban them to keep them out", "A ban keeps them out even if they have a live invite link, and it cancels every link they made. Buzz can't cancel a single link on its own. Keep links short-lived and limited to the people you expect."],
             ["Remove their server and hosting access", "Remove their SSH key from the server and their account with your hosting provider. A copy of <code>.env</code> or a backup they kept still holds the server's passwords. Change any password they could have copied.", "if they had it"],
-            ["Remove them from the shared vault", "The vault holds <code>.env</code>, with the relay key and the server's passwords.", "if they had it"],
+            ["Remove them from the shared password vault", `If your team keeps a copy of the server's <code>.env</code> file in a shared vault in your password manager, as <a href="#operations" data-q-link="relay-key">Where should you keep the relay key?</a> recommends, take away their access to that vault. The file holds the relay key and the server's passwords, so change those passwords too.`, "if they could open it"],
           ]) +
           ct("remove") +
           note("Buzz can't wipe a device. Messages and files already on their devices stay there."),
@@ -511,7 +515,10 @@ const GROUPS: [string, Question[]][] = [
         icon: "user",
         q: "Can someone use a different identity in each community?",
         a:
-          rec("No. Buzz on desktop uses the same key for every community you join, so decide which identity to use for Buzz before you join. To keep a separate identity, use a second user account on your computer or a different device.") +
+          rec("No. Buzz on desktop uses the same key for every community you join, so decide which identity to use for Buzz before you join. To keep a separate identity, use a second user account on your computer or a different device.", [
+            [TEAM, "Give each person a work identity made with this guide's key script, and use it only for work communities."],
+            [OPEN, "If you also join open communities, decide whether they should see your work identity. If not, join them from a second user account or another device with its own key."],
+          ]) +
           ONE_KEY +
           note("Signing out to switch identities doesn't help. Removing the key takes every community off that computer until you sign in with that key again.") +
           note("If you make a key only for Buzz with this guide's key script, it works in every community, and your other Nostr identity stays out of Buzz."),
@@ -542,7 +549,10 @@ const GROUPS: [string, Question[]][] = [
         icon: "lock",
         q: "Can you use single sign-on?",
         a:
-          rec("Not yet. On your own relay, everyone signs in with their own key. The closest option is a private network, where your company login controls who can reach the relay at all.") +
+          rec("Not yet. On your own relay, everyone signs in with their own key. The closest option is a private network, where your company login controls who can reach the relay at all.", [
+            [TEAM, "Put the relay on a private network and sign up for Tailscale with your company's identity provider. Then a person needs their company login and their key."],
+            [OPEN, "You don't need it. Members bring their own keys, and invite links and the member list decide who gets in."],
+          ]) +
           `<div class="fq-status"><span class="fq-status-k">${icon("bolt")}In progress in Buzz</span><p>Buzz has company sign-in based on a draft standard, <a href="https://github.com/block/buzz/blob/main/docs/nips/NIP-FI.md">NIP-FI</a>. With it, your identity provider vouches for each person's key. The relay supports it behind a setting that's off by default. The Buzz app that Block publishes uses it only with Block's own sign-in service, for communities Block hosts. Another company's sign-in needs a build of the app made for it. A self-hosted community can't turn it on yet.</p></div>` +
           LOCKS +
           steps([
@@ -593,7 +603,10 @@ const GROUPS: [string, Question[]][] = [
         icon: "eye",
         q: "Who can read your messages?",
         a:
-          rec("Anyone who can get into the server, its database or its backups can read every message, including direct messages. Protect the server as carefully as you would the messages on it.") +
+          rec("Anyone who can get into the server, its database or its backups can read every message, including direct messages. Protect the server as carefully as you would the messages on it.", [
+            [TEAM, "Give two or three people access to the server, and consider a private network. Tell your team who can read direct messages."],
+            [OPEN, "Tell members that whoever runs the server can read every message, including direct messages. Don't promise them more privacy than that."],
+          ]) +
           READ +
           note(
             `Give as few people as possible access to the server. Turn on your provider's disk encryption, and encrypt your backups. Consider a private network, where the relay has no public address. Phone notifications carry no message text. Block's gateway does see your relay's public key, your server's IP address and when it wakes which phone. See <a href="#operations" data-q-link="block">What still depends on Block?</a>`,
@@ -671,7 +684,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "key",
         q: "Where should you keep the relay key?",
         a:
-          rec("Keep it on the server, plus one copy in a shared vault that only the people who run the server can open.") +
+          rec("Keep it on the server, plus one copy of the server's <code>.env</code> file in a shared vault in your team's password manager. Only the people who run the server should be able to open that vault.") +
           KEY_HOME +
           note(`On Block's Docker Compose bundle, the relay key is <code>BUZZ_RELAY_PRIVATE_KEY</code> in <code>.env</code>, and every <a href="#operations" data-q-link="backup">backup</a> includes that file. On Kubernetes, the chart's quickstart keeps the key in the <code>buzz-relay</code> Secret.`),
       },
@@ -680,7 +693,10 @@ const GROUPS: [string, Question[]][] = [
         icon: "link",
         q: "What still depends on Block?",
         a:
-          rec("Your relay runs without Block, but the Buzz apps, iPhone notifications and Builderlab accounts all come from Block. Make keys with this guide's key script, and turn notifications off if you don't want Block to see when your team's phones get them.") +
+          rec("Your relay runs without Block, but the Buzz apps, iPhone notifications and Builderlab accounts all come from Block.", [
+            [TEAM, "Make keys with this guide's key script, so Block never gets a copy. Turn notifications off if Block can't be allowed to see when your team's phones get them."],
+            [OPEN, "Keep notifications on, so members hear about mentions and direct messages. Members can choose for themselves whether to sign in with a Builderlab account."],
+          ]) +
           DEPS +
           note("If Block stopped running these services, your relay would keep running. You would lose app updates and phone notifications."),
       },

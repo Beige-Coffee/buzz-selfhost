@@ -49,20 +49,43 @@ has nothing to add. The model's provider receives the instructions with each req
 
 ## Pick a harness and model
 
-The harness is the agent program that Buzz runs. Block's
-[README](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/README.md#L74-L80)
-lists four. Neither the README nor Block's help and support pages recommend one over another:
+The harness is the agent program that Buzz runs. Buzz 1.0.5 offers four: Codex, Claude, Goose and
+Pi, which stays off until you turn it on. Neither the README nor Block's help and support pages
+recommend one over another. Each one signs in its own way, so start from the account you already
+have:
 
-| Harness | You need | Runs on |
-|---|---|---|
-| Claude | A Claude account | macOS, Linux |
-| Codex | A ChatGPT or OpenAI account | macOS, Linux |
-| Goose | A model provider and its key, or a model on your own computer | macOS, Linux, Windows |
-| Pi | Node.js 22.19 or later, a provider's API key, and Pi turned on in Settings, under Plugins | macOS, Linux, Windows |
+| Harness | What you need | Where you sign in | Runs on |
+|---|---|---|---|
+| Codex | A ChatGPT plan, such as Plus, Pro, Business or Enterprise. An OpenAI API key works too. | In Settings, Agent setup, choose Sign in on the Codex row. For an API key, sign in with the `codex` command instead. | macOS, Linux |
+| Claude | An Anthropic API key, billed for each request. Buzz also uses Claude Code's own sign-in on that computer. | In Settings, Agent setup, choose Add Claude API key and paste a key from console.anthropic.com. Or sign in with the `claude` command, then choose Refresh. | macOS, Linux |
+| Goose | A key from a model provider, such as OpenRouter, or a model on your own computer through Ollama | In Settings, Agent setup, choose Set up Goose, pick a provider and paste its key. | macOS, Linux, Windows |
+| Pi | Node.js 22.19 or later and a provider's API key | Turn Pi on in Settings, under Plugins. Then paste the key and choose Save to Pi. | macOS, Linux, Windows |
 
-Pick the one your team already has an account for and has approved. The agent sends what it reads
-to that provider. Leave Model and Thinking on their defaults until you have a reason to change
-them. Each agent keeps its own harness, model and Thinking setting.
+Who the agent works for decides which account to use:
+
+- **A plan is for one person.** A personal plan such as Claude Pro or Max, or ChatGPT Plus or Pro,
+  is for its owner's own use. [Anthropic's](https://www.anthropic.com/legal/consumer-terms) and
+  [OpenAI's](https://openai.com/policies/terms-of-use/) terms don't let you make your account
+  available to anyone else. For an agent that other people can ask, use an API key with a spending
+  limit. [OpenAI](https://learn.chatgpt.com/docs/auth) also recommends an API key for anything that
+  runs on its own.
+- **Plans have usage limits.** Most of Claude's and ChatGPT's plans have limits that reset every
+  few hours or every week. When an agent reaches one, it can't do more work until the limit resets,
+  unless you buy more usage. An API key has no plan limit, and you pay for each request.
+- **Some plans train on your data.** Claude Pro and Max and ChatGPT Plus and Pro can use your
+  conversations to train models, the agent's included, unless you turn that off. Turn it off in
+  Claude's privacy settings, or in ChatGPT under Data controls. Team, Business and Enterprise plans
+  and API keys don't train on your data by default
+  ([Anthropic](https://code.claude.com/docs/en/data-usage),
+  [OpenAI](https://help.openai.com/en/articles/5722486)).
+- **To keep what the agent reads off any provider's servers,** use Goose with a model on your own
+  computer through Ollama. The model has to support tool calling.
+
+A Claude agent's commands can read its API key, because Buzz hands the key to Claude Code. Give it
+a key of its own with a spending limit. The agent sends what it reads to its provider. Leave Model
+and Thinking on their defaults until you have a reason to change them. Thinking sets how much the
+model reasons before it answers. A higher level takes longer and uses more of your limit or budget.
+Each agent keeps its own harness, model and Thinking setting.
 
 ## Keep an agent answering
 

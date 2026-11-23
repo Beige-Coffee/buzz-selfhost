@@ -50,24 +50,29 @@ const flow = (rows: AgentStep[]) =>
     .map((s, i) => `<li><span class="opx-flow-n">${i + 1}</span><div><p class="opx-flow-t">${s.title}</p><div class="opx-flow-d tl-md">${fillRich(s.html)}</div></div></li>`)
     .join("")}</ol>`;
 
-/* ── How should we run agents? ── */
+/* ── How should you run agents? ── */
 
 /**
- * Three agents, by who they work for, as agents.md's opening list has them: where each runs, who can
- * ask it, how it gets in and where it belongs, with the answer that says how.
+ * Where each kind of agent runs, what it can reach and how it gets in, by community (owner's ask of
+ * 2026-11-23): in a private team only people you invite can post where an agent reads; in an open
+ * community anyone can, and their words can steer it. From agents.md's opening list and "A shared
+ * helper needs no proof", and security.md's "Give each audience its own agent".
  */
-const WHO_ROWS = ["Where it runs", "Who can ask it", "How it gets in", "Which channels"];
-const who = (i: string, title: string, cells: string[], link: string, cls = "") =>
-  `<div class="ga-who-c${cls}"><p class="ga-who-h"><i>${icon(i)}</i>${title}</p><dl>${cells
-    .map((c, n) => `<div><dt>${WHO_ROWS[n]}</dt><dd>${c}</dd></div>`)
-    .join("")}</dl>${link}</div>`;
-const WHO = () => `<div class="fq-vis ga-who">
-  ${who("user", "For you", ["A computer that stays on, with Buzz open", "Only you", "It uses your membership", "The channels you add it to"], go("agent-on", "Keep it answering →"))}
-  ${who("users", "For your team", ["A server of its own", "The people you list", "It uses your membership, with an ownership proof you make in Buzz", "Your team's channels"], go("agent-remote", "Run one on your server →"))}
-  ${who("world", "For the public", ["A machine with nothing private on it", "Anyone who mentions it", "You add its key as a member on the server", "Open channels only"], go("agent-safe", "Keep it safe →"), " open")}
+const KIND_ROWS = ["Where it runs", "What it can reach", "How it gets in"];
+const kind = (title: string, cells: string[], link: string) =>
+  `<div class="ga-kind"><p class="ga-kind-h">${title}</p><dl>${cells.map((c, n) => `<div><dt>${KIND_ROWS[n]}</dt><dd>${c}</dd></div>`).join("")}</dl>${link}</div>`;
+const COMMUNITIES = () => `<div class="fq-vis ga-who">
+  <div class="ga-who-c"><p class="ga-who-h"><i>${icon("users")}</i><span>Private team<small>Only people you invite can post.</small></span></p>
+    ${kind("An agent for you", ["Buzz, on a computer that stays on", "Your team's channels, and only the files and logins its job needs", "Through your membership"], go("agent-on", "Keep it answering →"))}
+    ${kind("An agent for your team", ["A server of its own", "Only what everyone on the team may see", "Your ownership proof. It answers the teammates you list."], go("agent-remote", "Run one on your server →"))}
+  </div>
+  <div class="ga-who-c open"><p class="ga-who-h"><i>${icon("world")}</i><span>Open community<small>Anyone who joins can post.</small></span></p>
+    ${kind("An agent for you", ["A separate computer with nothing private on it", "Open channels only. No private channels, files, email or code.", "Through your membership"], go("agent-safe", "Keep it safe →"))}
+    ${kind("A helper for everyone", ["A server of its own with nothing private on it", "Open channels only", "Its key, added as a member on the server. Never your ownership proof."], go("agent-remote", "Run one on your server →"))}
+  </div>
 </div>`;
 
-/* ── What should we tell an agent? ── */
+/* ── What should you tell an agent? ── */
 
 /** What each line of the skill's example is for, in its order (the build checks there are five). */
 const JOBS = ["Who it works for", "What it works from", "What it checks with you first", "How it reports back", "What it never posts"];
@@ -85,13 +90,25 @@ const INSTRUCTIONS = () => `<div class="fq-vis ga-ins-vis">
   <div class="fq-card dark ga-said"><p class="fq-card-h">${icon("message-circle")}Buzz already gives every agent these rules</p><ul>${SAID.map((s) => `<li>${s}</li>`).join("")}</ul></div>
 </div>`;
 
-/* ── Which harness and model should we pick? ── */
+/* ── Which harness and model should you pick? ── */
 
-const HARNESS = () => `<div class="fq-vis"><table class="fq-roles ga-har">
-  <thead><tr><th>Harness</th><th>What you need</th><th>Runs on</th></tr></thead>
-  <tbody>${skill.agents.harness.map(([h, need, on]) => `<tr><td>${h}</td><td>${need}</td><td>${on}</td></tr>`).join("")}</tbody></table></div>`;
+/** The skill's harness table, as a card for each harness: what it needs, where it signs in, where it runs. */
+const HARNESS = () => `<div class="fq-vis ga-har">${skill.agents.harness
+  .map(([h, need, where, on]) => `<div class="ga-who-c"><p class="ga-who-h"><span>${h}<small>${on}</small></span></p><dl><div><dt>What you need</dt><dd>${need}</dd></div><div><dt>Where you sign in</dt><dd>${where}</dd></div></dl></div>`)
+  .join("")}</div>`;
+/**
+ * Which account to use (agents.md, from Anthropic's and OpenAI's terms, plans and data pages): a plan is
+ * one person's, plans have limits, some train on what they read, and a local model keeps it home.
+ */
+const acct = (i: string, t: string, d: string) => `<li><span class="fq-dep-i">${icon(i)}</span><div><b>${t}</b><p>${d}</p></div></li>`;
+const ACCOUNTS = `<div class="fq-vis"><ul class="fq-check">${[
+  acct("user", "A plan is for one person", `A personal plan such as Claude Pro or Max, or ChatGPT Plus or Pro, is for its owner's own use. <a href="https://www.anthropic.com/legal/consumer-terms">Anthropic's</a> and <a href="https://openai.com/policies/terms-of-use/">OpenAI's</a> terms don't let you make your account available to anyone else. For an agent that other people can ask, use an API key with a spending limit. <a href="https://learn.chatgpt.com/docs/auth">OpenAI</a> also recommends an API key for anything that runs on its own.`),
+  acct("alarm", "Plans have usage limits", "Most of Claude's and ChatGPT's plans have limits that reset every few hours or every week. When an agent reaches one, it can't do more work until the limit resets, unless you buy more usage. An API key has no plan limit, and you pay for each request."),
+  acct("eye", "Some plans train on your data", `Claude Pro and Max and ChatGPT Plus and Pro can use your conversations to train models, the agent's included, unless you turn that off. Turn it off in Claude's privacy settings, or in ChatGPT under Data controls. Team, Business and Enterprise plans and API keys don't train on your data by default (<a href="https://code.claude.com/docs/en/data-usage">Anthropic</a>, <a href="https://help.openai.com/en/articles/5722486">OpenAI</a>).`),
+  acct("device-desktop", "A model on your own computer", "To keep what the agent reads off any provider's servers, use Goose with a model on your own computer through Ollama. The model has to support tool calling."),
+].join("")}</ul></div>`;
 
-/* ── How do we keep an agent answering? ── */
+/* ── How do you keep an agent answering? ── */
 
 const chip = (t: string, cls = "") => `<span class="ga-chip${cls}">${t}</span>`;
 const place = (i: string, title: string, text: string, chips: string, pick = false) =>
@@ -103,7 +120,7 @@ const PLACES = `<div class="fq-vis ga-on">
   ${place("server", "Your own server, without Buzz", "You give an agent on a small server one prompt, and it sets itself up with Block's Sprig. The agent then answers all day.", chip("Not built into Buzz yet", " no"))}
 </div>`;
 
-/* ── How do we keep an agent safe? ── */
+/* ── How do you keep an agent safe? ── */
 
 const risk = (i: string, t: string, d: string) => `<li><span class="fq-dep-i">${icon(i)}</span><div><b>${t}</b><p>${d}</p></div></li>`;
 const RISKS = `<div class="fq-vis"><ul class="fq-check">${[
@@ -116,7 +133,7 @@ const RISKS = `<div class="fq-vis"><ul class="fq-check">${[
   risk("download", "A plugin is code", `Install only plugins you trust. A plugin runs as code with no sandbox. <a href="https://buzz.xyz/support">Block's support page</a> says a plugin can reach your files and your Buzz private key.`),
 ].join("")}</ul></div>`;
 
-/* ── How do we run an agent on our own server? ── */
+/* ── How do you run an agent on your own server? ── */
 
 /** What happens, in the order the reader sees it: their chat with the agent, then Buzz, then Buzz again. */
 const THREE: [string, string, string][] = [
@@ -172,8 +189,11 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       icon: "robot",
       q: "How should you run agents?",
       a: () =>
-        rec("Start by deciding who the agent works for. That tells you where it should run, who can give it requests, and which channels it should join.") +
-        WHO() +
+        rec("Decide who each agent answers and what it can reach. An agent can read every channel it's in, and it can use every file and login on the computer it runs on. Anyone who can post where it reads can try to steer it.", [
+          ["Private team", "Run your own agents in Buzz on a computer that stays on. They can work in your team's private channels. Give each one only the files and logins its job needs. If the whole team should be able to ask an agent, run it on a server of its own and list your team's keys."],
+          ["Open community", "Run every agent on a separate computer with nothing private on it, and keep it out of private channels. Anyone who joins can post messages written to trick it. A helper that answers everyone needs a server of its own, with no access to your files, email or code."],
+        ]) +
+        COMMUNITIES() +
         note("<b>Give each audience its own agent.</b> An agent that reads a private channel can repeat what it read anywhere it posts. Buzz doesn't stop that yet.") +
         // block/buzz 0.3.0 crates/buzz-relay/src/handlers/auth.rs: an agent with its owner's proof is admitted ViaOwner, not as a member
         note("<b>Your own agents don't appear in Membership.</b> An agent that gets in through its owner uses the owner's membership. It has no membership of its own. The member list doesn't show it.") +
@@ -185,11 +205,13 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       icon: "message-circle",
       q: "What should you tell an agent?",
       a: () =>
-        rec("In the agent's Instructions, write a few plain sentences: what the agent is for, what it should check with you before doing, and how it should report back. You don't need to explain how to behave in a channel, because Buzz already tells every agent that.") +
+        rec("In the agent's Instructions, write a few plain sentences: what the agent is for, what it should check with you before doing, and how it should report back. You don't need to explain how to behave in a channel, because Buzz already tells every agent that.", [
+          ["Private team", "Say who it works for, which channels and files it uses, what it should check with you first, and how it reports back."],
+          ["Open community", "Also say what it should refuse, such as running commands or sharing files that someone asks for in a message. Instructions can't stop every trick, so keep anything private off its computer."],
+        ]) +
         ct("agents") +
         INSTRUCTIONS() +
         note("Instructions shape how the agent answers. They don't give it tools, logins or permissions.") +
-        note("You can write them when you create the agent. To change them later, open <b>Agents</b>, choose the agent, and open its <b>Identity</b> tab.") +
         note("The model's provider receives the instructions with every request. Keep passwords and keys out of them."),
     },
     {
@@ -197,11 +219,18 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       icon: "brain",
       q: "Which harness and model should you pick?",
       a: () =>
-        rec("Use the harness your team already has an account for and has approved. Keep Model and Thinking on their defaults until you have a reason to change them.") +
+        rec("Start from the account you already have. Each harness signs in its own way, and the agent sends what it reads to that harness's provider.", [
+          ["Private team", "Use your company's business plan, such as ChatGPT Business or Enterprise, or an API key from your company's account. Those don't train on your data by default. For a helper the whole team can ask, use an API key with a spending limit."],
+          ["Open community", "For your own agents, a plan you already pay for works, such as ChatGPT Plus with Codex. For a helper that answers everyone, use an API key with a spending limit, because a personal plan is for its owner's own use."],
+        ]) +
         HARNESS() +
-        note("Block doesn't recommend one harness or model over another in its README or its help and support pages.") +
-        note("An agent sends what it reads to its model's provider, such as Anthropic for Claude or OpenAI for Codex. Use a provider your team has approved. You can also run a model on your own computer through Goose.") +
-        note("Each agent has its own harness, model and Thinking setting."),
+        part("agent-model-signin", "Sign in to a harness") +
+        ct("harness") +
+        part("agent-model-account", "Which account to use") +
+        ACCOUNTS +
+        note("A Claude agent's commands can read its API key, because Buzz hands the key to Claude Code. Give it a key of its own with a spending limit.") +
+        note("You pick each agent's harness in Create agent, or later on the agent's Identity tab. Leave Model and Thinking on their defaults until you have a reason to change them. A higher Thinking level takes longer and uses more of your limit or budget.") +
+        note("Block doesn't recommend one harness or model over another in its README or its help and support pages."),
     },
     {
       id: "agent-on",
@@ -238,13 +267,17 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       q: "How do you run an agent on your own server?",
       a: () =>
         `<p class="ga-status">${icon("alert")}Not built into Buzz yet</p>` +
-        rec("You give your agent one prompt, and it sets itself up and messages you in Buzz. It keeps running on its own server. You do three things:") +
+        rec("You give your agent one prompt. It sets itself up on its own server and messages you in Buzz. As the prompt sets it up, it answers only you.", [
+          ["For your team", "Ask it to set <code>BUZZ_ACP_RESPOND_TO=allowlist</code> and to put your team's public keys in <code>BUZZ_ACP_RESPOND_TO_ALLOWLIST</code>. It then answers them too."],
+          ["For everyone", "Skip the ownership proof. Whoever runs the server adds the agent's key as a member instead, and the agent is set to answer anyone. Run it on a server with nothing private on it, and keep it in open channels."],
+        ]) +
+        part("agent-remote-three", "You do three things") +
         OVERVIEW +
         part("agent-remote-prompt", "The prompt for your agent") +
         PROMPT() +
         part("agent-remote-buzz", "Step by step") +
         ct("remote") +
-        note(`The agent answers only you. To have it answer your team, ask it to set <code>BUZZ_ACP_RESPOND_TO=allowlist</code> and put your team's public keys in <code>BUZZ_ACP_RESPOND_TO_ALLOWLIST</code>. Before you let the public use it, read ${go("agent-safe", "how to keep an agent safe")}.`) +
+        note(`Before you let the public use an agent, read ${go("agent-safe", "how to keep an agent safe")}.`) +
         SYMPTOMS() +
         WARN,
     },

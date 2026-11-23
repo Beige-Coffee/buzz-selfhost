@@ -196,35 +196,66 @@ const phBackup = phoneScreen(`<p class="ph-top"><span class="ph-circ">${ti("arro
   <p class="ph-acct">Receiving account: maya@example.com</p>
   <div class="ph-foot"><span class="ph-btn dark hot">Back up and continue</span><span class="ph-link">Cancel setup</span><span class="ph-link">Sign out</span></div>`);
 
-/** The steps both kinds of community share: the desktop's code, the phone's Add Community, the codes. */
-const PAIR_START = [
-  { k: "Open Mobile app in Settings", t: "In the Buzz desktop app, press ⌘, on a Mac or Ctrl+, on Windows and Linux to open <b>Settings</b>. Then choose <b>Mobile app</b>. The <b>Pair mobile</b> page shows a QR code.", frame: settingsModal(nav("Mobile app"), pairPageAt("qr")) },
+const phContinue = bl("app.builderlab.xyz", `<p class="ph-t">Continue to Buzz</p>
+  <p class="ph-s">Sign in to Buzz as maya@example.com.</p>
+  <p class="ph-row2"><span></span><span class="ph-btn small dark hot">Continue to Buzz</span></p>
+  <p class="ph-s ph-gap">Not you? <u>Use a different account</u></p>`);
+
+/** The computer's side: Pair mobile's QR code, then the code once the phone has scanned it. */
+const C_OPEN = {
+  k: "Open Mobile app in Settings",
+  t: "In the Buzz desktop app, open the community you want on your phone. Press ⌘, on a Mac or Ctrl+, on Windows and Linux to open <b>Settings</b>. Then choose <b>Mobile app</b>. The <b>Pair mobile</b> page shows a QR code. Pair where nobody else can see your screen, because pairing copies your private key to the phone.",
+  frame: settingsModal(nav("Mobile app"), pairPageAt("qr")),
+};
+const cCode = (after: string) => ({
+  k: "Check the code",
+  t: `After your phone scans the QR code, your computer shows six digits. If the phone asks for a code, type these digits on the phone. If the phone shows a code, check that it matches, then choose <b>Codes match</b>. If the codes don't match, choose <b>Cancel</b> and start again. ${after}`,
+  frame: settingsModal(nav("Mobile app"), pairPage),
+});
+
+/** The phone's side, up to the code: the community menu, Switch community, Add a community. */
+const P_START = [
   { k: "Open Switch community", t: "In the Buzz app on your phone, tap your community's picture at the top right. Then tap <b>Switch community</b>.", frame: phHome(true) },
-  { k: "Tap Add Community", t: "Tap <b>Add Community</b>. On a phone that hasn't joined a community yet, the first screen offers <b>Scan a QR code</b> instead.", frame: phSwitch },
-  { k: "Scan the QR code", t: "Tap <b>Scan a QR code</b> and point the camera at the code on your computer. Pair where nobody else can see your screen, because pairing copies your private key to the phone.", frame: phAdd },
-  { k: "Check the code", t: "If the phone asks for a code, type the six digits your computer shows. If it shows a code instead, check that it matches. When the codes match, choose <b>Codes match</b> on your computer. If they don't, choose <b>Cancel</b> and start again.", frame: settingsModal(nav("Mobile app"), pairPage) },
+  { k: "Tap Add Community", t: "Tap <b>Add Community</b>. On a phone that hasn't joined a community yet, Buzz opens <b>Add a community</b> by itself.", frame: phSwitch },
+  { k: "Scan the QR code", t: "Tap <b>Scan a QR code</b> and point the camera at the QR code on your computer. Then check the code. If the phone asks for a code, type the six digits your computer shows. If it shows a code, check that it matches the one on your computer.", frame: phAdd },
 ];
 
-/** Pairing a phone: the shared steps, then what happens for a community on its own server or one Block hosts. */
+/** Pairing a phone, from the computer's side or the phone's, for a self-hosted community or a Builderlab one. */
 export const pairFlows: Flow[] = [
   {
-    id: "own",
-    label: "Your own server",
+    id: "computer-own",
+    view: "computer",
+    label: "Self-hosted community",
+    steps: [C_OPEN, cCode("Your computer then sends your identity to the phone, and the phone joins the community by itself.")],
+  },
+  {
+    id: "computer-builderlab",
+    view: "computer",
+    label: "Builderlab community",
+    steps: [C_OPEN, cCode("Your computer then sends your identity to the phone. The phone asks you to sign in to Builderlab before it joins.")],
+  },
+  {
+    id: "phone-own",
+    view: "phone",
+    label: "Self-hosted community",
     steps: [
-      ...PAIR_START,
-      { k: "The phone joins", t: "The phone joins the community by itself. There's nothing else to do.", frame: phJoining },
+      ...P_START,
+      { k: "The phone joins", t: "When the codes match, the phone joins the community by itself. There's nothing else to do.", frame: phJoining },
       { k: "Your community opens", t: "The community opens on the phone, with its channels and direct messages.", frame: phHome(false) },
     ],
   },
   {
-    id: "builderlab",
-    label: "A Builderlab community",
+    id: "phone-builderlab",
+    view: "phone",
+    label: "Builderlab community",
     steps: [
-      ...PAIR_START,
+      ...P_START,
       { k: "Sign in to Builderlab", t: "For a community Block hosts, the phone then asks you to sign in to Builderlab, Block's account service. Enter your account's email and tap <b>Continue</b>.", frame: phSignIn },
-      { k: "Enter the emailed code", t: "Type the six-digit code Builderlab emails you and tap <b>Continue</b>. Then tap <b>Continue to Buzz</b>.", frame: phCode },
+      { k: "Enter the emailed code", t: "Type the six-digit code Builderlab emails you and tap <b>Continue</b>.", frame: phCode },
+      { k: "Continue to Buzz", t: "Check that the email is yours and tap <b>Continue to Buzz</b>.", frame: phContinue },
       { k: "Back up your secret key", t: "Buzz asks to back up your secret key with Builderlab. A Builderlab community requires this backup, and Builderlab can decrypt it. Tap <b>Back up and continue</b>.", frame: phBackup },
-      { k: "Your community opens", t: "The phone joins, and the community opens with its channels and direct messages.", frame: phHome(false) },
+      { k: "The phone joins", t: "The phone joins the community.", frame: phJoining },
+      { k: "Your community opens", t: "The community opens on the phone, with its channels and direct messages.", frame: phHome(false) },
     ],
   },
 ];

@@ -301,6 +301,7 @@
 :is(.ga-status, .ga-warn, .ga-sym, .ga-row) svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .ga-status { display: inline-flex; align-items: center; gap: 7px; margin: 0 0 14px; padding: 4px 11px 4px 9px; border-radius: 999px; background: #f7ecd9; font: 500 12px var(--mono); color: #7a4d06; }
 .ga-status svg { width: 14px; height: 14px; }
+.ga-status.ok { background: #e2f5e9; color: #1d5c35; font: 500 12.5px var(--sans); }
 .ga-h { margin: 26px 0 0; font-size: 15px; font-weight: 600; }
 
 /* every answer, and each part of a long one, has its own link: faint until hovered, so it can be found */

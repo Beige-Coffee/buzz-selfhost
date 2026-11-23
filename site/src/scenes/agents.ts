@@ -158,10 +158,10 @@ const chip = (t: string, cls = "") => `<span class="ga-chip${cls}">${t}</span>`;
 const place = (i: string, title: string, text: string, chips: string, pick = false) =>
   `<div class="ga-on-row${pick ? " pick" : ""}"><span class="ga-on-i">${icon(i)}</span><div><b>${title}</b><p>${text}</p></div><div class="ga-on-s">${chips}</div></div>`;
 const PLACES = `<div class="fq-vis ga-on">
-  ${place("laptop", "Your laptop", "The agent answers only while Buzz is open and the lid is up.", chip("Built into Buzz", " yes"))}
-  ${place("device-desktop", "A computer that stays on", "Keep Buzz open on a spare computer, or on a virtual machine with a desktop. The agent then answers all day.", chip("Recommended", " rec") + chip("Built into Buzz", " yes"), true)}
+  ${place("laptop", "Your laptop", "An agent you made in the Buzz app answers only while the app is open and the lid is up.", chip("Built into Buzz", " yes"))}
+  ${place("device-desktop", "A computer that stays on", "Agents you made in the Buzz app run inside the app, so the app has to stay open. Keep it open on a spare computer, or on a virtual machine with a desktop, and they answer all day.", chip("Recommended", " rec") + chip("Built into Buzz", " yes"), true)}
   ${place("cloud", "Hosted by Block", "Block calls these remote agents. Builderlab, a Block service, runs them on Block's machines. The paid ones are available only in the United States.", chip("Built into Buzz", " yes"))}
-  ${place("server", "Your own server, without Buzz", "You give an agent on a small server one prompt, and it sets itself up with Block's Sprig. The agent then answers all day.", chip("Not built into Buzz yet", " no"))}
+  ${place("server", "Your own server, without the app", "No desktop app is needed. You give an agent on a small Linux server one prompt, and it installs Sprig, Block's command-line runner, and sets itself up. It then answers all day.", chip("Works today", " yes") + chip("Set up with a prompt"))}
 </div>`;
 
 /* ── How do you keep an agent safe? ── */
@@ -290,9 +290,9 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       icon: "bolt",
       q: "How do you keep an agent always online?",
       a: () =>
-        rec("An agent only answers while it's running.", [
-          ["On a computer", "Keep Buzz open on a computer that stays on and doesn't go to sleep. Buzz runs the agent on that computer."],
-          ["On a server", `Follow ${go("agent-remote", "the server setup")}. The agent then runs all day without Buzz open.`],
+        rec("An agent only answers while it's running. Where it runs depends on how you made it.", [
+          ["Made in the Buzz app", "It runs inside the Buzz desktop app, so the app has to stay open. Keep Buzz open on a computer that stays on and doesn't go to sleep."],
+          ["On a server", `No app is needed. The agent runs on a Linux server with Sprig, Block's command-line runner, which is the <code>buzz</code> command and <code>buzz-acp</code> in one program. Follow ${go("agent-remote", "the server setup")}.`],
         ]) +
         PLACES +
         part("agent-on-steps", "Set it up") +
@@ -319,7 +319,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       icon: "server",
       q: "How do you run an agent on your own server?",
       a: () =>
-        `<p class="ga-status">${icon("alert")}Not built into Buzz yet</p>` +
+        `<p class="ga-status ok">${icon("check")}Works today. The Buzz app has no button for it yet, so your agent sets it up from one prompt.</p>` +
         rec("You give your agent one prompt. It sets itself up on its own server and messages you in Buzz. As the prompt sets it up, it answers only you.", [
           ["For your team", "Ask it to set <code>BUZZ_ACP_RESPOND_TO=allowlist</code> and to put your team's public keys in <code>BUZZ_ACP_RESPOND_TO_ALLOWLIST</code>. It then answers them too."],
           ["For everyone", "Skip the ownership proof. Whoever runs the server adds the agent's key as a member instead, and the agent is set to answer anyone. Run it on a server with nothing private on it, and keep it in open channels."],

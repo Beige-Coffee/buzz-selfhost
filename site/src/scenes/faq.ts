@@ -186,19 +186,20 @@ const CASES = `<div class="fq-vis fq-cases">
 </div>`;
 
 /**
- * Two ways to get a key (decision of 2026-11-06): the skill's key script, which the site serves with the
- * rest of the skill, or a Builderlab account, Block's, which can back the key up with Block
- * (block/buzz-app#2325) and, created on Block's hosted page, asks for the person's details (#2579).
+ * Two ways to get a key: nak, the open-source Nostr command-line tool (owner's call of 2026-11-23, replacing
+ * the guide's own script; tested with nak v0.22.3), or a Builderlab account, Block's, which can back the key
+ * up with Block (block/buzz-app#2325) and, created on Block's hosted page, asks for the person's details (#2579).
  */
-const KEYMAKER = skillURL("scripts/new-identity.py");
+const NAK = "https://github.com/fiatjaf/nak";
+const NAK_KEY = "(set -C; umask 077; nak key generate | nak encode nsec &gt; ~/buzz-identity.key) &amp;&amp; nak key public &lt; ~/buzz-identity.key | nak encode npub";
 const ADD_MEMBER = skillURL("references/operations.md");
 const KEYS =
   note(
-    `You can get a key in two ways. This guide's <a href="${KEYMAKER}">key script</a> makes one on your computer with Python. It saves the key in a file only you can read, and it shows only the npub. The other way is <b>Create account</b> on Buzz's first screen, which makes a key with a Builderlab account. Builderlab is Block's service. Block can keep a copy of the key, and creating the account asks for your details.`,
+    `You can get a key in two ways. <a href="${NAK}">nak</a>, the open-source Nostr command-line tool, makes one on your computer. Install it with <code>brew install nak</code>, or download it from its releases page. The command below saves the key in <code>~/buzz-identity.key</code>, a file only you can read, and shows only the npub. It never overwrites a file that's already there. The other way is <b>Create account</b> on Buzz's first screen, which makes a key with a Builderlab account. Builderlab is Block's service. Block can keep a copy of the key, and creating the account asks for your details.`,
   ) +
-  `<pre class="cmd">curl -fsSLO ${KEYMAKER} &amp;&amp; python3 new-identity.py</pre>` +
+  `<pre class="cmd">${NAK_KEY}</pre>` +
   note(
-    "To join with the script's key, choose <b>Other options</b> on Buzz's first screen, enter the community's address and choose <b>Continue</b>. Then choose <b>Use an existing key</b> and drop the key file on the page. After you join, save the key in your password manager. In Buzz, open <b>Settings</b>, <b>Identity</b>, then <b>More options</b> (…) on the Buzz ID card, and choose <b>Copy</b> on the masked private-key field. Check that you can open the saved entry before you delete the key file. When you're done, clear the key from the clipboard, and avoid clipboard tools that keep a history or share the clipboard. Builderlab can keep a copy of any key you make or import after you sign in to it, and it gives that key back to whoever signs in to that account. Keep a work identity in your own private vault, in a password manager your team approves.",
+    "To join with that key, choose <b>Other options</b> on Buzz's first screen, enter the community's address and choose <b>Continue</b>. Then choose <b>Use an existing key</b> and drop the key file on the page. After you join, save the key in your password manager. In Buzz, open <b>Settings</b>, <b>Identity</b>, then <b>More options</b> (…) on the Buzz ID card, and choose <b>Copy</b> on the masked private-key field. Check that you can open the saved entry before you delete the key file. When you're done, clear the key from the clipboard, and avoid clipboard tools that keep a history or share the clipboard. Builderlab can keep a copy of any key you make or import after you sign in to it, and it gives that key back to whoever signs in to that account. Keep a work identity in your own private vault, in a password manager your team approves.",
   );
 
 /** Single sign-on today: two locks in a row, your company's login and Buzz's member list. */
@@ -328,7 +329,7 @@ const DEPS = `<div class="fq-vis"><ul class="fq-check">${[
     "iPhone notifications",
     "Notifications go through Block's gateway, <code>push.buzz.xyz</code>. No message text passes through it. The gateway does see your relay's public key, your server's IP address and when it wakes which phone. Apple sees when a phone is woken. Block calls push experimental. Setting <code>BUZZ_PUSH_ENABLED=false</code> on the relay turns it off.",
   ),
-  dep("user", "Builderlab accounts", "When you sign in to Builderlab, Block's service, Block can get a copy of your key. It also learns which communities you join. A key from this guide's key script doesn't need a Builderlab account."),
+  dep("user", "Builderlab accounts", "When you sign in to Builderlab, Block's service, Block can get a copy of your key. It also learns which communities you join. A key made with nak doesn't need a Builderlab account."),
 ].join("")}</ul></div>`;
 
 /**
@@ -505,7 +506,7 @@ const GROUPS: [string, Question[]][] = [
         q: "How should each person set up their identity?",
         a:
           rec("Each person has a private key, and that key is their identity in Buzz. Anyone who has the key can act as that person.", [
-            [TEAM, "Give each person one work identity. Make the key with this guide's key script so Block never gets a copy, and have each person save it in their own vault in a password manager your team approves."],
+            [TEAM, "Give each person one work identity. Make the key with nak, the open-source Nostr tool, so Block never gets a copy, and have each person save it in their own vault in a password manager your team approves."],
             [OPEN, "Members bring their own key. Suggest they make one only for Buzz and save it in their password manager."],
           ]) +
           ct("identity") +
@@ -519,12 +520,12 @@ const GROUPS: [string, Question[]][] = [
         q: "Can someone use a different identity in each community?",
         a:
           rec("No. Buzz on desktop uses the same key for every community you join, so decide which identity to use for Buzz before you join. To keep a separate identity, use a second user account on your computer or a different device.", [
-            [TEAM, "Give each person a work identity made with this guide's key script, and use it only for work communities."],
+            [TEAM, "Give each person a work identity made with nak, and use it only for work communities."],
             [OPEN, "If you also join open communities, decide whether they should see your work identity. If not, join them from a second user account or another device with its own key."],
           ]) +
           ONE_KEY +
           note("Signing out to switch identities doesn't help. Removing the key takes every community off that computer until you sign in with that key again.") +
-          note("If you make a key only for Buzz with this guide's key script, it works in every community, and your other Nostr identity stays out of Buzz."),
+          note("If you make a key only for Buzz with nak, it works in every community, and your other Nostr identity stays out of Buzz."),
       },
       {
         id: "lost",
@@ -697,7 +698,7 @@ const GROUPS: [string, Question[]][] = [
         q: "What still depends on Block?",
         a:
           rec("Your relay runs without Block, but the Buzz apps, iPhone notifications and Builderlab accounts all come from Block.", [
-            [TEAM, "Make keys with this guide's key script, so Block never gets a copy. Turn notifications off if Block can't be allowed to see when your team's phones get them."],
+            [TEAM, "Make keys with nak, so Block never gets a copy. Turn notifications off if Block can't be allowed to see when your team's phones get them."],
             [OPEN, "Keep notifications on, so members hear about mentions and direct messages. Members can choose for themselves whether to sign in with a Builderlab account."],
           ]) +
           DEPS +

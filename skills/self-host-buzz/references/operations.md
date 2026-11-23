@@ -5,7 +5,7 @@
 Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private` mode, leave out
 `BUZZ_COMPOSE_TLS=true`. That mode has no Caddy, and the flag would start Caddy on the public ports.
 
-- **Add a member.** Each member needs an npub. A member who made their key with `new-identity.py`
+- **Add a member.** Each member needs an npub. A member who made their key with nak
   has the npub it printed. Anyone else copies it from the Buzz app: in Buzz 1.0, Settings, Identity,
   then Copy Buzz ID on the Buzz ID card, which copies the npub; in Buzz 0.X, the Join screen. Before
   they've joined, Buzz 1.0 also shows their npub on "This community needs an invite". Check the npub
@@ -84,7 +84,7 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
   the commands are the same for every tag. Redis holds nothing that needs keeping. The list `run.sh`
   prints after an upgrade also names Caddy's volumes. They hold only certificates, which Caddy gets
   again on its own. That list also names an owner key that a bootstrap script makes. When the owner
-  uses their own npub, from `new-identity.py` or the Buzz app, the owner holds that key themselves.
+  uses their own npub, from nak or the Buzz app, the owner holds that key themselves.
   Plain `docker compose` works in every mode, because these commands touch only the relay, Postgres
   and the volumes. Each backup gets its own folder in `~/buzz-backup`, named for the day. `BACKUP`
   holds that folder's path. If each command runs in a fresh shell, set `BACKUP` again in each call.

@@ -13,14 +13,15 @@ where you will use Buzz. Stop at a failed check. Review each command before runn
 when it changes networking, stops a service or deletes data.
 
 Use an existing identity's npub from Settings, Identity, Copy Buzz ID, or make a new identity on
-your own computer after downloading this runbook:
+your own computer with [nak](https://github.com/fiatjaf/nak), the open-source Nostr command-line
+tool. Install it with `brew install nak`, or download it from its releases page, then run:
 
 ```bash
-python3 $SKILL/scripts/new-identity.py
+(set -C; umask 077; nak key generate | nak encode nsec > ~/buzz-identity.key) && nak key public < ~/buzz-identity.key | nak encode npub
 ```
 
-The script prints only your public npub and the private key file's path. It does not overwrite an
-existing file. Put the npub and your chosen permanent address into the page's Running on box;
+It prints only your public npub, and the private key goes into `~/buzz-identity.key`, a file only
+you can read. It does not overwrite an existing file. Put the npub and your chosen permanent address into the page's Running on box;
 never enter the private key here. Leave the recommended image unchanged. Commands with an unset
 value are incomplete: fill the required fields before running them.
 

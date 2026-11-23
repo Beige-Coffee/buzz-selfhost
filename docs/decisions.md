@@ -288,9 +288,13 @@ decided:
   This replaces "The tested image moves to sha-e8781ca". `tested` stays 2026-10-23 until the
   private and Kubernetes suites run on the pin.
 - **Keys.** Buzz 1.0's first screen makes a key only with a Builderlab account, which is Block's.
-  The skill's `scripts/new-identity.py` makes one on the person's computer instead, in
-  `~/buzz-identity.key` (Buzz's Browse button lists `.key` and `.txt` files, not `.nsec`), and the
-  site serves it for members. People join with Other options, the address, Use an existing key and
+  [nak](https://github.com/fiatjaf/nak), the open-source Nostr command-line tool, makes one on the
+  person's computer instead, in `~/buzz-identity.key` (Buzz's Browse button lists `.key` and `.txt`
+  files, not `.nsec`). The guide had its own script for this, `new-identity.py`, until the owner's
+  call of 2026-11-23 to recommend established open-source software instead. Tested with nak v0.22.3:
+  `(set -C; umask 077; nak key generate | nak encode nsec > ~/buzz-identity.key) && nak key public <
+  ~/buzz-identity.key | nak encode npub` prints only the npub, leaves the nsec in a mode 600 file,
+  refuses to overwrite one, and its npub matched an independent derivation. People join with Other options, the address, Use an existing key and
   the dropped file. Then they copy the key from Settings, Identity, Copy private key into a password
   manager and delete the file, so nobody opens it by hand. Builderlab stays the other way, with
   what Block can keep said plainly.

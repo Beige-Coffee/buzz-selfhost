@@ -79,9 +79,9 @@ const claudeKey = `<div class="mb-dlg as-dlg">
   <div class="mb-dlg-h"><b>${CLAUDE_MARK}Claude</b><span class="mb-x">${ti("x")}</span></div>
   <p class="as-p">Buzz can help you configure your Claude setup with an API key, or use the Claude CLI to configure your own connection and refresh Buzz. Create a key at console.anthropic.com and paste it below.</p>
   <p class="as-lab">Anthropic API key</p>
-  <p class="as-in hot"><span></span><em>Save</em></p>
+  <p class="as-in"><span></span><em>Save</em></p>
   <p class="as-note">Your key will be stored securely on this computer.</p>
-  <div class="as-foot"><span class="mb-btn">Refresh</span><span class="mb-btn">Cancel</span></div>
+  <div class="as-foot"><span class="mb-btn hot">Refresh</span><span class="mb-btn">Cancel</span></div>
 </div>`;
 const gooseSetup = `<div class="mb-dlg as-dlg">
   <div class="mb-dlg-h"><b>${MK_GOOSE}Goose</b><span class="mb-x">${ti("x")}</span></div>
@@ -96,7 +96,7 @@ export const harnessFlows: Flow[] = [
     label: "Sign in to a harness",
     steps: [
       { k: "Open Agent setup", t: "Open <b>Settings</b> and choose <b>Agent setup</b>. Under <b>Harness defaults</b>, each harness shows what it still needs. Codex shows <b>Sign in</b> until you sign in with your ChatGPT plan. After that, it shows its default model.", frame: settingsModal(setupNav, agentSetup("")) },
-      { k: "Claude: add a key", t: "Choose <b>Add Claude API key</b>. Paste a key from console.anthropic.com and choose <b>Save</b>. If Claude Code is already signed in on this computer, choose <b>Refresh</b> instead.", frame: settingsModal(setupNav, agentSetup(""), claudeKey) },
+      { k: "Claude: sign in or add a key", t: "Choose <b>Add Claude API key</b>. If Claude Code is signed in on this computer, such as with your Claude plan, choose <b>Refresh</b>. Buzz then uses that sign-in, and you don't need a key. To sign in first, run <code>claude auth login</code> in a terminal. Without a sign-in, paste a key from console.anthropic.com and choose <b>Save</b>.", frame: settingsModal(setupNav, agentSetup(""), claudeKey) },
       { k: "Goose: pick a provider", t: "Choose <b>Set up Goose</b>. Pick a provider, such as OpenRouter or Ollama for a model on your own computer, and paste its key if it needs one. Then choose <b>Save defaults</b>.", frame: settingsModal(setupNav, agentSetup(""), gooseSetup) },
     ],
   },

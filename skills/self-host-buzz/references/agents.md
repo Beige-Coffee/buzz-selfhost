@@ -57,7 +57,7 @@ have:
 | Harness | What you need | Where you sign in | Runs on |
 |---|---|---|---|
 | Codex | A ChatGPT plan, such as Plus, Pro, Business or Enterprise. An OpenAI API key works too. | In Settings, Agent setup, choose Sign in on the Codex row. For an API key, sign in with the `codex` command instead. | macOS, Linux |
-| Claude | An Anthropic API key, billed for each request. Buzz also uses Claude Code's own sign-in on that computer. | In Settings, Agent setup, choose Add Claude API key and paste a key from console.anthropic.com. Or sign in with the `claude` command, then choose Refresh. | macOS, Linux |
+| Claude | Claude Code signed in on that computer, such as with a Claude plan. Without that, an Anthropic API key, billed for each request. | Sign in with `claude auth login` in a terminal. Then in Settings, Agent setup, choose Add Claude API key and then Refresh. For a key, paste it there and choose Save. | macOS, Linux |
 | Goose | A key from a model provider, such as OpenRouter, or a model on your own computer through Ollama | In Settings, Agent setup, choose Set up Goose, pick a provider and paste its key. | macOS, Linux, Windows |
 | Pi | Node.js 22.19 or later and a provider's API key | Turn Pi on in Settings, under Plugins. Then paste the key and choose Save to Pi. | macOS, Linux, Windows |
 
@@ -81,7 +81,10 @@ Who the agent works for decides which account to use:
 - **To keep what the agent reads off any provider's servers,** use Goose with a model on your own
   computer through Ollama. The model has to support tool calling.
 
-A Claude agent's commands can read its API key, because Buzz hands the key to Claude Code. Give it
+Buzz uses Claude Code's own sign-in whenever `claude auth status` reports one, and asks for a key only
+without it, according to
+[Buzz's source](https://github.com/block/buzz-app/blob/main/src/bundled/claude-code/auth.tsx)
+(not tested with a Claude plan). A Claude agent's commands can read its API key, because Buzz hands the key to Claude Code. Give it
 a key of its own with a spending limit. The agent sends what it reads to its provider. Leave Model
 and Thinking on their defaults until you have a reason to change them. Thinking sets how much the
 model reasons before it answers. A higher level takes longer and uses more of your limit or budget.

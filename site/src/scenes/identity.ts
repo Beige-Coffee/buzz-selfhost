@@ -2,7 +2,6 @@ import maya from "../assets/avatars/maya.svg";
 import ops from "../assets/avatars/ops.webp";
 import { BACK, joinCard, onboardingStep } from "./joinmock";
 import { communityNav, CURSOR, invite, QR, settings, settingsModal, ti, type Flow } from "./members";
-import { skillURL } from "../lib/values";
 
 /**
  * A person's identity in Buzz 1.0, as click-throughs of its own screens, in light mode. Drawn from
@@ -10,15 +9,15 @@ import { skillURL } from "../lib/values";
  * src/features/identity/Welcome.tsx, OnboardingBees.tsx, IdentitySetup.module.css, ConnectChoice.tsx,
  * KeyImport.tsx, and CommunityUrlField.tsx through joinmock.ts), Settings (src/app/settings-sections.ts),
  * Identity (src/app/IdentitySettings.tsx) and Pair mobile with Codes match (#1597:
- * src/bundled/pairing/PairingSettings.tsx). The key script's terminal, the password manager and the
- * devices are generic, not any product, and the terminal never shows a key.
+ * src/bundled/pairing/PairingSettings.tsx). The terminal runs nak (github.com/fiatjaf/nak), the open-source
+ * Nostr tool, and never shows a key. The password manager and the devices are generic, not any product.
  */
 
 const NPUB = "npub1qm…8k3a";
 /** The new key after a lost device: the npub whoever runs the server adds, unless an admin sends a link. */
 const NEW_NPUB = "npub1qk3f8w…7x2a";
-/** This guide's key script, linked from the steps that use it, so a reader who skipped the skill can get it. */
-const KEYMAKER = skillURL("scripts/new-identity.py");
+/** nak, the open-source Nostr command-line tool that makes the key (tested with v0.22.3). */
+const NAK = "https://github.com/fiatjaf/nak";
 
 /**
  * Buzz's first screen: the wordmark on Buzz's chartreuse among its bees, then Create account and Sign
@@ -57,12 +56,18 @@ const keyImport = onboardingStep(
   <div class="j1-acts">${BACK}<span class="j1-go hot">Continue with this key</span></div>`,
 );
 
-/** The guide's key script on the person's own computer: it shows the npub and where the key is, never the key. */
+/**
+ * nak on the person's own computer: the key goes into a file only they can read, and only the npub prints
+ * (tested 2026-11-23 with nak v0.22.3: the file is mode 600, holds the nsec, and a second run won't overwrite it).
+ */
 const keyScript = (npub = NPUB) => `<div class="id-term">
   <p class="id-term-h"><i></i><i></i><i></i><span>your computer</span></p>
-  <pre><span class="p">$</span> python3 new-identity.py
-<b>${npub}</b>
-/Users/maya/buzz-identity.key</pre>
+  <pre><span class="p">$</span> brew install nak
+<span class="p">$</span> (set -C; umask 077; nak key generate \\
+    | nak encode nsec > ~/buzz-identity.key) \\
+    &amp;&amp; nak key public < ~/buzz-identity.key \\
+    | nak encode npub
+<b>${npub}</b></pre>
 </div>`;
 
 /**
@@ -260,7 +265,7 @@ export const identityFlows: Flow[] = [
     id: "identity",
     label: "Set up an identity",
     steps: [
-      { k: "Make your key", t: `Run this guide's <a href="${KEYMAKER}">key script</a> on your own computer. Don't run it on the server. The script saves your private key in a file that only you can read. It shows your npub and where the file is. It never shows the private key.`, frame: keyScript() },
+      { k: "Make your key", t: `On your own computer, not the server, install <a href="${NAK}">nak</a>, the open-source Nostr command-line tool, with <code>brew install nak</code>. Then run the command below this click-through. It saves your private key in <code>~/buzz-identity.key</code>, a file only you can read, and it shows only your npub.`, frame: keyScript() },
       { k: "Choose Other options", t: "On Buzz's first screen, choose <b>Other options</b>. <b>Create account</b> and <b>Sign in</b> are for a Builderlab account. Builderlab is Block's service.", frame: welcome },
       { k: "Paste your community's address", t: "Paste your community's address into <b>Community address or invite link</b>. If an admin sent you an invite link, paste the link instead. Then choose <b>Continue</b>.", frame: joinCard(ADDRESS, true) },
       { k: "Use an existing key", t: "On the <b>Connect to your community</b> page, choose <b>Use an existing key</b>. <b>Sign in with Builderlab</b> would sign you in through Block's service.", frame: connect },
@@ -285,7 +290,7 @@ export const lostFlows: Flow[] = [
     label: "The key is exposed",
     steps: [
       { k: "Remove the old key now", t: "An admin opens <b>Membership</b>, chooses the <b>…</b> button on the person's row, then chooses <b>Remove</b>. Buzz disconnects the old key right away. An invite link that hasn't expired would still let the old key back in.", frame: settings("remove") },
-      { k: "Make a new key", t: `On the new device, make a new key with this guide's <a href="${KEYMAKER}">key script</a>. Don't use the copy you saved. Whoever has the old device has that key too.`, frame: keyScript(NEW_NPUB) },
+      { k: "Make a new key", t: `On the new device, make a new key with <a href="${NAK}">nak</a>. Don't use the copy you saved. Whoever has the old device has that key too.`, frame: keyScript(NEW_NPUB) },
       { k: "Get a new invite link", t: "An admin makes you a new link on the <b>Invite</b> tab in <b>Membership</b>. They set it to 1 use and to expire after 1 day, then send it to you. Or whoever runs the server can add the npub that the script showed you. The Buzz app can't add an npub itself.", frame: invite("copy", "1 day", "1") },
       { k: "Sign in with the new key", t: "On the new device's first screen, choose <b>Other options</b>. Paste the new invite link or the community's address, then choose <b>Continue</b>. Choose <b>Use an existing key</b> and drop in the new key file. Save the new key in your password manager and delete the file, as you did the first time. Then pair your phone again. Start your agents again from the new identity.", frame: connect },
     ],

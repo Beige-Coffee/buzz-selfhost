@@ -33,7 +33,7 @@ deprecated. It still works with the same relay; where its screens differ, the st
 
 1. **Never print a secret.** Don't `cat`, `echo`, `grep` or paste `BUZZ_RELAY_PRIVATE_KEY`, any
    secret in `.env`, any Kubernetes value holding a key or password, a Tailscale auth key, the key
-   file `new-identity.py` writes, or any secret key. These print every secret at once, so their
+   file `~/buzz-identity.key`, or any secret key. These print every secret at once, so their
    output goes to a file or nowhere, never the screen: `./run.sh config`, `docker compose config`,
    `docker inspect`, `helm get manifest`, `helm get all`, `kubectl get secret -o yaml`. Generate
    keys straight into their file. When a check needs a secret, check its length, never its value.
@@ -104,14 +104,17 @@ Linux (Windows isn't tested). On a Mac without Apple's developer tools, the firs
 an installer instead: ask the user to run `xcode-select --install` first.
 
 - **Owner.** The owner's public ID, an npub, in one of three ways. Buzz 1.0 itself makes a key only
-  through a Builderlab account, which is Block's, so the first is this skill's own:
+  through a Builderlab account, which is Block's, so the first uses
+  [nak](https://github.com/fiatjaf/nak), the open-source Nostr command-line tool:
   - **A new key, on the owner's computer** (recommended where Buzz isn't set up yet: it holds one
     key per computer, and only Settings, Identity, Remove from device removes the one it has). There, never on the
-    server, run `python3 $SKILL/scripts/new-identity.py`. It writes the private key to
-    `~/buzz-identity.key`, a new file only they can read, and prints the npub, then the file's
-    path. It never prints the private key and never overwrites a file (`--out <full path>` names
-    another). If the agent doesn't run on the computer the owner will use Buzz on, the user runs
-    the script there. Never read, print or copy the file: the user imports it into Buzz in
+    server, check `command -v nak`. Without it, ask before installing it: `brew install nak`, or a
+    binary from its [releases](https://github.com/fiatjaf/nak/releases). Then run
+    `(set -C; umask 077; nak key generate | nak encode nsec > ~/buzz-identity.key) && nak key public < ~/buzz-identity.key | nak encode npub`.
+    It writes the private key to `~/buzz-identity.key`, a new file only they can read, and prints
+    only the npub. It never prints the private key, and `set -C` stops it from overwriting a file
+    that's already there. If the agent doesn't run on the computer the owner will use Buzz on, the
+    user runs it there. Never read, print or copy the file: the user imports it into Buzz in
     section 4, and then deletes it.
   - **An identity they already use** in Buzz 1.0: Settings, Identity, Copy Buzz ID on
     the Buzz ID card (it copies the npub), on the computer they'll use. An npub from anywhere else
@@ -224,9 +227,8 @@ clear the copied value from the clipboard before deleting the temporary file:
 `rm ~/buzz-identity.key`. To join another community later, it's the community button, then Join a
 community, whose box takes an address but not an invite link.
 
-**People.** Each member needs a key. They can make one on their own computer with this skill's
-`new-identity.py`, which the guide's site also serves
-(https://self-host.buzz/skills/self-host-buzz/scripts/new-identity.py), or with a
+**People.** Each member needs a key. They can make one on their own computer with nak, as the
+owner's step above does (the guide's site shows the same command), or with a
 Builderlab account, which is Block's: Create account on Buzz's first screen asks for their details,
 and Block can keep a copy of the key. The owner invites them from Buzz 1.0 with a link: Settings,
 Community admin, Membership, the Invite tab, then Copy link (in Buzz 1.0.0: Invite members, then
@@ -323,7 +325,7 @@ communities share that folder. For an agent's instructions, its harness, keeping
 day, or an agent on the user's own server without Buzz, read [agents.md](references/agents.md).
 
 **Keys.** Buzz 1.0 keeps a person's private key in that computer's keychain. A key made with
-`new-identity.py`, or brought in with Use an existing key without signing in to Builderlab, stays
+nak, or brought in with Use an existing key without signing in to Builderlab, stays
 only there: tell everyone to keep a copy in a password manager (Settings, Identity, More options
 on the Buzz ID card, then the masked private-key field and Copy). If Buzz later asks to sync the
 key with Builderlab, "I will manage my own key" keeps it off

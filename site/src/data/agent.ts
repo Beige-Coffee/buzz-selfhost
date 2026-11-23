@@ -50,14 +50,14 @@ const APP: Ready = {
     t: `Download it from <a href="${DESKTOP}">Block's latest stable release</a>. Buzz 1.0 launched on 10 November 2026, with builds for a Mac with macOS 12 or later (Apple Silicon or Intel), Windows x64 and Linux x64 (Ubuntu 24.04 deb or AppImage). The Windows installer isn't signed yet, so Windows warns before it runs.`,
   },
 };
-// decision 2: the skill's scripts/new-identity.py makes the owner's key on this computer and prints only
-// its npub. Buzz 1.0 makes a key only with a Builderlab account (block/buzz-app#2579), which can back it
+// decision 2 (owner's call of 2026-11-23): the skill makes the owner's key on this computer with nak, the
+// open-source Nostr tool, and prints only its npub. Buzz 1.0 makes a key only with a Builderlab account (block/buzz-app#2579), which can back it
 // up with Block (#2325); Settings opens only once first run ends, so that route quits before a community.
 const OWNER_KEY: Ready = {
-  t: "<b>Your key</b>, your identity in Buzz. The skill makes it and shows its npub, your public ID, which makes you the owner.",
+  t: "<b>Your key</b>, your identity in Buzz. Your agent makes it with nak and shows its npub, your public ID, which makes you the owner.",
   more: {
     label: "How it works",
-    t: "The skill makes the key on this computer, in a file only you can read, and shows only its npub. You join by dropping that file into Buzz. Then copy the key from <b>Settings</b>, <b>Identity</b>, the Buzz ID card’s <b>More options</b> (…), the masked private-key field, then <b>Copy</b> into your private password-manager vault. Verify that the saved entry is recoverable before deleting the file, and clear the copied key from the clipboard. Avoid shared clipboard/history tools. You need the key to use Buzz on another computer. Already have a key in Buzz? Type its npub into the Running on box: choose <b>Copy Buzz ID</b> on the card in <b>Settings</b>, <b>Identity</b> (press ⌘, or Ctrl+, on Windows and Linux). The other way to get a key is a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details. For that, choose <b>Create account</b> on Buzz's first screen. When Buzz asks for a community, quit it, open it again, choose <b>Continue without signing in</b> and choose Copy Buzz ID in Settings, Identity to copy your npub.",
+    t: "Your agent makes the key on this computer with <a href=\"https://github.com/fiatjaf/nak\">nak</a>, the open-source Nostr command-line tool, after it asks to install it. The key goes into a file only you can read, and only its npub shows. You join by dropping that file into Buzz. Then copy the key from <b>Settings</b>, <b>Identity</b>, the Buzz ID card’s <b>More options</b> (…), the masked private-key field, then <b>Copy</b> into your private password-manager vault. Verify that the saved entry is recoverable before deleting the file, and clear the copied key from the clipboard. Avoid shared clipboard/history tools. You need the key to use Buzz on another computer. Already have a key in Buzz? Type its npub into the Running on box: choose <b>Copy Buzz ID</b> on the card in <b>Settings</b>, <b>Identity</b> (press ⌘, or Ctrl+, on Windows and Linux). The other way to get a key is a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details. For that, choose <b>Create account</b> on Buzz's first screen. When Buzz asks for a community, quit it, open it again, choose <b>Continue without signing in</b> and choose Copy Buzz ID in Settings, Identity to copy your npub.",
   },
 };
 // a first connection asks to trust the fingerprint, which an agent's shell can't answer (SKILL.md, SSH to a server)

@@ -11,7 +11,7 @@
 | check-relay.sh fails every check from this computer, while step 2's check on the server shows the right address | This computer still has the domain's old address cached: the name pointed somewhere before (a wildcard record, a parked page). It clears when the old record's time-to-live runs out (30 minutes for a Vercel wildcard in testing), or when the user flushes their DNS cache. Meanwhile check the server directly: `RESOLVE_IP=<server IP> bash $SKILL/scripts/check-relay.sh …`. The Buzz app on the same computer can't reach the relay until it clears. |
 | Step 2: `Name or service not known` | The record hasn't spread yet, or the name is misspelled. Wait a few minutes and check again. |
 | The first `python3` on a Mac opens an installer | Apple's developer tools aren't installed: `xcode-select --install`, then retry. |
-| `npub-to-hex.py`: `not a valid npub` | The npub was cut off or mistyped. Copy it again: from `new-identity.py`'s first line, or from the Buzz app (Buzz 1.0: Settings, Identity). |
+| `npub-to-hex.py`: `not a valid npub` | The npub was cut off or mistyped. Copy it again: from what nak printed when the key was made, or from the Buzz app (Buzz 1.0: Settings, Identity). |
 | `pick-tag.py`: GitHub's rate limit | 60 unauthenticated calls an hour. Wait, or use the `tested-image` tag in SKILL.md's header. |
 | `ghcr.io/block/buzz:sha-…: not found` | That commit has no image. Use the image this skill recommends (SKILL.md section 2), or, if the user asked for the newest, `$SKILL/scripts/pick-tag.py`. |
 | The image's digest isn't `DIGEST` (compose.md step 6, kubernetes.md step 6 or P6) | The tag now names another image than the one this skill recommends. Don't start it: stop, and report it (SKILL.md, When something fails). |

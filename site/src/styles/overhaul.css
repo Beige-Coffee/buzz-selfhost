@@ -16,7 +16,6 @@
 .sq-k { display: flex; align-items: center; gap: 9px; margin: 0; font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
 .sq-fig > .sq-k { margin: 2px 4px 0; }
 .sq-k i { flex: none; width: 20px; height: 11px; border: 1.3px dashed #a9a917; border-radius: 3px; background: rgb(215 215 46 / 30%); transform: skewX(-24deg); }
-.sq-rec { position: absolute; top: 14px; right: 16px; padding: 3px 10px; border-radius: 999px; background: var(--ink); font: 600 9.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
 .sq-stage { margin: auto 0; }
 
 /* 1 · your computer, the line nothing crosses, the community as a Buzz window, the agent's machine */
@@ -119,7 +118,6 @@
   /* the window takes the full width, so its words stay readable, and its labels are drawn in */
   .sq-wide, .sq-caps { display: none; }
   .sq-tall { display: block; }
-  .sq-rec { position: static; align-self: flex-end; margin: 8px 4px 0; }
   .sq-text p { margin-left: 0; }
   .sq-lists { gap: 0 10px; }
   .sq-tray { padding: 11px 10px 12px; }

@@ -1,4 +1,4 @@
-import { NOT_COVERED, OWNER, QUESTIONS, SETUPS, dimmed, pick, type Answers, type Outcome, type QuestionId } from "../data/decide";
+import { NOT_COVERED, QUESTIONS, SETUPS, dimmed, pick, type Answers, type Outcome, type QuestionId } from "../data/decide";
 import { jumpTo } from "../lib/nav";
 import { esc, setValues, trackHash, type Track } from "../lib/values";
 
@@ -35,15 +35,6 @@ const go = (track: Track, label: string) => `<button type="button" class="dr-go"
 
 /** The result card: why it fits, what you need, what you give up and the cost, then the way in. */
 function card(o: Outcome): string {
-  if (o.kind === "owner")
-    return `<div class="dr-card">
-      <p class="dr-k">Recommended</p>
-      <p class="dr-name">${OWNER.name}</p>
-      <p class="dr-why">${OWNER.why}</p>
-      <p class="dr-note">${OWNER.hosted}</p>
-      <p class="dr-why">${OWNER.test}</p>
-      ${go("practice", OWNER.go)}
-    </div>`;
   const s = SETUPS[o.track];
   const closest = o.kind === "closest";
   return `<div class="dr-card">
@@ -63,13 +54,12 @@ function card(o: Outcome): string {
 /** What a screen reader hears when the result changes; the card itself is there to read. */
 const said = (o: Outcome | null): string => {
   if (!o) return "";
-  if (o.kind === "owner") return `Recommended: ${OWNER.name}.`;
   const name = SETUPS[o.track].name;
   return o.kind === "closest" ? `Not covered here. Closest: ${name}.` : `Recommended: ${name}.`;
 };
 
 /**
- * Four questions on the left, the result on the right. Fits one screen.
+ * Three questions on the left, the result on the right. Fits one screen.
  * Each question is a fieldset of native radios; a question an earlier answer decides is disabled and dimmed.
  */
 export function mountDecide(host: HTMLElement): void {

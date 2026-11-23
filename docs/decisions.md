@@ -304,11 +304,12 @@ decided:
   the relay's public key, the server's IP address and when it wakes which phone. "What still
   depends on Block?" lists the apps, push and Builderlab. This replaces the 2026-10-26 wording in
   Copy and style.
-- **The quiz.** Four questions: what it's for, who will look after it, where it runs and who can
-  reach it. The result is a local test, "Find an owner first" (with buzz.xyz, and #6803 for why it
-  can't move later), one of the six server setups, or "Not covered here" with the closest VPS. Each
-  result says what the setup needs, what you give up and a monthly cost. The skill's first
-  questions are the same four.
+- **The quiz.** Three questions: what it's for, where it runs and how people connect (over the
+  internet, or only through a VPN). The result is a local test, one of the six server setups, or
+  "Not covered here" with the closest VPS. Each result says what the setup needs, what you give up
+  and a monthly cost. The skill's first questions are the same three. On 2026-11-23 the owner cut
+  "Who will look after it?" and its "Find an owner first" result: the guide is for the technical
+  person who will run it. The buzz.xyz catch (#6803) moved to the first question's hint.
 - **Files.** The site and the skill say plainly that any member with a file's link can open it
   (#8444), and that the relay's log names who read what.
 - **Drawings.** Redrawn from block/buzz-app v0.7.0-preview.248.1: the left dock (#2626), the
@@ -507,7 +508,9 @@ must point at block/buzz instead of Beige-Coffee/buzz-selfhost.
   decisions, free to switch to a fork), yours to customize (build a feature instead of waiting
   for one), private (everything can run on your hardware, behind your firewall). A call with
   Spiral's open-source PMs asked for the why up front; a longer two-by-two version took too much
-  room. Reworded on 2026-11-06 (The launch review).
+  room. Reworded on 2026-11-06 (The launch review). On 2026-11-23 the owner cut "even if Block
+  moves on" and replaced "your decisions, free to switch to a fork" as vague: no lock-in now
+  reads "Your data, your code. Free to change anything you like".
 - The site never talks about testing (2026-10-25): the tests are why its advice can be trusted,
   not part of the advice. The skill and these docs keep their test notes, since agents and
   maintainers use them; `site/build/skill.ts` (`UNTESTED`) strips them from the skill text the

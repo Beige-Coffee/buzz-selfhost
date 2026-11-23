@@ -1,11 +1,13 @@
 /**
- * Four questions that pick a setup, or say why it's too early for one.
- * - Upkeep is asked before hardware: every setup here is a server someone looks after (block/buzz
- *   VISION_SOVEREIGN.md, "What You Give Up": "Someone has to keep it running").
+ * Three questions that pick a setup.
+ * - What it's for: a local test, or a server. Neither a test nor a community on Block's hosting can
+ *   move to a server later (block/buzz#6803), so the hint says so up front.
+ * - No upkeep question (owner's call, 2026-11-23): the guide is for the technical person who will
+ *   run it. Each result's "You give up" says they run updates, backups and upgrades.
  * - Where it runs picks the skill's setup. "Something else" gets the closest one and what the guide
- *   doesn't cover; "Nobody yet" gets a local test, and Block's hosting with its catch (block/buzz#6803).
- * - Reach is the other real fork: a private network hides the relay, but every device needs
- *   Tailscale, phones included.
+ *   doesn't cover.
+ * - How people connect is the other real fork: over the internet (a team or an open community) or
+ *   only through a VPN, which hides the relay but puts Tailscale on every device, phones included.
  * Each result says why it fits, what you need, what you give up and a rough monthly cost.
  * Prices read 2026-11-06: DigitalOcean's 4 GB Basic Droplet is $24 a month, its weekly backups 20% more,
  * a load balancer $12 and volumes $0.10 a GiB (the chart's four quickstart volumes come to 34 GiB).
@@ -16,7 +18,7 @@ import type { OwnMode, Path, Reach, Track } from "../lib/values";
 
 const issue = (n: number) => `<a href="https://github.com/block/buzz/issues/${n}">#${n}</a>`;
 
-export type QuestionId = "use" | "owner" | "where" | "reach";
+export type QuestionId = "use" | "where" | "reach";
 export type Answers = Partial<Record<QuestionId, string>>;
 
 export interface Question {
@@ -33,7 +35,7 @@ export const QUESTIONS: Question[] = [
   {
     id: "use",
     text: "What is it for?",
-    hint: "A test can't become your community later: a server starts a new one.",
+    hint: `A test or a buzz.xyz community can't move to your server later: a server starts a new one ${issue(6803)}.`,
     options: [
       {
         id: "try",
@@ -46,25 +48,6 @@ export const QUESTIONS: Question[] = [
         label: "People will use it",
         hint: "A server with a permanent address, HTTPS and backups.",
         when: "Pick this if a team or a community will use it. Set up the permanent address and backups from the start.",
-      },
-    ],
-  },
-  {
-    id: "owner",
-    text: "Who will look after it?",
-    hint: "Someone backs it up every week and upgrades it every month, with an agent.",
-    options: [
-      {
-        id: "us",
-        label: "One of us",
-        hint: "They run the backups and upgrades with an agent, and step in when something breaks.",
-        when: "Pick this if someone will own the server and has time for it every month.",
-      },
-      {
-        id: "nobody",
-        label: "Nobody yet",
-        hint: "Then it's too early for a server of your own.",
-        when: "Pick this if nobody has time to look after a server yet.",
       },
     ],
   },
@@ -101,20 +84,20 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "reach",
-    text: "Who can reach it?",
+    text: "How will people connect?",
     hint: "Either way, only members can read or post. Any member can open a file whose link they have.",
     options: [
       {
         id: "invite",
-        label: "Anyone we invite",
-        hint: "A public address with HTTPS. Any device can connect, but only members can read or post.",
-        when: "Pick this if members join from anywhere with nothing extra to install, as in an open-source community.",
+        label: "Over the internet",
+        hint: "For a team or an open community. Anyone with an invite joins from any device, with nothing to install.",
+        when: "Pick this if members join from anywhere, as in an open-source community.",
       },
       {
         id: "private",
-        label: "Only our private network",
-        hint: "Tailscale only: the relay has no public address. Every device needs Tailscale, phones included.",
-        when: "Pick this if only devices on your Tailscale network should reach it. Not for a community anyone can join.",
+        label: "Only through our VPN",
+        hint: "Tailscale. The relay has no public address, and every device needs Tailscale, phones included. Suits a private team, not a community.",
+        when: "Pick this if only devices on your Tailscale network should reach it.",
       },
     ],
   },
@@ -199,34 +182,21 @@ export const SETUPS: Record<Track, Setup> = {
   },
 };
 
-/** "Nobody yet": a server needs someone, so this says so, with a local test meanwhile. */
-export const OWNER = {
-  name: "Find an owner first",
-  why: "Every setup here is a server someone looks after: a backup every week and an upgrade every month, with your agent.",
-  hosted: `Block hosts communities at <a href="https://buzz.xyz">buzz.xyz</a>, but a community there can't move to your own server later ${issue(6803)}.`,
-  test: "Want to try Buzz meanwhile? A local test on this computer is free, and only you can reach it.",
-  go: "Try a local test",
-};
-
 /** "Something else": what the guide leaves out, shown above the closest setup. */
 export const NOT_COVERED = `This guide doesn't cover ARM machines such as a Raspberry Pi, a NAS's own apps, a Mac or Windows computer as the server, or app platforms such as Fly.io or Render. It also leaves out managed Postgres, Redis or S3, VPNs other than Tailscale, more than one relay, and moving a community from buzz.xyz ${issue(6803)}.`;
 
-/** A setup, the closest setup to one the guide doesn't cover, or an owner to find first. */
-export type Outcome = { kind: "setup" | "closest"; track: Track } | { kind: "owner" };
+/** A setup, or the closest setup to one the guide doesn't cover. */
+export type Outcome = { kind: "setup" | "closest"; track: Track };
 
 /** Questions an earlier answer has decided. They dim, and keep their answers for when they count again. */
 export function dimmed(a: Answers): QuestionId[] {
-  if (a.use === "try") return ["owner", "where", "reach"];
-  if (a.owner === "nobody") return ["where", "reach"];
-  return [];
+  return a.use === "try" ? ["where", "reach"] : [];
 }
 
 /** What these answers pick, or null while a question that counts is open. */
 export function pick(a: Answers): Outcome | null {
   if (a.use === "try") return { kind: "setup", track: "practice" };
-  if (a.use !== "team") return null;
-  if (a.owner === "nobody") return { kind: "owner" };
-  if (a.owner !== "us" || !a.reach) return null;
+  if (a.use !== "team" || !a.reach) return null;
   const priv = a.reach === "private";
   switch (a.where) {
     case "rent":

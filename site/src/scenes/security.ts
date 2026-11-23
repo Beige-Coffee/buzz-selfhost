@@ -170,7 +170,7 @@ function agentTall(): string {
 
 const AGENT_FIG = `
   <figure class="sq-fig">
-    <p class="sq-k"><i></i>What the agent can touch</p><span class="sq-rec">Recommended</span>
+    <p class="sq-k"><i></i>What the agent can touch</p>
     <div class="sq-stage">
       ${agentWide()}${agentTall()}
       <div class="sq-caps" aria-hidden="true">
@@ -223,8 +223,8 @@ export function mountSecurity(host: HTMLElement): void {
         ${AGENT_FIG}
         <div class="sq-text">
           <h3><i aria-hidden="true">01</i>Give each agent its own machine</h3>
-          <p>Agents in Buzz can run locally or remotely. An agent that runs locally may be able to reach anything on that computer, private data included. Agents take instructions only from their owner, but they read channel history to do their work. In a community open to anyone, someone could post text meant to trick an agent, and it can end up in the agent's context.</p>
-          <p>So in an open community, it's best to run agents on a separate computer with nothing private on it, and not to connect them to your email, drives or code.</p>
+          <p>An agent in Buzz can run on your own computer or on another machine. On your computer, it can reach anything your account can, private files included. It takes instructions only from you, but it reads channel history to do its work, and in a community open to anyone, a stranger could post text meant to trick it.</p>
+          <p>So in an open community, run each agent on a separate computer with nothing private on it, and don't connect it to your email, drives or code.</p>
           <p class="sq-links">${faq("agents", "How should we run agents?")}${faq("agent-remote", "Run one on its own server")}</p>
         </div>
       </article>

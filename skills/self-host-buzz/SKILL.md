@@ -70,19 +70,17 @@ deprecated. It still works with the same relay; where its screens differ, the st
 
 ## 1. Pick the setup
 
-Unless the user already said, ask the guide's four questions, in order, and skip what an answer
+Unless the user already said, ask the guide's three questions, in order, and skip what an answer
 settles:
 
 1. **What it's for:** trying Buzz themselves, or a community people will use. Trying it is a local
-   test on this computer, and the other three don't apply.
-2. **Who looks after it:** one of them, or nobody yet. Every setup here is a server someone keeps
-   up, with a backup every week and an upgrade every month, through an agent. With nobody yet,
-   tell them that before going further, and offer a local test meanwhile.
-3. **Where it runs:** a server they rent (a VPS), a machine they own, or their Kubernetes cluster.
+   test on this computer, and the other two don't apply. Neither a test nor a community on
+   buzz.xyz can move to a server later: a server starts a new community.
+2. **Where it runs:** a server they rent (a VPS), a machine they own, or their Kubernetes cluster.
    Anything else isn't covered here; the closest is a VPS.
-4. **Who can reach it:** anyone they invite, over the internet, or only their private network
-   (Tailscale), where every member runs Tailscale, phones included. On Kubernetes, phones can't
-   pair over a private network yet, so for phones there, suggest a private VPS.
+3. **How people connect:** over the internet, for a team or an open community, or only through
+   their VPN (Tailscale), where every member runs Tailscale, phones included. On Kubernetes,
+   phones can't pair over a private network yet, so for phones there, suggest a private VPS.
 
 Then read only the file for that setup:
 

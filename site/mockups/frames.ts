@@ -12,6 +12,7 @@ import { SVG_DEFS } from "../src/defs";
 import { peopleFlows, type Flow } from "../src/scenes/members";
 import { identityFlows, lostFlows, pairFlows } from "../src/scenes/identity";
 import { agentFlows, harnessFlows, remoteFlows } from "../src/scenes/agentflow";
+import { moderationFlows } from "../src/scenes/moderation";
 
 document.body.insertAdjacentHTML("afterbegin", SVG_DEFS);
 const sets: [string, Flow[]][] = [
@@ -21,6 +22,7 @@ const sets: [string, Flow[]][] = [
   ["pair", pairFlows],
   ["agents", agentFlows],
   ["harness", harnessFlows],
+  ["moderate", moderationFlows],
   ["remote", remoteFlows],
 ];
 document.querySelector(".fr-page")!.innerHTML = sets

@@ -9,7 +9,7 @@ import { app, communityNav, settingsModal, sidebar, ti, type Flow } from "./memb
  * Identity tab: Harness, Model and Thinking, then Instructions. The pictures are from Buzz's own avatar
  * packs; the names and the instructions are illustrative (the skill's example, agents.md).
  */
-const CLAUDE_MARK = `<svg class="ax-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6 6 18"/></svg>`;
+export const CLAUDE_MARK = `<svg class="ax-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6 6 18"/></svg>`;
 const tile = (img: string, name: string, tint: string, on = false) =>
   `<div class="ax-card ${tint}${on ? " hot" : ""}"><i class="ax-more">•••</i><img src="${img}" alt=""><b>${name}</b><span class="ax-chip">${CLAUDE_MARK}sonnet${ti("chevron-down")}</span></div>`;
 const INSTRUCTIONS_TEXT = "You help the Riverbend Tool Library volunteers in this community. Answer questions about opening hours and loans from the files in this workspace.";
@@ -56,7 +56,7 @@ export const agentFlows: Flow[] = [
  * (an API key, or the Claude CLI's own sign-in and Refresh) and Goose's (pick a provider). The Codex row
  * is drawn signed in, with the default model the capture showed; signed out it shows Sign in.
  */
-const MK_BL = `<span class="as-mk bl">B</span>`;
+export const MK_BL = `<span class="as-mk bl">B</span>`;
 const MK_CODEX = `<svg class="as-mk" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a4 4 0 0 1 3.9 3.1 4 4 0 0 1 3.4 5.6 4 4 0 0 1-2.4 6.4 4 4 0 0 1-6.6 1.5 4 4 0 0 1-5.8-3.4 4 4 0 0 1-.6-6.6A4 4 0 0 1 9 4.4a4 4 0 0 1 3-.9z"/></svg>`;
 const MK_GOOSE = `<svg class="as-mk" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l14 16M19 4 5 20"/></svg>`;
 const setupNav = communityNav("Agent setup", false);

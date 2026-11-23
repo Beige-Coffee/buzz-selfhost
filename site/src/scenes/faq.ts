@@ -3,6 +3,7 @@ import { linkButton } from "../lib/permalink";
 import { agentFlows, harnessFlows, remoteFlows } from "./agentflow";
 import { agentQuestions, remotePrompt, useExampleInstructions } from "./agents";
 import { identityFlows, lostFlows, pairFlows } from "./identity";
+import { moderationFlows } from "./moderation";
 import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members";
 import { promptText, taskHTML } from "./operations";
 import { SETUPS } from "../data/decide";
@@ -82,6 +83,7 @@ const CLICK_THROUGHS: Record<string, Flow[]> = {
   remove: peopleFlows().filter((f) => f.id === "remove"),
   agents: agentFlows,
   harness: harnessFlows,
+  moderate: moderationFlows,
   remote: remoteFlows,
 };
 
@@ -123,8 +125,9 @@ const MODERATION =
   steps([
     ["Turn on the moderation screens", "Buzz finds the screens at a second address for your relay, with <code>admin.</code> in front of your domain. On Block's Docker Compose bundle, that takes a DNS record for that address, <code>BUZZ_ADMIN_HOST</code> in the relay's <code>.env</code> and a route for it in the Caddyfile. If you set up with this guide's skill, your agent offers this during setup, and you can ask it later."],
     ["Add your moderators under Staff", "In Buzz, open <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>. Paste the person's npub, pick <b>moderator</b> and choose <b>Add</b>. Making someone an admin doesn't put them on Staff. Staff is a separate list, and the owner manages it."],
-    ["Work through reports", "Any member can report a message. Moderators find the reports in <b>Settings</b>, <b>Moderation</b>, <b>Reports</b>. From there they can delete the message, time the person out or ban them."],
+    ["Work through reports", "Any member can report a message. Moderators find the reports in <b>Settings</b>, <b>Moderation</b>, <b>Reports</b>. To ban someone, time them out or delete a message, they open <b>Communities</b>, choose the community and use its <b>Actions</b> tab."],
   ]) +
+  ct("moderate") +
   note("<b>Removing someone doesn't keep them out.</b> They can come back with any invite link that hasn't expired. To keep them out, ban them.") +
   note(
     "<b>On a private network, Kubernetes or a local test</b>, Buzz's moderation screens can't reach your relay. There, the owner or an admin moderates with the <code>buzz</code> command line that comes with Buzz 1.0. On a Mac, it's at <code>/Applications/Buzz.app/Contents/Resources/bin/buzz</code>. It signs with their own private key, so they run it in their own terminal. <code>buzz moderation</code> lists the reports members send, and it bans people or times them out. <code>buzz messages delete</code> removes a message.",

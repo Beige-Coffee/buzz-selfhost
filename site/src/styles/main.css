@@ -1962,3 +1962,57 @@ h2 .hl svg { width: 19px; }
 .as-foot { display: flex; justify-content: flex-end; gap: 6px; margin-top: 46px; }
 .as-foot .mb-btn { padding: 5px 11px; font-size: 10px; }
 .as-foot .mb-btn.off { color: #a3a3a3; }
+/* Settings, Moderation: Reports, Communities and its Actions, Staff (Buzz 1.0.5) */
+.md-page { display: flex; flex-direction: column; gap: 5px; }
+.md-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.md-head .mb-btn { padding: 4px 10px; font-size: 9.5px; }
+.mb-canvas .md-ok { display: flex; align-items: center; gap: 4px; margin-top: 3px; font-size: 9.5px; color: #3b7a52; }
+.md-ok .tb-i { width: 10px; height: 10px; }
+.mb-canvas .md-sel, .mb-canvas .md-search { display: flex; align-items: center; justify-content: space-between; padding: 5px 9px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 1px #e3e3e5; font-size: 9.5px; }
+.mb-canvas .md-search { justify-content: flex-start; gap: 6px; background: #f3f3f4; box-shadow: none; color: #6b6b6b; }
+.md-sel .tb-i, .md-search .tb-i { width: 10px; height: 10px; }
+.mb-canvas .md-empty { font-size: 9.5px; color: #5f5f5f; }
+.mb-canvas .md-comm { display: flex; justify-content: space-between; padding: 6px 9px; border-radius: 9px; box-shadow: 0 0 0 1px #0f0f0f; font-size: 10px; }
+.md-comm em { font-size: 9px; font-style: normal; color: #6b6b6b; }
+.mb .md-comm.hot { box-shadow: 0 0 0 1px #0f0f0f, 0 0 0 3px #fff, 0 0 0 5px var(--b1-citrus); }
+.mb-canvas .md-crumb { display: flex; align-items: center; gap: 8px; padding: 4px 9px; border-radius: 9px; box-shadow: 0 0 0 1px #0f0f0f; font-size: 9px; }
+.md-crumb .tb-i { width: 10px; height: 10px; }
+.md-crumb span { padding: 1px 6px; border-radius: 999px; box-shadow: 0 0 0 1px #0f0f0f; font-size: 8.5px; }
+.mb-canvas .md-tabs { display: flex; gap: 12px; font-size: 9.5px; color: #5f5f5f; }
+.md-tabs b { padding-bottom: 2px; border-bottom: 1.5px solid #0f0f0f; font-weight: 500; color: #0f0f0f; }
+.mb-canvas .md-lab { font-size: 9.5px; }
+.mb-canvas .md-radio { display: flex; align-items: center; gap: 6px; font-size: 9.5px; }
+.md-radio i { width: 10px; height: 10px; border-radius: 50%; box-shadow: inset 0 0 0 1.2px #8b8b8b; }
+.md-radio.on i { box-shadow: inset 0 0 0 3px #0f0f0f; }
+.mb-canvas .md-in { height: 18px; border-radius: 999px; background: #f3f3f4; }
+.mb-canvas .md-note { font-size: 8.5px; color: #5f5f5f; }
+.md-go { align-self: flex-start; padding: 4px 10px; font-size: 9.5px; }
+.md-add { display: grid; gap: 3px; padding: 7px 9px; border-radius: 10px; box-shadow: 0 0 0 1px #0f0f0f; }
+.md-add small { font-size: 8px; color: #5f5f5f; }
+.md-add b { font-size: 9.5px; font-weight: 500; }
+.mb-canvas .md-add p { display: flex; align-items: center; gap: 6px; }
+.md-key { flex: 0 0 45%; padding: 5px 9px; border-radius: 999px; background: #f3f3f4; font-size: 9px; color: #8b8b8b; }
+.md-add .ax-pick { padding: 3px 8px; font-size: 9px; }
+.md-add .ax-pick .tb-i { width: 9px; height: 9px; }
+.md-add .mb-btn { padding: 4px 10px; font-size: 9px; }
+.mb-btn.off { color: #a3a3a3; }
+.md-row { display: flex; align-items: center; gap: 7px; padding: 6px 9px; border-radius: 10px; box-shadow: 0 0 0 1px #0f0f0f; font-size: 9.5px; }
+.md-av { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: #f0f0f1; font-size: 8px; color: #5f5f5f; }
+.md-who { display: grid; flex: 1; }
+.md-who b { font-weight: 400; }
+.md-who small { font-size: 8px; color: #6b6b6b; }
+.md-row em { font-size: 8.5px; font-style: normal; color: #5f5f5f; }
+.md-row > b { font-size: 8.5px; font-weight: 400; }
+.md-row u { text-decoration: none; font-size: 9px; color: #8b8b8b; }
+.mb-nav-col .as-mk, .mb-nav-col .ax-mark { width: 12px; height: 12px; }
+.mb-nav-col.md-nav p { padding-block: 2px; }
+.mb .md-sel.hot { box-shadow: 0 0 0 1px #e3e3e5, 0 0 0 3px #fff, 0 0 0 5px var(--b1-citrus); }
+.md-page > * { flex-shrink: 0; }
+.md-page.tight { gap: 2px; padding-top: 6px; }
+.md-page.tight .md-tabs { margin: 0; }
+.mb-canvas .md-page.tight .md-radio, .mb-canvas .md-page.tight .md-lab { line-height: 1.25; }
+.mb-canvas .md-page.tight .md-sub { line-height: 1.3; }
+.mb-canvas .md-page.tight .md-radio { font-size: 9px; }
+.mb-canvas .md-page.tight .md-sel { padding: 4px 9px; }
+.mb-canvas .md-page.tight .md-in { height: 15px; }
+.mb-nav-col.md-nav .mb-nav-g { margin-top: 6px; }

@@ -450,8 +450,10 @@ device's steps read on their own. The screens after the phone scans (the six dig
 paired, the phone's camera and code screens) appear only during a live pairing and weren't
 captured, so the site says that step in words and draws no screen for it (owner's call). Not yet
 checked against the app: the Invite tab, Mobile app for a Builderlab account (Buzz's source shows
-"Get Buzz on your phone" there instead of a QR code), first run, Create agent and agent chats. Moderation's screens need a relay with Buzz's admin API on, which none of the
-owner's relays had, so "How do you moderate?" has no click-through yet. `site/mockups/frames.html` shows every
+"Get Buzz on your phone" there instead of a QR code), first run, Create agent and agent chats.
+How do you moderate? has a click-through of Buzz 1.0.5's Moderation screens
+(Read reports, Ban someone, Add a moderator), drawn from captures made after the owner let the class
+relay turn on its admin API (BUZZ_ADMIN_HOST, the skill's own moderation console steps). `site/mockups/frames.html` shows every
 click-through step at once, for comparing with screenshots.
 
 Also 2026-11-23, from the owner's review of the Agents answers: an answer whose right choice depends

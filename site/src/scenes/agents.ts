@@ -165,7 +165,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
     {
       id: "agents",
       icon: "robot",
-      q: "How should we run agents?",
+      q: "How should you run agents?",
       a: () =>
         rec("Decide who the agent works for first. That settles where it runs, who can ask it for things, and which channels it belongs in.") +
         WHO() +
@@ -178,7 +178,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
     {
       id: "agent-brief",
       icon: "message-circle",
-      q: "What should we tell an agent?",
+      q: "What should you tell an agent?",
       a: () =>
         rec("Write a few plain sentences in Instructions: what the agent is for, what it must ask you first, and how it reports back. Leave out how to behave in a channel. Buzz already tells every agent that.") +
         ct("agents") +
@@ -190,7 +190,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
     {
       id: "agent-model",
       icon: "brain",
-      q: "Which harness and model should we pick?",
+      q: "Which harness and model should you pick?",
       a: () =>
         rec("Pick the harness your team already has an account for and has approved. Leave Model and Thinking on their defaults until you have a reason to change them.") +
         HARNESS() +
@@ -201,7 +201,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
     {
       id: "agent-on",
       icon: "bolt",
-      q: "How do we keep an agent answering?",
+      q: "How do you keep an agent answering?",
       a: () =>
         rec("Run the agent on a computer that stays on, with Buzz open there. An agent answers only while Buzz is open on its computer and that computer is awake.") +
         PLACES +
@@ -213,7 +213,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
     {
       id: "agent-safe",
       icon: "shield",
-      q: "How do we keep an agent safe?",
+      q: "How do you keep an agent safe?",
       a: () =>
         rec("Treat an agent like a person at that computer, signed in as you. Give it a machine of its own, only the files it needs, and no secrets.") +
         RISKS +
@@ -224,7 +224,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
     {
       id: "agent-remote",
       icon: "server",
-      q: "How do we run an agent on our own server?",
+      q: "How do you run an agent on your own server?",
       a: () =>
         `<p class="ga-status">${icon("alert")}Not built into Buzz yet</p>` +
         rec("Your agent sets itself up from one prompt, then talks to you in Buzz. It keeps running on its own server, and you do three things:") +

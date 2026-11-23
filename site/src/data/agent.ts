@@ -240,7 +240,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to set up a Buzz relay on my server, reachable only on our Tailscale network. It's a fresh Ubuntu 24.04 VPS; SSH in as <user>@<server IP>. Tailscale name: {{DOMAIN}}. A Tailscale auth key is in <key file>. {{OWNER}} The skill is at {{SKILL_URL}}.",
+      "Use the self-host-buzz skill to set up a Buzz relay on my server, reachable only on my Tailscale network. It's a fresh Ubuntu 24.04 VPS; SSH in as <user>@<server IP>. Tailscale name: {{DOMAIN}}. A Tailscale auth key is in <key file>. {{OWNER}} The skill is at {{SKILL_URL}}.",
     expect: PRIVATE,
   },
   "own-private": {
@@ -255,7 +255,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to set up a Buzz relay on my own machine, reachable only on our Tailscale network. It runs Ubuntu 24.04; SSH in as <user>@<machine address>. Tailscale name: {{DOMAIN}}. A Tailscale auth key is in <key file>. {{OWNER}} The skill is at {{SKILL_URL}}.",
+      "Use the self-host-buzz skill to set up a Buzz relay on my own machine, reachable only on my Tailscale network. It runs Ubuntu 24.04; SSH in as <user>@<machine address>. Tailscale name: {{DOMAIN}}. A Tailscale auth key is in <key file>. {{OWNER}} The skill is at {{SKILL_URL}}.",
     expect: PRIVATE,
   },
   // kubernetes.md: confirm the URL (SKILL.md rule 4), step 1 (costs), 2 (DNS), 3 and 4 (install), 5 (the key), 6 (checks)
@@ -275,7 +275,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       OWNER_KEY,
       AGENT,
     ],
-    prompt: "Use the self-host-buzz skill to install Buzz on our Kubernetes cluster with Block's Helm chart, public on the internet. Domain: {{DOMAIN}}. Keep the values file in <folder>. {{OWNER}} The skill is at {{SKILL_URL}}.",
+    prompt: "Use the self-host-buzz skill to install Buzz on my Kubernetes cluster with Block's Helm chart, public on the internet. Domain: {{DOMAIN}}. Keep the values file in <folder>. {{OWNER}} The skill is at {{SKILL_URL}}.",
     expect: [
       { who: "you", ask: true, icon: "ask", t: "Confirm the domain", d: "It asks you to confirm <code>{{DOMAIN}}</code>, which can't be changed later." },
       { who: "you", ask: true, icon: "ask", t: "Approve the costs", d: "Four storage volumes, and a load balancer if it installs Traefik and cert-manager." },
@@ -308,7 +308,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
       AGENT,
     ],
     prompt:
-      "Use the self-host-buzz skill to install Buzz on our Kubernetes cluster, reachable only on our Tailscale network. Name: {{DOMAIN}}. The OAuth client's ID and secret are in <ID file> and <secret file>. Keep the values file in <folder>. {{OWNER}} The skill is at {{SKILL_URL}}.",
+      "Use the self-host-buzz skill to install Buzz on my Kubernetes cluster, reachable only on my Tailscale network. Name: {{DOMAIN}}. The OAuth client's ID and secret are in <ID file> and <secret file>. Keep the values file in <folder>. {{OWNER}} The skill is at {{SKILL_URL}}.",
     expect: [
       { who: "agent", icon: "agent", t: "Sets up Tailscale's Kubernetes operator", d: "With your OAuth client, without printing its secret." },
       { who: "you", ask: true, icon: "ask", t: "Confirm the name", d: "It asks you to confirm <code>wss://{{DOMAIN}}</code>, which can't be changed later; renaming your tailnet would change it too." },
@@ -336,7 +336,7 @@ export const OP_TASKS: Record<OpTask, { ask: string }> = {
 
 const SSH_VPS = "My Buzz relay is at {{DOMAIN}}. It's a VPS; SSH in as <user>@<server IP>.";
 const SSH_OWN = "My Buzz relay is at {{DOMAIN}}. It runs on my own machine; SSH in as <user>@<machine address>.";
-const KUBE = "My Buzz relay is at {{DOMAIN}}. It runs on our Kubernetes cluster; the values file is in <folder>.";
+const KUBE = "My Buzz relay is at {{DOMAIN}}. It runs on my Kubernetes cluster; the values file is in <folder>.";
 /** The start of every operations prompt: which relay, and how the agent reaches it. */
 export const OP_WHERE: Record<Track, string> = {
   vps: SSH_VPS,

@@ -82,7 +82,7 @@ const chat = (stage: ChatStage) => `<div class="rs-bub">
   <p class="rs-bub-h"><i></i><i></i><i></i><span>Your chat with your agent</span></p>
   <div class="rs-bub-b">${
     stage === "prompt"
-      ? bubble("you", "Connect yourself to our Buzz community, so I can talk to you there. Keep running on this machine. …", true) + bubble("agent", "On it. Installing Sprig.")
+      ? bubble("you", "Connect yourself to my Buzz community, so I can talk to you there. Keep running on this machine. …", true) + bubble("agent", "On it. Installing Sprig.")
       : bubble("agent", `Sprig installed, my key made. My public key: <b>${AGENT_HEX}</b>. Stopped: paste the ownership proof.`) +
         (stage === "proof" ? bubble("you", `<code>["auth","d3a8…71f0","","9c1e…44b2"]</code>`, true) + bubble("agent", "Proof saved. Running, and I messaged you in Buzz.") : "")
   }<p class="rs-bub-in">Message your agent${stage === "key" ? "<i>|</i>" : ""}</p></div>

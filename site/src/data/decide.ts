@@ -58,19 +58,19 @@ export const QUESTIONS: Question[] = [
     options: [
       {
         id: "rent",
-        label: "A server we rent",
+        label: "A server you rent",
         hint: "A VPS. The provider runs the hardware, and you run the OS, Docker and backups.",
         when: "Pick this for full control without owning hardware.",
       },
       {
         id: "own",
-        label: "A machine we own",
+        label: "A machine you own",
         hint: "An x86 Linux machine you run, such as a mini PC or a VM on one.",
         when: "Pick this if the data must stay on hardware you own.",
       },
       {
         id: "cluster",
-        label: "Our Kubernetes cluster",
+        label: "Your Kubernetes cluster",
         hint: "Block's Helm chart, on a cluster your team already runs.",
         when: "Pick this only if your team already runs a cluster. Your agent can add an ingress and cert-manager.",
       },
@@ -95,7 +95,7 @@ export const QUESTIONS: Question[] = [
       },
       {
         id: "private",
-        label: "Only through our VPN",
+        label: "Only through your VPN",
         hint: "Tailscale. The relay has no public address, and every device needs Tailscale, phones included. Suits a private team, not a community.",
         when: "Pick this if only devices on your Tailscale network should reach it.",
       },

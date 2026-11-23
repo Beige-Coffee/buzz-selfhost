@@ -422,6 +422,11 @@ answers changed with the setup. Backing up, restoring and upgrading now open wit
 the seven setups, which also changes the guide's setup. Roles, moderation, adding people and
 phones say what differs in a sentence, so they hold for every setup.
 
+No "we" (2026-11-23, the owner's rule): the site doesn't speak as "we", and its questions ask
+"How should you…" instead of "How should we…". The section's line reads "Recommended setups for
+people, keys, data and the server, and how to set them up." Prompts the reader pastes to an agent
+say "my", as they already did for "my server".
+
 ## Phone notifications on by default (2026-10-23)
 
 A newcomer review named "no push notifications" as the likeliest reason a team would stay on Slack.

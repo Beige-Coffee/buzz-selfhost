@@ -31,7 +31,9 @@ A guide site, an agent skill and end-to-end tests for self-hosting Buzz
 ## Rules
 
 - Public text, on the site and in the skill: no em dashes, and avoid filler such as "just" and
-  "simply". Short, plain sentences. The site is minimalist: a white page with a chartreuse accent.
+  "simply". Short, plain sentences. The site never speaks as "we" or "our": it addresses the
+  reader as "you", and its questions read "How should you…", not "How should we…". The site is
+  minimalist: a white page with a chartreuse accent.
 - This repo is public. Commit no secrets, keys, email addresses, tailnet names or internal company
   details. `python3 tests/lib/redact.py --private` masks them in logs.
 - Never print a secret. The skill's rule 1 applies to you too.

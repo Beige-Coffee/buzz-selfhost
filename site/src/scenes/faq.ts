@@ -344,7 +344,7 @@ const GROUPS: [string, Question[]][] = [
       {
         id: "add",
         icon: "users",
-        q: "How should we add people?",
+        q: "How should you add people?",
         a:
           rec("Send an invite link that expires after a day, limited to the people you expect. To add someone without a link, add their npub on the server.") +
           ct("add") +
@@ -369,7 +369,7 @@ const GROUPS: [string, Question[]][] = [
       {
         id: "welcome",
         icon: "message-circle",
-        q: "How should we welcome new members?",
+        q: "How should you welcome new members?",
         a:
           rec("Make <code>welcome-everyone</code> a view-only welcome channel, with what a newcomer needs in one message, and keep <code>general</code> open for talk. Phones open <code>welcome-everyone</code> when someone joins.") +
           note("In the channel, choose <b>Manage members</b> at the top, then set <b>General access</b> to <b>View only</b>.") +
@@ -377,33 +377,33 @@ const GROUPS: [string, Question[]][] = [
           note("People who join can read, and can't post or react. People already in it keep their role, so set it before you invite anyone.") +
           // block/buzz 0.3.0 crates/buzz-workflow/src/schema.rs TriggerDef: message_posted, reaction_added, diff_posted, schedule, webhook
           note("Buzz can't greet people by itself: workflows have no trigger for someone joining. For a personal welcome, have an agent watch for new members and message each one.") +
-          note(`Both channels need those exact names, for phones: see <a href="#operations" data-q-link="add">How should we add people?</a>`),
+          note(`Both channels need those exact names, for phones: see <a href="#operations" data-q-link="add">How should you add people?</a>`),
       },
       { id: "notifications", icon: "device-mobile", q: "How do phones and notifications work?", a: MOBILE },
       {
         id: "roles",
         icon: "crown",
-        q: "How should we set up roles?",
+        q: "How should you set up roles?",
         a:
           rec("Make the person who runs Buzz the owner, and name at least two admins, so someone can always add or remove people.") +
           ROLES +
-          note(`Staff is the moderation screens' list, so it exists only on ${SCREENS_WHERE}. Elsewhere, the owner and admins ban from the command line: see <a href="#operations" data-q-link="moderate">How do we moderate?</a>`) +
+          note(`Staff is the moderation screens' list, so it exists only on ${SCREENS_WHERE}. Elsewhere, the owner and admins ban from the command line: see <a href="#operations" data-q-link="moderate">How do you moderate?</a>`) +
           note("<b>Keep invitations to yourself?</b> Make no admins: members can't make invite links.") +
           ct("role") +
-          note(`The owner is set on the server, so whoever runs it changes it. The old owner stays on as an admin. Banning is a separate tool: see <a href="#operations" data-q-link="moderate">How do we moderate?</a>`) +
+          note(`The owner is set on the server, so whoever runs it changes it. The old owner stays on as an admin. Banning is a separate tool: see <a href="#operations" data-q-link="moderate">How do you moderate?</a>`) +
           // block/buzz 0.3.0 crates/buzz-core/src/channel.rs decide_member_put: anyone who can post adds; only owners and admins grant admin
           note("<b>Private channels are separate.</b> Anyone in one can add people to it, except a guest, and only its owners and admins can make someone an admin of it. Keep its members to people you'd trust with its guest list."),
       },
       {
         id: "moderate",
         icon: "shield",
-        q: "How do we moderate?",
+        q: "How do you moderate?",
         a: MODERATION + DOOR,
       },
       {
         id: "leave",
         icon: "logout",
-        q: "What do we do when someone leaves?",
+        q: "What do you do when someone leaves?",
         a:
           rec("Run the same checklist on their last day.") +
           checklist([
@@ -449,7 +449,7 @@ const GROUPS: [string, Question[]][] = [
       {
         id: "lost",
         icon: "device-mobile",
-        q: "What do we do when a laptop or phone is lost?",
+        q: "What do you do when a laptop or phone is lost?",
         a:
           rec("First decide whether the key is exposed. If anyone could get into the device, retire the key for a new identity, even if a copy was saved.") +
           CASES +
@@ -470,7 +470,7 @@ const GROUPS: [string, Question[]][] = [
       {
         id: "sso",
         icon: "lock",
-        q: "Can we use single sign-on?",
+        q: "Can you use single sign-on?",
         a:
           rec("Not on your own relay yet: everyone signs in with their own key. The next best thing is a private network, where your company login decides who can reach the relay at all.") +
           `<div class="fq-status"><span class="fq-status-k">${icon("bolt")}In progress in Buzz</span><p>Buzz has company sign-in on a draft standard, <a href="https://github.com/block/buzz/blob/main/docs/nips/NIP-FI.md">NIP-FI</a>: your identity provider vouches for each person's key. The relay supports it behind a setting that's off by default. The app Block publishes uses it only with Block's own sign-in service, for communities Block hosts; another company's sign-in needs a build of the app made for it. So a self-hosted community can't turn it on yet.</p></div>` +
@@ -484,7 +484,7 @@ const GROUPS: [string, Question[]][] = [
       {
         id: "two-factor",
         icon: "shield",
-        q: "Can we require two-factor sign-in?",
+        q: "Can you require two-factor sign-in?",
         a:
           rec("Not in Buzz yet: a member signs in with their key alone. For a private team, put the relay on a private network whose login asks for a second factor. For an open community, keep anything sensitive out.") +
           TWO_FACTOR +
@@ -494,7 +494,7 @@ const GROUPS: [string, Question[]][] = [
             ["Protect the key too", "It is the first factor: a password manager with two-factor, disk encryption and a screen lock on every device."],
           ]) +
           note("A private network suits a team, not an open community of thousands: each member needs Tailscale on every device.") +
-          note(`The relay can require sign-in through a company identity provider, but the Buzz apps people download only do that for communities Block hosts, Builderlab included. See <a href="#operations" data-q-link="sso">Can we use single sign-on?</a>`),
+          note(`The relay can require sign-in through a company identity provider, but the Buzz apps people download only do that for communities Block hosts, Builderlab included. See <a href="#operations" data-q-link="sso">Can you use single sign-on?</a>`),
       },
     ],
   ],
@@ -504,13 +504,13 @@ const GROUPS: [string, Question[]][] = [
       {
         id: "backup",
         icon: "archive",
-        q: "How should we back up?",
+        q: "How should you back up?",
         a: (t) => rec("Back up at least once a week and before every upgrade, and keep an encrypted copy away from the server.") + taskHTML("backup", t),
       },
       {
         id: "restore",
         icon: "restore",
-        q: "How do we restore a backup?",
+        q: "How do you restore a backup?",
         a: (t) =>
           rec("Restore the newest verified complete backup and keep the relay's address: members' apps then reconnect by themselves. Anything from after the backup is lost.") +
           taskHTML("restore", t),
@@ -518,7 +518,7 @@ const GROUPS: [string, Question[]][] = [
       {
         id: "read",
         icon: "eye",
-        q: "Who can read our messages?",
+        q: "Who can read your messages?",
         a:
           rec("Anyone with access to the server, its database or its backups can read every message, direct messages included. Protect the server the way you'd protect the messages.") +
           READ +
@@ -535,7 +535,7 @@ const GROUPS: [string, Question[]][] = [
       {
         id: "audit",
         icon: "list",
-        q: "How do we keep a record of who did what?",
+        q: "How do you keep a record of who did what?",
         a:
           rec("Keep the relay's audit log on, back it up with the database, and keep your hosting provider's access logs.") +
           LEDGER +
@@ -549,7 +549,7 @@ const GROUPS: [string, Question[]][] = [
     "Server",
     [
       {
-        id: "capacity", icon: "server", q: "What hardware and hosting do we need?",
+        id: "capacity", icon: "server", q: "What hardware and hosting do you need?",
         a: rec("Start from a supported deployment family, then size storage and recovery for your actual use. A provider name alone does not change the Compose procedure.") +
           steps([
             ["VPS", "The guide's starting configuration is Ubuntu 24.04, x86, 4 GB RAM and at least 20 GB disk. This is a test baseline, not a user-count or throughput promise. Allow space for uploads, git, database growth, logs and backups. Budget for the domain, backups and egress too."],
@@ -559,7 +559,7 @@ const GROUPS: [string, Question[]][] = [
           ]) + note(`<a href="https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/deploy/charts/buzz/README.md">Upstream production and GitOps options</a> are available with externally managed secrets. They are outside this guide's validated quickstart; no new provider-specific support is implied.`),
       },
       {
-        id: "monitor", icon: "eye", q: "What should we monitor and maintain?",
+        id: "monitor", icon: "eye", q: "What should you monitor and maintain?",
         a: rec("Name a primary and backup operator. Decide how much data you can lose and how long the community can be unavailable.") +
           checklist([
             ["Availability and capacity", "Check external reachability, database readiness, free disk and growth, resource saturation and certificate expiry. Keep internal metrics and administration ports private."],
@@ -569,7 +569,7 @@ const GROUPS: [string, Question[]][] = [
           ]) + note("Store logs with restricted access and retention: they can name people and the data they read. Set an alert destination and make sure a second operator can act when the primary is unavailable."),
       },
       {
-        id: "move", icon: "restore", q: "Can we move or retire the community?",
+        id: "move", icon: "restore", q: "Can you move or retire the community?",
         a: rec("Choose the permanent address before your first real install. Moving the machine and changing the community address are different operations.") +
           steps([
             ["Move a public server", "Preserve the community URL and relay key, restore all stores and configuration together, and move DNS as the recovery procedure describes. Rehearse before relying on this."],
@@ -581,7 +581,7 @@ const GROUPS: [string, Question[]][] = [
       {
         id: "upgrade",
         icon: "upgrade",
-        q: "How should we upgrade the relay?",
+        q: "How should you upgrade the relay?",
         a: (t) => rec("Review routine upgrades about monthly, and assess security fixes promptly. Back up and verify app, relay and chart compatibility before changing versions.") + taskHTML("upgrade", t),
       },
       {
@@ -596,7 +596,7 @@ const GROUPS: [string, Question[]][] = [
       {
         id: "relay-key",
         icon: "key",
-        q: "Where should we keep the relay key?",
+        q: "Where should you keep the relay key?",
         a:
           rec("On the server, plus one copy in a shared vault that only the server's people can open.") +
           KEY_HOME +

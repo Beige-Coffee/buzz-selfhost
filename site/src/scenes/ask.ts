@@ -64,7 +64,7 @@ const CHANNEL_VIEW = `
     <div class="b1-head"><b><span class="b1-stack"><img src="${maya}" alt=""><img src="${leo}" alt=""></span>${CHANNEL}</b></div>
     <div class="b1-msgs">
       ${msg(maya, "Maya", "10:02 AM", "VPS, public. The check fails on phone pairing.")}
-      ${msg(leo, "Leo", "10:09 AM", "Paste the FAIL line and we can look.")}
+      ${msg(leo, "Leo", "10:09 AM", "Paste the FAIL line here.")}
     </div>
     <div class="b1-compose"><span class="b1-ph">Message #${CHANNEL}</span></div>
   </div>`;

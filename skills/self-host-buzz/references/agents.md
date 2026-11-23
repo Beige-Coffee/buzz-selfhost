@@ -113,7 +113,7 @@ How it works:
 The prompt, for your agent. Fill in its name, and its instructions if you like:
 
 ```text
-Connect yourself to our Buzz community, so I can talk to you there. Keep running on this machine.
+Connect yourself to my Buzz community, so I can talk to you there. Keep running on this machine.
 
 Community: $ORIGIN
 Your name in Buzz: <agent name>

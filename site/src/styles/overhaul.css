@@ -643,11 +643,13 @@ a.mp-link:hover { background: #2b2724; }
 /* ── Prettier drawings (owner's ask, 2026-11-23): the Maple card's style, carried to six more ── */
 .mp-cell i svg, .hn-head svg, .ac-tile i svg, .rk-top i svg, .sv-head i svg, .sv-off svg, .sv-banner svg, .fq-sees-h svg, .rl-chip svg, .fq-roles .fq-y svg, .fq-roles .fq-n svg, .opx-bk-i svg, .opx-bk-badge svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-/* harness cards: Buzz's own icons on a soft blue that matches them */
+/* harness cards: the marks Buzz shows for each harness, in their own colors, on neutral cards */
 .hn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
 .hn-card { overflow: hidden; border-radius: 16px; background: #fff; box-shadow: 0 0 0 1px var(--line-2), 0 10px 26px rgb(24 20 14 / 5%); }
-.hn-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: radial-gradient(120% 160% at 0% 0%, rgb(120 165 255 / 20%), transparent 60%), linear-gradient(180deg, #f6f8ff, #fcfcff); }
-.hn-ic { width: 48px; height: 48px; padding: 3px; border-radius: 14px; background: #fff; box-shadow: 0 6px 16px rgb(80 120 220 / 22%); }
+.hn-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #f7f7f5, #fcfcfb); }
+.hn-card.claude .hn-head { background: radial-gradient(120% 160% at 0% 0%, rgb(217 119 87 / 16%), transparent 60%), linear-gradient(180deg, #fdf7f4, #fffcfa); }
+.hn-ic { width: 48px; height: 48px; padding: 9px; border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px var(--line-2), 0 4px 12px rgb(24 20 14 / 6%); object-fit: contain; }
+.hn-card.pi .hn-ic { padding: 0; box-shadow: 0 4px 12px rgb(24 20 14 / 12%); }
 .hn-head b { display: block; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
 .hn-os { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0 0; }
 .hn-os span { padding: 1px 8px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 1px var(--line-2); font: 500 11px var(--sans); color: var(--ink-2); }

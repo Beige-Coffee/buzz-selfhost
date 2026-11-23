@@ -1,6 +1,10 @@
 import maya from "../assets/avatars/maya.svg";
 import ops from "../assets/avatars/ops.webp";
 import reviewer from "../assets/avatars/reviewer.webp";
+// the marks Buzz shows for each harness (block/buzz-app src/shared/design-system/icons/HarnessLogos.tsx, claude.png)
+import claudeMark from "../assets/harness/claude.png";
+import codexMark from "../assets/harness/codex.svg";
+import gooseMark from "../assets/harness/goose.svg";
 import { app, communityNav, settingsModal, sidebar, ti, type Flow } from "./members";
 
 /**
@@ -9,7 +13,7 @@ import { app, communityNav, settingsModal, sidebar, ti, type Flow } from "./memb
  * Identity tab: Harness, Model and Thinking, then Instructions. The pictures are from Buzz's own avatar
  * packs; the names and the instructions are illustrative (the skill's example, agents.md).
  */
-export const CLAUDE_MARK = `<svg class="ax-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6 6 18"/></svg>`;
+export const CLAUDE_MARK = `<img class="ax-mark" src="${claudeMark}" alt="">`;
 const tile = (img: string, name: string, tint: string, on = false) =>
   `<div class="ax-card ${tint}${on ? " hot" : ""}"><i class="ax-more">•••</i><img src="${img}" alt=""><b>${name}</b><span class="ax-chip">${CLAUDE_MARK}sonnet${ti("chevron-down")}</span></div>`;
 const INSTRUCTIONS_TEXT = "You help the Riverbend Tool Library volunteers in this community. Answer questions about opening hours and loans from the files in this workspace.";
@@ -48,8 +52,8 @@ const agentsPage = (open: boolean, menu = false) =>
  * is drawn signed in, with the default model the capture showed; signed out it shows Sign in.
  */
 export const MK_BL = `<span class="as-mk bl">B</span>`;
-const MK_CODEX = `<svg class="as-mk" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a4 4 0 0 1 3.9 3.1 4 4 0 0 1 3.4 5.6 4 4 0 0 1-2.4 6.4 4 4 0 0 1-6.6 1.5 4 4 0 0 1-5.8-3.4 4 4 0 0 1-.6-6.6A4 4 0 0 1 9 4.4a4 4 0 0 1 3-.9z"/></svg>`;
-const MK_GOOSE = `<svg class="as-mk" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l14 16M19 4 5 20"/></svg>`;
+const MK_CODEX = `<img class="as-mk" src="${codexMark}" alt="">`;
+const MK_GOOSE = `<img class="as-mk" src="${gooseMark}" alt="">`;
 const setupNav = communityNav("Agent setup", false);
 const agentSetup = (spot: "" | "claude" | "goose") => `<section class="mb-page as-page">
   <h5>Agent setup</h5>

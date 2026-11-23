@@ -5,11 +5,12 @@ import { blanksHTML, fillBlanks } from "../lib/blanks";
 import { esc, fill, fillRich, getValues, trackOf } from "../lib/values";
 import { BUZZ_ROBOT, TABLER } from "./tabler";
 import mapleLogo from "../assets/maple.svg";
-// Buzz's own harness icons (block/buzz-app src/bundled/<harness>/icon.png, Apache-2.0), as the app shows them
-import codexIcon from "../assets/harness/codex.png";
+// The marks Buzz itself shows for each harness in Agent setup and Create agent (block/buzz-app
+// src/shared/design-system/icons/HarnessLogos.tsx and claude.png; owners and licenses in its NOTICE.md)
+import codexIcon from "../assets/harness/codex.svg";
 import claudeIcon from "../assets/harness/claude.png";
-import gooseIcon from "../assets/harness/goose.png";
-import piIcon from "../assets/harness/pi.png";
+import gooseIcon from "../assets/harness/goose.svg";
+import piIcon from "../assets/harness/pi.svg";
 
 /**
  * The Agents answers in Running your relay: how to run agents (who each works for), what to tell an
@@ -127,7 +128,7 @@ const MAPLE = `<div class="fq-vis ga-maple">
 const HARNESS_ICON: Record<string, string> = { Codex: codexIcon, Claude: claudeIcon, Goose: gooseIcon, Pi: piIcon };
 const HARNESS = () => `<div class="fq-vis hn-grid">${skill.agents.harness
   .map(
-    ([h, need, where, on]) => `<div class="hn-card">
+    ([h, need, where, on]) => `<div class="hn-card ${h.toLowerCase()}">
     <div class="hn-head"><img class="hn-ic" src="${HARNESS_ICON[h] ?? ""}" alt=""><div><b>${h}</b><p class="hn-os">${on
       .split(/,\s*/)
       .map((o) => `<span>${o}</span>`)

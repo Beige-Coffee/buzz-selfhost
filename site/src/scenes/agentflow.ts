@@ -116,7 +116,7 @@ const createAgent = `<div class="mb-shade"></div>
   <div class="ax-go"><span class="mb-btn dark">Create agent</span></div>
 </div>`;
 
-/** What should you tell an agent?: where its instructions go, for an agent you have or a new one. */
+/** How should you write an agent's instructions?: where they go, for an agent you have or a new one. */
 export const agentFlows: Flow[] = [
   {
     id: "agents",

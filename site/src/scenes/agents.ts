@@ -4,6 +4,7 @@ import { linkButton } from "../lib/permalink";
 import { blanksHTML, fillBlanks } from "../lib/blanks";
 import { esc, fill, fillRich, getValues, trackOf } from "../lib/values";
 import { BUZZ_ROBOT, TABLER } from "./tabler";
+import mapleLogo from "../assets/maple.svg";
 
 /**
  * The Agents answers in Running your relay: how to run agents (who each works for), what to tell an
@@ -53,26 +54,26 @@ const flow = (rows: AgentStep[]) =>
 /* ── How should you run agents? ── */
 
 /**
- * Where each kind of agent runs, what it can reach and how it gets in, by community (owner's ask of
+ * Where each kind of agent runs, what it can reach and who can interact with it, by community (owner's ask of
  * 2026-11-23): in a private team only people you invite can post where an agent reads; in an open
  * community anyone can, and their words can steer it. From agents.md's opening list and "A shared
  * helper needs no proof", and security.md's "Give each audience its own agent".
  */
-const KIND_ROWS = ["Where it runs", "What it can reach", "How it gets in"];
+const KIND_ROWS = ["Where it runs", "What it can reach", "Who can interact with it"];
 const kind = (title: string, cells: string[], link: string) =>
   `<div class="ga-kind"><p class="ga-kind-h">${title}</p><dl>${cells.map((c, n) => `<div><dt>${KIND_ROWS[n]}</dt><dd>${c}</dd></div>`).join("")}</dl>${link}</div>`;
 const COMMUNITIES = () => `<div class="fq-vis ga-who">
   <div class="ga-who-c"><p class="ga-who-h"><i>${icon("users")}</i><span>Private team<small>Only people you invite can post.</small></span></p>
-    ${kind("An agent for you", ["Buzz, on a computer that stays on", "Your team's channels, and only the files and logins its job needs", "Through your membership"], go("agent-on", "Keep it online →"))}
-    ${kind("An agent for your team", ["A server of its own", "Only what everyone on the team may see", "Your ownership proof. It answers the teammates you list."], go("agent-remote", "Run one on your server →"))}
+    ${kind("An agent for you", ["Buzz, on a computer that stays on", "Your team's channels, and only the files and logins its job needs", "Only you"], go("agent-on", "Keep it online →"))}
+    ${kind("An agent for your team", ["A server of its own", "Only what everyone on the team may see", "The teammates you list"], go("agent-remote", "Run one on your server →"))}
   </div>
   <div class="ga-who-c open"><p class="ga-who-h"><i>${icon("world")}</i><span>Open community<small>Anyone who joins can post.</small></span></p>
-    ${kind("An agent for you", ["A separate computer with nothing private on it", "Open channels only. No private channels, files, email or code.", "Through your membership"], go("agent-safe", "Keep it safe →"))}
-    ${kind("A helper for everyone", ["A server of its own with nothing private on it", "Open channels only", "Its key, added as a member on the server. Never your ownership proof."], go("agent-remote", "Run one on your server →"))}
+    ${kind("An agent for you", ["A separate computer with nothing private on it", "Open channels only. No private channels, files, email or code.", "Only you. Anyone can still post in the channels it reads."], go("agent-safe", "Keep it safe →"))}
+    ${kind("A helper for everyone", ["A server of its own with nothing private on it", "Open channels only", "Anyone who mentions it"], go("agent-remote", "Run one on your server →"))}
   </div>
 </div>`;
 
-/* ── What should you tell an agent? ── */
+/* ── How should you write an agent's instructions? ── */
 
 /** What each line of the skill's example is for, in its order (the build checks there are five). */
 const JOBS = ["Who it works for", "What it works from", "What it checks with you first", "How it reports back", "What it never posts"];
@@ -99,13 +100,20 @@ const INSTRUCTIONS = () => `<div class="fq-vis ga-ins-vis">
  * github.com/MaplePrivacyLabs/buzz-maple-plugin, whose README calls it an experimental proof of concept.
  */
 const PLUGIN = () => `<p class="ga-p">A harness plugin teaches Buzz to run another agent program. Anyone can build one. Buzz loads a built plugin, a folder with <code>manifest.json</code> and <code>plugin.js</code>, from your computer or from a Git repository. It doesn't build source code or run install scripts. <a href="https://github.com/block/buzz-app/blob/main/docs/plugin-authoring-guide.md">Buzz's plugin guide</a> shows how to write one, and a harness plugin registers its agent type with Buzz. Buzz's harness API for plugins is still a preview.</p>`;
+/** Maple's card: its logo (the Maple app icon from maple.ai's brand files), what it is, then four facts from its README. */
+const mpCell = (i: string, t: string, d: string) => `<div class="mp-cell"><i>${icon(i)}</i><dt>${t}</dt><dd>${d}</dd></div>`;
 const MAPLE = `<div class="fq-vis ga-maple">
-  <div class="ga-who-c"><p class="ga-who-h"><span>For example: Maple<small><a href="https://github.com/MaplePrivacyLabs/buzz-maple-plugin">MaplePrivacyLabs/buzz-maple-plugin</a></small></span></p>
-    <dl>
-      <div><dt>What it adds</dt><dd>Maple Work, Maple's agent, as a harness. An agent you create with the Maple harness runs on Maple.</dd></div>
-      <div><dt>What you need</dt><dd>Maple Work installed and signed in on the same computer as Buzz. Buzz has to find the <code>maple-agent</code> command, and Maple's README shows how to link it on a Mac.</dd></div>
-      <div><dt>How to add it</dt><dd>Paste the repository's address in <b>Add a plugin</b>, as the click-through shows. Then create an agent and pick the <b>Maple</b> harness.</dd></div>
-      <div><dt>How ready it is</dt><dd>Maple calls it an experimental proof of concept. Maple checked it with Buzz 1.0.3 on macOS, and with Buzz 1.0.0 and 1.0.1 on Linux.</dd></div>
+  <div class="mp-card">
+    <div class="mp-head">
+      <img class="mp-logo" src="${mapleLogo}" alt="Maple">
+      <div class="mp-title"><span class="mp-eyebrow">Example plugin</span><b>Maple for Buzz</b><span>Runs your Buzz agents on Maple Work</span></div>
+      <div class="mp-actions"><span class="mp-badge">Experimental</span><a class="mp-link" href="https://github.com/MaplePrivacyLabs/buzz-maple-plugin">${icon("brand-github")}View on GitHub</a></div>
+    </div>
+    <dl class="mp-grid">
+      ${mpCell("robot", "What it adds", "Maple Work as a harness. An agent you create with the <b>Maple</b> harness runs on Maple.")}
+      ${mpCell("device-desktop", "What you need", "Maple Work installed and signed in on the same computer as Buzz. Buzz has to find the <code>maple-agent</code> command, and Maple's README shows how to link it on a Mac.")}
+      ${mpCell("download", "How to add it", "Paste <code>github.com/MaplePrivacyLabs/buzz-maple-plugin</code> in <b>Add a plugin</b>, as the click-through shows. Then create an agent and pick the <b>Maple</b> harness.")}
+      ${mpCell("alert", "How ready it is", "Maple calls it an experimental proof of concept. Maple checked it with Buzz 1.0.3 on macOS, and with Buzz 1.0.0 and 1.0.1 on Linux.")}
     </dl>
   </div>
 </div>`;
@@ -213,15 +221,16 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
         ]) +
         COMMUNITIES() +
         note("<b>Give each audience its own agent.</b> An agent that reads a private channel can repeat what it read anywhere it posts. Buzz doesn't stop that yet.") +
+        note("<b>How each one connects.</b> An agent you make in Buzz uses your membership. A team agent on its own server uses an ownership proof you make in Buzz. A helper for everyone gets its own key, added as a member on the server. Never give it your ownership proof, because the proof also lets it give requests to your own agents.") +
         // block/buzz 0.3.0 crates/buzz-relay/src/handlers/auth.rs: an agent with its owner's proof is admitted ViaOwner, not as a member
         note("<b>Your own agents don't appear in Membership.</b> An agent that gets in through its owner uses the owner's membership. It has no membership of its own. The member list doesn't show it.") +
         // block/buzz-app v1.0.5, src/features/agents/owner-attestation.ts: only the owner's messages start an agent's work
-        note(`An agent you make in Buzz answers only you. A helper that other people can ask has to be a program you run yourself, such as ${go("agent-remote", "an agent on your own server")}. Buzz has no built-in helper like that yet. Next, read ${go("agent-brief", "what to tell an agent")} and ${go("agent-model", "your choices for a harness")}.`),
+        note(`An agent you make in Buzz answers only you. A helper that other people can ask has to be a program you run yourself, such as ${go("agent-remote", "an agent on your own server")}. Buzz has no built-in helper like that yet. Next, read ${go("agent-brief", "how to write an agent's instructions")} and ${go("agent-model", "your choices for a harness")}.`),
     },
     {
       id: "agent-brief",
       icon: "message-circle",
-      q: "What should you tell an agent?",
+      q: "How should you write an agent's instructions?",
       a: () =>
         rec("In the agent's Instructions, write a few plain sentences: what the agent is for, what it should check with you before doing, and how it should report back. You don't need to explain how to behave in a channel, because Buzz already tells every agent that.", [
           ["Private team", "Say who it works for, which channels and files it uses, what it should check with you first, and how it reports back."],

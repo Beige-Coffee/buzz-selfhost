@@ -358,7 +358,7 @@ const MOBILE =
   PUSH +
   // docs/research.md: Block's bundle notes name "the public gateway"; block/buzz#5206 is where self-hosters asked for it
   note(
-    `It worked in this guide's tests on 23 and 27 October and on 12 November 2026, the last with relay 0.3.0. Block calls push experimental and promises no level of service (<a href="https://github.com/block/buzz/issues/5206">block/buzz#5206</a>), so run the locked-phone test below before your team relies on it.`,
+    `Notifications were tested with relay 0.3.0 and the App Store's Buzz app on a locked iPhone. Block calls push experimental and promises no level of service (<a href="https://github.com/block/buzz/issues/5206">block/buzz#5206</a>), so run the locked-phone test below before your team relies on it.`,
   ) +
   `<div class="fq-mobile">${PHONE_OPEN.map((x) => `<h4>${x}</h4>${phone(x)}`).join("")}</div>` +
   PHONE_FOLDED.map((x) => fold(x, phone(x))).join("");

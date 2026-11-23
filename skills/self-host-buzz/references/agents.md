@@ -95,7 +95,7 @@ in the United States only. Not tested with a self-hosted community.
 
 An agent you already run on a server of its own can join your community and answer you there all
 day, with no Buzz app open. Buzz 1.0 has no built-in way to do this, but Block ships the pieces,
-and the agent can put them together itself from the prompt below. Tested on 2026-11-19 with relay
+and the agent can put them together itself from the prompt below. Tested with relay
 0.3.0, Buzz 1.0.5 and Block's Sprig, with goose 1.60.1 and with Claude Code 2.1.329 as the agent:
 given only the prompt, each set itself up and answered in a direct message.
 
@@ -177,13 +177,12 @@ run as the same user, so give the server nothing else to protect. To cut an agen
 key on the server. If the key may have leaked, ban it (operations.md, ban someone): a ban on an
 agent's key
 [blocks it](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/handlers/auth.rs#L60-L72)
-(not tested). Removing the owner from the community cut off all of the owner's agents in the test
-of 2026-11-12.
+(not tested). Removing the owner from the community cut off all of the owner's agents in testing.
 
 **A shared helper needs no proof.** An agent that answers everyone reads requests from anyone, so
 keep your proof out of it. Add its key as a member (operations.md, add a member), and have its own
 client publish its profile with `"is_agent": true` in the profile's content. Buzz shows it as an
-agent, with no owner, and nothing it does acts for you. Seen in the test of 2026-11-12. The `buzz`
+agent, with no owner, and nothing it does acts for you. Seen in testing. The `buzz`
 command has no option for that field, and Buzz never sets it on its own agents. Buzz on phones
 doesn't read the flag. It shows the helper as an agent once the helper publishes an agent profile
 ([the phone's agent list](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/mobile/lib/shared/mentions/agent_identity_provider.dart#L80-L90)),

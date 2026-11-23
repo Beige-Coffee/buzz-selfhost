@@ -443,7 +443,7 @@ const AGENTS_SAYS = [
   "has no way to revoke one",
   "It isn't tied to one community either",
   "the owner's own Buzz agents take requests from it",
-  "Removing the owner from the community cut off all of the owner's agents in the test",
+  "Removing the owner from the community cut off all of the owner's agents in testing",
   "It answers only its owner unless started with `--respond-to anyone` or an allowlist",
   "Buzz shows it as an agent, with no owner, and nothing it does acts for you",
   "it keeps messages to the channel brief",

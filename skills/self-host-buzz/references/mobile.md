@@ -8,8 +8,7 @@ gateway of your own. Block's own notes for the bundle say so:
 ["To use the public gateway, keep the template's explicit `BUZZ_PUSH_GATEWAY_DELIVERY_URL` and set `BUZZ_PUSH_ENABLED=true`"](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/deploy/compose/README.md#L41).
 The app registers by itself: there is no gateway address to type on the phone.
 
-It worked in this guide's tests on 2026-10-23 and 2026-10-27, and with release 0.3.0 on
-2026-11-12, with a locked iPhone on the App Store's app. Block calls push experimental and promises no level of service, and the request
+It was tested with relay 0.3.0 and a locked iPhone on the App Store's app. Block calls push experimental and promises no level of service, and the request
 from self-hosters for a supported path, block/buzz#5206, is still open. So run the locked-phone
 test below before a team relies on it, and again after an upgrade. Test records:
 [what's covered](https://github.com/Beige-Coffee/buzz-selfhost/blob/main/tests/README.md).

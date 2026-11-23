@@ -9,7 +9,6 @@ description: >
 license: Apache-2.0
 compatibility: Runs from macOS or Linux (Windows isn't tested) with python3, bash and curl. Then Docker, or kubectl and helm, depending on the setup.
 metadata:
-  tested: "2026-11-12"
   tested-image: 0.3.0
   tested-digest: sha256:84f34c5b801192665b1a05939518d746f25184babf4d6e927d0de7e12e9c5674
   tested-commit: 75d38b6c2d5f357348288ded8c15aba15f765ea5
@@ -313,7 +312,7 @@ the gateway or Apple, because the phone fetches messages from this relay; but Bl
 this relay's public key, its server's address and when it wakes which phone, and Apple sees when a
 phone is woken. Each member's iPhone signs up on its own while push is on. Block calls push
 experimental, and delivery is best effort. `BUZZ_PUSH_ENABLED=false` turns it off. Tested on public
-VPSs on 2026-10-23 and 2026-10-27, and on release 0.3.0 on 2026-11-12.
+VPSs with relay 0.3.0.
 
 **Local agents.** Buzz 1.0 can run agents on the user's computer, each with its own key that the owner's
 identity vouches for. The relay admits them through the owner's membership, which every setup here

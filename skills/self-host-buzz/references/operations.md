@@ -33,7 +33,7 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   link that hasn't expired. There is no single-link cancellation procedure here; an issuer ban
   revokes its v2 invites, while legacy links differ. Keep links to 1 use
   and 1 day. Their channel memberships stay, so adding them back restores every private channel
-  they were in. Tested on 2026-10-27.
+  they were in.
   **To ban someone or time them out**, use Buzz 1.0's Settings, Moderation, on a public setup with
   the moderation console (compose.md). Otherwise, and always on a private network, where Buzz's
   moderation screens can't connect, the owner or an admin uses the `buzz` command line that ships
@@ -68,8 +68,7 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   member, and to every channel it answers in: a reply that mentions a non-member is refused, and
   a key without relay membership gets `relay error 403: relay_membership_required`. Buzz shows such
   a bot as a person, and a direct message doesn't wake it, unless its profile carries the owner's
-  proof or an agent flag ([agents.md](agents.md#run-an-agent-on-your-own-server)). Tested on
-  2026-11-12.
+  proof or an agent flag ([agents.md](agents.md#run-an-agent-on-your-own-server)).
 - **Back up** what can't be rebuilt: Postgres, the file store's and git volumes, and `.env`,
   together, with the relay stopped (ask first: members lose the connection for about half a
   minute). The file store's volume keeps MinIO's name with Silo too, so the commands are the same
@@ -158,8 +157,8 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   relay again with `BUZZ_COMPOSE_TLS=true ./run.sh start`. The block copied the backup's `env` over
   `.env`, so if `.env` changed since the backup (an upgrade changes it), put those changes back first.
   Tested: messages, files, members, the relay's identity and the community all came back, on this
-  server and on a new one (194 seconds from losing the old server to a working new one, on
-  2026-10-27). Tested as one command too, on 2026-10-27: a damaged dump stopped it with the database
+  server and on a new one (194 seconds from losing the old server to a working new one).
+  Tested as one command too: a damaged dump stopped it with the database
   left empty, and the same block then worked with the good dump.
 - **Upgrade.** Back up first. Members lose the connection while the relay restarts; database
   migrations can extend the outage. The relay migrates its database on start, so going
@@ -191,7 +190,7 @@ Run from `buzz/deploy/compose`. In `private` mode, drop `BUZZ_COMPOSE_TLS=true`.
   says small databases may let the relay run it. A build that runs out of time records nothing,
   so start the relay again at a quieter moment. Only a large or busy database needs the prebuild
   that note describes: stop and plan that with the user. Keep `BUZZ_MEDIA_READ_MODE=off`; limiting
-  files to their channels is a rollout of its own (SKILL.md). Tested on 2026-11-12 from
+  files to their channels is a rollout of its own (SKILL.md). Tested from
   `sha-744f394` on a small test database, where 0086 took a quarter of a second. Not tested on a
   database with real history.
   From a tag before 2026-10-07 to a later one, the upgrade

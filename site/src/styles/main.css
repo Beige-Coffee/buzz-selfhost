@@ -852,6 +852,8 @@ details.tl-fail { margin-top: 12px; }
 .fq-s-box > svg { flex: none; width: 16px; height: 16px; color: var(--ink-3); }
 .fq-s-in { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: none; font: 400 14.5px var(--sans); color: var(--ink); }
 .fq-s-in::placeholder { color: var(--ink-3); }
+/* the box shows focus with its ring, so the site's outline for inputs stays off here */
+.fq-s-in:focus-visible { outline: none; }
 .fq-s-in::-webkit-search-cancel-button { cursor: pointer; }
 .fq-s-box kbd { flex: none; padding: 1px 7px; border: 1px solid var(--line-2); border-radius: 6px; font: 500 11px var(--mono); color: var(--ink-3); }
 .fq-s-box:focus-within kbd { display: none; }

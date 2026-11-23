@@ -544,5 +544,9 @@ must point at block/buzz instead of Beige-Coffee/buzz-selfhost.
   not part of the advice. The skill and these docs keep their test notes, since agents and
   maintainers use them; `site/build/skill.ts` (`UNTESTED`) strips them from the skill text the
   site shows.
+- No test dates anywhere in the guide, site or skill (owner's call of 2026-11-23): say what was
+  tested and with which versions ("tested with relay 0.3.0"), never when. Dates that name a
+  version (an image "from 2026-10-15 or later", the app's release) stay. Test dates live in
+  `tests/` and these docs.
 - No mentions of the Block engineering blog post the guide started from.
 - No em dashes; avoid filler such as "just" and "simply".

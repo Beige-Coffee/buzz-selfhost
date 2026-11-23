@@ -314,8 +314,8 @@ and the off-machine copy succeed; do not delete the last known-good backup. This
 validated that unattended workflow yet.
 
 **Moderation console (`server`; optional, ask first).** Offer it for a community that strangers
-can join (these steps and the Staff screen were tested on 2026-11-12; reports, bans and timeouts
-were not). Without it, members can report a message, but Buzz's own screens can't show reports,
+can join (these steps and the Staff screen were tested with relay 0.3.0; reports, bans and
+timeouts were not). Without it, members can report a message, but Buzz's own screens can't show reports,
 ban someone, time them out or delete their messages: the owner or an admin does that with the `buzz`
 command line (operations.md). Remove isn't a ban: a removed
 person comes back with any invite link that hasn't expired. Buzz 1.0's Moderation screens do all of

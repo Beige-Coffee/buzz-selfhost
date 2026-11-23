@@ -615,6 +615,14 @@ const GROUPS: [string, Question[]][] = [
   ],
 ];
 
+/** Answers whose details are steps to take; the break before the rest reads "Details". */
+const HOW_TO = new Set([
+  "add", "welcome", "notifications", "roles", "moderate", "leave",
+  "agent-brief", "agent-on", "agent-remote",
+  "identity", "lost", "leak", "sso", "two-factor",
+  "backup", "restore", "upgrade", "monitor", "move",
+]);
+
 /** A group's fold mark, turned to point right while the group is folded. */
 const CHEV = `<svg class="fq-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
 
@@ -716,6 +724,10 @@ export function mountFaq(host: HTMLElement): void {
     });
     pane.setAttribute("aria-labelledby", `fq-tab-${x.id}`);
     pane.innerHTML = `<h3 class="fq-h">${x.q}${linkButton(linkFor(x), "Copy a link to this answer")}</h3>${typeof x.a === "string" ? x.a : x.a(trackOf())}`;
+    // a labeled break between the recommendation and the details
+    const recEl = pane.querySelector(".fq-rec");
+    if (recEl?.nextElementSibling)
+      recEl.insertAdjacentHTML("afterend", `<div class="fq-split"><span>${HOW_TO.has(x.id) ? "How to do it" : "Details"}</span></div>`);
     if (narrow.matches) list.querySelector(`[data-q="${x.id}"]`)!.after(pane);
     else box.appendChild(pane);
     enhanceCode(pane);

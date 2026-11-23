@@ -422,6 +422,10 @@ answers changed with the setup. Backing up, restoring and upgrading now open wit
 the seven setups, which also changes the guide's setup. Roles, moderation, adding people and
 phones say what differs in a sentence, so they hold for every setup.
 
+Also 2026-11-23, from four mockups (`site/mockups/rec.html`), the owner picked B: each answer's
+recommendation is a dark ink card with a chartreuse "Recommended" label, and a labeled rule,
+"How to do it" or "Details" (`HOW_TO` in faq.ts), marks where the details start.
+
 No "we" (2026-11-23, the owner's rule): the site doesn't speak as "we", and its questions ask
 "How should you…" instead of "How should we…". The section's line reads "Recommended setups for
 people, keys, data and the server, and how to set them up." Prompts the reader pastes to an agent

@@ -845,6 +845,24 @@ details.tl-fail { margin-top: 12px; }
 .opx-item:is([aria-selected="true"], [data-selected="true"]) .opx-item-i { background: var(--accent); color: var(--ink); }
 .opx-item-t b { display: block; font-size: 15px; font-weight: 500; letter-spacing: -0.01em; }
 .opx-item-t span { display: block; font-size: 12.5px; color: var(--ink-3); }
+/* Running your relay's search: a field over the questions, results in their place while it has words */
+.fq-search { margin: 0 0 8px; }
+.fq-s-box { display: flex; align-items: center; gap: 9px; height: 42px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 13px; background: #fff; cursor: text; transition: border-color 0.2s, box-shadow 0.2s; }
+.fq-s-box:focus-within { border-color: var(--ink-3); box-shadow: 0 0 0 3px var(--accent-soft); }
+.fq-s-box > svg { flex: none; width: 16px; height: 16px; color: var(--ink-3); }
+.fq-s-in { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: none; font: 400 14.5px var(--sans); color: var(--ink); }
+.fq-s-in::placeholder { color: var(--ink-3); }
+.fq-s-in::-webkit-search-cancel-button { cursor: pointer; }
+.fq-s-box kbd { flex: none; padding: 1px 7px; border: 1px solid var(--line-2); border-radius: 6px; font: 500 11px var(--mono); color: var(--ink-3); }
+.fq-s-box:focus-within kbd { display: none; }
+.fq-list.searching > .fq-grp { display: none; }
+.fq-results { display: grid; gap: 4px; }
+.fq-results[hidden] { display: none; }
+.fq-r-k { margin: 2px 4px 4px; font: 600 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.fq-none { margin: 6px 4px; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+.opx-item-t small { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.45; color: var(--ink-3); }
+.opx-item-t small mark, .fq-mark { padding: 0 1px; border-radius: 3px; background: rgb(215 215 46 / 50%); color: inherit; }
+.fq-rec .fq-mark { background: rgb(215 215 46 / 40%); color: #fff; }
 .opx-pane { min-width: 0; padding: 26px 30px 28px; }
 .opx-pane > .mode-agent, .opx-pane > .mode-steps { animation: mode-in 0.55s var(--ease) both; }
 .opx-why { margin: 0 0 16px; max-width: 38em; font-size: 15px; line-height: 1.55; color: var(--ink-2); }
@@ -1115,6 +1133,7 @@ h2 .hl svg { width: 19px; }
   .opx-item-i { width: 30px; height: 30px; border-radius: 9px; }
   .opx-item-t b { font-size: 14px; }
   .opx-item-t span { display: none; }
+  .fq-s-box kbd { display: none; }
   .opx-pane { padding: 18px 16px 20px; }
   .ag-clouds { grid-template-columns: 1fr; gap: 2px; }
   .ag-clouds dd { margin-bottom: 8px; }
@@ -1390,6 +1409,14 @@ h2 .hl svg { width: 19px; }
 .opx-flow-d code { font-size: 0.86em; }
 .opx-flow :is(.cmd-wrap, pre) { margin-top: 8px; }
 .opx-note { margin: 8px 0 0; padding-left: 12px; border-left: 2px solid var(--accent); font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+/* How should you add people?: the two starter channels, and why */
+.fq-chans { margin-top: 26px; }
+.fq-chans .ga-h { margin-top: 0; }
+.fq-chans-p { margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+.fq-why { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.fq-why li { padding-left: 12px; border-left: 2px solid var(--accent); font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+.fq-why b { color: var(--ink); font-weight: 600; }
+.fq-chans .fq-vis { margin-top: 16px; }
 /* two or more notes in a row, folded under "Good to know" */
 .fq-more { margin-top: 18px; border: 1px solid var(--line-2); border-radius: 14px; background: #fcfcfa; }
 .fq-more > summary { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; list-style: none; font-size: 15px; font-weight: 500; color: var(--ink); border-radius: 14px; transition: background 0.2s; }

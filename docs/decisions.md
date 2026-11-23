@@ -435,6 +435,12 @@ Also 2026-11-23: two or more notes in a row fold under a "Good to know" dropdown
 (a drawing between two runs folds in with them); a single note stays out, since it's often the
 step itself (`foldNotes` in faq.ts).
 
+Also 2026-11-23: Running your relay has a search over the questions (owner's ask). It searches each
+answer's text for the current setup, its folds and every click-through step, ranks title matches
+first, and shows a snippet per result; opening one marks the matches and opens a fold that holds the
+first. Other words people type map to the site's words (`ALSO` in faq.ts: kick, 2fa, vpn, sso…).
+Short words match whole words only. "/" focuses it. No service: it runs in the page.
+
 No "we" (2026-11-23, the owner's rule): the site doesn't speak as "we", and its questions ask
 "How should you…" instead of "How should we…". The section's line reads "Recommended setups for
 people, keys, data and the server, and how to set them up." Prompts the reader pastes to an agent

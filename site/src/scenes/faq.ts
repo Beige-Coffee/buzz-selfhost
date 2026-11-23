@@ -9,7 +9,7 @@ import { SETUPS } from "../data/decide";
 import { TABLER } from "./tabler";
 import { copyText, enhanceCode } from "../lib/code";
 import { jumpTo, registerAnchors } from "../lib/nav";
-import { getValues, onValues, setValues, skillURL, trackHash, trackOf, type Track } from "../lib/values";
+import { esc, getValues, onValues, setValues, skillURL, trackHash, trackOf, type Track } from "../lib/values";
 
 /**
  * Running your relay: what we recommend for people, keys, data and the server, and how to set it up.
@@ -147,6 +147,23 @@ const DOOR = (() => {
     note("An agent added as a member counts as a person: 60 messages a minute instead of an agent's 120, and Buzz doesn't record who owns it.")
   );
 })();
+
+/**
+ * The two starter channels, and why: phones look for them by name (block/buzz mobile/lib/app.dart; a
+ * missing one is created by the first phone, an archived one or a forum can stop the join), and
+ * welcome-everyone doubles as the welcome channel. Starter channels come from invite claims
+ * (block/buzz#8594), not from add-member on the server.
+ */
+const CHANNELS = `<div class="fq-chans">
+  <h4 class="ga-h">Before anyone joins: two starter channels</h4>
+  <p class="fq-chans-p">Create open channels named exactly <code>general</code> and <code>welcome-everyone</code>, and turn on <b>Starter channel for new members</b> in each one's settings. Everyone who joins with a link lands in both.</p>
+  <ul class="fq-why">
+    <li><b>Phones need them.</b> Buzz on iPhone looks for both by name after someone joins. If one is missing, that person's phone creates it and owns it. If one is archived or a forum, the join can fail with "Starter channels could not be set up".</li>
+    <li><b>A welcome channel.</b> For an open community, make <code>welcome-everyone</code> view-only, so members read what you post there and can't reply. See <a href="#operations" data-q-link="welcome">How should you welcome new members?</a></li>
+  </ul>
+  ${STARTERS}
+  <p class="fq-chans-p">People you add on the server don't join starter channels, so add them to the channels they need. Give a private team channel another name, such as <code>team</code>.</p>
+</div>`;
 
 /** A lost device: one question decides everything, whether the key is exposed. */
 const CASES = `<div class="fq-vis fq-cases">
@@ -367,22 +384,13 @@ const GROUPS: [string, Question[]][] = [
             [OPEN, `Set up <a href="#operations" data-q-link="moderate">moderation</a> first. Then post one link on your site or README with a use limit, and replace it when it fills or expires.`],
           ]) +
           ct("add") +
-          note(
-            `Each person needs a key first (<a href="#operations" data-q-link="identity">how to get one</a>). With a link they join by themselves. To be added by npub they send it to you: the key script prints it, and Buzz shows it if they try to join before you add them.`,
-          ) +
+          CHANNELS +
           // block/buzz-app: v1.0.0's Add directly is off in every release from v1.0.1 (src/bundled/moderation/features.ts)
           note(
-            `Buzz can't add an npub itself since 1.0.1. Ask your agent to add it, or run the skill's <a href="${ADD_MEMBER}">add-member command</a> on the server.`,
+            `Each person needs a key first (<a href="#operations" data-q-link="identity">how to get one</a>). To add an npub, ask your agent or run the skill's <a href="${ADD_MEMBER}">add-member command</a> on the server: Buzz can't since 1.0.1. People see their npub when they try to join.`,
           ) +
-          // starter channels, from block/buzz#8594 (in the pin): invite claims, not buzz-admin add-member
-          note("In a public channel's settings, turn on <b>Starter channel for new members</b>: everyone who joins by link joins it. People added on the server don't, so add them to the channels they need.") +
-          note("<b>Before the first phone joins</b>, create two open channels named exactly <code>general</code> and <code>welcome-everyone</code>, and turn on Starter channel for new members in both. Buzz on iPhone looks for them by name after someone joins with a link.") +
-          STARTERS +
-          note("Keep both open, unarchived and not forums. Give a private team channel another name, such as <code>team</code>.") +
           // links last 30 days at most (block/buzz crates/buzz-core/src/invite.rs); nothing revokes one (#8529 open)
-          note(
-            "To shut every link someone made, ban them: a ban cancels all their links.",
-          ) +
+          note("To shut every link someone made, ban them: a ban cancels all their links.") +
           note(PRIVATE_PEOPLE),
       },
       {
@@ -657,6 +665,35 @@ const HOW_TO = new Set([
   "backup", "restore", "upgrade", "monitor", "move",
 ]);
 
+/**
+ * Search: other words people type for what the answers say (owner's ask of 2026-11-23). Each query
+ * word also matches these; a plural also matches without its "s".
+ */
+const ALSO: Record<string, string[]> = {
+  kick: ["remove", "ban"], boot: ["remove", "ban"], spam: ["moderat", "ban", "report"], troll: ["ban", "moderat"],
+  mod: ["moderat"], mods: ["moderat"], moderator: ["moderat", "staff"],
+  "2fa": ["two-factor"], mfa: ["two-factor"], otp: ["two-factor"],
+  vpn: ["tailscale", "private network"], sso: ["single sign-on"], okta: ["single sign-on", "identity provider"],
+  login: ["sign in", "sign-in"], signin: ["sign in", "sign-in"], password: ["password", "key"],
+  invite: ["invite", "link"], onboard: ["welcome", "invite"], onboarding: ["welcome", "invite"],
+  offboard: ["leave", "remove"], offboarding: ["leave", "remove"], fire: ["leave", "remove"], quit: ["leave"],
+  bot: ["agent"], ai: ["agent"], llm: ["model"], claude: ["claude", "harness"], codex: ["codex", "harness"], goose: ["goose", "harness"],
+  push: ["notification"], notify: ["notification"], ios: ["iphone", "phone"], mobile: ["phone"],
+  nsec: ["key"], update: ["upgrade"], version: ["upgrade", "version"],
+  backup: ["back up", "backup"], price: ["$", "cost"], pricing: ["$", "cost"], cost: ["$", "cost"],
+  dm: ["direct message"], privacy: ["read", "private"], hosting: ["host", "server"], k8s: ["kubernetes"],
+  docker: ["compose", "docker"], logs: ["log"],
+};
+/** The query's words, each with what it may match, lowercased. */
+const terms = (query: string): string[][] =>
+  query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 1)
+    .map((w) => [...new Set([w, ...(ALSO[w] ?? []), ...(w.length > 3 && w.endsWith("s") ? [w.slice(0, -1), ...(ALSO[w.slice(0, -1)] ?? [])] : [])])]);
+const reEsc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const SEARCH_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true">${TABLER.search}</svg>`;
+
 /** A group's fold mark, turned to point right while the group is folded. */
 const CHEV = `<svg class="fq-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
 
@@ -669,7 +706,9 @@ const CHEV = `<svg class="fq-chev" viewBox="0 0 24 24" aria-hidden="true"><path 
 export function mountFaq(host: HTMLElement): void {
   const all = GROUPS.flatMap(([, qs]) => qs);
   host.innerHTML = `<div class="opx fq">
-    <div class="opx-list fq-list" role="group" aria-label="Questions">${GROUPS.map(
+    <div class="opx-list fq-list" role="group" aria-label="Questions">
+      <div class="fq-search" role="search"><label class="fq-s-box">${SEARCH_ICON}<input type="search" class="fq-s-in" placeholder="Search the answers" aria-label="Search the answers" aria-controls="fq-results" autocomplete="off" spellcheck="false"><kbd aria-hidden="true">/</kbd></label></div>
+      <div class="fq-results" id="fq-results" aria-live="polite" hidden></div>${GROUPS.map(
       ([group, qs], gi) =>
         `<div class="fq-grp" data-g="${gi}"><button type="button" class="fq-g fq-g-t" aria-expanded="true"><span>${group}</span><em aria-label="${qs.length} questions">${qs.length}</em>${CHEV}</button>${qs
           .map(
@@ -683,6 +722,132 @@ export function mountFaq(host: HTMLElement): void {
   const box = host.querySelector<HTMLElement>(".fq")!;
   const list = host.querySelector<HTMLElement>(".fq-list")!;
   const pane = host.querySelector<HTMLElement>(".fq-pane")!;
+  const input = host.querySelector<HTMLInputElement>(".fq-s-in")!;
+  const results = host.querySelector<HTMLElement>(".fq-results")!;
+
+  /**
+   * Search every answer: its question, its text for the current setup, what sits in its folds, and
+   * every step of its click-throughs. Built on first use, and again when the setup changes.
+   */
+  const plain = (html: string) => {
+    const d = document.createElement("div");
+    // a space between neighboring tags, so a label and its text don't run together
+    d.innerHTML = html.replace(/></g, "> <");
+    // drawings of made-up data (the audit log's entries) aren't advice, so they aren't searched
+    d.querySelectorAll("svg, style, script, [aria-hidden='true'], .fq-audit, .fq-rec > div > b").forEach((el) => el.remove());
+    return (d.textContent ?? "").replace(/\s+/g, " ").trim();
+  };
+  const ctText = (html: string) =>
+    [...html.matchAll(/data-ct="([^"]+)"/g)]
+      .flatMap(([, n]) => (CLICK_THROUGHS[n] ?? []).flatMap((f) => [f.label, ...f.steps.flatMap((st) => [st.k, st.t])]))
+      .join(" ");
+  let index: { x: Question; text: string; low: string; title: string }[] | null = null;
+  const buildIndex = () =>
+    all.map((x) => {
+      const html = typeof x.a === "string" ? x.a : x.a(trackOf());
+      const text = `${plain(html)} ${plain(ctText(html))}`.trim();
+      return { x, text, low: text.toLowerCase(), title: x.q.toLowerCase() };
+    });
+  let words: string[][] = [];
+  /** A word of three letters or fewer matches only as a word, with its endings: "ban" finds "banned", not "bandwidth". */
+  const pat = (t: string) => (t.length <= 3 && /^\w+$/.test(t) ? `\\b${reEsc(t)}(?:s|es|ed|ned|ing|ning|er)?\\b` : reEsc(t));
+  const re1 = (t: string) => new RegExp(pat(t), "g");
+  /** One pattern for all of them, capturing the match, case-insensitive. */
+  const reAll = (alts: string[]) => new RegExp(`(${alts.map(pat).join("|")})`, "gi");
+  const has = (hay: string, t: string) => re1(t).test(hay);
+  const count = (hay: string, t: string) => hay.match(re1(t))?.length ?? 0;
+  /** Where the first match sits, in a line of about 140 characters, with every match marked. */
+  /** The whole query, when it has two words or more and appears as typed: then it's marked, not each word. */
+  const phrase = () => input.value.trim().toLowerCase().replace(/\s+/g, " ");
+  const marksFor = (low: string) => (phrase().includes(" ") && low.includes(phrase()) ? [phrase()] : words.flat());
+  const snippet = (text: string, low: string) => {
+    const alts = marksFor(low);
+    const at = Math.min(...alts.map((t) => low.search(re1(t))).filter((n) => n >= 0), Infinity);
+    if (at === Infinity) return "";
+    let from = Math.max(0, at - 50);
+    let to = Math.min(text.length, at + 90);
+    if (from > 0) from = text.indexOf(" ", from) + 1;
+    if (to < text.length) to = Math.max(text.lastIndexOf(" ", to), at + 1);
+    const re = reAll(alts);
+    return `${from > 0 ? "…" : ""}${esc(text.slice(from, to)).replace(re, "<mark>$1</mark>")}${to < text.length ? "…" : ""}`;
+  };
+  const find = () => {
+    words = terms(input.value);
+    if (!words.length) return endSearch(false);
+    index ??= buildIndex();
+    const hits = index
+      .filter((e) => words.every((alts) => alts.some((t) => has(e.title, t) || has(e.low, t))))
+      .map((e) => ({ e, score: words.reduce((n, alts) => n + Math.max(...alts.map((t) => (has(e.title, t) ? 6 : 0) + Math.min(count(e.low, t), 5))), 0) }))
+      .sort((a, b) => b.score - a.score);
+    list.classList.add("searching");
+    results.hidden = false;
+    results.innerHTML = hits.length
+      ? `<p class="fq-r-k">${hits.length} ${hits.length === 1 ? "answer" : "answers"}</p>${hits
+          .map(
+            ({ e }) =>
+              `<button type="button" class="opx-item" data-q="${e.x.id}" aria-controls="fq-pane" data-selected="${e.x.id === open}"><span class="opx-item-i">${icon(e.x.icon)}</span><span class="opx-item-t"><b>${e.x.q}</b><small>${snippet(e.text, e.low)}</small></span></button>`,
+          )
+          .join("")}`
+      : `<p class="fq-none">No answer mentions "${esc(input.value.trim())}". Try fewer or other words.</p>`;
+  };
+  const endSearch = (clear = true) => {
+    if (clear) input.value = "";
+    words = [];
+    list.classList.remove("searching");
+    results.hidden = true;
+    results.innerHTML = "";
+  };
+  /** In the opened answer, mark what the search matched; open a fold that holds the first, and go to it. */
+  const markHits = () => {
+    const low = (pane.textContent ?? "").toLowerCase().replace(/\s+/g, " ");
+    if (!words.length) return;
+    if (!mark(marksFor(low)) && marksFor(low).length === 1) mark(words.flat());
+    const first = pane.querySelector<HTMLElement>(".fq-mark");
+    if (!first) return;
+    first.closest<HTMLDetailsElement>("details.fq-more")?.setAttribute("open", "");
+    const r = first.getBoundingClientRect();
+    if (r.top < 80 || r.bottom > innerHeight - 40)
+      first.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  };
+  /** Marks every match of these in the open answer's text; says whether there was one. */
+  const mark = (alts: string[]) => {
+    const re = reAll(alts);
+    const walker = document.createTreeWalker(pane, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => (n.parentElement?.closest("svg, script, style, .fq-h, mark") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+    });
+    const nodes: Text[] = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+    for (const n of nodes) {
+      if (!new RegExp(re.source, "i").test(n.data)) continue;
+      const span = document.createElement("span");
+      span.innerHTML = esc(n.data).replace(re, `<mark class="fq-mark">$1</mark>`);
+      n.replaceWith(...span.childNodes);
+    }
+    return !!pane.querySelector(".fq-mark");
+  };
+  input.addEventListener("input", find);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      endSearch();
+      input.blur();
+    } else if (e.key === "ArrowDown" || e.key === "Enter") {
+      const first = results.querySelector<HTMLButtonElement>("[data-q]");
+      if (!first) return;
+      e.preventDefault();
+      if (e.key === "Enter") first.click();
+      else first.focus();
+    }
+  });
+  // "/" anywhere on the page, outside a field, goes to the search
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target instanceof Element ? e.target : null;
+    if (t?.closest("input, textarea, select, [contenteditable]")) return;
+    e.preventDefault();
+    input.focus({ preventScroll: true });
+    input.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  });
+
   // on a phone the answer opens under its question, like an accordion
   const narrow = matchMedia("(max-width: 640px)");
   /**
@@ -737,6 +902,7 @@ export function mountFaq(host: HTMLElement): void {
 
   const show = (id: string, focus = false) => {
     const x = all.find((y) => y.id === id) ?? all[0];
+    if (list.classList.contains("searching") && !results.querySelector(`[data-q="${x.id}"]`)) endSearch();
     if (x.id !== open) state = {};
     open = x.id;
     // the open answer's group unfolds; the others stay as the reader left them
@@ -811,6 +977,7 @@ export function mountFaq(host: HTMLElement): void {
     const tab = t.closest<HTMLButtonElement>("[data-q]");
     if (tab) {
       show(tab.dataset.q!);
+      if (tab.closest(".fq-results")) markHits();
       return showLink();
     }
     // a link from one answer to another
@@ -876,6 +1043,16 @@ export function mountFaq(host: HTMLElement): void {
   // arrow keys move between questions, unfolding the group of the one they reach
   host.addEventListener("keydown", (e) => {
     if (!(e.target as HTMLElement).closest("[data-q]")) return;
+    if ((e.target as HTMLElement).closest(".fq-results")) {
+      const items = [...results.querySelectorAll<HTMLButtonElement>("[data-q]")];
+      const at = items.indexOf(e.target as HTMLButtonElement);
+      const to = { ArrowDown: at + 1, ArrowUp: at - 1 }[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      if (to < 0) return input.focus();
+      items[Math.min(to, items.length - 1)].focus();
+      return;
+    }
     const i = all.findIndex((x) => x.id === open);
     const next = { ArrowDown: i + 1, ArrowRight: i + 1, ArrowUp: i - 1, ArrowLeft: i - 1, Home: 0, End: all.length - 1 }[e.key];
     if (next === undefined) return;
@@ -910,6 +1087,8 @@ export function mountFaq(host: HTMLElement): void {
   show(open);
   // the setup changed, here or in the guide: redraw the answer if it depends on it
   onValues(() => {
+    index = null;
+    if (list.classList.contains("searching")) find();
     if (typeof all.find((x) => x.id === open)!.a !== "string") show(open);
     else pane.querySelector<HTMLAnchorElement>(".fq-h .hl")?.setAttribute("href", linkFor(all.find((x) => x.id === open)!));
   });

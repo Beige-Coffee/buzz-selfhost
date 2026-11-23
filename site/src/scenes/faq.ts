@@ -348,6 +348,19 @@ const PUSH = `<div class="fq-vis fq-push">
 const phone = (title: string) => skill.mobile.find((x) => x.title === title)?.html ?? `<p class="fq-missing">mobile.md lost its "${title}" section.</p>`;
 const fold = (title: string, html: string) => `<details class="fq-fold"><summary>${title}</summary><div class="fq-mobile">${html}</div></details>`;
 const PHONE_OPEN = ["Turn notifications on", "Pair a phone", "Test with the phone locked"];
+/**
+ * "Turn notifications on" shows the two settings and what this guide's setups do; how to set them on
+ * Compose or Kubernetes folds under "How to set it up" (owner's ask of 2026-11-23).
+ */
+const foldSetup = (html: string) => {
+  const d = document.createElement("div");
+  d.innerHTML = html;
+  const kids = [...d.children];
+  const code = kids.findIndex((k) => k.matches("pre, .cmd-wrap"));
+  if (code < 0 || code + 2 >= kids.length) return html;
+  const out = (els: Element[]) => els.map((k) => k.outerHTML).join("");
+  return `${out(kids.slice(0, code + 2))}<details class="fq-more fq-setup"><summary><span>How to set it up</span></summary><div class="fq-mobile">${out(kids.slice(code + 2))}</div></details>`;
+};
 const PHONE_FOLDED = ["What Block and Apple see", "Android", "Run your own gateway"];
 const MOBILE =
   rec("Buzz sends notifications through Block's push gateway to the Buzz app from the App Store. You don't need an Apple developer account or a gateway of your own. Notifications work on iPhone, but not on Android yet.", [
@@ -360,7 +373,7 @@ const MOBILE =
   note(
     `This guide tested notifications with relay 0.3.0 and the App Store's Buzz app on a locked iPhone. Block calls push experimental and doesn't promise any level of service (<a href="https://github.com/block/buzz/issues/5206">block/buzz#5206</a>). Run the locked-phone test below before your team relies on it.`,
   ) +
-  `<div class="fq-mobile">${PHONE_OPEN.map((x) => `<h4>${x}</h4>${phone(x)}`).join("")}</div>` +
+  `<div class="fq-mobile">${PHONE_OPEN.map((x) => `<h4>${x}</h4>${x === "Turn notifications on" ? foldSetup(phone(x)) : phone(x)}`).join("")}</div>` +
   PHONE_FOLDED.map((x) => fold(x, phone(x))).join("");
 
 interface Question {

@@ -110,7 +110,7 @@ const membership = (spot: Spot) => `<section class="mb-page">
 /** The use limit as the menu words it: No limit, or 1 use, 5 uses and so on. */
 const usesLabel = (uses: string) => (/^\d+$/.test(uses) ? `${uses} ${uses === "1" ? "use" : "uses"}` : uses);
 /** A QR code's look, not a working code: three corner squares and a fixed scatter of dots. */
-const QR = (() => {
+export const QR = (() => {
   const n = 21;
   const finder = (x: number, y: number) => `<path d="M${x} ${y}h7v7h-7z M${x + 1} ${y + 1}v5h5v-5z M${x + 2} ${y + 2}h3v3h-3z" fill-rule="evenodd"/>`;
   const inFinder = (x: number, y: number) => (x < 8 && y < 8) || (x > 12 && y < 8) || (x < 8 && y > 12);

@@ -1,5 +1,5 @@
 import { BACK, joinCard, onboardingStep } from "./joinmock";
-import { communityNav, CURSOR, invite, settings, settingsModal, ti, type Flow } from "./members";
+import { communityNav, CURSOR, invite, QR, settings, settingsModal, ti, type Flow } from "./members";
 import { skillURL } from "../lib/values";
 
 /**
@@ -82,19 +82,27 @@ const identityPage = (copy: "npub" | "nsec") => `<section class="mb-page id-page
   ${copy === "npub" ? `<div class="id-toast">${ti("check")}Buzz ID copied.</div>` : ""}
 </section>`;
 
-/** Settings, Mobile app, whose page is Pair mobile for a key kept off Builderlab (src/bundled/pairing/index.tsx, MobileApp.tsx), once the phone has scanned: the six digits and Codes match, beside Buzz's three steps. */
-const pairPage = `<section class="mb-page id-pair">
+/**
+ * Settings, Mobile app, whose page is Pair mobile for a key kept off Builderlab (src/bundled/pairing/index.tsx,
+ * MobileApp.tsx): first its QR code, then, once the phone has scanned, the six digits and Codes match,
+ * beside Buzz's three steps.
+ */
+const pairPageAt = (at: "qr" | "code") => `<section class="mb-page id-pair">
   <h5>Pair mobile</h5>
   <p class="mb-sub">Connect the Buzz mobile app to this community. Pairing is secured with end-to-end encryption and a verification code.</p>
   <div class="id-pair-b">
-    <div class="id-pair-code">
+    ${
+      at === "qr"
+        ? `<div class="id-pair-qr">${QR}</div>`
+        : `<div class="id-pair-code">
       <b>Verify the code on your phone</b>
       <span class="id-digits">482 913</span>
       <span class="mb-btn dark hot">Codes match</span>
       <span class="mb-btn">Cancel</span>
-    </div>
+    </div>`
+    }
     <ol>
-      <li class="done"><span>${ti("check")}</span><div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the code shown here.</p></div></li>
+      <li class="${at === "qr" ? "now" : "done"}"><span>${at === "qr" ? "1" : ti("check")}</span><div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the code shown here.</p></div></li>
       <li><span>2</span><div><b>Verify the code on your phone</b><p>If your phone asks for a code, enter these digits and finish confirming on your phone. If it shows a code, check that the digits match. Then choose Codes match here to send your Buzz identity.</p></div></li>
       <li><span>3</span><div><b>Pair your mobile app</b><p>Your mobile app will connect after you verify the code.</p></div></li>
     </ol>
@@ -117,6 +125,33 @@ const vault = `<div class="id-vault">
     <span class="mb-btn dark id-save">Save</span>
   </div>
 </div>`;
+
+const pairPage = pairPageAt("code");
+
+/**
+ * The phone's side of pairing, sketched from block/buzz mobile/lib/features/pairing (add_community_connection.dart,
+ * pairing_qr_scanner.dart, sas_verification_view.dart): Add a community with Scan a QR code, the camera on the
+ * desktop's code, then the six digits.
+ */
+const phoneFrame = (screen: string) => `<div class="pr-scene"><div class="pr-phone"><i class="pr-island"></i><div class="pr-screen">${screen}</div></div></div>`;
+const phoneAdd = phoneFrame(`<p class="pr-t">Add a community</p><p class="pr-s">Scan a QR code or enter a community link.</p><span class="pr-btn hot">Scan a QR code</span><span class="pr-btn">Enter a community link</span>`);
+const phoneScan = phoneFrame(`<div class="pr-cam"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>${QR}</div>`);
+const phoneCode = phoneFrame(`<p class="pr-t">Enter pairing code</p><p class="pr-s">Enter the six-digit code shown on your desktop.</p><p class="pr-digits">${[..."482913"].map((d) => `<i>${d}</i>`).join("")}</p>`);
+
+/** Pairing a phone, from the desktop's Mobile app page to Codes match. */
+export const pairFlows: Flow[] = [
+  {
+    id: "pair",
+    label: "Pair a phone",
+    steps: [
+      { k: "Open Mobile app in Settings", t: "In the Buzz desktop app, press ⌘, on a Mac or Ctrl+, on Windows and Linux to open <b>Settings</b>. Then choose <b>Mobile app</b>. The <b>Pair mobile</b> page shows a QR code.", frame: settingsModal(nav("Mobile app"), pairPageAt("qr")) },
+      { k: "Choose Scan a QR code", t: "Open the Buzz app on your phone and choose <b>Add community</b>, then <b>Scan a QR code</b>. On a phone that hasn't joined a community yet, <b>Scan a QR code</b> is on the first screen.", frame: phoneAdd },
+      { k: "Scan the code", t: "Point the phone's camera at the QR code on your computer. Pair where nobody else can see your screen, because pairing copies your private key to the phone.", frame: phoneScan },
+      { k: "Type or check the code", t: "If the phone asks for a code, type the six digits your computer shows. If the phone shows a code instead, check that it matches the one on your computer. If the codes don't match, choose <b>Cancel</b> and start again.", frame: phoneCode },
+      { k: "Choose Codes match", t: "On your computer, choose <b>Codes match</b>. Buzz sends your key to the phone, and the phone opens your community.", frame: settingsModal(nav("Mobile app"), pairPage) },
+    ],
+  },
+];
 
 const laptop = `<svg viewBox="0 0 120 84" aria-hidden="true"><rect x="16" y="6" width="88" height="58" rx="6"/><path d="M4 74h112l-6 6H10z"/><rect class="id-lockbody" x="49" y="31" width="22" height="17" rx="3"/><path class="id-lockarc" d="M53 31v-5a7 7 0 0 1 14 0v5"/></svg>`;
 const phone = `<svg viewBox="0 0 60 96" aria-hidden="true"><rect x="6" y="4" width="48" height="88" rx="9"/><path d="M24 12h12"/><rect class="id-lockbody" x="19" y="44" width="22" height="17" rx="3"/><path class="id-lockarc" d="M23 44v-5a7 7 0 0 1 14 0v5"/></svg>`;

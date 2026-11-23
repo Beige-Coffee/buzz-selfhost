@@ -1726,6 +1726,29 @@ h2 .hl svg { width: 19px; }
 .id-pair li.done > span { background: #e3f4e6; font-size: 11px; color: #2f9e57; }
 .id-pair li b { display: block; font-size: 11px; font-weight: 500; }
 .mb-canvas .id-pair li p { font-size: 9.5px; line-height: 1.3; color: #5f5f5f; }
+/* Pair mobile before the phone scans: the QR code, and the first step current */
+.id-pair-qr { padding: 7px; border-radius: 10px; background: #fff; box-shadow: 0 0 0 1px #e6e6e6; }
+.id-pair-qr svg { display: block; width: 100%; height: auto; fill: #0f0f0f; }
+.id-pair li.now > span { background: var(--b1-citrus); }
+/* the phone's side of pairing, sketched: a phone in the middle of the canvas */
+.mb .pr-scene { position: absolute; inset: 0; display: grid; place-items: center; }
+.pr-phone { position: relative; width: 158px; height: 318px; padding: 7px; border-radius: 30px; background: #1b1b1b; box-shadow: 0 18px 40px rgb(24 20 14 / 18%); }
+.pr-island { position: absolute; z-index: 1; top: 15px; left: 50%; width: 44px; height: 12px; margin-left: -22px; border-radius: 999px; background: #0f0f0f; }
+.pr-screen { display: grid; align-content: start; gap: 8px; height: 100%; padding: 42px 12px 14px; border-radius: 24px; background: #fff; text-align: left; }
+.pr-t { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: #0f0f0f; }
+.mb-canvas .pr-s { margin: 0 0 6px; font-size: 10.5px; line-height: 1.4; color: #5f5f5f; }
+.pr-btn { display: block; padding: 8px 6px; border-radius: 999px; background: #f1f1f2; font-size: 11px; font-weight: 500; text-align: center; color: #0f0f0f; }
+.pr-btn.hot { background: #0f0f0f; color: #fff; box-shadow: 0 0 0 3px rgb(190 218 54 / 60%); }
+.pr-screen:has(.pr-cam) { display: block; padding: 0; overflow: hidden; background: #2a2a2a; }
+.pr-cam { position: relative; display: grid; place-items: center; height: 100%; }
+.pr-cam > svg { width: 82px; height: auto; padding: 6px; border-radius: 6px; background: #fff; fill: #0f0f0f; }
+.pr-cam > i { position: absolute; width: 22px; height: 22px; border: 3px solid var(--b1-citrus); }
+.pr-cam > .tl { top: 98px; left: 26px; border-right: 0; border-bottom: 0; border-radius: 8px 0 0 0; }
+.pr-cam > .tr { top: 98px; right: 26px; border-left: 0; border-bottom: 0; border-radius: 0 8px 0 0; }
+.pr-cam > .bl { bottom: 98px; left: 26px; border-right: 0; border-top: 0; border-radius: 0 0 0 8px; }
+.pr-cam > .br { bottom: 98px; right: 26px; border-left: 0; border-top: 0; border-radius: 0 0 8px 0; }
+.pr-digits { display: flex; gap: 4px; margin: 2px 0 0; }
+.pr-digits i { flex: 1; padding: 8px 0; border-radius: 7px; background: #f1f1f2; font: 600 13px var(--mono); font-style: normal; text-align: center; color: #0f0f0f; }
 /* Agents (agentflow.ts) */
 .mb .ax-page, .mb .ax-chan { position: relative; height: 100%; }
 .mb-canvas .ax-h { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; font-size: 12px; font-weight: 500; }

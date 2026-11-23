@@ -433,7 +433,11 @@ grow, like a project's public one, counts as open). Agents running split into "O
 
 Also 2026-11-23: two or more notes in a row fold under a "Good to know" dropdown with their count
 (a drawing between two runs folds in with them); a single note stays out, since it's often the
-step itself (`foldNotes` in faq.ts).
+step itself (`foldNotes` in faq.ts). Drawings and click-throughs never fold (owner's call, later
+the same day): they stay visible next to the words about them. A drawing's own explanation sits
+with it in a titled part (the starter channels, approving each agent) rather than in a fold.
+Pairing a phone is its own answer, "How do you pair a phone?", with a click-through of the
+desktop's Pair mobile page and the phone's screens; the phones answer links to it.
 
 Also 2026-11-23: Running your relay has a search over the questions (owner's ask). It searches each
 answer's text for the current setup, its folds and every click-through step, ranks title matches

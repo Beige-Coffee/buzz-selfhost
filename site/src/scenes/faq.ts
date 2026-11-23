@@ -2,7 +2,7 @@ import skill from "virtual:skill-steps";
 import { linkButton } from "../lib/permalink";
 import { agentFlows, remoteFlows } from "./agentflow";
 import { agentQuestions, remotePrompt, useExampleInstructions } from "./agents";
-import { identityFlows, lostFlows } from "./identity";
+import { identityFlows, lostFlows, pairFlows } from "./identity";
 import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members";
 import { promptText, taskHTML } from "./operations";
 import { SETUPS } from "../data/decide";
@@ -75,6 +75,7 @@ const STARTERS = `<div class="fq-vis fq-starters">
 const CLICK_THROUGHS: Record<string, Flow[]> = {
   identity: identityFlows,
   lost: lostFlows,
+  pair: pairFlows,
   role: peopleFlows().filter((f) => f.id === "role"),
   // the invite link this guide recommends: a day, and the people you expect. Buzz can't add an npub since 1.0.1.
   add: peopleFlows("1 day", "5").filter((f) => f.id === "link"),
@@ -138,13 +139,14 @@ const MODERATION =
 const DOOR = (() => {
   const line = (on: boolean) => `BUZZ_ALLOW_NIP_OA_AUTH=${on}`;
   return (
-    note("<b>Do you want to approve each agent yourself?</b> With Block's Compose bundle and Helm chart as they ship, a member's own agents get in through that member, and nobody has to add them. To approve each agent, turn that setting off and add the agents you allow as members.") +
+    `<div class="fq-chans"><h4 class="ga-h">Approve each agent yourself</h4>` +
+    `<p class="fq-chans-p">With Block's Compose bundle and Helm chart as they ship, a member's own agents get in through that member, and nobody has to add them. To approve each agent, turn that setting off and add the agents you allow as members.</p>` +
     `<div class="fq-vis fq-door">
       <div><code>${line(true)}</code><p><b>The default.</b> A member's agents get in through that member.</p></div>
       <div class="on"><code>${line(false)}</code><p><b>You approve each agent.</b> Only agents you add as members get in.</p><small>Change it in the relay's <code>.env</code>, then restart the relay. On Kubernetes, set <code>relay.allowNipOaAuth</code> in the chart's values. If you set up with this guide's skill, you can ask your agent to do it.</small></div>
     </div>` +
-    note("Before you turn it off, add the agents you want to keep as members. Otherwise they're locked out. After that, when someone asks a member's new agent to do something, Buzz shows only <b>Couldn't finish</b> and doesn't say why. Tell members to ask an admin when that happens.") +
-    note("The relay treats an agent you add as a member like a person. It can send 60 messages a minute, where an agent can send 120, and the relay doesn't record who owns it.")
+    `<p class="fq-chans-p">Before you turn it off, add the agents you want to keep as members. Otherwise they're locked out. After that, when someone asks a member's new agent to do something, Buzz shows only <b>Couldn't finish</b> and doesn't say why. Tell members to ask an admin when that happens.</p>` +
+    `<p class="fq-chans-p">The relay treats an agent you add as a member like a person. It can send 60 messages a minute, where an agent can send 120, and the relay doesn't record who owns it.</p></div>`
   );
 })();
 
@@ -347,7 +349,7 @@ const PUSH = `<div class="fq-vis fq-push">
 /** mobile.md's sections, by title: the ones a setup needs stay open, the rest fold. A missing one fails loudly. */
 const phone = (title: string) => skill.mobile.find((x) => x.title === title)?.html ?? `<p class="fq-missing">mobile.md lost its "${title}" section.</p>`;
 const fold = (title: string, html: string) => `<details class="fq-fold"><summary>${title}</summary><div class="fq-mobile">${html}</div></details>`;
-const PHONE_OPEN = ["Turn notifications on", "Pair a phone", "Test with the phone locked"];
+const PHONE_OPEN = ["Turn notifications on", "Test with the phone locked"];
 /**
  * "Turn notifications on" shows the two settings and what this guide's setups do; how to set them on
  * Compose or Kubernetes folds under "How to set it up" (owner's ask of 2026-11-23).
@@ -367,7 +369,7 @@ const MOBILE =
     [TEAM, "Turn notifications on, unless Block can't be allowed to see your server's address and when your team's phones get notifications. If you leave them off, people see new messages the next time they open Buzz."],
     [OPEN, "Turn notifications on. Members then get a notification on their phone for direct messages and mentions."],
   ]) +
-  note("Pairing a phone needs the relay's pairing service. This guide's steps add it to every server setup except Kubernetes on a private network, which the guide doesn't cover yet. A local test can't pair phones.") +
+  note(`Each phone has to be paired with the Buzz desktop app before it gets notifications. <a href="#operations" data-q-link="pair">How do you pair a phone?</a> shows each step.`) +
   PUSH +
   // docs/research.md: Block's bundle notes name "the public gateway"; block/buzz#5206 is where self-hosters asked for it
   note(
@@ -417,13 +419,27 @@ const GROUPS: [string, Question[]][] = [
             [OPEN, "Make <code>welcome-everyone</code> view-only so your message doesn't get buried under replies, and have an agent send each new member a personal welcome."],
           ]) +
           PHONE_JOIN +
-          note("To make a channel view-only, open it, choose <b>Manage members</b> at the top, and set <b>General access</b> to <b>View only</b>.") +
+          note("To make a channel view-only, open it, choose <b>Manage members</b> at the top, and set <b>General access</b> to <b>View only</b>. People who join after that can read the channel, but they can't post or react. People already in it keep their role, so set it before you invite anyone.") +
           VIEW_ONLY +
-          note("People who join the channel after that can read it, but they can't post or react. People already in it keep their role. Set it before you invite anyone.") +
           // block/buzz 0.3.0 crates/buzz-workflow/src/schema.rs TriggerDef: message_posted, reaction_added, diff_posted, schedule, webhook
           note("Buzz can't greet new members by itself, because its workflows have no trigger for someone joining. For a personal welcome, set up an agent that watches for new members and messages each one."),
       },
-      { id: "notifications", icon: "device-mobile", q: "How do phones and notifications work?", a: MOBILE },
+      { id: "notifications", icon: "bell", q: "How do phones and notifications work?", a: MOBILE },
+      {
+        id: "pair",
+        icon: "device-mobile",
+        q: "How do you pair a phone?",
+        a:
+          rec("Pair each phone from the Buzz desktop app. Pairing copies your private key from your computer to the phone. Do it where nobody else can see your screen.") +
+          ct("pair") +
+          // mobile.md, Pair a phone: the pairing service at /pair, which Block's Compose bundle doesn't start (block/buzz#7721)
+          `<div class="fq-chans">
+            <h4 class="ga-h">What your relay needs</h4>
+            <p class="fq-chans-p">Pairing goes through a pairing service on your own server, at <code>/pair</code>. Block's Docker Compose bundle doesn't start it (<a href="https://github.com/block/buzz/issues/7721">block/buzz#7721</a>). This guide's setups add it on Docker Compose and on Kubernetes, where the Helm chart's <code>pairingRelay</code> setting turns it on. If you set up with this guide's skill, its <code>check-relay.sh</code> says <code>PASS</code> for phone pairing when the service works.</p>
+          </div>` +
+          note("The push gateway plays no part in pairing. A phone can pair even with notifications off.") +
+          note("A phone can't pair with a local test. This guide doesn't cover pairing on Kubernetes on a private network."),
+      },
       {
         id: "roles",
         icon: "crown",
@@ -434,9 +450,9 @@ const GROUPS: [string, Question[]][] = [
             [OPEN, "Only make someone an admin if you trust them to hand out invite links. Add the people who handle reports and bans as moderators under Staff instead."],
           ]) +
           ROLES +
+          ct("role") +
           note(`Staff is a list in Buzz's moderation screens, which work only on ${SCREENS_WHERE}. On other setups, the owner and admins ban people from the command line. See <a href="#operations" data-q-link="moderate">How do you moderate?</a>`) +
           note("<b>Do you want to be the only one who invites people?</b> Don't make anyone an admin. Regular members can't make invite links, so only the owner can.") +
-          ct("role") +
           note(`The owner is set on the server, so only whoever runs the server can change it. After the change, the old owner stays on as an admin. Banning is done with the moderation tools instead. See <a href="#operations" data-q-link="moderate">How do you moderate?</a>`) +
           // block/buzz 0.3.0 crates/buzz-core/src/channel.rs decide_member_put: anyone who can post adds; only owners and admins grant admin
           note("<b>Private channels have their own rules.</b> Anyone in a private channel can add people to it, except a guest. Only the channel's owners and admins can make someone an admin of it. So only put people in a private channel if you trust them to decide who else joins it."),
@@ -673,7 +689,7 @@ const GROUPS: [string, Question[]][] = [
 
 /** Answers whose details are steps to take; the break before the rest reads "Details". */
 const HOW_TO = new Set([
-  "add", "welcome", "notifications", "roles", "moderate", "leave",
+  "add", "welcome", "notifications", "pair", "roles", "moderate", "leave",
   "agent-brief", "agent-on", "agent-remote",
   "identity", "lost", "leak", "sso", "two-factor",
   "backup", "restore", "upgrade", "monitor", "move",
@@ -950,8 +966,9 @@ export function mountFaq(host: HTMLElement): void {
   };
 
   /**
-   * Two or more notes in a row fold under "Good to know", with a drawing between two runs folded in
-   * too (the owner's ask of 2026-11-23: more compact). A single note stays out: it's often the step.
+   * Two or more notes in a row fold under "Good to know" (the owner's ask of 2026-11-23: more compact).
+   * A single note stays out: it's often the step. Drawings and click-throughs never fold: they stay
+   * visible where the answer puts them (owner's call, 2026-11-23).
    * A click-through measures itself, so one inside a fold is drawn again when the fold opens.
    */
   const isNote = (el: Element | undefined) => !!el?.classList.contains("opx-note");
@@ -967,10 +984,6 @@ export function mountFaq(host: HTMLElement): void {
       if (j - i < 2) {
         i = j;
         continue;
-      }
-      while (kids[j]?.matches(".fq-vis, .fq-ct") && isNote(kids[j + 1])) {
-        j++;
-        while (isNote(kids[j])) j++;
       }
       const group = kids.slice(i, j);
       const fold = document.createElement("details");

@@ -1,6 +1,7 @@
 import maya from "../assets/avatars/maya.svg";
 import ops from "../assets/avatars/ops.webp";
-import { app, communityNav, settingsModal, ti, type Flow } from "./members";
+import reviewer from "../assets/avatars/reviewer.webp";
+import { app, communityNav, settingsModal, sidebar, ti, type Flow } from "./members";
 
 /**
  * Starting an agent in Buzz 1.0, as a click-through of its own screens, in light mode. Drawn from
@@ -18,7 +19,7 @@ const agentsPage = (menu: boolean) =>
     `<div class="ax-page">
     <p class="ax-h">${ti("robot")}Agents</p>
     <div class="ax-tabs"><b>Your agents</b><span>Your teams</span><span>Marketplace</span>${menu ? `<em>New agent${ti("chevron-down")}</em>` : ""}</div>
-    <div class="ax-empty"><span class="ax-tile ax-start hot">${ti("plus")}<b>Create your first agent</b></span><span class="ax-tile ax-start">${ti("robot")}<b>Explore the marketplace</b></span></div>
+    <div class="ax-empty"><span class="ax-tile ax-start"><img class="a1" src="${ops}" alt=""><img class="a2" src="${reviewer}" alt=""><b class="hot">Create your first agent</b></span><span class="ax-tile ax-start"><img class="a1" src="${reviewer}" alt=""><img class="a2" src="${ops}" alt=""><b>Explore the marketplace</b></span></div>
     ${menu ? `<div class="ax-menu"><p class="hot">${ti("plus")}Create a new agent</p><p>${ti("download")}Import an agent</p></div>` : ""}
   </div>`,
   );
@@ -87,16 +88,29 @@ const chat = (stage: ChatStage) => `<div class="rs-bub">
         (stage === "proof" ? bubble("you", `<code>["auth","d3a8…71f0","","9c1e…44b2"]</code>`, true) + bubble("agent", "Proof saved. Running, and I messaged you in Buzz.") : "")
   }<p class="rs-bub-in">Message your agent${stage === "key" ? "<i>|</i>" : ""}</p></div>
 </div>`;
-/** Settings, Security: Authorize external identity, with the key pasted, or with the proof it made. */
-const security = (proof: boolean) => `<section class="mb-page rs-page">
-  <h5>Security</h5>
-  ${proof ? "" : `<p class="mb-sub">Tools paired on this device, and applications you authorize to act as you.</p>`}
+/**
+ * Settings, Security as Buzz 1.0.5 shows it (captured 2026-11-23): Paired command-line tools, then
+ * Authorize external identity in its own card. With the proof made, the page is shown scrolled to it
+ * (that state comes from AgentAuthorization's source; it wasn't captured).
+ */
+const security = (proof: boolean, scrolled = true) => `<section class="mb-page rs-page">
+  ${
+    scrolled
+      ? ""
+      : `<h5 class="mb-big">Security</h5>
+  <p class="mb-sub">Tools paired on this device, and applications you authorize to act as you.</p>
+  <p class="rs-h">Paired command-line tools</p>
+  <div class="rs-card rs-empty">${ti("lock")}<b>No paired tools</b><span>Run buzz auth desktop pair in a terminal to let a command-line tool use Buzz as you.</span></div>`
+  }
   <p class="rs-h">Authorize external identity</p>
-  ${proof ? "" : `<p class="mb-sub">For an application that keeps its own agent key. Only authorize a public key you recognize.</p>`}
-  <p class="rs-lab">Application public key (hex)</p>
-  <span class="j1-input"><span class="mono">${AGENT_HEX}</span></span>
-  <span class="mb-btn dark${proof ? "" : " hot"}">Authorize identity</span>
-  ${proof ? `<p class="rs-lab">Ownership proof</p><span class="rs-proof">["auth","d3a8…71f0","","9c1e…44b2"]</span><span class="mb-btn hot">Copy ownership proof</span>` : ""}
+  ${proof ? "" : `<p class="mb-sub">For an application such as Nexus that keeps its own agent key. Only authorize a public key you recognize: this ownership proof has no time or event-kind limits.</p>`}
+  <div class="rs-card">
+    <p class="rs-lab">Application public key (hex)</p>
+    <span class="j1-input"><span class="mono">${AGENT_HEX}</span></span>
+    <p class="rs-help">Copy this public key from the application's identity settings.</p>
+    <span class="mb-btn dark${proof ? "" : " hot"}">Authorize identity</span>
+    ${proof ? `<p class="rs-lab">Ownership proof</p><span class="rs-proof">["auth","d3a8…71f0","","9c1e…44b2"]</span><span class="mb-btn hot">Copy ownership proof</span>` : ""}
+  </div>
 </section>`;
 const securityNav = communityNav("Security", false);
 /** The confirmation, in Buzz's words: what the key can do, and its npub. */
@@ -109,15 +123,7 @@ const authorize = `<div class="mb-shade on-modal"></div>
   <div class="mb-alert-b"><span class="mb-btn">Cancel</span><span class="mb-btn dark hot">Authorize this key</span></div>
 </div>`;
 /** Messages with the agent's direct message open: it wrote first, you answer, it replies. */
-const dmSide = `<div class="mb-side">
-  <p class="mb-srow">${ti("bell")}Activity</p>
-  <p class="mb-seg"><i><b>All</b><b>Solo</b><b class="on">Team</b></i><span>${ti("plus")}</span></p>
-  <p class="mb-side-g">Channels</p>
-  <p class="mb-srow">${ti("hash")}general</p>
-  <p class="mb-srow">${ti("hash")}release</p>
-  <p class="mb-side-g">Direct messages</p>
-  <p class="mb-srow on">${ti("robot")}Helper</p>
-</div>`;
+const dmSide = sidebar("", `<p class="mb-srow on">${ti("robot")}Helper</p>`);
 const dm = app(
   "messages",
   `<div class="ax-chan">

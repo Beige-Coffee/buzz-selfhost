@@ -24,17 +24,24 @@ const ring = (on: boolean) => (on ? " hot" : "");
 /* ── the app: a header with Search, the dock down the left, one white panel ── */
 export const CURSOR = `<svg class="mb-cursor" viewBox="0 0 16 20" aria-hidden="true"><path d="M1 1v15l4.2-3.9 2.7 6.2 2.6-1.1-2.7-6.1H14z"/></svg>`;
 type Page = "messages" | "agents";
-/** The dock on a new install, in Buzz's order: Messages and Agents (Bestie, Reminders and Workflows start off). */
-const DOCK: [string, string][] = [["messages", "messages"], ["agents", "robot"]];
-/** Messages' sidebar, sketched: Activity, the scope tabs and New, then the channels. */
-const SIDE = `<div class="mb-side">
+/** The dock as Buzz 1.0.5 shows it (captured 2026-11-23): Messages, Reminders, Agents and Workflows. */
+const DOCK: [string, string][] = [["messages", "messages"], ["reminders", "alarm"], ["agents", "robot"], ["workflows", "bolt"]];
+/**
+ * Messages' sidebar as Buzz 1.0.5 shows it (captured 2026-11-23): the All, Solo and Team tabs with New,
+ * then Activity, the Solo section with New chat, and the Team section with its channels and direct messages.
+ */
+export const sidebar = (open = "release", dms = "") => `<div class="mb-side">
+  <p class="mb-seg"><i><b class="on">All</b><b>Solo</b><b>Team</b></i><span>${ti("plus")}</span></p>
   <p class="mb-srow">${ti("bell")}Activity</p>
-  <p class="mb-seg"><i><b>All</b><b>Solo</b><b class="on">Team</b></i><span>${ti("plus")}</span></p>
+  <p class="mb-side-s">Solo${ti("chevron-down")}</p>
+  <p class="mb-srow">${ti("plus")}New chat</p>
+  <p class="mb-side-s">Team${ti("chevron-down")}</p>
   <p class="mb-side-g">Channels</p>
-  <p class="mb-srow">${ti("hash")}general</p>
-  <p class="mb-srow on">${ti("hash")}release</p>
-  <p class="mb-srow">${ti("hash")}design</p>
+  ${["general", "release", "design"].map((c) => `<p class="mb-srow${c === open ? " on" : ""}">${ti("hash")}${c}</p>`).join("")}
+  <p class="mb-side-g">Direct messages</p>
+  ${dms}
 </div>`;
+const SIDE = sidebar();
 /** An open channel, sketched: its members and name, as one button (ChannelHeaderIdentity.tsx), then messages. */
 const CHANNEL = `<p class="mb-chan"><span class="mb-stack"><img src="${maya}" alt=""><img src="${leo}" alt=""></span>release</p><span></span><span></span><span class="short"></span>`;
 /**
@@ -85,25 +92,28 @@ const nav = communityNav("Membership");
 
 type Spot = "invite" | "dots" | "make-admin" | "remove" | "";
 const pic = (src: string) => `<img src="${src}" alt="">`;
-/** A member's row, as v1.0.5 lists it: picture, name and role mark, the … menu, then the role. */
-const row = (av: string, name: string, role: string, badge: string, dots: boolean, spot: Spot) =>
-  `<div class="mb-row"><span class="mb-av">${av}</span><span class="mb-who"><b>${name}${badge}</b></span>${
-    dots ? `<span class="mb-dots${spot === "dots" ? " hot" : spot === "make-admin" || spot === "remove" ? " open" : ""}">${ti("dots")}</span>` : ""
+/**
+ * A member's row as Buzz 1.0.5 lists it (captured 2026-11-23): picture, "name · npub…", the owner's crown,
+ * then the role on the right. The … menu shows only on the row under the pointer.
+ */
+const row = (av: string, name: string, npub: string, role: string, badge: string, hover: boolean, spot: Spot) =>
+  `<div class="mb-row${hover ? " hover" : ""}"><span class="mb-av">${av}</span><span class="mb-who"><b>${name} · ${npub}${badge}</b></span>${
+    hover ? `<span class="mb-dots${spot === "dots" ? " hot" : spot === "make-admin" || spot === "remove" ? " open" : ""}">${ti("dots")}</span>` : ""
   }<small class="mb-role">${role}</small></div>`;
-/** Membership's two tabs since v1.0.1: Members, and Invite, which makes a link as soon as it opens. */
+/** Membership's two tabs since v1.0.1, underlined: Members, and Invite, which makes a link as soon as it opens. */
 const tabs = (on: "members" | "invite", spot: Spot) =>
-  `<p class="mb-tabs"><span class="${on === "members" ? "on" : ""}">Members</span><span class="${on === "invite" ? "on" : ""}${ring(spot === "invite")}">Invite</span></p>`;
+  `<p class="mb-utabs"><span class="${on === "members" ? "on" : ""}">Members</span><span class="${on === "invite" ? "on" : ""}${ring(spot === "invite")}">Invite</span></p>`;
 const head = (on: "members" | "invite", spot: Spot) => `<h5>Membership</h5>
   <p class="mb-sub">Manage members and access to ${HOST}.</p>
   ${tabs(on, spot)}`;
 const membership = (spot: Spot) => `<section class="mb-page">
   ${head("members", spot)}
-  <div class="mb-find-row"><p class="mb-search">${ti("search")}Search members</p><span class="mb-btn">Refresh</span></div>
-  <h6>Members · <em>3</em></h6>
-  <div class="mb-box">
-    ${row(pic(maya), "Maya", "Owner · You", ti("crown"), false, spot)}
-    ${row("<i>S</i>", "Sam", "Admin", ti("shield"), true, spot)}
-    ${row(pic(leo), "Leo", "Member", "", true, spot)}
+  <p class="mb-search wide">${ti("search")}Search members</p>
+  <p class="mb-count">Members · 3</p>
+  <div class="mb-list">
+    ${row(pic(maya), "Maya", "npub…8k3a", "Owner · You", ti("crown"), false, spot)}
+    ${row("<i>S</i>", "Sam", "npub…r2dq", "Admin", ti("shield"), false, spot)}
+    ${row(pic(leo), "Leo", "npub…7fwe", "Member", "", spot === "dots" || spot === "make-admin" || spot === "remove", spot)}
     ${spot === "make-admin" || spot === "remove" ? `<div class="mb-rmenu"><p class="${ring(spot === "make-admin")}">${ti("shield")}Make admin</p><p class="${ring(spot === "remove")}">${ti("minus")}Remove</p></div>` : ""}
   </div>
 </section>`;
@@ -145,12 +155,12 @@ export const settings = (spot: Spot, over = "") => settingsModal(nav, membership
 export const invite = (spot: "copy" | "", expiry = "3 days", uses = "No limit") => settingsModal(nav, invitePage(spot, expiry, uses));
 
 /* ── dialogs over Settings ── */
-/** The confirmation, as CommunityAdmin.tsx words it. */
+/** The confirmation as Buzz 1.0.5 shows it (captured 2026-11-23): name and npub in the title, a close button, Cancel and the action. */
 export const confirm = (what: "admin" | "remove") => `<div class="mb-shade on-modal"></div>
 <div class="mb-dlg small">
-  <b class="mb-alert-t">${what === "admin" ? "Make admin: Leo?" : "Remove: Leo?"}</b>
+  <div class="mb-dlg-h"><b class="mb-alert-t">${what === "admin" ? "Make admin" : "Remove"}: Leo · npub…7fwe?</b><span class="mb-x">${ti("x")}</span></div>
   <p class="mb-sub">${what === "admin" ? "Admins can invite people and remove members." : "They lose access to this community until they are invited again."}</p>
-  <div class="mb-alert-b"><span class="mb-btn">Cancel</span><span class="mb-btn hot ${what === "admin" ? "dark" : "red"}">${what === "admin" ? "Make admin" : "Remove"}</span></div>
+  <div class="mb-alert-b"><span class="mb-btn">Cancel</span><span class="mb-btn hot ${what === "admin" ? "dark" : "pink"}">${what === "admin" ? "Make admin" : "Remove"}</span></div>
 </div>`;
 
 /** A new member's first run, after Other options, with the invite link pasted. */

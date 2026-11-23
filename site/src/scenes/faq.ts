@@ -437,6 +437,7 @@ const GROUPS: [string, Question[]][] = [
             <h4 class="ga-h">What your relay needs</h4>
             <p class="fq-chans-p">Pairing goes through a pairing service on your own server, at <code>/pair</code>. Block's Docker Compose bundle doesn't start it (<a href="https://github.com/block/buzz/issues/7721">block/buzz#7721</a>). This guide's setups add it on Docker Compose and on Kubernetes, where the Helm chart's <code>pairingRelay</code> setting turns it on. If you set up with this guide's skill, its <code>check-relay.sh</code> says <code>PASS</code> for phone pairing when the service works.</p>
           </div>` +
+          note("For a community Block hosts on Builderlab, the phone also asks you to sign in to Builderlab and to back up your secret key with it. That community requires the backup, and Builderlab can decrypt it. A community on your own server skips both.") +
           note("The push gateway plays no part in pairing. A phone can pair even with notifications off.") +
           note("A phone can't pair with a local test. This guide doesn't cover pairing on Kubernetes on a private network."),
       },

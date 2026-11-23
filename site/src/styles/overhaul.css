@@ -504,8 +504,17 @@
 .ga-prompt-more { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
 .ga-prompt-more > summary { cursor: pointer; font-size: 13.5px; font-weight: 500; color: var(--ink-2); }
 .ga-prompt-more pre { max-height: 300px; margin: 10px 0 0; padding: 12px 14px; overflow: auto; border-radius: 10px; background: var(--code); color: #e9e6df; font: 11.5px/1.65 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
-.mb .rs-page { display: grid; align-content: start; justify-items: start; gap: 4px; }
-.mb .rs-h { margin: 10px 0 0; font-size: 11.5px; font-weight: 500; }
+.mb .rs-page { display: grid; align-content: start; justify-items: stretch; gap: 3px; }
+.mb .rs-card { display: grid; justify-items: start; gap: 3px; padding: 8px 10px; border: 1px solid #ececec; border-radius: 12px; }
+.mb .rs-empty { justify-items: center; gap: 1px; padding: 5px 10px; text-align: center; }
+.mb .rs-page { padding-top: 10px; }
+.mb .rs-page .mb-sub { margin: 0; font-size: 8.5px; line-height: 1.35; }
+.mb .rs-page .mb-big { font-size: 14px; }
+.mb .rs-empty .tb-i { font-size: 13px; color: #404040; }
+.mb .rs-empty b { font-size: 9.5px; font-weight: 500; }
+.mb .rs-empty span { font-size: 8.5px; color: #5f5f5f; }
+.mb .rs-help { margin: 0; font-size: 8.5px; color: #6b6b6b; }
+.mb .rs-h { margin: 6px 0 0; font-size: 10.5px; font-weight: 500; }
 .mb .rs-lab { margin: 6px 0 0; font-size: 10px; font-weight: 500; color: #3f3f3f; }
 .mb .rs-page .j1-input { width: 100%; max-width: 280px; height: 26px; }
 .mb .rs-page .mb-btn { margin-top: 6px; }

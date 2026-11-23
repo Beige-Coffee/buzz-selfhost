@@ -1292,6 +1292,10 @@ h2 .hl svg { width: 19px; }
 .mb-srow .tb-i { font-size: 11px; }
 .mb-srow.on { background: var(--b1-citrus); color: #0f0f0f; }
 .mb-canvas .mb-side-g { padding: 8px 7px 2px; font-size: 9.5px; color: #5f5f5f; }
+/* Buzz 1.0.5's sidebar sections, Solo and Team, each with its fold mark */
+.mb-canvas .mb-side-s { display: flex; align-items: center; gap: 3px; padding: 7px 7px 1px; font-size: 10px; font-weight: 500; color: #2b2b2b; }
+.mb-canvas .mb-side-s .tb-i { font-size: 9px; color: #6b6b6b; }
+.mb-canvas .mb-side .mb-seg { margin-bottom: 3px; }
 .mb-main { position: relative; flex: 1; min-width: 0; padding: 9px 14px; }
 .mb-canvas .mb-chan { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #ececec; font-weight: 500; }
 .mb-main > span { display: block; width: 60%; height: 9px; margin-bottom: 12px; border-radius: 5px; background: #f1f1f2; }
@@ -1352,6 +1356,7 @@ h2 .hl svg { width: 19px; }
 .mb-btn { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; background: #f0f0f1; font-size: 11px; font-weight: 500; color: #0f0f0f; white-space: nowrap; }
 .mb-btn.dark { background: #0f0f0f; color: #fff; }
 .mb-btn.red { background: #d63a2f; color: #fff; }
+.mb-btn.pink { background: #fbe7e5; color: #b3362e; }
 .mb-btn.off { color: #9a9a9a; }
 .mb h6 { margin: 8px 0 4px; font-size: 12.5px; font-weight: 500; }
 .mb h6 em { font-style: normal; color: #5f5f5f; }
@@ -1368,6 +1373,16 @@ h2 .hl svg { width: 19px; }
 .mb-dots.open { background: #ececed; }
 .mb-rmenu { position: absolute; right: 4px; bottom: 36px; z-index: 2; width: 124px; padding: 4px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #ececec, 0 10px 28px rgb(0 0 0 / 14%); font-size: 11px; }
 .mb-rmenu p { display: flex; align-items: center; gap: 7px; padding: 5px 8px; border-radius: 8px; }
+/* Membership as Buzz 1.0.5 draws it (captured 2026-11-23): underlined tabs, a full-width search, a small
+   count, plain rows, and the … menu on the row under the pointer */
+.mb-utabs { display: flex; gap: 14px; margin: 8px 0 9px; font-size: 11px; color: #6b6b6b; }
+.mb-utabs span { padding-bottom: 4px; }
+.mb-utabs span.on { color: #0f0f0f; box-shadow: inset 0 -1.5px 0 #0f0f0f; }
+.mb-canvas .mb-search.wide { margin: 0 0 8px; }
+.mb-count { margin: 0 0 2px; font-size: 9.5px; color: #6b6b6b; }
+.mb-list { position: relative; }
+.mb-row.hover { margin: 0 -6px; padding: 4px 6px; border-radius: 10px; background: #f5f5f5; }
+.mb-list .mb-rmenu { top: calc(100% - 2px); bottom: auto; right: 30px; }
 /* dialogs over Settings */
 .mb-shade.on-modal { z-index: 3; }
 .mb-dlg { position: absolute; top: 50%; left: 50%; z-index: 4; width: 330px; padding: 14px 16px 12px; transform: translate(-50%, -50%); border-radius: 18px; background: #fff; box-shadow: 0 18px 50px rgb(0 0 0 / 25%); }
@@ -1715,7 +1730,7 @@ h2 .hl svg { width: 19px; }
 /* Pair mobile, once the phone has scanned: the six digits and Codes match, beside Buzz's three steps */
 .mb .mb-modal:has(.id-pair) { inset: 7px 16px; }
 .mb .id-pair { padding: 9px 18px; }
-.id-pair-b { display: grid; grid-template-columns: 122px minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 10px; }
+.id-pair-b { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 10px; }
 .id-pair-code { display: grid; gap: 6px; }
 .id-pair-code b { font-size: 10.5px; font-weight: 500; }
 .id-digits { padding: 8px 0; border-radius: 10px; background: #fff; box-shadow: 0 0 0 1px #e6e6e6; text-align: center; font: 600 16px var(--mono); letter-spacing: 0.1em; }
@@ -1726,36 +1741,85 @@ h2 .hl svg { width: 19px; }
 .id-pair li.done > span { background: #e3f4e6; font-size: 11px; color: #2f9e57; }
 .id-pair li b { display: block; font-size: 11px; font-weight: 500; }
 .mb-canvas .id-pair li p { font-size: 9.5px; line-height: 1.3; color: #5f5f5f; }
-/* Pair mobile before the phone scans: the QR code, and the first step current */
-.id-pair-qr { padding: 7px; border-radius: 10px; background: #fff; box-shadow: 0 0 0 1px #e6e6e6; }
-.id-pair-qr svg { display: block; width: 100%; height: auto; fill: #0f0f0f; }
-.id-pair li.now > span { background: var(--b1-citrus); }
-/* the phone's side of pairing, sketched: a phone in the middle of the canvas */
+/* The Buzz iPhone app's screens, drawn from screenshots (2026-11-23): a phone in the middle of the canvas */
 .mb .pr-scene { position: absolute; inset: 0; display: grid; place-items: center; }
-.pr-phone { position: relative; width: 158px; height: 318px; padding: 7px; border-radius: 30px; background: #1b1b1b; box-shadow: 0 18px 40px rgb(24 20 14 / 18%); }
-.pr-island { position: absolute; z-index: 1; top: 15px; left: 50%; width: 44px; height: 12px; margin-left: -22px; border-radius: 999px; background: #0f0f0f; }
-.pr-screen { display: grid; align-content: start; gap: 8px; height: 100%; padding: 42px 12px 14px; border-radius: 24px; background: #fff; text-align: left; }
-.pr-t { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: #0f0f0f; }
-.mb-canvas .pr-s { margin: 0 0 6px; font-size: 10.5px; line-height: 1.4; color: #5f5f5f; }
-.pr-btn { display: block; padding: 8px 6px; border-radius: 999px; background: #f1f1f2; font-size: 11px; font-weight: 500; text-align: center; color: #0f0f0f; }
-.pr-btn.hot { background: #0f0f0f; color: #fff; box-shadow: 0 0 0 3px rgb(190 218 54 / 60%); }
-.pr-screen:has(.pr-cam) { display: block; padding: 0; overflow: hidden; background: #2a2a2a; }
-.pr-cam { position: relative; display: grid; place-items: center; height: 100%; }
-.pr-cam > svg { width: 82px; height: auto; padding: 6px; border-radius: 6px; background: #fff; fill: #0f0f0f; }
-.pr-cam > i { position: absolute; width: 22px; height: 22px; border: 3px solid var(--b1-citrus); }
-.pr-cam > .tl { top: 98px; left: 26px; border-right: 0; border-bottom: 0; border-radius: 8px 0 0 0; }
-.pr-cam > .tr { top: 98px; right: 26px; border-left: 0; border-bottom: 0; border-radius: 0 8px 0 0; }
-.pr-cam > .bl { bottom: 98px; left: 26px; border-right: 0; border-top: 0; border-radius: 0 0 0 8px; }
-.pr-cam > .br { bottom: 98px; right: 26px; border-left: 0; border-top: 0; border-radius: 0 0 8px 0; }
-.pr-digits { display: flex; gap: 4px; margin: 2px 0 0; }
-.pr-digits i { flex: 1; padding: 8px 0; border-radius: 7px; background: #f1f1f2; font: 600 13px var(--mono); font-style: normal; text-align: center; color: #0f0f0f; }
+.ph { width: 156px; height: 326px; padding: 5px; border-radius: 28px; background: #1b1b1b; box-shadow: 0 16px 36px rgb(24 20 14 / 18%); }
+.ph-scr { position: relative; height: 100%; overflow: hidden; border-radius: 23px; background: #fff; color: #0f0f0f; text-align: left; }
+.ph-scr.dim { background: #c9c9c9; }
+.mb-canvas .ph-scr .ph-stat { display: flex; justify-content: space-between; align-items: center; margin: 0; padding: 9px 14px 0 16px; font-size: 7.5px; }
+.ph-stat span { display: flex; gap: 2px; }
+.ph-stat i { width: 6px; height: 4px; border-radius: 1px; background: #0f0f0f; }
+.ph-circ { display: grid; place-items: center; width: 22px; height: 22px; overflow: hidden; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 10%); font-size: 10px; color: #0f0f0f; }
+.ph-circ img { width: 100%; height: 100%; object-fit: cover; }
+.ph-home { padding: 10px 9px 0; }
+.mb-canvas .ph-scr .ph-h { display: flex; align-items: center; justify-content: space-between; margin: 10px 0 10px; font-size: 12.5px; font-weight: 600; }
+.ph-tr { display: flex; gap: 5px; }
+.ph-comm { font-size: 9px; font-weight: 400; box-shadow: 0 0 0 1.5px #e6e6e6; }
+.mb-canvas .ph-scr .ph-chips { display: flex; gap: 4px; margin: 0 0 16px; }
+.ph-chips b { padding: 4px 9px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 1px #ececec; font-size: 7.5px; font-weight: 500; }
+.ph-chips b.on { background: #222; box-shadow: none; color: #fff; }
+.mb-canvas .ph-scr .ph-sec { margin: 8px 0 2px; font-size: 8.5px; font-weight: 500; }
+.mb-canvas .ph-scr .ph-muted { margin: 0 0 10px; font-size: 7px; color: #9a9a9a; }
+.mb-canvas .ph-scr .ph-grp { display: flex; align-items: center; gap: 2px; margin: 9px 0 3px; font-size: 7.5px; color: #5f5f5f; }
+.ph-grp .tb-i { font-size: 7px; }
+.ph-grp span { margin-left: auto; font-size: 5px; letter-spacing: 1px; }
+.mb-canvas .ph-scr .ph-row { display: flex; align-items: center; gap: 7px; margin: 0; padding: 5px 0; font-size: 8.5px; color: #2b2b2b; }
+.ph-row i { width: 10px; font-style: normal; font-size: 10px; color: #2b2b2b; text-align: center; }
+.ph-row img { width: 11px; height: 11px; border-radius: 3px; object-fit: cover; }
+.ph-bar { position: absolute; left: 0; right: 0; bottom: 16px; display: flex; justify-content: center; gap: 6px; }
+.ph-new { display: flex; align-items: center; gap: 4px; padding: 0 13px; border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 10%); font-size: 8px; font-weight: 500; }
+.ph-menu { position: absolute; top: 22px; right: 4px; width: 104px; padding: 7px 8px; border-radius: 16px; background: #fafafa; box-shadow: 0 6px 20px rgb(0 0 0 / 14%); }
+.mb-canvas .ph-scr .ph-menu p { display: flex; align-items: center; gap: 7px; margin: 0; padding: 5px 4px; border-radius: 8px; font-size: 8.5px; }
+.ph-menu .tb-i { flex: none; font-size: 9px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ph-menu hr { margin: 3px 2px; border: 0; border-top: 1px solid #e4e4e4; }
+.mb-canvas .ph-scr .ph-top { display: flex; justify-content: space-between; margin: 0; padding: 10px 9px 0; }
+.ph-pill { padding: 5px 9px; border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 10%); font-size: 8px; }
+.ph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 6px; padding: 12px 8px 0; }
+.ph-tile { display: grid; justify-items: center; gap: 4px; }
+.ph-tile b { font-size: 7.5px; font-weight: 500; text-align: center; }
+.ph-av { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #f0f0f0; font-size: 15px; font-weight: 600; color: #0f0f0f; }
+.ph-av em { position: absolute; right: -2px; bottom: 0; display: grid; place-items: center; width: 12px; height: 12px; border-radius: 50%; background: #2f8f5b; font-size: 7px; color: #fff; box-shadow: 0 0 0 1.5px #fff; }
+.ph-av.plus { font-size: 16px; font-weight: 300; color: #5f5f5f; background: #f3f3f3; }
+.mb-canvas .ph-scr .ph-t { margin: 14px 10px 6px; font-size: 12.5px; font-weight: 500; line-height: 1.2; letter-spacing: -0.01em; }
+.ph-t span { display: block; color: #5f5f5f; }
+.ph-t svg { width: 13px; height: auto; vertical-align: -1px; color: #0f0f0f; }
+.mb-canvas .ph-scr .ph-s { margin: 0 10px 6px; font-size: 6.5px; line-height: 1.45; color: #6b6b6b; }
+.ph-s b { color: #0f0f0f; font-weight: 500; }
+.ph-foot { position: absolute; left: 9px; right: 9px; bottom: 16px; display: grid; gap: 5px; justify-items: center; }
+.ph-btn { display: block; width: 100%; padding: 7px 0; border-radius: 999px; background: #efefef; font-size: 7.5px; font-weight: 500; text-align: center; }
+.ph-btn.dark { background: #222; color: #fff; }
+.ph-btn.small { width: auto; padding: 6px 12px; }
+.ph-link { font-size: 7.5px; font-weight: 500; padding: 3px 0; }
+.ph-join { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; }
+.ph-av.big { width: 52px; height: 52px; font-size: 20px; }
+.ph-spin { width: 10px; height: 10px; border: 1.5px solid #e3e3e3; border-top-color: #0f0f0f; border-radius: 50%; }
+.ph-web { position: absolute; inset: 24px 0 0; overflow: hidden; border-radius: 18px 18px 0 0; background: #fff; }
+.mb-canvas .ph-scr .ph-web-h { display: flex; align-items: center; justify-content: space-between; margin: 0; padding: 7px 7px 4px; font-size: 7px; }
+.ph-web-h b { font-weight: 500; }
+.ph-web-h .ph-circ { width: 18px; height: 18px; font-size: 8px; }
+.ph-web-b { padding: 8px 0 0; }
+.ph-bl { display: grid; place-items: center; width: 15px; height: 15px; margin: 4px 10px 0; border-radius: 4px 6px 4px 4px; background: #0f0f0f; font-size: 7px; font-weight: 700; color: #ddd; }
+.mb-canvas .ph-scr .ph-lab { margin: 6px 10px 3px; font-size: 6.5px; }
+.ph-in { display: block; margin: 0 10px; padding: 6px 8px; border: 1px solid #9a9a9a; border-radius: 999px; background: #f5f5f5; font-size: 7px; }
+.mb-canvas .ph-scr .ph-row2 { display: flex; align-items: center; justify-content: space-between; margin: 10px 10px 0; font-size: 7px; }
+.ph-row2 u { text-decoration: none; }
+.mb-canvas .ph-scr .ph-boxes { display: flex; gap: 3px; margin: 0 10px 6px; }
+.ph-boxes i { display: grid; place-items: center; width: 16px; height: 20px; border-radius: 6px; background: #f3f3f3; box-shadow: inset 0 0 0 1px #e2e2e2; font-size: 8px; font-style: normal; font-weight: 500; }
+.mb-canvas .ph-scr .ph-acct { margin: 6px 10px 0; font-size: 6.5px; }
+/* Pair mobile before the phone scans (captured 2026-11-23): a large code with Buzz's bee, Copy pairing code under it */
+.id-pair-qr { display: grid; justify-items: center; gap: 8px; }
+.id-qr-box { position: relative; padding: 6px; border-radius: 8px; background: #fff; }
+.id-qr-box svg.mb-qr-code { display: block; width: 104px; height: auto; padding: 0; box-shadow: none; fill: #0f0f0f; }
+.id-qr-logo { position: absolute; top: 50%; left: 50%; display: grid; place-items: center; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 6px; background: #0f0f0f; }
+.id-qr-logo svg { width: 18px; height: auto; color: var(--b1-citrus); }
+.id-pair-qr .mb-btn { justify-content: center; width: 100%; }
 /* Agents (agentflow.ts) */
 .mb .ax-page, .mb .ax-chan { position: relative; height: 100%; }
 .mb-canvas .ax-h { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; font-size: 12px; font-weight: 500; }
 .ax-tabs { display: flex; align-items: center; gap: 14px; padding-bottom: 8px; border-bottom: 1px solid #ececec; font-size: 11px; color: #5f5f5f; }
 .ax-tabs b { margin-bottom: -9px; padding-bottom: 6px; border-bottom: 2px solid #0f0f0f; font-weight: 500; color: #0f0f0f; }
 .ax-tabs em { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; padding: 5px 11px; border-radius: 999px; background: #0f0f0f; font-style: normal; font-weight: 500; color: #fff; }
-.ax-empty { display: flex; gap: 10px; margin-top: 16px; }
+.ax-empty { display: flex; justify-content: center; gap: 8px; margin-top: 14px; }
 .ax-tile { display: grid; place-items: center; width: 92px; height: 76px; border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px #e6e6e6; font-size: 18px; color: #5f5f5f; }
 .ax-tile.ghost { background: #f6f6f6; box-shadow: none; }
 .ax-menu { position: absolute; right: 0; top: 66px; width: 160px; padding: 4px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #ececec, 0 10px 28px rgb(0 0 0 / 14%); font-size: 11px; }
@@ -1784,20 +1848,35 @@ h2 .hl svg { width: 19px; }
 .mb-canvas .ax-comp { position: absolute; left: 0; right: 0; bottom: 4px; padding: 8px 12px; border-radius: 12px; box-shadow: 0 0 0 1px #e6e6e6; font-size: 10.5px; color: #8b8b8b; }
 
 /* The launched app's Buzz ID card; the back opens its private-key menu. */
-.id-badge { position: relative; width: 210px; margin: 9px auto 0; padding: 11px; border: 1px solid #d9d9d9; border-radius: 14px; background: #f4f2ec; box-shadow: 0 4px 12px #0001; }
-.id-badge-more { position: absolute; top: 9px; right: 9px; font-size: 14px; }
-.id-badge-art { display: flex; align-items: end; justify-content: space-between; height: 88px; padding: 10px; border-radius: 7px; background: #a8aa87; color: #fff; }
-.id-badge-art > b { font-size: 44px; line-height: 1; color: #eef0d9; }
-.id-badge-art > strong { font-size: 19px; }
-.mb-canvas .id-badge-label { margin: 8px 0 5px; font-size: 9px; color: #555; }
-.id-barcode { height: 24px; background: repeating-linear-gradient(90deg,#222 0 2px,transparent 2px 5px,#222 5px 6px,transparent 6px 9px); }
-.id-badge-pub { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; }
-.id-badge-pub code { padding: 0; background: none; font: 11px var(--mono); }
-.id-badge.back { min-height: 205px; padding-top: 23px; }
-.id-badge.back .id-input { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; background: #ddd; }
-.id-key-menu { width: 105px; margin: 0 0 8px auto; padding: 5px; border-radius: 9px; background: #fff; box-shadow: 0 3px 12px #0002; }
-.id-key-menu > * { display: block; padding: 3px 5px; font-size: 10px; font-weight: 400; }
-.id-key-menu small { font-size: 9px; color: #666; }
-.id-key-menu b { border-radius: 5px; background: var(--b1-citrus); }
-.ax-empty .ax-start { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 160px; }
-.ax-start b { font-size: 11px; font-weight: 500; }
+/* Identity as Buzz 1.0.5 draws it (captured 2026-11-23): a framed panel, and the Buzz ID card in it */
+.mb .mb-big { font-size: 16px; font-weight: 500; letter-spacing: -0.01em; }
+.id-wrap { position: relative; display: grid; place-items: center; margin-top: 8px; padding: 10px 0; border: 1px solid #ececec; border-radius: 14px; }
+.id-more { position: absolute; top: 8px; left: 8px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #f3f3f4; font-size: 11px; color: #404040; }
+.id-card { position: relative; width: 138px; overflow: hidden; border-radius: 14px; background: #f4f4f3; box-shadow: 0 0 0 1px #e4e4e4, 0 4px 12px rgb(0 0 0 / 6%); }
+.id-slot { position: absolute; z-index: 2; top: 5px; left: 50%; width: 26px; height: 4px; margin-left: -13px; border-radius: 3px; background: #fff; }
+.id-photo { position: relative; height: 78px; overflow: hidden; background: #c3d24a; }
+.id-photo > img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.15); mix-blend-mode: multiply; }
+.id-mini { position: absolute; top: 9px; left: 9px; width: 16px; height: 16px; overflow: hidden; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px #fff; }
+.id-mini img { width: 100%; height: 100%; }
+.id-photo strong { position: absolute; top: 8px; right: 9px; font-size: 11.5px; font-weight: 700; color: #fff; }
+.id-card-b { padding: 6px 9px 8px; text-align: center; }
+.mb-canvas .id-badge-label { margin: 0 0 4px; font-size: 6.5px; letter-spacing: 0.08em; color: #6b6b6b; }
+.id-barcode { height: 18px; margin: 0 6px; background: repeating-linear-gradient(90deg, #222 0 2px, transparent 2px 4px, #222 4px 5px, transparent 5px 8px); }
+.id-badge-pub { display: flex; align-items: center; justify-content: center; gap: 2px; margin-top: 4px; }
+.id-badge-pub code { padding: 0; background: none; font: 7px var(--mono); }
+.id-badge-pub .id-ic { width: 14px; height: 14px; font-size: 8px; }
+.id-band { display: grid; place-items: center; height: 36px; padding-top: 6px; background: #2b2b2b; }
+.id-nsec { display: flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; background: #111; font: 7px var(--mono); letter-spacing: 0.08em; color: #fff; }
+.id-nsec .tb-i { font-size: 8px; }
+.id-card .id-key-menu { position: absolute; z-index: 3; top: 34px; right: 10px; width: 70px; padding: 4px; border-radius: 9px; background: #fff; box-shadow: 0 3px 12px #0002; }
+.id-key-menu > * { display: block; padding: 3px 5px; border-radius: 5px; font-size: 8px; font-weight: 400; }
+.id-key-menu b { background: var(--b1-citrus); }
+.mb-canvas .id-k { margin: 2px 0 3px; font-size: 8.5px; font-weight: 500; text-align: left; }
+.mb-canvas .id-t { margin: 0 0 3px; font-size: 6.5px; line-height: 1.35; text-align: left; color: #4a4a4a; }
+.mb-canvas .id-warn { margin: 4px 0 0; padding: 4px 6px; border: 1px solid #e6e6e6; border-radius: 6px; font-size: 6.5px; line-height: 1.35; text-align: left; color: #4a4a4a; }
+.id-rm { display: block; margin-top: 7px; padding: 4px; border-radius: 999px; background: #fbe7e5; font-size: 7.5px; color: #b3362e; }
+.ax-empty .ax-start { position: relative; display: grid; place-items: center; width: 168px; height: 96px; overflow: hidden; }
+.ax-start img { position: absolute; width: 30px; height: 30px; object-fit: contain; }
+.ax-start img.a1 { top: 6px; left: 50%; margin-left: -15px; }
+.ax-start img.a2 { bottom: 4px; right: 14px; }
+.ax-start b { position: relative; z-index: 1; padding: 5px 11px; border-radius: 999px; background: #f3f3f4; font-size: 10px; font-weight: 500; color: #0f0f0f; }

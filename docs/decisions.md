@@ -439,6 +439,15 @@ with it in a titled part (the starter channels, approving each agent) rather tha
 Pairing a phone is its own answer, "How do you pair a phone?", with a click-through of the
 desktop's Pair mobile page and the phone's screens; the phones answer links to it.
 
+Drawings of Buzz's screens match the real app (owner's call, 2026-11-23, after guessed phone
+screens): the desktop ones were redrawn from captures of Buzz 1.0.5 (the window and sidebar,
+Membership with its menu and dialogs, Identity, Security, Pair mobile, the Agents page), and the
+phone ones from the owner's iPhone screenshots, with placeholder names. Pairing shows two paths:
+a community on its own server joins once the codes match; one Block hosts goes through Builderlab's
+sign-in and a key backup it can decrypt. Not yet checked against the app: the Invite tab, the code
+step of pairing, first run, Create agent and agent chats. `site/mockups/frames.html` shows every
+click-through step at once, for comparing with screenshots.
+
 Also 2026-11-23: Running your relay has a search over the questions (owner's ask). It searches each
 answer's text for the current setup, its folds and every click-through step, ranks title matches
 first, and shows a snippet per result; opening one marks the matches and opens a fold that holds the

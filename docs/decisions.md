@@ -496,6 +496,14 @@ community and makes a new, empty one for a new `RELAY_URL` host (migrations/0001
 router.rs), and second addresses are only requested (block/buzz#4952), so the answer says to keep the
 domain and move servers with a restore.
 
+Also 2026-11-23, the owner's ask after Maple's card: six plain drawings took its style. The harness
+cards carry Buzz's own harness icons (block/buzz-app src/bundled/<harness>/icon.png, Apache-2.0);
+"Which account to use" is four colored tiles; keeping an agent safe is risk cards (red for the
+biggest risks, amber to keep in mind, green to do); "What still depends on Block?" is service cards
+under a banner that none of them receives your messages or files; roles have role chips and check
+marks; the backup drawing has an icon for each thing it holds. The phones answer says plainly that
+Block never sees your messages, with what its gateway sees and never sees side by side.
+
 Also 2026-11-23: Running your relay has a search over the questions (owner's ask). It searches each
 answer's text for the current setup, its folds and every click-through step, ranks title matches
 first, and shows a snippet per result; opening one marks the matches and opens a fold that holds the

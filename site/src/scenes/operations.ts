@@ -60,14 +60,24 @@ function setupSwitchHTML(track: Track): string {
  * What a backup holds and where it goes, for every setup: the server's data, one folder, an encrypted copy
  * off the server (operations.md's backup step).
  */
-const box = (head: string, lines: string[], cls = "") =>
-  `<div class="fq-card${cls}"><p class="fq-card-h">${head}</p>${lines.map((l) => `<p class="opx-bk-l">${l}</p>`).join("")}</div>`;
+const ic = (d: string) => svg(d);
+const BK_ICON = {
+  db: ic(`<path d="M12 6m-8 0a8 3 0 1 0 16 0a8 3 0 1 0 -16 0"/><path d="M4 6v6a8 3 0 0 0 16 0v-6"/><path d="M4 12v6a8 3 0 0 0 16 0v-6"/>`),
+  files: ic(`<path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"/><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"/><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"/>`),
+  git: ic(`<path d="M7 18m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M7 6m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 6m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M7 8l0 8"/><path d="M9 18h6a2 2 0 0 0 2 -2v-5"/><path d="M14 14l3 -3l3 3"/>`),
+  key: ic(`<path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z"/><path d="M15 9h.01"/>`),
+  lock: ic(`<path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z"/><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"/><path d="M8 11v-4a4 4 0 1 1 8 0v4"/>`),
+  folder: ic(`<path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2"/>`),
+};
+const item = (i: string, t: string) => `<p class="opx-bk-i">${i}<span>${t}</span></p>`;
 const BACKUP_VIS = `<div class="fq-vis fq-keyhome opx-bk">
-  ${box(`${SERVER}Your server`, ["The database: messages, members and channels", "Uploaded files", "Git repositories", "The relay's settings, with its key and passwords"])}
+  <div class="fq-card"><p class="fq-card-h">${SERVER}Your server</p>
+    ${item(BK_ICON.db, "The database: messages, members and channels")}${item(BK_ICON.files, "Uploaded files")}${item(BK_ICON.git, "Git repositories")}${item(BK_ICON.key, "The relay's settings, with its key and passwords")}
+  </div>
   <span class="fq-arrow">copy</span>
-  ${box("One backup folder", ["<code>~/buzz-backup/2026-11-23</code>", "<span class=\"fq-dim\">One folder for each backup</span>"], " dark")}
+  <div class="fq-card dark"><p class="fq-card-h">${BK_ICON.folder}One backup folder</p><p class="opx-bk-l"><code>~/buzz-backup/2026-11-23</code></p><p class="opx-bk-l"><span class="fq-dim">One folder for each backup</span></p></div>
   <span class="fq-arrow">encrypt</span>
-  ${box("Off the server", ["Your computer, or storage you control", "<span class=\"fq-dim\">Keep at least one copy here</span>"])}
+  <div class="fq-card opx-bk-safe"><p class="fq-card-h">${BK_ICON.lock}Off the server</p><p class="opx-bk-l">Your computer, or storage you control</p><p class="opx-bk-badge">${BK_ICON.lock}Encrypted copy</p></div>
 </div>`;
 
 /**

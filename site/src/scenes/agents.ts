@@ -5,6 +5,11 @@ import { blanksHTML, fillBlanks } from "../lib/blanks";
 import { esc, fill, fillRich, getValues, trackOf } from "../lib/values";
 import { BUZZ_ROBOT, TABLER } from "./tabler";
 import mapleLogo from "../assets/maple.svg";
+// Buzz's own harness icons (block/buzz-app src/bundled/<harness>/icon.png, Apache-2.0), as the app shows them
+import codexIcon from "../assets/harness/codex.png";
+import claudeIcon from "../assets/harness/claude.png";
+import gooseIcon from "../assets/harness/goose.png";
+import piIcon from "../assets/harness/pi.png";
 
 /**
  * The Agents answers in Running your relay: how to run agents (who each works for), what to tell an
@@ -118,21 +123,33 @@ const MAPLE = `<div class="fq-vis ga-maple">
   </div>
 </div>`;
 
-/** The skill's harness table, as a card for each harness: what it needs, where it signs in, where it runs. */
-const HARNESS = () => `<div class="fq-vis ga-har">${skill.agents.harness
-  .map(([h, need, where, on]) => `<div class="ga-who-c"><p class="ga-who-h"><span>${h}<small>${on}</small></span></p><dl><div><dt>What you need</dt><dd>${need}</dd></div><div><dt>Where you sign in</dt><dd>${where}</dd></div></dl></div>`)
+/** The skill's harness table, as a card for each harness: Buzz's icon, where it runs, what it needs, where it signs in. */
+const HARNESS_ICON: Record<string, string> = { Codex: codexIcon, Claude: claudeIcon, Goose: gooseIcon, Pi: piIcon };
+const HARNESS = () => `<div class="fq-vis hn-grid">${skill.agents.harness
+  .map(
+    ([h, need, where, on]) => `<div class="hn-card">
+    <div class="hn-head"><img class="hn-ic" src="${HARNESS_ICON[h] ?? ""}" alt=""><div><b>${h}</b><p class="hn-os">${on
+      .split(/,\s*/)
+      .map((o) => `<span>${o}</span>`)
+      .join("")}</p></div></div>
+    <dl class="hn-body">
+      <div class="mp-cell"><i>${icon("key")}</i><dt>What you need</dt><dd>${need}</dd></div>
+      <div class="mp-cell"><i>${icon("settings")}</i><dt>Where you sign in</dt><dd>${where}</dd></div>
+    </dl>
+  </div>`,
+  )
   .join("")}</div>`;
 /**
  * Which account to use (agents.md, from Anthropic's and OpenAI's terms, plans and data pages): a plan is
  * one person's, plans have limits, some train on what they read, and a local model keeps it home.
  */
-const acct = (i: string, t: string, d: string) => `<li><span class="fq-dep-i">${icon(i)}</span><div><b>${t}</b><p>${d}</p></div></li>`;
-const ACCOUNTS = `<div class="fq-vis"><ul class="fq-check">${[
-  acct("user", "A plan is for one person", `A personal plan such as Claude Pro or Max, or ChatGPT Plus or Pro, is for its owner's own use. <a href="https://www.anthropic.com/legal/consumer-terms">Anthropic's</a> and <a href="https://openai.com/policies/terms-of-use/">OpenAI's</a> terms don't let you make your account available to anyone else. For an agent that other people can ask, use an API key with a spending limit. <a href="https://learn.chatgpt.com/docs/auth">OpenAI</a> also recommends an API key for anything that runs on its own.`),
-  acct("alarm", "Plans have usage limits", "Most of Claude's and ChatGPT's plans have limits that reset every few hours or every week. When an agent reaches one, it can't do more work until the limit resets, unless you buy more usage. An API key has no plan limit, and you pay for each request."),
-  acct("eye", "Some plans train on your data", `Claude Pro and Max and ChatGPT Plus and Pro can use your conversations to train models, the agent's included, unless you turn that off. Turn it off in Claude's privacy settings, or in ChatGPT under Data controls. Team, Business and Enterprise plans and API keys don't train on your data by default (<a href="https://code.claude.com/docs/en/data-usage">Anthropic</a>, <a href="https://help.openai.com/en/articles/5722486">OpenAI</a>).`),
-  acct("device-desktop", "A model on your own computer", "To keep what the agent reads off any provider's servers, use Goose with a model on your own computer through Ollama. The model has to support tool calling."),
-].join("")}</ul></div>`;
+const acct = (tint: string, i: string, t: string, d: string) => `<div class="ac-tile ${tint}"><i>${icon(i)}</i><b>${t}</b><p>${d}</p></div>`;
+const ACCOUNTS = `<div class="fq-vis ac-grid">${[
+  acct("blue", "user", "A plan is for one person", `A personal plan such as Claude Pro or Max, or ChatGPT Plus or Pro, is for its owner's own use. <a href="https://www.anthropic.com/legal/consumer-terms">Anthropic's</a> and <a href="https://openai.com/policies/terms-of-use/">OpenAI's</a> terms don't let you make your account available to anyone else. For an agent that other people can ask, use an API key with a spending limit. <a href="https://learn.chatgpt.com/docs/auth">OpenAI</a> also recommends an API key for anything that runs on its own.`),
+  acct("amber", "alarm", "Plans have usage limits", "Most of Claude's and ChatGPT's plans have limits that reset every few hours or every week. When an agent reaches one, it can't do more work until the limit resets, unless you buy more usage. An API key has no plan limit, and you pay for each request."),
+  acct("rose", "eye", "Some plans train on your data", `Claude Pro and Max and ChatGPT Plus and Pro can use your conversations to train models, the agent's included, unless you turn that off. Turn it off in Claude's privacy settings, or in ChatGPT under Data controls. Team, Business and Enterprise plans and API keys don't train on your data by default (<a href="https://code.claude.com/docs/en/data-usage">Anthropic</a>, <a href="https://help.openai.com/en/articles/5722486">OpenAI</a>).`),
+  acct("green", "device-desktop", "A model on your own computer", "To keep what the agent reads off any provider's servers, use Goose with a model on your own computer through Ollama. The model has to support tool calling."),
+].join("")}</div>`;
 
 /* ── How do you keep an agent always online? ── */
 
@@ -148,16 +165,19 @@ const PLACES = `<div class="fq-vis ga-on">
 
 /* ── How do you keep an agent safe? ── */
 
-const risk = (i: string, t: string, d: string) => `<li><span class="fq-dep-i">${icon(i)}</span><div><b>${t}</b><p>${d}</p></div></li>`;
-const RISKS = `<div class="fq-vis"><ul class="fq-check">${[
-  risk("lock", "It has no sandbox and no approval prompts", "Buzz starts every local agent this way, and has no setting to change it. The agent can do anything your user account can do on that computer."),
-  risk("user", "It takes requests from its owner", "Mentions and direct messages from other people don't start its work. The agent still reads what they post, and their words can steer it. If you make an ownership proof for an agent outside Buzz, that agent can give it requests too."),
-  risk("device-desktop", "Give it a machine of its own", `If anyone can join your community, keep personal accounts, private repositories and production credentials off the agent's computer. <a href="#security">The Security section</a> shows this in a drawing.`),
-  risk("eye", "What it reads leaves the computer", "The agent sends what it reads to its model's provider. Keep agents out of channels whose content shouldn't reach that computer or that provider."),
+type Level = "high" | "mid" | "do";
+const LEVEL: Record<Level, string> = { high: "Biggest risk", mid: "Keep in mind", do: "Do this" };
+const risk = (level: Level, i: string, t: string, d: string) =>
+  `<div class="rk-card ${level}"><div class="rk-top"><i>${icon(i)}</i><span class="rk-tag">${LEVEL[level]}</span></div><b>${t}</b><p>${d}</p></div>`;
+const RISKS = `<div class="fq-vis rk-grid">${[
+  risk("high", "lock", "It has no sandbox and no approval prompts", "Buzz starts every local agent this way, and has no setting to change it. The agent can do anything your user account can do on that computer."),
+  risk("high", "download", "A plugin is code", `Install only plugins you trust. A plugin runs as code with no sandbox. <a href="https://buzz.xyz/support">Block's support page</a> says a plugin can reach your files and your Buzz private key.`),
+  risk("mid", "user", "It takes requests from its owner", "Mentions and direct messages from other people don't start its work. The agent still reads what they post, and their words can steer it. If you make an ownership proof for an agent outside Buzz, that agent can give it requests too."),
+  risk("mid", "eye", "What it reads leaves the computer", "The agent sends what it reads to its model's provider. Keep agents out of channels whose content shouldn't reach that computer or that provider."),
+  risk("do", "device-desktop", "Give it a machine of its own", `If anyone can join your community, keep personal accounts, private repositories and production credentials off the agent's computer. <a href="#security">The Security section</a> shows this in a drawing.`),
   // security.md: Give each audience its own agent (block/buzz-app docs/practical-information-flow-for-buzz-agents.md is a draft)
-  risk("users", "Give each audience its own agent", "An agent that reads a private channel can repeat what it read in an open channel or a direct message. It can do that when someone asks it plainly, or when someone tricks it. Buzz doesn't stop that yet. Keep the agent that serves an open channel out of private channels."),
-  risk("download", "A plugin is code", `Install only plugins you trust. A plugin runs as code with no sandbox. <a href="https://buzz.xyz/support">Block's support page</a> says a plugin can reach your files and your Buzz private key.`),
-].join("")}</ul></div>`;
+  risk("do", "users", "Give each audience its own agent", "An agent that reads a private channel can repeat what it read in an open channel or a direct message. It can do that when someone asks it plainly, or when someone tricks it. Buzz doesn't stop that yet. Keep the agent that serves an open channel out of private channels."),
+].join("")}</div>`;
 
 /* ── How do you run an agent on your own server? ── */
 

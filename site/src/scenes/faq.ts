@@ -105,11 +105,11 @@ const SCREENS_WHERE = "a VPS or your own hardware, on the internet";
  * screens for relay staff (the owner, as the relay's operator, and whoever is added under Staff), or from
  * the command line for the owner and admins (block/buzz crates/buzz-relay/src/handlers/moderation_authz.rs).
  */
-const YES = `<span class="fq-y">Yes</span>`;
-const NO = `<span class="fq-n">No</span>`;
+const YES = `<span class="fq-y">${icon("check")}<span class="sr">Yes</span></span>`;
+const NO = `<span class="fq-n">${icon("x")}<span class="sr">No</span></span>`;
 const IF_STAFF = `<span class="fq-if">If on Staff</span>`;
 const ROLES = `<div class="fq-vis"><table class="fq-roles">
-  <thead><tr><th></th><th>${icon("crown")}Owner</th><th>${icon("shield")}Admin</th><th>${icon("user")}Member</th></tr></thead>
+  <thead><tr><th></th><th><span class="rl-chip owner">${icon("crown")}Owner</span></th><th><span class="rl-chip admin">${icon("shield")}Admin</span></th><th><span class="rl-chip member">${icon("user")}Member</span></th></tr></thead>
   <tbody>
     <tr><td>Make invite links</td><td>${YES}</td><td>${YES}</td><td>${NO}</td></tr>
     <tr><td>Remove members</td><td>${YES}</td><td>${YES}</td><td>${NO}</td></tr>
@@ -346,16 +346,16 @@ const LEDGER = `<div class="fq-vis fq-audit">
  * public key, IP and wake timing; a fixed payload, crates/buzz-push-gateway/src/model.rs; docs/buzz-push.md calls it
  * experimental), and Builderlab's key backup and community list (block/buzz-app#2325, known-communities).
  */
-const dep = (i: string, t: string, d: string) => `<li><span class="fq-dep-i">${icon(i)}</span><div><b>${t}</b><p>${d}</p></div></li>`;
-const DEPS = `<div class="fq-vis"><ul class="fq-check">${[
-  dep("download", "Apps and images", "Block publishes the Buzz apps and the relay's images. The desktop app checks for updates every hour and downloads them. They install when you restart the app."),
-  dep(
-    "bell",
-    "iPhone notifications",
-    "Notifications go through Block's gateway, <code>push.buzz.xyz</code>. No message text passes through it. The gateway does see your relay's public key, your server's IP address and when it wakes which phone. Apple sees when a phone is woken. Block calls push experimental. Setting <code>BUZZ_PUSH_ENABLED=false</code> on the relay turns it off.",
-  ),
-  dep("user", "Builderlab accounts", "When you sign in to Builderlab, Block's service, Block can get a copy of your key. It also learns which communities you join. A key made with nak doesn't need a Builderlab account."),
-].join("")}</ul></div>`;
+const svc = (i: string, t: string, d: string, off: string) =>
+  `<div class="sv-card"><div class="sv-head"><i>${icon(i)}</i><b>${t}</b></div><p>${d}</p><p class="sv-off">${icon("settings")}<span>${off}</span></p></div>`;
+const DEPS = `<div class="fq-vis sv-wrap">
+  <p class="sv-banner">${icon("eye-off")}<span><b>None of these services receives your messages or files.</b> Messages, files and the member list stay on your server.</span></p>
+  <div class="sv-grid">
+    ${svc("download", "Apps and images", "Block publishes the Buzz apps and the relay's images. The desktop app checks for updates every hour and downloads them. They install when you restart the app.", "You need the apps to use Buzz.")}
+    ${svc("bell", "iPhone notifications", "Notifications go through Block's gateway, <code>push.buzz.xyz</code>. No message text passes through it. The gateway sees only your relay's public key, your server's IP address and when it wakes which phone. Apple sees when a phone is woken. Block calls push experimental.", "Turn it off with <code>BUZZ_PUSH_ENABLED=false</code> on the relay.")}
+    ${svc("user", "Builderlab accounts", "When you sign in to Builderlab, Block's service, Block can get a copy of your key. It also learns which communities you join.", "Make your key with nak, and Builderlab isn't involved.")}
+  </div>
+</div>`;
 
 /**
  * A push notification, drawn by who runs each part: the wake-up leaves your relay through Block's
@@ -376,6 +376,14 @@ const PUSH = `<div class="fq-vis fq-push">
   <p class="fq-push-way"><i class="out" aria-hidden="true"></i><span><b>The wake-up</b> goes out through Block and Apple. It carries no message text.</span></p>
   <p class="fq-push-way"><i class="back" aria-hidden="true"></i><span><b>The message</b> comes straight from your relay, once the phone connects.</span></p>
 </div>`;
+/**
+ * What Block's push gateway learns, and what it never gets (crates/buzz-push-gateway/src/model.rs: a fixed
+ * payload): the relay's public key, the server's IP and wake timing, and no message, sender or channel.
+ */
+const SEES = `<div class="fq-vis fq-sees">
+  <div class="fq-sees-c no"><p class="fq-sees-h">${icon("eye-off")}Block never sees</p><ul><li>What a message says</li><li>Who sent it</li><li>Where it was posted</li><li>Your files</li></ul></div>
+  <div class="fq-sees-c yes"><p class="fq-sees-h">${icon("eye")}Block's gateway sees only</p><ul><li>Your relay's public key</li><li>Your server's IP address</li><li>When it wakes which phone</li></ul></div>
+</div>`;
 /** mobile.md's sections, by title: the ones a setup needs stay open, the rest fold. A missing one fails loudly. */
 const phone = (title: string) => skill.mobile.find((x) => x.title === title)?.html ?? `<p class="fq-missing">mobile.md lost its "${title}" section.</p>`;
 const fold = (title: string, html: string) => `<details class="fq-fold"><summary>${title}</summary><div class="fq-mobile">${html}</div></details>`;
@@ -395,10 +403,11 @@ const foldSetup = (html: string) => {
 };
 const PHONE_FOLDED = ["What Block and Apple see", "Android", "Run your own gateway"];
 const MOBILE =
-  rec("Buzz sends notifications through Block's push gateway to the Buzz app from the App Store. You don't need an Apple developer account or a gateway of your own. Notifications work on iPhone, but not on Android yet.", [
+  rec("Buzz sends notifications through Block's push gateway to the Buzz app from the App Store. Block never sees your messages. You don't need an Apple developer account or a gateway of your own. Notifications work on iPhone, but not on Android yet.", [
     [TEAM, "Turn notifications on, unless Block can't be allowed to see your server's address and when your team's phones get notifications. If you leave them off, people see new messages the next time they open Buzz."],
     [OPEN, "Turn notifications on. Members then get a notification on their phone for direct messages and mentions."],
   ]) +
+  SEES +
   note(`Each phone has to be paired with the Buzz desktop app before it gets notifications. <a href="#operations" data-q-link="pair">How do you pair a phone?</a> shows each step.`) +
   PUSH +
   // docs/research.md: Block's bundle notes name "the public gateway"; block/buzz#5206 is where self-hosters asked for it
@@ -718,7 +727,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "link",
         q: "What still depends on Block?",
         a:
-          rec("Your relay runs without Block, but the Buzz apps, iPhone notifications and Builderlab accounts all come from Block.", [
+          rec("Your relay runs without Block, but the Buzz apps, iPhone notifications and Builderlab accounts all come from Block. None of them gets your messages or files.", [
             [TEAM, "Make keys with nak, so Block never gets a copy. Turn notifications off if Block can't be allowed to see when your team's phones get them."],
             [OPEN, "Keep notifications on, so members hear about mentions and direct messages. Members can choose for themselves whether to sign in with a Builderlab account."],
           ]) +

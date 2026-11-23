@@ -446,10 +446,11 @@ phone ones from the owner's iPhone screenshots, with placeholder names. Pairing 
 a community on its own server joins once the codes match; one Block hosts goes through Builderlab's
 sign-in and a key backup it can decrypt. Its click-through has a switch for the computer's screens
 or the phone's, then a pick of a self-hosted or a Builderlab community (owner's ask), so each
-device's steps read on their own. Not yet checked against the app: the Invite tab, the code and
-paired steps of pairing on both devices, the phone's camera, Mobile app for a Builderlab account
-(Buzz's source shows "Get Buzz on your phone" there instead of a QR code), first run, Create agent
-and agent chats. Moderation's screens need a relay with Buzz's admin API on, which none of the
+device's steps read on their own. The screens after the phone scans (the six digits, Phone
+paired, the phone's camera and code screens) appear only during a live pairing and weren't
+captured, so the site says that step in words and draws no screen for it (owner's call). Not yet
+checked against the app: the Invite tab, Mobile app for a Builderlab account (Buzz's source shows
+"Get Buzz on your phone" there instead of a QR code), first run, Create agent and agent chats. Moderation's screens need a relay with Buzz's admin API on, which none of the
 owner's relays had, so "How do you moderate?" has no click-through yet. `site/mockups/frames.html` shows every
 click-through step at once, for comparing with screenshots.
 

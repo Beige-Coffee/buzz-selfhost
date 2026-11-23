@@ -101,26 +101,18 @@ const identityPage = (copy: "npub" | "nsec") => `<section class="mb-page id-page
 </section>`;
 
 /**
- * Settings, Mobile app, whose page is Pair mobile for a key kept off Builderlab (src/bundled/pairing/index.tsx,
- * MobileApp.tsx): first its QR code, then, once the phone has scanned, the six digits and Codes match,
- * beside Buzz's three steps.
+ * Settings, Mobile app, whose page is Pair mobile for a key kept off Builderlab, as Buzz 1.0.5 shows it
+ * (captured 2026-11-23): its QR code beside Buzz's three steps. The screens after the phone scans (the six
+ * digits, then Phone paired) appear only during a live pairing and weren't captured, so the site says that
+ * step in words rather than drawing it (owner's call, 2026-11-23).
  */
-const pairPageAt = (at: "qr" | "code") => `<section class="mb-page id-pair">
+const PAIR_PAGE = `<section class="mb-page id-pair">
   <h5>Pair mobile</h5>
   <p class="mb-sub">Connect the Buzz mobile app to this community. Pairing is secured with end-to-end encryption and a verification code.</p>
   <div class="id-pair-b">
-    ${
-      at === "qr"
-        ? `<div class="id-pair-qr"><div class="id-qr-box">${QR}<span class="id-qr-logo"><svg viewBox="0 0 466 309" aria-hidden="true"><use href="#bee"/></svg></span></div><span class="mb-btn">Copy pairing code</span></div>`
-        : `<div class="id-pair-code">
-      <b>Verify the code on your phone</b>
-      <span class="id-digits">482 913</span>
-      <span class="mb-btn dark hot">Codes match</span>
-      <span class="mb-btn">Cancel</span>
-    </div>`
-    }
+    <div class="id-pair-qr"><div class="id-qr-box">${QR}<span class="id-qr-logo"><svg viewBox="0 0 466 309" aria-hidden="true"><use href="#bee"/></svg></span></div><span class="mb-btn">Copy pairing code</span></div>
     <ol>
-      <li class="${at === "qr" ? "" : "done"}"><span>${at === "qr" ? "1" : ti("check")}</span><div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the code shown here.</p></div></li>
+      <li><span>1</span><div><b>Scan QR code</b><p>Open Buzz on your phone and choose Add community to scan the code shown here.</p></div></li>
       <li><span>2</span><div><b>Verify the code on your phone</b><p>If your phone asks for a code, enter these digits and finish confirming on your phone. If it shows a code, check that the digits match. Then choose Codes match here to send your Buzz identity.</p></div></li>
       <li><span>3</span><div><b>Pair your mobile app</b><p>Your mobile app will connect after you verify the code.</p></div></li>
     </ol>
@@ -144,7 +136,6 @@ const vault = `<div class="id-vault">
   </div>
 </div>`;
 
-const pairPage = pairPageAt("code");
 
 /**
  * The phone's side of pairing, drawn from screenshots of the App Store's Buzz app (2026-11-23): the
@@ -201,16 +192,11 @@ const phContinue = bl("app.builderlab.xyz", `<p class="ph-t">Continue to Buzz</p
   <p class="ph-row2"><span></span><span class="ph-btn small dark hot">Continue to Buzz</span></p>
   <p class="ph-s ph-gap">Not you? <u>Use a different account</u></p>`);
 
-/** The computer's side: Pair mobile's QR code, then the code once the phone has scanned it. */
-const C_OPEN = {
+/** The computer's side: Pair mobile's QR code, with the code check after the scan in words. */
+const onComputer = (after: string) => ({
   k: "Open Mobile app in Settings",
-  t: "In the Buzz desktop app, open the community you want on your phone. Press ⌘, on a Mac or Ctrl+, on Windows and Linux to open <b>Settings</b>. Then choose <b>Mobile app</b>. The <b>Pair mobile</b> page shows a QR code. Pair where nobody else can see your screen, because pairing copies your private key to the phone.",
-  frame: settingsModal(nav("Mobile app"), pairPageAt("qr")),
-};
-const cCode = (after: string) => ({
-  k: "Check the code",
-  t: `After your phone scans the QR code, your computer shows six digits. If the phone asks for a code, type these digits on the phone. If the phone shows a code, check that it matches, then choose <b>Codes match</b>. If the codes don't match, choose <b>Cancel</b> and start again. ${after}`,
-  frame: settingsModal(nav("Mobile app"), pairPage),
+  t: `In the Buzz desktop app, open the community you want on your phone. Press ⌘, on a Mac or Ctrl+, on Windows and Linux to open <b>Settings</b>. Then choose <b>Mobile app</b>. The <b>Pair mobile</b> page shows a QR code for your phone to scan. After the scan, check the code. If your phone asks for a code, type the six digits your computer shows. If it shows a code, check that the digits match, then choose <b>Codes match</b> on your computer. ${after} Pair where nobody else can see your screen, because pairing copies your private key to the phone.`,
+  frame: settingsModal(nav("Mobile app"), PAIR_PAGE),
 });
 
 /** The phone's side, up to the code: the community menu, Switch community, Add a community. */
@@ -226,13 +212,13 @@ export const pairFlows: Flow[] = [
     id: "computer-own",
     view: "computer",
     label: "Self-hosted community",
-    steps: [C_OPEN, cCode("Your computer then sends your identity to the phone, and the phone joins the community by itself.")],
+    steps: [onComputer("Your computer then sends your identity to the phone, and the phone joins the community by itself.")],
   },
   {
     id: "computer-builderlab",
     view: "computer",
     label: "Builderlab community",
-    steps: [C_OPEN, cCode("Your computer then sends your identity to the phone. The phone asks you to sign in to Builderlab before it joins.")],
+    steps: [onComputer("Your computer then sends your identity to the phone. The phone asks you to sign in to Builderlab before it joins.")],
   },
   {
     id: "phone-own",
@@ -291,7 +277,7 @@ export const identityFlows: Flow[] = [
 const pairAgain = {
   k: "Pair the phone again",
   t: "On your computer, open <b>Settings</b> and choose <b>Mobile app</b>. On the phone, open Buzz, choose <b>Add community</b> and scan the code. If the phone asks for a code, type the six digits your computer shows. If the phone shows a code, check that the digits match. Then choose <b>Codes match</b> on your computer.",
-  frame: settingsModal(nav("Mobile app"), pairPage),
+  frame: settingsModal(nav("Mobile app"), PAIR_PAGE),
 };
 export const lostFlows: Flow[] = [
   {

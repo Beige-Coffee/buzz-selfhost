@@ -1740,10 +1740,6 @@ h2 .hl svg { width: 19px; }
 .mb .mb-modal:has(.id-pair) { inset: 7px 16px; }
 .mb .id-pair { padding: 9px 18px; }
 .id-pair-b { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 10px; }
-.id-pair-code { display: grid; gap: 6px; }
-.id-pair-code b { font-size: 10.5px; font-weight: 500; }
-.id-digits { padding: 8px 0; border-radius: 10px; background: #fff; box-shadow: 0 0 0 1px #e6e6e6; text-align: center; font: 600 16px var(--mono); letter-spacing: 0.1em; }
-.id-pair-code .mb-btn { justify-content: center; }
 .id-pair ol { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .id-pair li { display: flex; gap: 8px; }
 .id-pair li > span { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #f0f0f1; font-size: 10px; font-weight: 600; }

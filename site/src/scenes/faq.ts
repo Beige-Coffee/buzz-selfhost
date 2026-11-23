@@ -766,6 +766,41 @@ export function mountFaq(host: HTMLElement): void {
     else box.appendChild(pane);
     enhanceCode(pane);
     pane.querySelectorAll<HTMLElement>("[data-ct]").forEach(draw);
+    foldNotes();
+  };
+
+  /**
+   * Two or more notes in a row fold under "Good to know", with a drawing between two runs folded in
+   * too (the owner's ask of 2026-11-23: more compact). A single note stays out: it's often the step.
+   * A click-through measures itself, so one inside a fold is drawn again when the fold opens.
+   */
+  const isNote = (el: Element | undefined) => !!el?.classList.contains("opx-note");
+  const foldNotes = () => {
+    const kids = [...pane.children];
+    for (let i = 0; i < kids.length; ) {
+      if (!isNote(kids[i])) {
+        i++;
+        continue;
+      }
+      let j = i;
+      while (isNote(kids[j])) j++;
+      if (j - i < 2) {
+        i = j;
+        continue;
+      }
+      while (kids[j]?.matches(".fq-vis, .fq-ct") && isNote(kids[j + 1])) {
+        j++;
+        while (isNote(kids[j])) j++;
+      }
+      const group = kids.slice(i, j);
+      const fold = document.createElement("details");
+      fold.className = "fq-more";
+      fold.innerHTML = `<summary><span>Good to know</span><em>${group.filter((el) => isNote(el)).length}</em></summary>`;
+      group[0].before(fold);
+      fold.append(...group);
+      fold.addEventListener("toggle", () => fold.open && fold.querySelectorAll<HTMLElement>("[data-ct]").forEach(draw));
+      i = j;
+    }
   };
 
   host.addEventListener("click", (e) => {
@@ -883,7 +918,9 @@ export function mountFaq(host: HTMLElement): void {
     const t = target(token);
     if (!t) return null;
     if (open !== t.q) show(t.q);
-    if (t.part) return document.getElementById(t.part) ? t.part : null;
+    const part = t.part ? document.getElementById(t.part) : null;
+    part?.closest<HTMLDetailsElement>("details.fq-more")?.setAttribute("open", "");
+    if (t.part) return part ? t.part : null;
     return narrow.matches ? `fq-tab-${t.q}` : "fq-pane";
   });
 }

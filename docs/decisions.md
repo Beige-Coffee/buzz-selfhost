@@ -431,6 +431,10 @@ Also 2026-11-23: a recommendation that depends on the kind of community splits i
 grow, like a project's public one, counts as open). Agents running split into "On a computer" and
 "On a server". Answers that state facts for everyone stay one line. `rec(lead, cases)` in faq.ts.
 
+Also 2026-11-23: two or more notes in a row fold under a "Good to know" dropdown with their count
+(a drawing between two runs folds in with them); a single note stays out, since it's often the
+step itself (`foldNotes` in faq.ts).
+
 No "we" (2026-11-23, the owner's rule): the site doesn't speak as "we", and its questions ask
 "How should you…" instead of "How should we…". The section's line reads "Recommended setups for
 people, keys, data and the server, and how to set them up." Prompts the reader pastes to an agent

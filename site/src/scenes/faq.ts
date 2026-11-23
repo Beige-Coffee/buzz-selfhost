@@ -33,7 +33,17 @@ const OWN: Record<string, string> = {
 const icon = (n: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${OWN[n] ?? TABLER[n]}</svg>`;
 
 // no tick here, or anywhere on the page (the owner's call, 2026-11-18)
-const rec = (t: string) => `<div class="fq-rec"><div><b>Recommended</b><p>${t}</p></div></div>`;
+/**
+ * What to do, in the dark card. Where the answer differs by kind of community, or by setup, each case
+ * gets its own labeled row (the owner's ask of 2026-11-23: nuanced, not one assumed scenario).
+ */
+type Cases = [label: string, text: string][];
+const TEAM = "Private team";
+const OPEN = "Open community";
+const rec = (t: string, cases?: Cases) =>
+  `<div class="fq-rec"><div><b>Recommended</b>${t ? `<p>${t}</p>` : ""}${
+    cases ? `<dl class="fq-rec-s">${cases.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>` : ""
+  }</div></div>`;
 const note = (t: string) => `<p class="opx-note">${t}</p>`;
 const steps = (rows: [string, string][]) =>
   `<ol class="opx-flow">${rows
@@ -104,7 +114,10 @@ const ROLES = `<div class="fq-vis"><table class="fq-roles">
 
 /** Moderating: in Buzz's screens where the relay can offer them, otherwise with the buzz command line. */
 const MODERATION =
-  rec(`Ban rather than only remove. On ${SCREENS_WHERE}, turn on Buzz's moderation screens and add your moderators under Staff.`) +
+  rec("Ban rather than only remove: a ban keeps someone out, even with an invite link, and cuts off their agents.", [
+    [TEAM, "The owner or an admin handles the rare problem. Moderators are optional."],
+    [OPEN, `Set this up before you post a link. On ${SCREENS_WHERE}, turn on Buzz's moderation screens and add moderators under Staff, so reports get answered.`],
+  ]) +
   steps([
     ["Turn on the moderation screens", "Your agent offers this during setup, or ask it later. It takes one more DNS record, for <code>admin.</code> in front of your domain."],
     ["Add your moderators under Staff", "In Buzz, <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>: paste their npub, pick <b>moderator</b>, then choose <b>Add</b>. Being an admin isn't enough: Staff is a list of its own, which the owner manages."],
@@ -319,7 +332,10 @@ const fold = (title: string, html: string) => `<details class="fq-fold"><summary
 const PHONE_OPEN = ["Turn notifications on", "Pair a phone", "Test with the phone locked"];
 const PHONE_FOLDED = ["What Block and Apple see", "Android", "Run your own gateway"];
 const MOBILE =
-  rec("Turn notifications on and use Block's gateway with the App Store's Buzz app. You need no Apple developer account, no Apple push credentials and no gateway of your own.") +
+  rec("Notifications come through Block's gateway and the App Store's Buzz app, with no Apple developer account or gateway of your own. iPhones get them; Android doesn't yet.", [
+    [TEAM, "Turn them on, unless Block mustn't see your server's address or when your team's phones wake. Then leave them off, and people see new messages when they open Buzz."],
+    [OPEN, "Turn them on, so direct messages and mentions reach people's phones."],
+  ]) +
   note("Phones pair on every server setup except Kubernetes on a private network, which this guide doesn't cover yet. A local test can't pair phones.") +
   PUSH +
   // docs/research.md: Block's bundle notes name "the public gateway"; block/buzz#5206 is where self-hosters asked for it
@@ -346,7 +362,10 @@ const GROUPS: [string, Question[]][] = [
         icon: "users",
         q: "How should you add people?",
         a:
-          rec("Send an invite link that expires after a day, limited to the people you expect. To add someone without a link, add their npub on the server.") +
+          rec("Use invite links. A link lasts 30 days at most and Buzz can't cancel one early, so keep each link short-lived and limited. To add someone without a link, add their npub on the server.", [
+            [TEAM, "Send each person their own link, for one use, expiring after a day."],
+            [OPEN, `Set up <a href="#operations" data-q-link="moderate">moderation</a> first. Then post one link on your site or README with a use limit, and replace it when it fills or expires.`],
+          ]) +
           ct("add") +
           note(
             `Each person needs a key first (<a href="#operations" data-q-link="identity">how to get one</a>). With a link they join by themselves. To be added by npub they send it to you: the key script prints it, and Buzz shows it if they try to join before you add them.`,
@@ -362,7 +381,7 @@ const GROUPS: [string, Question[]][] = [
           note("Keep both open, unarchived and not forums. Give a private team channel another name, such as <code>team</code>.") +
           // links last 30 days at most (block/buzz crates/buzz-core/src/invite.rs); nothing revokes one (#8529 open)
           note(
-            `For a public project, once you've set up <a href="#operations" data-q-link="moderate">moderation</a>, post an invite link on your site or README with a use limit, and replace it when it fills or expires. A link lasts 30 days at most, and Buzz can't cancel one early. Banning the person who made a link cancels every link they made.`,
+            "To shut every link someone made, ban them: a ban cancels all their links.",
           ) +
           note(PRIVATE_PEOPLE),
       },
@@ -371,7 +390,10 @@ const GROUPS: [string, Question[]][] = [
         icon: "message-circle",
         q: "How should you welcome new members?",
         a:
-          rec("Make <code>welcome-everyone</code> a view-only welcome channel, with what a newcomer needs in one message, and keep <code>general</code> open for talk. Phones open <code>welcome-everyone</code> when someone joins.") +
+          rec("Phones open <code>welcome-everyone</code> when someone joins, so put what a newcomer needs there in one message, and keep <code>general</code> open for talk.", [
+            [TEAM, "One message is enough. Leave the channel open, so people can reply there."],
+            [OPEN, "Make <code>welcome-everyone</code> view-only, so the message isn't buried, and have an agent message each new member for a personal welcome."],
+          ]) +
           note("In the channel, choose <b>Manage members</b> at the top, then set <b>General access</b> to <b>View only</b>.") +
           VIEW_ONLY +
           note("People who join can read, and can't post or react. People already in it keep their role, so set it before you invite anyone.") +
@@ -385,7 +407,10 @@ const GROUPS: [string, Question[]][] = [
         icon: "crown",
         q: "How should you set up roles?",
         a:
-          rec("Make the person who runs Buzz the owner, and name at least two admins, so someone can always add or remove people.") +
+          rec("Make the person who runs Buzz the owner. Owners and admins can make invite links and remove members; members can't.", [
+            [TEAM, "Name at least two admins, so someone can always add or remove people."],
+            [OPEN, "Make admins only of people you trust to hand out invite links. For reports and bans, add moderators under Staff instead."],
+          ]) +
           ROLES +
           note(`Staff is the moderation screens' list, so it exists only on ${SCREENS_WHERE}. Elsewhere, the owner and admins ban from the command line: see <a href="#operations" data-q-link="moderate">How do you moderate?</a>`) +
           note("<b>Keep invitations to yourself?</b> Make no admins: members can't make invite links.") +
@@ -405,7 +430,10 @@ const GROUPS: [string, Question[]][] = [
         icon: "logout",
         q: "What do you do when someone leaves?",
         a:
-          rec("Run the same checklist on their last day.") +
+          rec("", [
+            [TEAM, "Run the checklist below on their last day: it covers Buzz, Tailscale, Staff, the server and the shared vault."],
+            [OPEN, "Someone who leaves on their own needs nothing from you. Ban someone you remove for cause: removing alone lets them back in with any live link."],
+          ]) +
           checklist([
             ["Remove them in Membership", "As below. It disconnects them and their agents. An invite link that hasn't expired still lets them back in."],
             ["Remove them from Tailscale", "And their devices.", "private network"],
@@ -430,7 +458,10 @@ const GROUPS: [string, Question[]][] = [
         icon: "key",
         q: "How should each person set up their identity?",
         a:
-          rec("One work identity per person, with its private key in that person's private vault in a team-approved password manager. Make the key with this guide's key script, so no copy goes to Block.") +
+          rec("Each person's private key is their identity in Buzz: whoever holds it can act as them.", [
+            [TEAM, "One work identity per person, made with this guide's key script so no copy goes to Block, and saved in that person's private vault in a team-approved password manager."],
+            [OPEN, "Members bring their own key. Suggest one made only for Buzz, saved in their own password manager."],
+          ]) +
           ct("identity") +
           KEYS +
           note("Never put a private key in a chat, an agent prompt, an issue or a screenshot.") +
@@ -486,7 +517,10 @@ const GROUPS: [string, Question[]][] = [
         icon: "shield",
         q: "Can you require two-factor sign-in?",
         a:
-          rec("Not in Buzz yet: a member signs in with their key alone. For a private team, put the relay on a private network whose login asks for a second factor. For an open community, keep anything sensitive out.") +
+          rec("Not in Buzz yet: a member signs in with their key alone.", [
+            [TEAM, "Put the relay on a private network whose login asks for a second factor."],
+            [OPEN, "Keep anything sensitive out."],
+          ]) +
           TWO_FACTOR +
           steps([
             ["Run the relay on a private network", `With <b>Private network</b> on in the setup. <a href="#guide" data-go-private>Set it up</a>.`],
@@ -505,7 +539,7 @@ const GROUPS: [string, Question[]][] = [
         id: "backup",
         icon: "archive",
         q: "How should you back up?",
-        a: (t) => rec("Back up at least once a week and before every upgrade, and keep an encrypted copy away from the server.") + taskHTML("backup", t),
+        a: (t) => rec("Back up before every upgrade and at least once a week, or daily if losing a day of messages would hurt. Keep an encrypted copy away from the server.") + taskHTML("backup", t),
       },
       {
         id: "restore",
@@ -550,7 +584,7 @@ const GROUPS: [string, Question[]][] = [
     [
       {
         id: "capacity", icon: "server", q: "What hardware and hosting do you need?",
-        a: rec("Start from a supported deployment family, then size storage and recovery for your actual use. A provider name alone does not change the Compose procedure.") +
+        a: rec("Start with the tested baseline: an x86 server with 4 GB of RAM and 20 GB of disk. Add disk as files and history grow. There are no tested numbers per member count yet.") +
           steps([
             ["VPS", "The guide's starting configuration is Ubuntu 24.04, x86, 4 GB RAM and at least 20 GB disk. This is a test baseline, not a user-count or throughput promise. Allow space for uploads, git, database growth, logs and backups. Budget for the domain, backups and egress too."],
             ["Your own hardware", "Allow for power failures, sleep, home upload bandwidth, off-site backups and network changes. Public access needs router control and reachable addressing; CGNAT can block it. Tailscale avoids inbound forwarding, but every device needs access to the network."],
@@ -560,7 +594,7 @@ const GROUPS: [string, Question[]][] = [
       },
       {
         id: "monitor", icon: "eye", q: "What should you monitor and maintain?",
-        a: rec("Name a primary and backup operator. Decide how much data you can lose and how long the community can be unavailable.") +
+        a: rec("Name two people who look after the server. Each week, check that it's reachable, has free disk, and has a recent backup off the server.") +
           checklist([
             ["Availability and capacity", "Check external reachability, database readiness, free disk and growth, resource saturation and certificate expiry. Keep internal metrics and administration ports private."],
             ["Recovery evidence", "Track the age of the last complete off-server backup and the last successful restore rehearsal. A filename or successful liveness check is not recovery evidence."],
@@ -582,7 +616,7 @@ const GROUPS: [string, Question[]][] = [
         id: "upgrade",
         icon: "upgrade",
         q: "How should you upgrade the relay?",
-        a: (t) => rec("Review routine upgrades about monthly, and assess security fixes promptly. Back up and verify app, relay and chart compatibility before changing versions.") + taskHTML("upgrade", t),
+        a: (t) => rec("Upgrade about once a month, and soon after a security fix. Back up first, and check that the new relay works with the Buzz app your members use.") + taskHTML("upgrade", t),
       },
       {
         id: "server",

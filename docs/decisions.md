@@ -426,6 +426,11 @@ Also 2026-11-23, from four mockups (`site/mockups/rec.html`), the owner picked B
 recommendation is a dark ink card with a chartreuse "Recommended" label, and a labeled rule,
 "How to do it" or "Details" (`HOW_TO` in faq.ts), marks where the details start.
 
+Also 2026-11-23: a recommendation that depends on the kind of community splits into labeled rows,
+"Private team" and "Open community" (the owner kept these two; an invite-only community meant to
+grow, like a project's public one, counts as open). Agents running split into "On a computer" and
+"On a server". Answers that state facts for everyone stay one line. `rec(lead, cases)` in faq.ts.
+
 No "we" (2026-11-23, the owner's rule): the site doesn't speak as "we", and its questions ask
 "How should you…" instead of "How should we…". The section's line reads "Recommended setups for
 people, keys, data and the server, and how to set them up." Prompts the reader pastes to an agent

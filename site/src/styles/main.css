@@ -1413,6 +1413,15 @@ h2 .hl svg { width: 19px; }
 .fq-rec b { display: block; font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
 .fq-rec p { margin: 6px 0 0; font-size: 17px; line-height: 1.5; letter-spacing: -0.01em; color: #f4f4ef; }
 .fq-rec code { color: #fff; background: rgb(255 255 255 / 12%); }
+/* the cases a recommendation splits into, each a labeled row */
+.fq-rec-s { display: grid; gap: 12px; margin: 14px 0 0; padding: 14px 0 0; border-top: 1px solid rgb(255 255 255 / 14%); }
+.fq-rec b + .fq-rec-s { margin-top: 10px; padding-top: 0; border-top: 0; }
+.fq-rec-s > div { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 16px; align-items: baseline; }
+.fq-rec-s dt { font: 600 10.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: rgb(255 255 255 / 62%); }
+.fq-rec-s dd { margin: 0; font-size: 16px; line-height: 1.5; color: #f4f4ef; }
+@media (max-width: 640px) {
+  .fq-rec-s > div { grid-template-columns: 1fr; gap: 4px; }
+}
 .fq-rec a { color: #fff; }
 .fq-split { display: flex; align-items: center; gap: 12px; margin: 28px 0 20px; font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
 .fq-split::after { content: ""; flex: 1; height: 1px; background: var(--line-2); }

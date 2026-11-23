@@ -261,8 +261,10 @@ channel for new members in both. Keep them unarchived, and give a private channe
 private `general` makes the phone add an open one beside it, and an archived channel or a forum with
 either name can stop the join. Pairing a phone from the desktop app doesn't run this.
 
-**A welcome channel.** Phones open `welcome-everyone` after joining, so it makes a good view-only
-welcome channel, with `general` left open for talk. In Buzz: the channel's Manage members, then
+**A welcome channel.** Phones open `welcome-everyone` after joining, so it makes a good welcome
+channel, with `general` left open for talk. For an open community, make it view-only so the welcome
+message isn't buried; a private team can leave it open, so people reply there. In Buzz: the
+channel's Manage members, then
 General access, View only, before anyone is invited (people already in it keep their role). People
 who join it can read, and can't post or react
 ([View only](https://github.com/block/buzz-app/blob/f315ef59b87160d23f5789f4e1458d753674cd8a/src/features/channels/general-access.ts#L34-L46)

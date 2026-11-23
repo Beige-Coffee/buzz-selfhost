@@ -37,7 +37,7 @@ const part = (id: string, title: string) => `<h4 class="ga-h" id="${id}">${title
 
 /** faq.ts's own pieces, so every answer looks alike: ct places one of its click-throughs of Buzz. */
 export interface AnswerKit {
-  rec: (t: string) => string;
+  rec: (t: string, cases?: [label: string, text: string][]) => string;
   note: (t: string) => string;
   ct: (name: string) => string;
 }
@@ -203,7 +203,10 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       icon: "bolt",
       q: "How do you keep an agent answering?",
       a: () =>
-        rec("Run the agent on a computer that stays on, with Buzz open there. An agent answers only while Buzz is open on its computer and that computer is awake.") +
+        rec("An agent answers only while it's running.", [
+          ["On a computer", "Keep Buzz open on a computer that stays on and awake. Buzz runs the agent there."],
+          ["On a server", `Use ${go("agent-remote", "the server setup")}: the agent runs without Buzz open, all day.`],
+        ]) +
         PLACES +
         part("agent-on-steps", "Set it up") +
         flow(skill.agents.stayOn) +
@@ -215,7 +218,10 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       icon: "shield",
       q: "How do you keep an agent safe?",
       a: () =>
-        rec("Treat an agent like a person at that computer, signed in as you. Give it a machine of its own, only the files it needs, and no secrets.") +
+        rec("Treat an agent like a person at that computer, signed in as you: it can reach whatever that account can.", [
+          ["Private team", "A machine of its own is best. On your own computer, give it only the files it needs and no secrets."],
+          ["Open community", "Always a separate computer with nothing private on it, not connected to your email, drives or code. Anyone who joins can post text meant to trick it."],
+        ]) +
         RISKS +
         note("Agents hosted by Builderlab, Block's service, run on Block's machines, where what they read is processed. They can't open your files, and by default one person's hosted agents share a cloud computer.") +
         // block/buzz-app v1.0.0: docs/agent-protection.md

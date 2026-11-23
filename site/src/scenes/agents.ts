@@ -167,7 +167,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       icon: "robot",
       q: "How should you run agents?",
       a: () =>
-        rec("Decide who the agent works for first. That settles where it runs, who can ask it for things, and which channels it belongs in.") +
+        rec("Start by deciding who the agent works for. That tells you where it should run, who can give it requests, and which channels it should join.") +
         WHO() +
         note("<b>One agent per audience.</b> An agent that reads a private channel can repeat it anywhere it posts, and Buzz doesn't stop that yet.") +
         // block/buzz 0.3.0 crates/buzz-relay/src/handlers/auth.rs: an agent with its owner's proof is admitted ViaOwner, not as a member
@@ -180,7 +180,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       icon: "message-circle",
       q: "What should you tell an agent?",
       a: () =>
-        rec("Write a few plain sentences in Instructions: what the agent is for, what it must ask you first, and how it reports back. Leave out how to behave in a channel. Buzz already tells every agent that.") +
+        rec("In the agent's Instructions, write a few plain sentences: what the agent is for, what it should check with you before doing, and how it should report back. You don't need to explain how to behave in a channel, because Buzz already tells every agent that.") +
         ct("agents") +
         INSTRUCTIONS() +
         note("Instructions shape how the agent answers. They don't give it tools, logins or permissions.") +
@@ -192,7 +192,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       icon: "brain",
       q: "Which harness and model should you pick?",
       a: () =>
-        rec("Pick the harness your team already has an account for and has approved. Leave Model and Thinking on their defaults until you have a reason to change them.") +
+        rec("Use the harness your team already has an account for and has approved. Keep Model and Thinking on their defaults until you have a reason to change them.") +
         HARNESS() +
         note("Block's README, help and support pages don't recommend one harness or model over another.") +
         note("An agent sends what it reads to its model's provider, such as Anthropic for Claude or OpenAI for Codex. Use one your team has approved, or a model on your own computer through Goose.") +
@@ -203,9 +203,9 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       icon: "bolt",
       q: "How do you keep an agent answering?",
       a: () =>
-        rec("An agent answers only while it's running.", [
-          ["On a computer", "Keep Buzz open on a computer that stays on and awake. Buzz runs the agent there."],
-          ["On a server", `Use ${go("agent-remote", "the server setup")}: the agent runs without Buzz open, all day.`],
+        rec("An agent only answers while it's running.", [
+          ["On a computer", "Keep Buzz open on a computer that stays on and doesn't go to sleep. Buzz runs the agent on that computer."],
+          ["On a server", `Follow ${go("agent-remote", "the server setup")}. The agent then runs all day without Buzz open.`],
         ]) +
         PLACES +
         part("agent-on-steps", "Set it up") +
@@ -218,9 +218,9 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       icon: "shield",
       q: "How do you keep an agent safe?",
       a: () =>
-        rec("Treat an agent like a person at that computer, signed in as you: it can reach whatever that account can.", [
-          ["Private team", "A machine of its own is best. On your own computer, give it only the files it needs and no secrets."],
-          ["Open community", "Always a separate computer with nothing private on it, not connected to your email, drives or code. Anyone who joins can post text meant to trick it."],
+        rec("An agent can do anything the account it runs under can do, like a person signed in as you.", [
+          ["Private team", "It's best to give the agent its own machine. If it runs on your computer, give it only the files it needs and keep secrets off it."],
+          ["Open community", "Always run it on a separate computer with nothing private on it, and don't connect it to your email, drives or code. Anyone who joins can post messages written to trick it."],
         ]) +
         RISKS +
         note("Agents hosted by Builderlab, Block's service, run on Block's machines, where what they read is processed. They can't open your files, and by default one person's hosted agents share a cloud computer.") +
@@ -233,7 +233,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       q: "How do you run an agent on your own server?",
       a: () =>
         `<p class="ga-status">${icon("alert")}Not built into Buzz yet</p>` +
-        rec("Your agent sets itself up from one prompt, then talks to you in Buzz. It keeps running on its own server, and you do three things:") +
+        rec("You give your agent one prompt, and it sets itself up and messages you in Buzz. It keeps running on its own server. You do three things:") +
         OVERVIEW +
         part("agent-remote-prompt", "The prompt") +
         PROMPT() +

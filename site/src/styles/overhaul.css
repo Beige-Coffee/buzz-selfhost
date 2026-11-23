@@ -580,8 +580,8 @@
 .fq-ok-comms em { padding: 3px 9px; border-radius: 99px; background: #f4f4f0; font-size: 12.5px; font-style: normal; }
 
 /* ═══ How should we welcome new members? A channel's General access, at View only ═══ */
-.fq-access { max-width: 440px; padding: 14px 16px; border-radius: 14px; background: #fff; border: 1px solid var(--line-2); font-size: 14px; }
-.fq-access .fq-acc-t { margin: 0 0 10px; font-size: 13px; font-weight: 600; }
+.fq-gaccess { max-width: 440px; padding: 14px 16px; border-radius: 14px; background: #fff; border: 1px solid var(--line-2); font-size: 14px; }
+.fq-gaccess .fq-acc-t { margin: 0 0 10px; font-size: 13px; font-weight: 600; }
 .fq-acc-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
 .fq-acc-i { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: #f4f4f0; }
 .fq-acc-i svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }

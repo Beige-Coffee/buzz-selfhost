@@ -1409,6 +1409,14 @@ h2 .hl svg { width: 19px; }
 .opx-flow-d code { font-size: 0.86em; }
 .opx-flow :is(.cmd-wrap, pre) { margin-top: 8px; }
 .opx-note { margin: 8px 0 0; padding-left: 12px; border-left: 2px solid var(--accent); font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+/* a red alert: a bug that breaks something, and what to do */
+.fq-alert { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 12px; margin: 16px 0 0; padding: 14px 16px; border: 1px solid #efc8c3; border-radius: 14px; background: #fcefed; font-size: 14.5px; line-height: 1.55; color: #5c1f1b; }
+.fq-alert > svg { width: 20px; height: 20px; margin-top: 1px; fill: none; stroke: #b3362e; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fq-alert p { margin: 0; }
+.fq-alert .fq-alert-h { margin-bottom: 3px; font-weight: 600; color: #7d231f; }
+.fq-alert code { background: rgb(255 255 255 / 70%); }
+.fq-alert a { color: inherit; }
+.fq-split + .fq-alert { margin-top: 0; }
 /* How should you add people?: the two starter channels, and why */
 .fq-chans { margin-top: 26px; }
 .fq-chans .ga-h { margin-top: 0; }

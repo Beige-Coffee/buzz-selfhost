@@ -114,9 +114,9 @@ const ROLES = `<div class="fq-vis"><table class="fq-roles">
 
 /** Moderating: in Buzz's screens where the relay can offer them, otherwise with the buzz command line. */
 const MODERATION =
-  rec("Ban rather than only remove: a ban keeps someone out, even with an invite link, and cuts off their agents.", [
-    [TEAM, "The owner or an admin handles the rare problem. Moderators are optional."],
-    [OPEN, `Set this up before you post a link. On ${SCREENS_WHERE}, turn on Buzz's moderation screens and add moderators under Staff, so reports get answered.`],
+  rec("Ban people instead of only removing them. A ban keeps them out even if they have an invite link, and it disconnects their agents too.", [
+    [TEAM, "The owner or an admin can deal with problems as they come up. You don't need moderators."],
+    [OPEN, `Set up moderation before you share an invite link. On ${SCREENS_WHERE}, turn on Buzz's moderation screens and add your moderators under Staff. They handle the reports members send.`],
   ]) +
   steps([
     ["Turn on the moderation screens", "Your agent offers this during setup, or ask it later. It takes one more DNS record, for <code>admin.</code> in front of your domain."],
@@ -154,13 +154,14 @@ const DOOR = (() => {
  * welcome-everyone doubles as the welcome channel. Starter channels come from invite claims
  * (block/buzz#8594), not from add-member on the server.
  */
+/** The phone join bug, in red wherever the two channels come up (block/buzz#9377, filed 2026-11-13). */
+const PHONE_JOIN = `<div class="fq-alert" role="note">${icon("alert")}<div><p class="fq-alert-h">Phones can fail to join</p><p>After someone joins with a link, Buzz on iPhone looks for open channels named exactly <code>general</code> and <code>welcome-everyone</code>. Create both before you invite anyone, and keep them open. An archived one or a forum can stop the join with "Starter channels could not be set up", and a missing one is created by the first phone that joins, so that person owns it. Tracked in <a href="https://github.com/block/buzz/issues/9377">block/buzz#9377</a>.</p></div></div>`;
+
 const CHANNELS = `<div class="fq-chans">
   <h4 class="ga-h">Before anyone joins: two starter channels</h4>
   <p class="fq-chans-p">Create open channels named exactly <code>general</code> and <code>welcome-everyone</code>, and turn on <b>Starter channel for new members</b> in each one's settings. Everyone who joins with a link lands in both.</p>
-  <ul class="fq-why">
-    <li><b>Phones need them.</b> Buzz on iPhone looks for both by name after someone joins. If one is missing, that person's phone creates it and owns it. If one is archived or a forum, the join can fail with "Starter channels could not be set up".</li>
-    <li><b>A welcome channel.</b> For an open community, make <code>welcome-everyone</code> view-only, so members read what you post there and can't reply. See <a href="#operations" data-q-link="welcome">How should you welcome new members?</a></li>
-  </ul>
+  ${PHONE_JOIN}
+  <p class="fq-chans-p"><b>It's also your welcome channel.</b> For an open community, make <code>welcome-everyone</code> view-only, so members read what you post there and can't reply. See <a href="#operations" data-q-link="welcome">How should you welcome new members?</a></p>
   ${STARTERS}
   <p class="fq-chans-p">People you add on the server don't join starter channels, so add them to the channels they need. Give a private team channel another name, such as <code>team</code>.</p>
 </div>`;
@@ -239,7 +240,7 @@ const ONE_KEY = `<div class="fq-vis fq-onekeys">
  * View only keeps the channel open and gives people who join the guest role, who can read but not post
  * or react (block/buzz 0.3.0 crates/buzz-core/src/channel.rs can_post).
  */
-const VIEW_ONLY = `<div class="fq-vis"><div class="fq-access"><p class="fq-acc-t">General</p>
+const VIEW_ONLY = `<div class="fq-vis"><div class="fq-gaccess"><p class="fq-acc-t">General</p>
   <div class="fq-acc-row"><span class="fq-acc-i">${icon("eye")}</span><div><b>Anyone in the community</b><span>New people can only view.</span></div><em>View only ▾</em></div>
   <div class="fq-acc-menu">
     <div class="fq-radio"><i></i><div><b>Public</b><span>Anyone in the community can participate.</span></div></div>
@@ -349,9 +350,9 @@ const fold = (title: string, html: string) => `<details class="fq-fold"><summary
 const PHONE_OPEN = ["Turn notifications on", "Pair a phone", "Test with the phone locked"];
 const PHONE_FOLDED = ["What Block and Apple see", "Android", "Run your own gateway"];
 const MOBILE =
-  rec("Notifications come through Block's gateway and the App Store's Buzz app, with no Apple developer account or gateway of your own. iPhones get them; Android doesn't yet.", [
-    [TEAM, "Turn them on, unless Block mustn't see your server's address or when your team's phones wake. Then leave them off, and people see new messages when they open Buzz."],
-    [OPEN, "Turn them on, so direct messages and mentions reach people's phones."],
+  rec("Buzz sends notifications through Block's push gateway to the Buzz app from the App Store. You don't need an Apple developer account or a gateway of your own. Notifications work on iPhone, but not on Android yet.", [
+    [TEAM, "Turn notifications on, unless Block can't be allowed to see your server's address and when your team's phones get notifications. If you leave them off, people see new messages the next time they open Buzz."],
+    [OPEN, "Turn notifications on. Members then get a notification on their phone for direct messages and mentions."],
   ]) +
   note("Phones pair on every server setup except Kubernetes on a private network, which this guide doesn't cover yet. A local test can't pair phones.") +
   PUSH +
@@ -379,9 +380,9 @@ const GROUPS: [string, Question[]][] = [
         icon: "users",
         q: "How should you add people?",
         a:
-          rec("Use invite links. A link lasts 30 days at most and Buzz can't cancel one early, so keep each link short-lived and limited. To add someone without a link, add their npub on the server.", [
-            [TEAM, "Send each person their own link, for one use, expiring after a day."],
-            [OPEN, `Set up <a href="#operations" data-q-link="moderate">moderation</a> first. Then post one link on your site or README with a use limit, and replace it when it fills or expires.`],
+          rec("Invite people with invite links. A link lasts at most 30 days, and Buzz can't cancel a single link early, so keep links short and limit how many people can use each one. You can also add someone by their npub on the server, without a link.", [
+            [TEAM, "Send each person their own link, set to one use and to expire after a day."],
+            [OPEN, `Set up <a href="#operations" data-q-link="moderate">moderation</a> first. Then share one link on your website or README with a use limit, and make a new one when it fills up or expires.`],
           ]) +
           ct("add") +
           CHANNELS +
@@ -398,16 +399,16 @@ const GROUPS: [string, Question[]][] = [
         icon: "message-circle",
         q: "How should you welcome new members?",
         a:
-          rec("Phones open <code>welcome-everyone</code> when someone joins, so put what a newcomer needs there in one message, and keep <code>general</code> open for talk.", [
-            [TEAM, "One message is enough. Leave the channel open, so people can reply there."],
-            [OPEN, "Make <code>welcome-everyone</code> view-only, so the message isn't buried, and have an agent message each new member for a personal welcome."],
+          rec("When someone joins from a phone, Buzz opens <code>welcome-everyone</code> first. Post what a new member needs to know there in one message, and keep <code>general</code> open for conversation.", [
+            [TEAM, "One welcome message is usually enough. Leave the channel open so people can reply and ask questions."],
+            [OPEN, "Make <code>welcome-everyone</code> view-only so your message doesn't get buried under replies, and have an agent send each new member a personal welcome."],
           ]) +
+          PHONE_JOIN +
           note("In the channel, choose <b>Manage members</b> at the top, then set <b>General access</b> to <b>View only</b>.") +
           VIEW_ONLY +
           note("People who join can read, and can't post or react. People already in it keep their role, so set it before you invite anyone.") +
           // block/buzz 0.3.0 crates/buzz-workflow/src/schema.rs TriggerDef: message_posted, reaction_added, diff_posted, schedule, webhook
-          note("Buzz can't greet people by itself: workflows have no trigger for someone joining. For a personal welcome, have an agent watch for new members and message each one.") +
-          note(`Both channels need those exact names, for phones: see <a href="#operations" data-q-link="add">How should you add people?</a>`),
+          note("Buzz can't greet people by itself: workflows have no trigger for someone joining. For a personal welcome, have an agent watch for new members and message each one."),
       },
       { id: "notifications", icon: "device-mobile", q: "How do phones and notifications work?", a: MOBILE },
       {
@@ -415,9 +416,9 @@ const GROUPS: [string, Question[]][] = [
         icon: "crown",
         q: "How should you set up roles?",
         a:
-          rec("Make the person who runs Buzz the owner. Owners and admins can make invite links and remove members; members can't.", [
-            [TEAM, "Name at least two admins, so someone can always add or remove people."],
-            [OPEN, "Make admins only of people you trust to hand out invite links. For reports and bans, add moderators under Staff instead."],
+          rec("Make the person who runs the server the owner. Owners and admins can create invite links and remove members. Regular members can't.", [
+            [TEAM, "Choose at least two admins, so someone is always around to add or remove people."],
+            [OPEN, "Only make someone an admin if you trust them to hand out invite links. Add the people who handle reports and bans as moderators under Staff instead."],
           ]) +
           ROLES +
           note(`Staff is the moderation screens' list, so it exists only on ${SCREENS_WHERE}. Elsewhere, the owner and admins ban from the command line: see <a href="#operations" data-q-link="moderate">How do you moderate?</a>`) +
@@ -439,8 +440,8 @@ const GROUPS: [string, Question[]][] = [
         q: "What do you do when someone leaves?",
         a:
           rec("", [
-            [TEAM, "Run the checklist below on their last day: it covers Buzz, Tailscale, Staff, the server and the shared vault."],
-            [OPEN, "Someone who leaves on their own needs nothing from you. Ban someone you remove for cause: removing alone lets them back in with any live link."],
+            [TEAM, "On their last day, go through the checklist below. It covers Buzz, Tailscale, Staff, the server and the shared vault."],
+            [OPEN, "If someone leaves on their own, you don't need to do anything. If you remove someone for cause, ban them too, because removing them alone lets them rejoin with any invite link that's still active."],
           ]) +
           checklist([
             ["Remove them in Membership", "As below. It disconnects them and their agents. An invite link that hasn't expired still lets them back in."],
@@ -466,9 +467,9 @@ const GROUPS: [string, Question[]][] = [
         icon: "key",
         q: "How should each person set up their identity?",
         a:
-          rec("Each person's private key is their identity in Buzz: whoever holds it can act as them.", [
-            [TEAM, "One work identity per person, made with this guide's key script so no copy goes to Block, and saved in that person's private vault in a team-approved password manager."],
-            [OPEN, "Members bring their own key. Suggest one made only for Buzz, saved in their own password manager."],
+          rec("Each person has a private key, and that key is their identity in Buzz. Anyone who has the key can act as that person.", [
+            [TEAM, "Give each person one work identity. Make the key with this guide's key script so Block never gets a copy, and have each person save it in their own vault in a password manager your team approves."],
+            [OPEN, "Members bring their own key. Suggest they make one only for Buzz and save it in their password manager."],
           ]) +
           ct("identity") +
           KEYS +
@@ -480,7 +481,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "user",
         q: "Can someone use a different identity in each community?",
         a:
-          rec("No: Buzz on desktop uses one key in every community you join. Pick the identity you'll use for Buzz before joining. For one kept apart, use a second user account on your computer, or another device.") +
+          rec("No. Buzz on desktop uses the same key for every community you join, so decide which identity to use for Buzz before you join. To keep a separate identity, use a second user account on your computer or a different device.") +
           ONE_KEY +
           note("Signing out to switch isn't an answer: removing the key takes every community off that computer until you sign in with it again.") +
           note("A key made for Buzz with this guide's key script works in every community, and keeps your other Nostr identity out of it."),
@@ -490,7 +491,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "device-mobile",
         q: "What do you do when a laptop or phone is lost?",
         a:
-          rec("First decide whether the key is exposed. If anyone could get into the device, retire the key for a new identity, even if a copy was saved.") +
+          rec("First, decide whether the key could be exposed. If anyone could get into the device, stop using that key and make a new identity, even if you saved a copy of the old one.") +
           CASES +
           ct("lost") +
           note("Buzz can't cut off one device: the key is the identity, so retiring it means a new one. What the old key wrote stays under its name."),
@@ -501,7 +502,7 @@ const GROUPS: [string, Question[]][] = [
         q: "What if a key leaks?",
         a:
           rec(
-            `Have a leaked person's key banned in every community it belongs to, then give them a new identity. If the relay key leaked, treat the server as exposed, and ask in block/buzz before replacing it: a new key orphans your channels today (<a href="https://github.com/block/buzz/issues/7357">block/buzz#7357</a>).`,
+            `If a person's key leaks, have it banned in every community it belongs to, and give them a new identity. If the relay key leaks, treat the whole server as exposed. Ask in block/buzz before you replace that key, because a new relay key currently orphans your existing channels (<a href="https://github.com/block/buzz/issues/7357">block/buzz#7357</a>).`,
           ) +
           LANES +
           note("The old key still works in any other community that person joined, since a Buzz identity isn't tied to one community."),
@@ -511,7 +512,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "lock",
         q: "Can you use single sign-on?",
         a:
-          rec("Not on your own relay yet: everyone signs in with their own key. The next best thing is a private network, where your company login decides who can reach the relay at all.") +
+          rec("Not yet. On your own relay, everyone signs in with their own key. The closest option is a private network, where your company login controls who can reach the relay at all.") +
           `<div class="fq-status"><span class="fq-status-k">${icon("bolt")}In progress in Buzz</span><p>Buzz has company sign-in on a draft standard, <a href="https://github.com/block/buzz/blob/main/docs/nips/NIP-FI.md">NIP-FI</a>: your identity provider vouches for each person's key. The relay supports it behind a setting that's off by default. The app Block publishes uses it only with Block's own sign-in service, for communities Block hosts; another company's sign-in needs a build of the app made for it. So a self-hosted community can't turn it on yet.</p></div>` +
           LOCKS +
           steps([
@@ -525,9 +526,9 @@ const GROUPS: [string, Question[]][] = [
         icon: "shield",
         q: "Can you require two-factor sign-in?",
         a:
-          rec("Not in Buzz yet: a member signs in with their key alone.", [
-            [TEAM, "Put the relay on a private network whose login asks for a second factor."],
-            [OPEN, "Keep anything sensitive out."],
+          rec("Not yet. In Buzz, members sign in with their key only.", [
+            [TEAM, "Put the relay on a private network that asks for a second factor when people sign in."],
+            [OPEN, "Don't share anything sensitive in the community."],
           ]) +
           TWO_FACTOR +
           steps([
@@ -547,14 +548,14 @@ const GROUPS: [string, Question[]][] = [
         id: "backup",
         icon: "archive",
         q: "How should you back up?",
-        a: (t) => rec("Back up before every upgrade and at least once a week, or daily if losing a day of messages would hurt. Keep an encrypted copy away from the server.") + taskHTML("backup", t),
+        a: (t) => rec("Back up before every upgrade and at least once a week. Back up daily if losing a day of messages would be a problem. Keep an encrypted copy somewhere other than the server.") + taskHTML("backup", t),
       },
       {
         id: "restore",
         icon: "restore",
         q: "How do you restore a backup?",
         a: (t) =>
-          rec("Restore the newest verified complete backup and keep the relay's address: members' apps then reconnect by themselves. Anything from after the backup is lost.") +
+          rec("Restore the most recent backup you've checked is complete, and keep the relay's address the same. Members' apps then reconnect on their own. Anything posted after that backup is lost.") +
           taskHTML("restore", t),
       },
       {
@@ -562,7 +563,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "eye",
         q: "Who can read your messages?",
         a:
-          rec("Anyone with access to the server, its database or its backups can read every message, direct messages included. Protect the server the way you'd protect the messages.") +
+          rec("Anyone who can get into the server, its database or its backups can read every message, including direct messages. Protect the server as carefully as you would the messages on it.") +
           READ +
           note(
             `Keep server access small, turn on your provider's disk encryption, encrypt backups, and consider a private network, where the relay has no public address. Phone notifications carry no message text, but Block's gateway sees your relay's public key, your server's IP address and when it wakes which phone: see <a href="#operations" data-q-link="block">What still depends on Block?</a>`,
@@ -579,7 +580,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "list",
         q: "How do you keep a record of who did what?",
         a:
-          rec("Keep the relay's audit log on, back it up with the database, and keep your hosting provider's access logs.") +
+          rec("Keep the relay's audit log turned on, include it in your database backups, and keep your hosting provider's access logs.") +
           LEDGER +
           note(
             "The audit log is on by default. It records each message, change and upload with who made it, and chains each entry to the last, so a damaged or edited entry shows. Sign-ins aren't in it. Someone who can write to the database could rewrite the chain, so keep copies with your backups, off the server. Buzz has no screen for it yet: whoever runs the server reads it from the database.",
@@ -592,7 +593,7 @@ const GROUPS: [string, Question[]][] = [
     [
       {
         id: "capacity", icon: "server", q: "What hardware and hosting do you need?",
-        a: rec("Start with the tested baseline: an x86 server with 4 GB of RAM and 20 GB of disk. Add disk as files and history grow. There are no tested numbers per member count yet.") +
+        a: rec("Start with what this guide was tested on: an x86 server with 4 GB of RAM and 20 GB of disk. Add disk space as files and message history grow. There are no tested numbers yet for how many members a server can handle.") +
           steps([
             ["VPS", "The guide's starting configuration is Ubuntu 24.04, x86, 4 GB RAM and at least 20 GB disk. This is a test baseline, not a user-count or throughput promise. Allow space for uploads, git, database growth, logs and backups. Budget for the domain, backups and egress too."],
             ["Your own hardware", "Allow for power failures, sleep, home upload bandwidth, off-site backups and network changes. Public access needs router control and reachable addressing; CGNAT can block it. Tailscale avoids inbound forwarding, but every device needs access to the network."],
@@ -602,7 +603,7 @@ const GROUPS: [string, Question[]][] = [
       },
       {
         id: "monitor", icon: "eye", q: "What should you monitor and maintain?",
-        a: rec("Name two people who look after the server. Each week, check that it's reachable, has free disk, and has a recent backup off the server.") +
+        a: rec("Pick two people to look after the server. Once a week, check that it's reachable, has free disk space, and has a recent backup stored somewhere else.") +
           checklist([
             ["Availability and capacity", "Check external reachability, database readiness, free disk and growth, resource saturation and certificate expiry. Keep internal metrics and administration ports private."],
             ["Recovery evidence", "Track the age of the last complete off-server backup and the last successful restore rehearsal. A filename or successful liveness check is not recovery evidence."],
@@ -612,7 +613,7 @@ const GROUPS: [string, Question[]][] = [
       },
       {
         id: "move", icon: "restore", q: "Can you move or retire the community?",
-        a: rec("Choose the permanent address before your first real install. Moving the machine and changing the community address are different operations.") +
+        a: rec("Pick the community's permanent address before your first real install. You can move the relay to a new machine later, but changing the address starts a new community.") +
           steps([
             ["Move a public server", "Preserve the community URL and relay key, restore all stores and configuration together, and move DNS as the recovery procedure describes. Rehearse before relying on this."],
             ["Change the address or leave hosted Buzz", "Do not edit RELAY_URL as a migration shortcut: this guide's relay identifies the community from that URL. A new URL creates a different community. This guide does not provide a validated hosted-to-self-hosted history migration, or a private-network move to a new machine name."],
@@ -624,14 +625,14 @@ const GROUPS: [string, Question[]][] = [
         id: "upgrade",
         icon: "upgrade",
         q: "How should you upgrade the relay?",
-        a: (t) => rec("Upgrade about once a month, and soon after a security fix. Back up first, and check that the new relay works with the Buzz app your members use.") + taskHTML("upgrade", t),
+        a: (t) => rec("Upgrade about once a month, and soon after any security fix. Back up first, and check that the new relay version works with the Buzz app your members use.") + taskHTML("upgrade", t),
       },
       {
         id: "server",
         icon: "terminal-2",
         q: "Who should have access to the server?",
         a:
-          rec("Two or three people: whoever runs Buzz and a backup, each with a personal SSH key and two-factor sign-in on the hosting account.") +
+          rec("Two or three people: the person who runs Buzz and a backup. Each should have their own SSH key and two-factor sign-in on the hosting account.") +
           ACCESS +
           note("No shared passwords or shared keys. Whoever can log in can read every message, direct messages included, so remove a person's key the day they leave."),
       },
@@ -640,7 +641,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "key",
         q: "Where should you keep the relay key?",
         a:
-          rec("On the server, plus one copy in a shared vault that only the server's people can open.") +
+          rec("Keep it on the server, plus one copy in a shared vault that only the people who run the server can open.") +
           KEY_HOME +
           note(`A <a href="#operations" data-q-link="backup">backup</a> includes <code>.env</code>. On Kubernetes the key is in a Secret.`),
       },
@@ -649,7 +650,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "link",
         q: "What still depends on Block?",
         a:
-          rec("Your relay runs without Block, but the apps, iPhone notifications and Builderlab accounts come from Block. Make keys with this guide's key script, and turn notifications off if Block mustn't see when your team's phones wake.") +
+          rec("Your relay runs without Block, but the Buzz apps, iPhone notifications and Builderlab accounts all come from Block. Make keys with this guide's key script, and turn notifications off if you don't want Block to see when your team's phones get them.") +
           DEPS +
           note("If Block stopped, your relay would keep running, without app updates or phone notifications."),
       },

@@ -12,7 +12,8 @@ import { SVG_DEFS } from "../src/defs";
 import { peopleFlows, type Flow } from "../src/scenes/members";
 import { identityFlows, lostFlows, pairFlows } from "../src/scenes/identity";
 import { agentFlows, harnessFlows, remoteFlows } from "../src/scenes/agentflow";
-import { moderationFlows } from "../src/scenes/moderation";
+import { leakFlows, moderationFlows } from "../src/scenes/moderation";
+import { pluginFlows } from "../src/scenes/plugins";
 
 document.body.insertAdjacentHTML("afterbegin", SVG_DEFS);
 const sets: [string, Flow[]][] = [
@@ -23,6 +24,8 @@ const sets: [string, Flow[]][] = [
   ["agents", agentFlows],
   ["harness", harnessFlows],
   ["moderate", moderationFlows],
+  ["leak", leakFlows],
+  ["plugin", pluginFlows],
   ["remote", remoteFlows],
 ];
 document.querySelector(".fr-page")!.innerHTML = sets

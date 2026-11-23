@@ -63,7 +63,7 @@ const kind = (title: string, cells: string[], link: string) =>
   `<div class="ga-kind"><p class="ga-kind-h">${title}</p><dl>${cells.map((c, n) => `<div><dt>${KIND_ROWS[n]}</dt><dd>${c}</dd></div>`).join("")}</dl>${link}</div>`;
 const COMMUNITIES = () => `<div class="fq-vis ga-who">
   <div class="ga-who-c"><p class="ga-who-h"><i>${icon("users")}</i><span>Private team<small>Only people you invite can post.</small></span></p>
-    ${kind("An agent for you", ["Buzz, on a computer that stays on", "Your team's channels, and only the files and logins its job needs", "Through your membership"], go("agent-on", "Keep it answering →"))}
+    ${kind("An agent for you", ["Buzz, on a computer that stays on", "Your team's channels, and only the files and logins its job needs", "Through your membership"], go("agent-on", "Keep it online →"))}
     ${kind("An agent for your team", ["A server of its own", "Only what everyone on the team may see", "Your ownership proof. It answers the teammates you list."], go("agent-remote", "Run one on your server →"))}
   </div>
   <div class="ga-who-c open"><p class="ga-who-h"><i>${icon("world")}</i><span>Open community<small>Anyone who joins can post.</small></span></p>
@@ -92,6 +92,24 @@ const INSTRUCTIONS = () => `<div class="fq-vis ga-ins-vis">
 
 /* ── Which harness and model should you pick? ── */
 
+/**
+ * A harness from a plugin (block/buzz-app docs/plugin-authoring-guide.md and plugin-architecture.md: harness
+ * plugins register an agent type with ctx.agents.register; Add a plugin loads a built plugin, manifest.json and
+ * plugin.js, from a folder or a Git repository). Maple's plugin is the example the owner picked (2026-11-23):
+ * github.com/MaplePrivacyLabs/buzz-maple-plugin, whose README calls it an experimental proof of concept.
+ */
+const PLUGIN = () => `<p class="ga-p">A harness plugin teaches Buzz to run another agent program. Anyone can build one. Buzz loads a built plugin, a folder with <code>manifest.json</code> and <code>plugin.js</code>, from your computer or from a Git repository. It doesn't build source code or run install scripts. <a href="https://github.com/block/buzz-app/blob/main/docs/plugin-authoring-guide.md">Buzz's plugin guide</a> shows how to write one, and a harness plugin registers its agent type with Buzz. Buzz's harness API for plugins is still a preview.</p>`;
+const MAPLE = `<div class="fq-vis ga-maple">
+  <div class="ga-who-c"><p class="ga-who-h"><span>For example: Maple<small><a href="https://github.com/MaplePrivacyLabs/buzz-maple-plugin">MaplePrivacyLabs/buzz-maple-plugin</a></small></span></p>
+    <dl>
+      <div><dt>What it adds</dt><dd>Maple Work, Maple's agent, as a harness. An agent you create with the Maple harness runs on Maple.</dd></div>
+      <div><dt>What you need</dt><dd>Maple Work installed and signed in on the same computer as Buzz. Buzz has to find the <code>maple-agent</code> command, and Maple's README shows how to link it on a Mac.</dd></div>
+      <div><dt>How to add it</dt><dd>Paste the repository's address in <b>Add a plugin</b>, as the click-through shows. Then create an agent and pick the <b>Maple</b> harness.</dd></div>
+      <div><dt>How ready it is</dt><dd>Maple calls it an experimental proof of concept. Maple checked it with Buzz 1.0.3 on macOS, and with Buzz 1.0.0 and 1.0.1 on Linux.</dd></div>
+    </dl>
+  </div>
+</div>`;
+
 /** The skill's harness table, as a card for each harness: what it needs, where it signs in, where it runs. */
 const HARNESS = () => `<div class="fq-vis ga-har">${skill.agents.harness
   .map(([h, need, where, on]) => `<div class="ga-who-c"><p class="ga-who-h"><span>${h}<small>${on}</small></span></p><dl><div><dt>What you need</dt><dd>${need}</dd></div><div><dt>Where you sign in</dt><dd>${where}</dd></div></dl></div>`)
@@ -108,7 +126,7 @@ const ACCOUNTS = `<div class="fq-vis"><ul class="fq-check">${[
   acct("device-desktop", "A model on your own computer", "To keep what the agent reads off any provider's servers, use Goose with a model on your own computer through Ollama. The model has to support tool calling."),
 ].join("")}</ul></div>`;
 
-/* ── How do you keep an agent answering? ── */
+/* ── How do you keep an agent always online? ── */
 
 const chip = (t: string, cls = "") => `<span class="ga-chip${cls}">${t}</span>`;
 const place = (i: string, title: string, text: string, chips: string, pick = false) =>
@@ -198,7 +216,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
         // block/buzz 0.3.0 crates/buzz-relay/src/handlers/auth.rs: an agent with its owner's proof is admitted ViaOwner, not as a member
         note("<b>Your own agents don't appear in Membership.</b> An agent that gets in through its owner uses the owner's membership. It has no membership of its own. The member list doesn't show it.") +
         // block/buzz-app v1.0.5, src/features/agents/owner-attestation.ts: only the owner's messages start an agent's work
-        note(`An agent you make in Buzz answers only you. A helper that other people can ask has to be a program you run yourself, such as ${go("agent-remote", "an agent on your own server")}. Buzz has no built-in helper like that yet. Next, read ${go("agent-brief", "what to tell an agent")} and ${go("agent-model", "which harness and model to pick")}.`),
+        note(`An agent you make in Buzz answers only you. A helper that other people can ask has to be a program you run yourself, such as ${go("agent-remote", "an agent on your own server")}. Buzz has no built-in helper like that yet. Next, read ${go("agent-brief", "what to tell an agent")} and ${go("agent-model", "your choices for a harness")}.`),
     },
     {
       id: "agent-brief",
@@ -217,17 +235,22 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
     {
       id: "agent-model",
       icon: "brain",
-      q: "Which harness and model should you pick?",
+      q: "What are your choices for a harness?",
       a: () =>
-        rec("Start from the account you already have. Each harness signs in its own way, and the agent sends what it reads to that harness's provider.", [
+        rec("Buzz comes with four harnesses: Codex, Claude, Goose and Pi. A plugin can add another, such as Maple's. Start from an account you already have, because each harness signs in its own way, and the agent sends what it reads to that harness's provider.", [
           ["Private team", "Use your company's business plan, such as ChatGPT Business or Enterprise, or an API key from your company's account. Those don't train on your data by default. For a helper the whole team can ask, use an API key with a spending limit."],
           ["Open community", "For your own agents, a plan you already pay for works, such as ChatGPT Plus with Codex. For a helper that answers everyone, use an API key with a spending limit, because a personal plan is for its owner's own use."],
         ]) +
         HARNESS() +
         part("agent-model-signin", "Sign in to a harness") +
         ct("harness") +
+        part("agent-model-plugin", "Add a harness with a plugin") +
+        PLUGIN() +
+        ct("plugin") +
+        MAPLE +
         part("agent-model-account", "Which account to use") +
         ACCOUNTS +
+        note("A plugin runs as code on your computer, with no sandbox. Install only plugins you trust, and read what Buzz says the plugin is allowed to do before you install it.") +
         note("A Claude agent's commands can read its API key, because Buzz hands the key to Claude Code. Give it a key of its own with a spending limit.") +
         note("You pick each agent's harness in Create agent, or later on the agent's Identity tab. Leave Model and Thinking on their defaults until you have a reason to change them. A higher Thinking level takes longer and uses more of your limit or budget.") +
         note("Block doesn't recommend one harness or model over another in its README or its help and support pages."),
@@ -235,7 +258,7 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
     {
       id: "agent-on",
       icon: "bolt",
-      q: "How do you keep an agent answering?",
+      q: "How do you keep an agent always online?",
       a: () =>
         rec("An agent only answers while it's running.", [
           ["On a computer", "Keep Buzz open on a computer that stays on and doesn't go to sleep. Buzz runs the agent on that computer."],

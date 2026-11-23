@@ -12,9 +12,9 @@ const HOST = "buzz.yourteam.org";
 const ADMIN = `admin.${HOST}`;
 type Open = "Reports" | "Communities" | "Staff";
 
-const item = (icon: string, label: string, open: Open) => `<p class="mb-nav-i${label === open ? " on" : ""}">${icon}${label}</p>`;
-/** Settings' column scrolled to its end, where Moderation sits under Plugins. */
-const nav = (open: Open) => `<nav class="mb-nav-col md-nav">
+const item = (icon: string, label: string, open: string) => `<p class="mb-nav-i${label === open ? " on" : ""}">${icon}${label}</p>`;
+/** Settings' column scrolled to its end: Plugins, then Moderation for relay staff. */
+export const bottomNav = (open: string, moderation = true) => `<nav class="mb-nav-col md-nav">
   <p class="mb-nav-g">Plugins</p>
   ${item(ti("layout-grid"), "Manage plugins", open)}
   ${item(MK_BL, "Builderlab", open)}
@@ -22,12 +22,13 @@ const nav = (open: Open) => `<nav class="mb-nav-col md-nav">
   ${item(ti("brand-github"), "GitHub", open)}
   ${item(ti("terminal-2"), "Terminal", open)}
   ${item(ti("chart-bar"), "Usage", open)}
-  <p class="mb-nav-g">Moderation</p>
+  ${moderation ? `<p class="mb-nav-g">Moderation</p>
   ${item(ti("flag"), "Reports", open)}
   ${item(ti("message-circle"), "Feedback", open)}
   ${item(ti("world"), "Communities", open)}
-  ${item(ti("shield"), "Staff", open)}
+  ${item(ti("shield"), "Staff", open)}` : ""}
 </nav>`;
+const nav = (open: Open) => bottomNav(open);
 
 const head = (title: string, sub: string) => `<div class="md-head"><div><h5>${title}</h5><p class="mb-sub">${sub}</p></div><span class="mb-btn">Check again</span></div>
   <p class="md-ok">${ti("circle-check")}Connected as operator</p>`;
@@ -85,6 +86,18 @@ export const moderationFlows: Flow[] = [
     label: "Add a moderator",
     steps: [
       { k: "Add them under Staff", t: "Under <b>Moderation</b>, choose <b>Staff</b>. Paste the person's npub, keep <b>moderator</b> and choose <b>Add</b>. The owner shows as the first operator. Only operators can add or remove staff.", frame: settingsModal(nav("Staff"), staff) },
+    ],
+  },
+];
+
+/** What if a key leaks?: banning a person's leaked key from Buzz's own screens. */
+export const leakFlows: Flow[] = [
+  {
+    id: "leak",
+    label: "Ban a leaked key",
+    steps: [
+      { k: "Open your community", t: "In Buzz, open <b>Settings</b> and scroll to <b>Moderation</b>. Choose <b>Communities</b>, then your community. Only the owner and staff see Moderation.", frame: settingsModal(nav("Communities"), communities) },
+      { k: "Ban the old key", t: "Choose <b>Actions</b> and keep <b>Ban member</b>. Paste the leaked key's npub under <b>Member</b>. Choose <b>Review</b>, check what Buzz will do, then choose <b>Confirm</b>. The ban keeps that key out even with a live invite link, and it cancels every link the key made.", frame: settingsModal(nav("Communities"), actions) },
     ],
   },
 ];

@@ -6,9 +6,9 @@ import { ICONS } from "./agent";
 import { PICK } from "./panel";
 
 /**
- * The three answers that depend on the setup (faq.ts), each with a menu that picks it: backing up and
- * restoring are operations.md's commands, to run yourself; upgrading is a prompt for your agent, its
- * commands folded. The other answers say what differs in a sentence, so they hold for every setup.
+ * The three answers that depend on the setup (faq.ts), each with a menu that picks it: an overview, a
+ * prompt for your agent, and operations.md's commands folded underneath to run yourself. The other
+ * answers say what differs in a sentence, so they hold for every setup.
  */
 
 const svg = (d: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -57,8 +57,23 @@ function setupSwitchHTML(track: Track): string {
 }
 
 /**
- * Backing up, restoring or upgrading one setup: why, then numbered steps with the skill's own commands
- * (backing up and restoring), or a prompt for your agent with its commands folded (upgrading).
+ * What a backup holds and where it goes, for every setup: the server's data, one folder, an encrypted copy
+ * off the server (operations.md's backup step).
+ */
+const box = (head: string, lines: string[], cls = "") =>
+  `<div class="fq-card${cls}"><p class="fq-card-h">${head}</p>${lines.map((l) => `<p class="opx-bk-l">${l}</p>`).join("")}</div>`;
+const BACKUP_VIS = `<div class="fq-vis fq-keyhome opx-bk">
+  ${box(`${SERVER}Your server`, ["The database: messages, members and channels", "Uploaded files", "Git repositories", "The relay's settings, with its key and passwords"])}
+  <span class="fq-arrow">copy</span>
+  ${box("One backup folder", ["<code>~/buzz-backup/2026-11-23</code>", "<span class=\"fq-dim\">One folder for each backup</span>"], " dark")}
+  <span class="fq-arrow">encrypt</span>
+  ${box("Off the server", ["Your computer, or storage you control", "<span class=\"fq-dim\">Keep at least one copy here</span>"])}
+</div>`;
+
+/**
+ * Backing up, restoring or upgrading one setup (owner's ask of 2026-11-23): a short overview, then a prompt
+ * for your agent, with the steps to do it yourself folded underneath. A setup the skill has no steps for
+ * gets only the overview.
  */
 export function taskHTML(task: OpTask, track: Track): string {
   const d = OP_DETAILS[opSetup(track)][task];
@@ -70,25 +85,24 @@ export function taskHTML(task: OpTask, track: Track): string {
       : task === "restore" && isPrivate(track) && opSetup(track) === "compose"
         ? `<p class="opx-note">${PRIVATE_MOVE}</p>`
         : "";
-  const why = `${setupSwitchHTML(track)}<p class="opx-why">${d.why}</p>${note}`;
+  const why = `${setupSwitchHTML(track)}<p class="opx-why">${d.why}</p>${task === "backup" ? BACKUP_VIS : ""}`;
+  if (d.manual) return `${why}${note}`;
+  const prompt = `<div class="mode-agent">
+      <div class="ag-prompt opx-prompt">
+        <p class="ag-prompt-text">${promptHTML(track, task)}</p>
+        <div class="opx-foot"><button type="button" class="ag-copy" data-task="${task}">Copy prompt</button></div>
+      </div>
+      ${d.steps ? `<p class="opx-k">What happens</p>${stepsHTML(d.steps)}` : ""}
+    </div>`;
   const flow = task === "backup" || task === "restore" ? OP_FLOWS[opSetup(track)][task] : undefined;
-  if (flow && !d.manual) {
+  let byHand = commands;
+  if (flow) {
     const blocks = ops.flatMap((o) => o.html.match(/<pre[\s\S]*?<\/pre>/g) ?? []);
     // the skill's block that runs this step's command
     const block = (cmd?: string) => (cmd ? blocks.find((b) => b.includes(cmd)) : undefined);
     const stepHTML = (f: FlowStep, n: number) =>
       `<li><span class="opx-flow-n">${n + 1}</span><div><p class="opx-flow-t">${f.t}</p><p class="opx-flow-d">${fillRich(f.d)}</p>${fillRich(block(f.code) ?? "")}</div></li>`;
-    return `${why}<ol class="opx-flow">${flow.map(stepHTML).join("")}</ol>`;
+    byHand = `<ol class="opx-flow">${flow.map(stepHTML).join("")}</ol>`;
   }
-  if (task !== "upgrade" || d.manual) return why;
-  return `${why}
-    <div class="mode-agent">
-      <div class="ag-prompt opx-prompt">
-        <p class="ag-prompt-text">${promptHTML(track, task)}</p>
-        <div class="opx-foot"><button type="button" class="ag-copy">Copy prompt</button></div>
-      </div>
-      <p class="opx-k">What happens</p>
-      ${stepsHTML(d.steps ?? [])}
-    </div>
-    ${commands ? `<details class="ref ref-op"><summary><span class="ref-t">See the commands</span></summary>${commands}</details>` : ""}`;
+  return `${why}${prompt}${note}${byHand ? `<details class="ref ref-op"><summary><span class="ref-t">Do it yourself, step by step</span></summary>${byHand}</details>` : ""}`;
 }

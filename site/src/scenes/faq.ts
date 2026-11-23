@@ -3,10 +3,12 @@ import { linkButton } from "../lib/permalink";
 import { agentFlows, harnessFlows, remoteFlows } from "./agentflow";
 import { agentQuestions, remotePrompt, useExampleInstructions } from "./agents";
 import { identityFlows, lostFlows, pairFlows } from "./identity";
-import { moderationFlows } from "./moderation";
+import { leakFlows, moderationFlows } from "./moderation";
+import { pluginFlows } from "./plugins";
 import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members";
 import { promptText, taskHTML } from "./operations";
 import { SETUPS } from "../data/decide";
+import type { OpTask } from "../data/agent";
 import { TABLER } from "./tabler";
 import { copyText, enhanceCode } from "../lib/code";
 import { jumpTo, registerAnchors } from "../lib/nav";
@@ -84,6 +86,8 @@ const CLICK_THROUGHS: Record<string, Flow[]> = {
   agents: agentFlows,
   harness: harnessFlows,
   moderate: moderationFlows,
+  leak: leakFlows,
+  plugin: pluginFlows,
   remote: remoteFlows,
 };
 
@@ -230,15 +234,35 @@ const TWO_FACTOR = `<div class="fq-vis fq-tfa">
 </div>`;
 
 /**
- * One key per computer account: Buzz on desktop holds one identity for every community ("Your identity
- * is shared across communities", block/buzz-app v1.0.5 src/app/IdentitySettings.tsx), and Remove from
- * device takes it off for all of them (src/features/identity/SignOut.tsx). Names are illustrative.
+ * How Buzz desktop holds a person's key (researched 2026-11-23 in block/buzz-app at v1.0.5): one item in the
+ * system's secure store, service xyz.block.buzz.desktop.identity (crates/credential-store), read at launch;
+ * every release, preview builds included, ships the same app ID, so a second copy shares the key; one key
+ * signs into every community, each with its own profile; another computer account has its own store.
+ * The npubs and names are illustrative.
  */
-const keyRow = (who: string, key: string, comms: string[], cls = "") =>
-  `<div class="fq-onekey${cls}"><span class="fq-ok-who">${icon("user")}<b>${who}</b></span><span class="fq-ok-key">${icon("key")}${key}</span><span class="fq-ok-arrow" aria-hidden="true">→</span><span class="fq-ok-comms">${comms.map((c) => `<em>${c}</em>`).join("")}</span></div>`;
-const ONE_KEY = `<div class="fq-vis fq-onekeys">
-  ${keyRow("Your account on this computer", "Key A", ["Your team", "An open community", "Any other community"])}
-  ${keyRow("A second account, or another device", "Key B", ["A community you keep separate"], " b")}
+const archBox = (i: string, t: string, d: string, cls = "") => `<div class="fq-ar-box${cls}">${icon(i)}<b>${t}</b><small>${d}</small></div>`;
+const archComm = (name: string, who: string) => `<em>${name}<small>${who}</small></em>`;
+const ONE_KEY = `<div class="fq-vis fq-arch">
+  <div class="fq-ar-acct">
+    <p class="fq-ar-h">${icon("user")}Your account on this computer</p>
+    <div class="fq-ar-row">
+      ${archBox("lock", "The system keychain", "Holds one Buzz key")}
+      <span class="fq-ar-arrow">read at launch</span>
+      ${archBox("device-desktop", "Buzz", "Signs in with that key", " dark")}
+      <span class="fq-ar-arrow">same key</span>
+      <div class="fq-ar-comms">${archComm("Your team", "Maya · npub1qm…8k3a")}${archComm("An open community", "Maya R. · npub1qm…8k3a")}</div>
+    </div>
+  </div>
+  <div class="fq-ar-acct b">
+    <p class="fq-ar-h">${icon("user")}A second account, or another device</p>
+    <div class="fq-ar-row">
+      ${archBox("lock", "Its own keychain", "Holds its own Buzz key")}
+      <span class="fq-ar-arrow">read at launch</span>
+      ${archBox("device-desktop", "Buzz", "Signs in with that key", " dark")}
+      <span class="fq-ar-arrow">other key</span>
+      <div class="fq-ar-comms">${archComm("A community you keep separate", "Sam · npub1x7…2pqe")}</div>
+    </div>
+  </div>
 </div>`;
 
 /**
@@ -265,6 +289,16 @@ const LANES = `<div class="fq-vis fq-lanes">
   ${lane(`${icon("alert")}The server itself`, " hot", ["Change its logins", "Assume someone read every message"])}
 </div>`;
 
+/**
+ * Moving, by what changes (researched 2026-11-23 at relay 0.3.0): the relay maps each host to a community and
+ * makes a new one for a new RELAY_URL host (migrations/0001, store/community.rs, router.rs); a move that keeps
+ * the domain kept everything in the readiness campaign's new-server run.
+ */
+const MOVE = `<div class="fq-vis fq-lanes">
+  ${lane(`${icon("server")}Same domain, new server`, "", ["Restore the backup there", "Point the domain at it", "Everything comes along"])}
+  ${lane(`${icon("world")}A new domain`, " hot", ["A new, empty community", "Everyone joins again", "The old one stays at the old address"])}
+</div>`;
+
 /** A short list to work through in order, numbered: nothing on the page ticks. */
 const checklist = (items: [string, string, string?][]) =>
   `<div class="fq-vis"><ol class="fq-check fq-numbered">${items
@@ -274,22 +308,13 @@ const checklist = (items: [string, string, string?][]) =>
     )
     .join("")}</ol></div>`;
 
-/** The server's door: personal SSH keys, and two-factor sign-in on the hosting account. Keys are illustrative. */
+/** The server's door: personal SSH keys, and two-factor sign-in on the hosting provider's account (not Buzz). Keys are illustrative. */
 const ACCESS = `<div class="fq-vis fq-access">
   <div class="fq-term"><p class="fq-term-h"><i></i><i></i><i></i><span>the server</span></p>
     <pre><span class="p">$</span> cat ~/.ssh/authorized_keys
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5…Qk2 maya@laptop
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5…7fA sam@laptop</pre></div>
-  <div class="fq-card"><p class="fq-card-h">${icon("lock")}Hosting account</p><p><span>Maya</span><em>Two-factor on</em></p><p><span>Sam</span><em>Two-factor on</em></p><p class="fq-dim">Nobody else has a login</p></div>
-</div>`;
-
-/** Where the relay key lives: the server's .env, one copy in a shared vault, and encrypted backups. */
-const KEY_HOME = `<div class="fq-vis fq-keyhome">
-  <div class="fq-card"><p class="fq-card-h">${icon("server")}<code>.env</code> on the server</p><code class="fq-line">BUZZ_RELAY_PRIVATE_KEY=••••••••</code><code class="fq-line">POSTGRES_PASSWORD=••••••••</code><code class="fq-line">REDIS_PASSWORD=••••••••</code></div>
-  <span class="fq-arrow">copy</span>
-  <div class="fq-card dark"><p class="fq-card-h">${icon("lock")}A shared vault in your password manager</p><p class="fq-vitem">${icon("key")}<span><b>.env</b><small>buzz.yourteam.org</small></span></p><p class="fq-people"><span>Maya</span><span>Sam</span></p><p class="fq-dim">Each signs in with two-factor</p></div>
-  <span class="fq-arrow">and</span>
-  <div class="fq-card"><p class="fq-card-h">${icon("archive")}Backups</p><p>They include <code>.env</code> too.</p><p class="fq-dim">Encrypt them before they leave the server</p></div>
+ssh-ed25519 AAAAC3Nz…Qk2 maya@laptop
+ssh-ed25519 AAAAC3Nz…7fA sam@laptop</pre></div>
+  <div class="fq-card"><p class="fq-card-h">${icon("lock")}Your hosting provider's account</p><p><span>Maya</span><em>Two-factor on</em></p><p><span>Sam</span><em>Two-factor on</em></p><p class="fq-dim">Nobody else can sign in. This is the account at DigitalOcean or another provider, not Buzz.</p></div>
 </div>`;
 
 /** Who can read what: encrypted on the way, stored as written. */
@@ -488,7 +513,7 @@ const GROUPS: [string, Question[]][] = [
             ["Remove them from Staff", "In Buzz, open <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>, and remove them there.", "if they were on Staff"],
             ["Ban them to keep them out", "A ban keeps them out even if they have a live invite link, and it cancels every link they made. Buzz can't cancel a single link on its own. Keep links short-lived and limited to the people you expect."],
             ["Remove their server and hosting access", "Remove their SSH key from the server and their account with your hosting provider. A copy of <code>.env</code> or a backup they kept still holds the server's passwords. Change any password they could have copied.", "if they had it"],
-            ["Remove them from the shared password vault", `If your team keeps a copy of the server's <code>.env</code> file in a shared vault in your password manager, as <a href="#operations" data-q-link="relay-key">Where should you keep the relay key?</a> recommends, take away their access to that vault. The file holds the relay key and the server's passwords, so change those passwords too.`, "if they could open it"],
+            ["Remove them from the shared password vault", "If your team keeps a copy of the server's <code>.env</code> file in a shared vault in your password manager, take away their access to that vault. The file holds the relay key and the server's passwords, so change those passwords too.", "if they could open it"],
           ]) +
           ct("remove") +
           note("Buzz can't wipe a device. Messages and files already on their devices stay there."),
@@ -519,13 +544,16 @@ const GROUPS: [string, Question[]][] = [
         icon: "user",
         q: "Can someone use a different identity in each community?",
         a:
-          rec("No. Buzz on desktop uses the same key for every community you join, so decide which identity to use for Buzz before you join. To keep a separate identity, use a second user account on your computer or a different device.", [
+          rec("No. Buzz on desktop keeps one private key for each account on the computer, in the system's keychain, and uses it in every community you join. Installing a second copy of Buzz doesn't help, because every copy reads the same keychain entry. Each community can show its own name and picture for you, but all of them see the same npub.", [
             [TEAM, "Give each person a work identity made with nak, and use it only for work communities."],
-            [OPEN, "If you also join open communities, decide whether they should see your work identity. If not, join them from a second user account or another device with its own key."],
+            [OPEN, "If you also join open communities, decide whether they should see your work identity. If not, join them from a second account on your computer or from another device, each with its own key."],
           ]) +
           ONE_KEY +
-          note("Signing out to switch identities doesn't help. Removing the key takes every community off that computer until you sign in with that key again.") +
-          note("If you make a key only for Buzz with nak, it works in every community, and your other Nostr identity stays out of Buzz."),
+          note("The keychain is the Keychain on a Mac, Credential Manager on Windows and the Secret Service on Linux. Buzz reads the key from there when it starts. It never keeps the key in a file.") +
+          note("Preview builds of Buzz use the same keychain entry too. While a key is saved, Buzz won't create or import another one.") +
+          note("To use a different name or picture in one community, open <b>Settings</b>, <b>Profile</b> while that community is open. Other communities keep theirs. They still see the same npub, so anyone in two of your communities can tell it's you.") +
+          note("<b>Remove from device</b>, in <b>Settings</b>, <b>Identity</b>, deletes the key after Buzz restarts, for every community on that computer account. Sign in again with a saved copy of the key to get them back.") +
+          note("The <code>buzz</code> command line that comes with Buzz can run with a different key for scripts, set in <code>BUZZ_PRIVATE_KEY</code>. The app itself can't."),
       },
       {
         id: "lost",
@@ -546,7 +574,11 @@ const GROUPS: [string, Question[]][] = [
             `If a person's key leaks, have it banned in every community it belongs to, and give them a new identity. If the relay key leaks, treat the whole server as exposed. Ask in block/buzz before you replace that key, because a new relay key currently orphans your existing channels (<a href="https://github.com/block/buzz/issues/7357">block/buzz#7357</a>).`,
           ) +
           LANES +
-          note("A Buzz identity isn't tied to one community. The leaked key still works in any other community that person joined."),
+          `<h4 class="ga-h">Ban a person's leaked key in Buzz</h4>` +
+          ct("leak") +
+          note(`Then let them back in with their new key. An admin sends them a 1-use invite link, as <a href="#operations" data-q-link="add">How should you add people?</a> shows.`) +
+          note("A Buzz identity isn't tied to one community. The leaked key still works in any other community that person joined. Ask the owners of those communities to ban it too.") +
+          note("On a private network, Kubernetes or a local test, Buzz's moderation screens can't reach your relay. There, the owner or an admin bans the key with the <code>buzz</code> command line instead, as How do you moderate? says."),
       },
       {
         id: "sso",
@@ -592,15 +624,19 @@ const GROUPS: [string, Question[]][] = [
         id: "backup",
         icon: "archive",
         q: "How should you back up?",
-        a: (t) => rec("Back up before every upgrade and at least once a week. Back up daily if losing a day of messages would be a problem. Keep an encrypted copy somewhere other than the server.") + taskHTML("backup", t),
+        a: (t) =>
+          rec("Back up before every upgrade and at least once a week. Back up daily if losing a day of messages would be a problem. Keep an encrypted copy somewhere other than the server.") +
+          taskHTML("backup", t) +
+          note(`The relay key is in the backup. On Block's Docker Compose bundle, it's <code>BUZZ_RELAY_PRIVATE_KEY</code> in <code>.env</code>, and every backup includes that file. On Kubernetes, the chart's quickstart keeps it in the <code>buzz-relay</code> Secret, which the backup exports. Anyone who has a backup has the key, so encrypt it.`),
       },
       {
         id: "restore",
         icon: "restore",
         q: "How do you restore a backup?",
         a: (t) =>
-          rec("Restore the most recent backup you've checked is complete, and keep the relay's address the same. Members' apps then reconnect on their own. Anything posted after that backup is lost.") +
-          taskHTML("restore", t),
+          rec("Restore the most recent backup you've checked is complete, and keep the relay's address the same. Anything posted after that backup is lost.") +
+          taskHTML("restore", t) +
+          note("Members keep the same address, so their apps should connect to the restored relay. This guide hasn't tested that with Buzz 1.0 or a paired phone."),
       },
       {
         id: "read",
@@ -639,34 +675,20 @@ const GROUPS: [string, Question[]][] = [
     "Server",
     [
       {
-        id: "capacity", icon: "server", q: "What hardware and hosting do you need?",
-        a: rec("Start with what this guide was tested on: an x86 server with 4 GB of RAM and 20 GB of disk. Add disk space as files and message history grow. There are no tested numbers yet for how many members a server can handle.") +
+        id: "move", icon: "restore", q: "Can you move the community to a different domain?",
+        a: rec("Not with its history. The relay ties a community to the domain people connect to. A new domain starts a new, empty community, and everyone has to join it again. To move to a new server, keep the same domain and point it at the new server.", [
+            ["New server, same domain", `Restore a backup onto the new server and point the domain at it, as <a href="#operations" data-q-link="restore">How do you restore a backup?</a> shows. Messages, members, files and invite links come along, because the address and the relay key stay the same.`],
+            ["A new domain", "Pick the permanent domain before people join. If you change it anyway, set up the new address as a new community and invite everyone again. The old community stays at its old address, and nothing in Buzz moves it over."],
+          ]) +
+          MOVE +
           steps([
-            ["VPS", "This guide was tested on Ubuntu 24.04 on x86, with 4 GB of RAM and at least 20 GB of disk. Those numbers come from the tests. They don't promise a number of members or a message rate. Leave room on the disk for uploads, git data, database growth, logs and backups. Also budget for the domain, backups and outgoing traffic (egress)."],
-            ["Your own hardware", "Plan for power cuts, the machine going to sleep, your home upload speed, off-site backups and changes to your network. To make the relay public, you need control of your router and an address the internet can reach. Many home internet providers share one public address among customers (CGNAT), which blocks that. A private network with Tailscale needs no port forwarding, but every device that uses Buzz has to join the network."],
-            ["Kubernetes", "This guide installs the quickstart profile of Block's Helm chart, with one relay replica. Block calls it an evaluation profile. Backing it up doesn't make it a production or high-availability deployment. For production, the chart has an advanced production profile. It uses managed Postgres, Redis and S3 and stable secrets you supply, and you design availability and full restores yourself."],
-            ["Agents and ARM", "The relay doesn't need a GPU to host conversations. Agents and the models they use run separately, with their own compute, credentials and costs. Block publishes relay images for ARM, but this guide's server setups were tested on x86 only. On Kubernetes, the file store image in the chart's quickstart is also x86 only."],
-          ]) + note(`Block's Helm chart also documents <a href="https://github.com/block/buzz/blob/e5dee91c90fdc5f81f04fd609b7c99e31fa7570f/deploy/charts/buzz/README.md">production and GitOps options</a>, which use secrets you manage outside the chart. They're outside this guide's tested quickstart. Linking them doesn't mean this guide supports any particular provider.`),
-      },
-      {
-        id: "monitor", icon: "eye", q: "What should you monitor and maintain?",
-        a: rec("Pick two people to look after the server. Once a week, check that it's reachable, has free disk space, and has a recent backup stored somewhere else.") +
-          checklist([
-            ["Check that it's up and has room", "Check that the relay answers from outside, that the database is ready and that the disk has free space. Watch how fast the disk fills, whether the server runs out of CPU or memory, and when the certificate expires. Keep the relay's internal metrics and admin ports off the internet."],
-            ["Check that you can recover", "Keep track of when you last made a complete backup off the server, and when you last practiced a restore that worked. A backup file's name, or a relay that answers its liveness check, doesn't prove you can recover."],
-            ["Keep up with security and access", "Look at security updates as soon as they come out. When someone's responsibilities change, review the members, Staff, plugins, bots, model providers, network access and who can run the server."],
-            ["Test phone notifications", "If your team relies on them, test again after each change to the relay or the app. Send a real direct message and a mention to a locked iPhone."],
-          ]) + note("Logs can name people and what they read. Limit who can read them and how long you keep them. Decide where alerts go, and make sure a second person can act when the main operator isn't available."),
-      },
-      {
-        id: "move", icon: "restore", q: "Can you move or retire the community?",
-        a: rec("Pick the community's permanent address before your first real install. You can move the relay to a new machine later, but changing the address starts a new community.") +
-          steps([
-            ["Move a public server", "Keep the same community address and relay key. On the new machine, restore the database, the file store, the git data and the configuration together from one backup. Then point the domain's DNS at the new machine, as this guide's <a href=\"#operations\" data-q-link=\"restore\">restore steps</a> describe. Practice the move before you rely on it."],
-            ["Change the address or leave hosted Buzz", "Don't change <code>RELAY_URL</code> to move a community. The relay identifies the community by that exact address, so a new address starts a different community. This guide has no tested way to bring history over from a community Block hosts. It also has no tested way to move a private-network relay to a new machine name."],
-            ["Decide what to keep and what to delete", "Decide how long you keep messages, uploaded files, logs and backups. Deleting a message doesn't always take back its file, and copies on other people's devices stay there. This guide doesn't offer a complete process for retention, export or erasure for compliance."],
-            ["Stop paying", "First keep any backup you might need, with a copy off the server. Then stop the relay, and delete the domain's DNS records or point them at a server you control. On a private network, remove the machine from your Tailscale network instead. Delete the server or cluster with its volumes and the provider's backups of it. Afterwards, check your provider for disks, load balancers, backups and DNS records that are left. Removing an app or a cluster doesn't mean everything you pay for is gone."],
-          ]),
+            ["Move to a new server", "Keep the same domain and relay key. On the new server, restore the database, the file store, the git data and the configuration together from one backup, then point the domain's DNS at the new server. Let's Encrypt gives the new server its certificate. Practice the move before you rely on it."],
+            ["If you change the domain", "Don't change <code>RELAY_URL</code> on the server that holds your community. The relay would start a new, empty community at the new address, and the old messages would stay in the database where nobody can reach them. Set up the new domain as a separate community instead."],
+            ["Tell members what changes", "Buzz on desktop and on phones saves each community by its address. A new domain shows up as a separate community, and a phone that joins it with an invite link makes a new key there."],
+          ]) +
+          note(`Moving a community from Block's hosting to your own server has no tested path either (<a href="https://github.com/block/buzz/issues/6803">block/buzz#6803</a>). Support for a second address is requested in <a href="https://github.com/block/buzz/issues/4952">block/buzz#4952</a>, which is still open.`) +
+          note("This guide tested a move to a new server with an earlier relay image: posts, members, invite links and files all came back. It hasn't tested whether Buzz 1.0 and paired phones reconnect without joining again.") +
+          note("On a private network, the community's address is the machine's Tailscale name. This guide doesn't cover moving it to a new machine."),
       },
       {
         id: "upgrade",
@@ -679,18 +701,17 @@ const GROUPS: [string, Question[]][] = [
         icon: "terminal-2",
         q: "Who should have access to the server?",
         a:
-          rec("Two or three people: the person who runs Buzz and a backup. Each should have their own SSH key and two-factor sign-in on the hosting account.") +
+          rec("Anyone who can log in to the server can read every message, including direct messages, and every file. Give that access to as few people as possible: the person who runs Buzz and one backup.", [
+            [TEAM, "Pick two people from your team. Each one logs in with their own SSH key, and both turn on two-factor sign-in at your hosting provider."],
+            [OPEN, "Keep access to the maintainers who run the community, and tell members who they are. Members are trusting those people with their direct messages."],
+          ]) +
           ACCESS +
-          note("Don't share passwords or SSH keys between people. Anyone who can log in to the server can read every message, including direct messages. Remove a person's key on the day they leave."),
-      },
-      {
-        id: "relay-key",
-        icon: "key",
-        q: "Where should you keep the relay key?",
-        a:
-          rec("Keep it on the server, plus one copy of the server's <code>.env</code> file in a shared vault in your team's password manager. Only the people who run the server should be able to open that vault.") +
-          KEY_HOME +
-          note(`On Block's Docker Compose bundle, the relay key is <code>BUZZ_RELAY_PRIVATE_KEY</code> in <code>.env</code>, and every <a href="#operations" data-q-link="backup">backup</a> includes that file. On Kubernetes, the chart's quickstart keeps the key in the <code>buzz-relay</code> Secret.`),
+          checklist([
+            ["Give each person their own SSH key", "Add each person's public key to the server, as in the drawing. Never share one key or one password between people. Then you can see who logged in, and remove one person without changing anyone else's access."],
+            ["Turn on two-factor sign-in at your hosting provider", "This is the account at DigitalOcean, Hetzner, AWS or wherever the server runs. It isn't your Buzz identity. Anyone who signs in there can open a console on the server or copy its disk, so require two-factor sign-in for everyone on that account."],
+            ["Turn off password logins over SSH", "Let people in with their SSH keys only. In <code>/etc/ssh/sshd_config</code>, set <code>PasswordAuthentication no</code>, then restart SSH. Keep your own session open until you've checked that your key still works."],
+            ["Remove access the day someone leaves", "Delete their key from the server's <code>authorized_keys</code> and remove them from the hosting account. If they could have copied <code>.env</code> or a backup, change the server's passwords too."],
+          ]),
       },
       {
         id: "block",
@@ -713,7 +734,7 @@ const HOW_TO = new Set([
   "add", "welcome", "notifications", "pair", "roles", "moderate", "leave",
   "agent-brief", "agent-on", "agent-remote",
   "identity", "lost", "leak", "sso", "two-factor",
-  "backup", "restore", "upgrade", "monitor", "move",
+  "backup", "restore", "upgrade", "move",
 ]);
 
 /**
@@ -1054,7 +1075,7 @@ export function mountFaq(host: HTMLElement): void {
     // the upgrade prompt, for your agent
     const copy = t.closest<HTMLButtonElement>(".ag-copy");
     if (copy) {
-      copyText(copy.dataset.prompt === "agent-remote" ? remotePrompt() : promptText(trackOf(), "upgrade"), () => {
+      copyText(copy.dataset.prompt === "agent-remote" ? remotePrompt() : promptText(trackOf(), (copy.dataset.task ?? "upgrade") as OpTask), () => {
         copy.textContent = "Copied";
         window.setTimeout(() => (copy.textContent = "Copy prompt"), 1600);
       });

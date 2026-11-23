@@ -61,6 +61,14 @@ have:
 | Goose | A key from a model provider, such as OpenRouter, or a model on your own computer through Ollama | In Settings, Agent setup, choose Set up Goose, pick a provider and paste its key. | macOS, Linux, Windows |
 | Pi | Node.js 22.19 or later and a provider's API key | Turn Pi on in Settings, under Plugins. Then paste the key and choose Save to Pi. | macOS, Linux, Windows |
 
+A plugin can add a harness Buzz doesn't come with. In Settings, Plugins, Manage plugins, choose Add,
+paste the plugin's repository and choose Find, then review what it asks for and choose Install plugin.
+Buzz loads built plugins only and doesn't run install scripts
+([Buzz's plugin guide](https://github.com/block/buzz-app/blob/main/docs/plugin-authoring-guide.md)).
+[Maple's plugin](https://github.com/MaplePrivacyLabs/buzz-maple-plugin) adds Maple Work this way.
+Maple calls it an experimental proof of concept. A plugin is unsandboxed code: install only ones
+you trust.
+
 Who the agent works for decides which account to use:
 
 - **A plan is for one person.** A personal plan such as Claude Pro or Max, or ChatGPT Plus or Pro,

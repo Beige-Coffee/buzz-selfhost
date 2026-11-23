@@ -26,29 +26,20 @@ const pane = `<div class="ax-pane">
   <p class="ax-lab">Instructions</p>
   <p class="ax-box hot">${INSTRUCTIONS_TEXT}</p>
 </div>`;
-const agentsPage = (open: boolean) =>
+const agentsPage = (open: boolean, menu = false) =>
   app(
     "agents",
     `<div class="ax-split${open ? " open" : ""}">
     <div class="ax-page">
       <p class="ax-h">${ti("robot")}Agents</p>
       <div class="ax-tabs"><b>Your agents</b><span>Your teams</span><span>Marketplace</span><em>New agent${ti("chevron-down")}</em></div>
-      <div class="ax-grid">${tile(ops, "Ops", "peach", !open)}${tile(reviewer, "Reviewer", "sky")}</div>
+      <div class="ax-grid">${tile(ops, "Ops", "peach", !open && !menu)}${tile(reviewer, "Reviewer", "sky")}</div>
+      ${menu ? `<div class="ax-menu"><p class="hot">${ti("plus")}Create a new agent</p><p>${ti("download")}Import an agent</p></div>` : ""}
     </div>
     ${open ? `${pane}<span class="ax-callout">Write or paste your instructions here</span>` : ""}
   </div>`,
   );
 
-export const agentFlows: Flow[] = [
-  {
-    id: "agents",
-    label: "Write its instructions",
-    steps: [
-      { k: "Open the agent", t: "Choose <b>Agents</b>, the robot in the dock. Then choose the agent. For a new agent, choose <b>New agent</b>, then <b>Create a new agent</b>. Create agent has the same <b>Instructions</b> box.", frame: agentsPage(false) },
-      { k: "Write them in Instructions", t: "The agent's panel opens on its <b>Identity</b> tab. Type a few plain sentences in the <b>Instructions</b> box, below Harness, Model and Thinking. Then choose <b>Save</b>.", frame: agentsPage(true) },
-    ],
-  },
-];
 
 /**
  * Settings, Agent setup, where each harness signs in, as Buzz 1.0.5 shows it (captured 2026-11-23):
@@ -98,6 +89,49 @@ export const harnessFlows: Flow[] = [
       { k: "Open Agent setup", t: "Open <b>Settings</b> and choose <b>Agent setup</b>. Under <b>Harness defaults</b>, each harness shows what it still needs. Codex shows <b>Sign in</b> until you sign in with your ChatGPT plan. After that, it shows its default model.", frame: settingsModal(setupNav, agentSetup("")) },
       { k: "Claude: sign in or add a key", t: "Choose <b>Add Claude API key</b>. If Claude Code is signed in on this computer, such as with your Claude plan, choose <b>Refresh</b>. Buzz then uses that sign-in, and you don't need a key. To sign in first, run <code>claude auth login</code> in a terminal. Without a sign-in, paste a key from console.anthropic.com and choose <b>Save</b>.", frame: settingsModal(setupNav, agentSetup(""), claudeKey) },
       { k: "Goose: pick a provider", t: "Choose <b>Set up Goose</b>. Pick a provider, such as OpenRouter or Ollama for a model on your own computer, and paste its key if it needs one. Then choose <b>Save defaults</b>.", frame: settingsModal(setupNav, agentSetup(""), gooseSetup) },
+    ],
+  },
+];
+
+/**
+ * Create agent as Buzz 1.0.5 shows it (captured 2026-11-23), scrolled to its fields: the pictures, Name,
+ * Harness, Model and Thinking (here the Builderlab harness the capture had chosen, with its note), then
+ * Instructions, optional, up to 20,000 characters.
+ */
+const createAgent = `<div class="mb-shade"></div>
+<div class="mb-dlg ax-new">
+  <div class="mb-dlg-h"><b>Create agent</b><span class="mb-x">${ti("x")}</span></div>
+  <div class="ax-new-hero"><span class="ax-new-pics">${[ops, reviewer, ops, reviewer, ops, reviewer, ops, reviewer].map((src) => `<img src="${src}" alt="">`).join("")}</span></div>
+  <p class="ax-lab">Name</p>
+  <p class="ax-new-in">Ops</p>
+  <div class="ax-rows">
+    <p>Harness<span class="ax-pick">${MK_BL}Builderlab${ti("chevron-down")}</span></p>
+    <p>Model<span class="ax-pick">Kimi K3.1 Pro${ti("chevron-down")}</span></p>
+    <p>Thinking<span class="ax-pick">High${ti("chevron-down")}</span></p>
+  </div>
+  <p class="ax-note">Runs on your Builderlab account. Usage and billing are at <u>app.builderlab.xyz</u>.</p>
+  <p class="ax-lab">Instructions <em>Optional</em></p>
+  <p class="ax-box hot">${INSTRUCTIONS_TEXT}</p>
+  <p class="ax-note">Up to 20,000 characters.</p>
+  <div class="ax-go"><span class="mb-btn dark">Create agent</span></div>
+</div>`;
+
+/** What should you tell an agent?: where its instructions go, for an agent you have or a new one. */
+export const agentFlows: Flow[] = [
+  {
+    id: "agents",
+    label: "An agent you have",
+    steps: [
+      { k: "Open the agent", t: "Choose <b>Agents</b>, the robot in the dock. Then choose the agent.", frame: agentsPage(false) },
+      { k: "Write them in Instructions", t: "The agent's panel opens on its <b>Identity</b> tab. Type a few plain sentences in the <b>Instructions</b> box, below Harness, Model and Thinking. Then choose <b>Save</b>.", frame: agentsPage(true) },
+    ],
+  },
+  {
+    id: "new",
+    label: "A new agent",
+    steps: [
+      { k: "Create a new agent", t: "Choose <b>Agents</b>, the robot in the dock. Choose <b>New agent</b>, then <b>Create a new agent</b>.", frame: agentsPage(false, true) },
+      { k: "Write them in Instructions", t: "Give the agent a name and pick its harness. Then type a few plain sentences in <b>Instructions</b>, below Harness, Model and Thinking. Instructions can be up to 20,000 characters. Choose <b>Create agent</b>.", frame: app("agents", `<div class="ax-split"><div class="ax-page"><p class="ax-h">${ti("robot")}Agents</p></div></div>`, createAgent) },
     ],
   },
 ];

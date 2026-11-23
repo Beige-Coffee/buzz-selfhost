@@ -394,7 +394,7 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
       { t: "Check it", d: "Run <code>ls -la \"$BACKUP\"</code>. It shows four files, and none of them is empty. Buzz reconnects once the relay is back." },
       {
         t: "Keep it safe",
-        d: "The backup holds every secret. Encrypt it, for example with <code>gpg --symmetric</code>. Keep a copy off the server. Keep the relay key in a password manager that two maintainers can open.",
+        d: "The backup holds every secret, the relay key included. Encrypt it, for example with <code>gpg --symmetric</code>, and keep a copy off the server.",
       },
     ],
     // operations.md: the backup is checked before anything is deleted, the empty volume after
@@ -427,7 +427,7 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
         t: "Check it",
         d: "Every command must succeed, and none of the four files may be empty. If an export fails, stop. The folder may hold partial files. Don't restore from it. Files that exist don't prove that recovery works.",
       },
-      { t: "Keep it safe", d: "The Secret file holds the relay key. Encrypt the copies and keep one off this computer. Keep the relay key in a password manager that two maintainers can open." },
+      { t: "Keep it safe", d: "The Secret file holds the relay key. Encrypt the copies and keep one off this computer." },
     ],
   },
 };

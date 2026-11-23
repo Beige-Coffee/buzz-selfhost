@@ -1556,6 +1556,30 @@ h2 .hl svg { width: 19px; }
 .fq-card code { font-size: 0.86em; }
 .fq-arrow { font: 12px var(--mono); color: var(--ink-3); text-align: center; white-space: nowrap; }
 .fq-arrow::after { content: " →"; }
+/* How Buzz desktop holds its key: keychain, app, communities */
+.fq-arch { display: grid; gap: 10px; }
+.fq-ar-acct { padding: 12px 14px 14px; border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px var(--line-2); }
+.fq-ar-acct.b { background: none; box-shadow: none; border: 1px dashed var(--line-2); }
+.fq-ar-h { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+.fq-ar-h svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fq-ar-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1.4fr); align-items: center; gap: 8px; }
+.fq-ar-box { display: grid; gap: 2px; padding: 9px 11px; border-radius: 11px; background: #f4f4f0; }
+.fq-ar-box svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fq-ar-box b { font-size: 13.5px; font-weight: 600; }
+.fq-ar-box small { font-size: 12px; line-height: 1.35; color: var(--ink-3); }
+.fq-ar-box.dark { background: var(--ink); color: #fff; }
+.fq-ar-box.dark small { color: rgb(255 255 255 / 70%); }
+.fq-ar-arrow { font: 11px var(--mono); color: var(--ink-3); text-align: center; white-space: nowrap; }
+.fq-ar-arrow::after { content: " →"; }
+.fq-ar-comms { display: grid; gap: 6px; }
+.fq-ar-comms em { display: grid; gap: 1px; padding: 7px 10px; border-radius: 10px; background: #f4f4f0; font-size: 13px; font-style: normal; font-weight: 500; }
+.fq-ar-comms em small { font: 11px var(--mono); font-weight: 400; color: var(--ink-3); }
+@media (max-width: 720px) {
+  .fq-ar-row { grid-template-columns: 1fr; }
+  .fq-ar-arrow::after { content: " ↓"; }
+}
+.opx-bk .fq-card p.opx-bk-l { margin: 5px 0 0; font-size: 13px; line-height: 1.35; }
+.opx-bk .fq-card.dark p.opx-bk-l code { color: #f2efe8; background: rgb(255 255 255 / 10%); }
 /* where the relay key lives */
 .fq-keyhome { display: grid; grid-template-columns: minmax(0, 1.3fr) auto minmax(0, 1.1fr) auto minmax(0, 0.9fr); align-items: center; gap: 10px; }
 .fq-card .fq-line { display: block; margin-top: 4px; padding: 3px 7px; overflow: hidden; border-radius: 6px; background: #f6f6f3; font-size: 11.5px; white-space: nowrap; text-overflow: ellipsis; }
@@ -1818,6 +1842,10 @@ h2 .hl svg { width: 19px; }
 .id-qr-box svg.mb-qr-code { display: block; width: 104px; height: auto; padding: 0; box-shadow: none; fill: #0f0f0f; }
 .id-qr-logo { position: absolute; top: 50%; left: 50%; display: grid; place-items: center; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 6px; background: #0f0f0f; }
 .id-qr-logo svg { width: 18px; height: auto; color: var(--b1-citrus); }
+.mb-qr .id-qr-box { padding: 4px; box-shadow: 0 0 0 1px #ececec; }
+.mb-qr .id-qr-box svg.mb-qr-code { width: 76px; }
+.mb-qr .id-qr-logo { width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 5px; }
+.mb-qr .id-qr-logo svg { width: 14px; }
 .id-pair-qr .mb-btn { justify-content: center; width: 100%; }
 /* Agents (agentflow.ts) */
 .mb .ax-page, .mb .ax-chan { position: relative; height: 100%; }
@@ -1927,6 +1955,23 @@ h2 .hl svg { width: 19px; }
 .mb-main .ax-split { position: relative; }
 .ax-callout { position: absolute; right: calc(44% + 12px); bottom: 24px; padding: 6px 10px; border-radius: 9px; background: var(--b1-citrus); box-shadow: 0 4px 14px rgb(24 20 14 / 16%); font-size: 10px; font-weight: 600; color: #0f0f0f; white-space: nowrap; }
 .ax-callout::after { content: ""; position: absolute; top: 50%; right: -6px; margin-top: -6px; border: 6px solid transparent; border-right: 0; border-left-color: var(--b1-citrus); }
+.ax-split:not(.open) .ax-menu { right: calc(50% - 150px); top: 64px; }
+.mb .ax-new { width: 300px; padding: 10px 14px; }
+.ax-new-hero { display: flex; justify-content: center; margin: 6px 0 2px; padding: 8px 6px 6px; border-radius: 12px; background: linear-gradient(180deg, #f6cdbf, #fdf1ec); }
+.ax-new-pics { display: flex; gap: 6px; padding: 3px 8px; border-radius: 10px; background: rgb(255 255 255 / 70%); }
+.ax-new-pics img { width: 15px; height: 15px; object-fit: contain; }
+.mb-canvas .ax-new .ax-lab { margin-top: 5px; font-size: 9.5px; }
+.mb-canvas .ax-new-in { margin-top: 3px; padding: 4px 9px; border-radius: 999px; background: #f3f3f4; box-shadow: inset 0 0 0 1px #d4d4d8; font-size: 9.5px; }
+.ax-new .ax-rows { margin-top: 6px; background: #fff; box-shadow: 0 0 0 1px #ececec; }
+.mb-canvas .ax-new .ax-rows p { padding: 3.5px 0; font-size: 9px; }
+.ax-new .ax-pick { gap: 3px; font-size: 8.5px; }
+.ax-new .ax-pick .tb-i { width: 8px; height: 8px; }
+.ax-new .ax-pick .as-mk { width: 10px; height: 10px; font-size: 6px; }
+.mb-canvas .ax-note { margin-top: 4px; font-size: 8px; color: #5f5f5f; }
+.ax-note u { text-decoration: underline; }
+.mb-canvas .ax-new .ax-box { margin-top: 3px; min-height: 32px; }
+.ax-new .ax-go { margin-top: 5px; }
+.ax-new .ax-go .mb-btn { padding: 4px 11px; font-size: 9.5px; }
 /* Settings, Agent setup, and the Claude and Goose dialogs (Buzz 1.0.5) */
 .as-page h5 { margin-bottom: 8px; }
 .mb-canvas .as-h { margin: 8px 0 5px; font-size: 10px; font-weight: 500; }
@@ -2016,3 +2061,40 @@ h2 .hl svg { width: 19px; }
 .mb-canvas .md-page.tight .md-sel { padding: 4px 9px; }
 .mb-canvas .md-page.tight .md-in { height: 15px; }
 .mb-nav-col.md-nav .mb-nav-g { margin-top: 6px; }
+/* Settings, Plugins: Manage plugins and Add a plugin (Buzz 1.0.5) */
+.pl-page { display: flex; flex-direction: column; gap: 7px; }
+.pl-page > * { flex-shrink: 0; }
+.pl-feat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.pl-card { display: grid; justify-items: center; gap: 3px; padding: 8px 6px; border-radius: 12px; box-shadow: 0 0 0 1px #ececec; text-align: center; }
+.pl-card b { font-size: 9.5px; font-weight: 600; }
+.pl-card small { font-size: 7.5px; line-height: 1.3; color: #5f5f5f; }
+.pl-card .mb-btn { padding: 3px 9px; font-size: 8.5px; }
+.pl-card .mb-btn.pl-req { background: #fff; box-shadow: 0 0 0 1px #e3e3e5; color: #8b8b8b; }
+.pl-ic { display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 7px; color: #fff; }
+.pl-ic .tb-i { width: 13px; height: 13px; }
+.pl-ic.teal { background: linear-gradient(160deg, #39b8b0, #1f8f8a); }
+.pl-ic.blue { background: linear-gradient(160deg, #6f8cff, #4f63e8); }
+.pl-ic.pink { background: linear-gradient(160deg, #f36f9a, #d9467a); }
+.pl-ic.sky { background: linear-gradient(160deg, #46b7e8, #2386c4); }
+.pl-tabs { display: flex; align-items: center; gap: 10px; font-size: 9px; color: #5f5f5f; }
+.pl-tabs b { padding-bottom: 2px; border-bottom: 1.5px solid #0f0f0f; font-weight: 500; color: #0f0f0f; }
+.pl-tabs em { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; padding: 3px 9px; border-radius: 999px; background: #f3f3f4; font-style: normal; color: #8b8b8b; }
+.pl-tabs .tb-i { width: 9px; height: 9px; }
+.mb-canvas .pl-sec { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; }
+.pl-sec i { padding: 0 5px; border-radius: 999px; background: #0f0f0f; font-size: 7.5px; font-style: normal; color: #fff; }
+.pl-row { display: flex; align-items: center; gap: 7px; padding: 5px 8px; border-radius: 10px; box-shadow: 0 0 0 1px #ececec; }
+.pl-row > span:nth-child(2) { display: grid; flex: 1; }
+.pl-row b { font-size: 9px; font-weight: 600; }
+.pl-row small { font-size: 7.5px; color: #5f5f5f; }
+.pl-row .mb-btn { padding: 3px 9px; font-size: 8.5px; }
+.mb .pl-dlg { width: 430px; }
+.pl-add { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.pl-drop { display: grid; justify-items: center; align-content: center; gap: 6px; padding: 10px; border-radius: 12px; border: 1px dashed #d9d9dc; background: #fafafa; font-size: 9px; color: #5f5f5f; }
+.pl-drop .tb-i { width: 16px; height: 16px; }
+.pl-drop .mb-btn { padding: 3px 10px; font-size: 9px; }
+.pl-form { display: grid; gap: 3px; padding: 8px; border-radius: 12px; box-shadow: 0 0 0 1px #ececec; }
+.mb-canvas .pl-form .as-lab { margin-top: 2px; font-size: 8.5px; }
+.mb-canvas .pl-in { padding: 4px 8px; border-radius: 999px; background: #f3f3f4; font-size: 7.5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mb-canvas .pl-in.dim { color: #8b8b8b; }
+.mb .pl-in.hot { box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--b1-citrus); }
+.pl-find { justify-self: start; margin-top: 4px; padding: 3px 10px; font-size: 9px; }

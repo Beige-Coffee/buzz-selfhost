@@ -128,11 +128,14 @@ export const QR = (() => {
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (!inFinder(x, y) && (x * 7 + y * 13 + x * y) % 5 < 2) dots += `M${x} ${y}h1v1h-1z`;
   return `<svg class="mb-qr-code" viewBox="-1 -1 23 23" aria-hidden="true">${finder(0, 0)}${finder(14, 0)}${finder(0, 14)}<path d="${dots}"/></svg>`;
 })();
-/** The Invite tab (v1.0.5): the code and Share, the link with Copy link, then Expires after and Max uses. */
+/**
+ * The Invite tab as Buzz 1.0.5 shows it (captured 2026-11-23): the QR code with the bee in its middle, the
+ * link with Copy link, then Expires after (1, 3, 7 or 30 days) and Max uses (no limit, 1, 5, 10 or 25).
+ */
 const invitePage = (spot: "copy" | "", expiry: string, uses: string) => `<section class="mb-page">
   ${head("invite", "")}
   <div class="mb-inv">
-    <div class="mb-qr">${QR}<span class="mb-btn">Share</span></div>
+    <div class="mb-qr"><div class="id-qr-box">${QR}<span class="id-qr-logo"><svg viewBox="0 0 466 309" aria-hidden="true"><use href="#bee"/></svg></span></div></div>
     <div class="mb-inv-r">
       <div class="mb-line"><span class="mb-in"><span class="mono">${LINK}</span><span class="mb-copy${ring(spot === "copy")}">Copy link</span></span></div>
       <div class="mb-grp">

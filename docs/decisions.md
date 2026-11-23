@@ -452,9 +452,10 @@ sign-in and a key backup it can decrypt. Its click-through has a switch for the 
 or the phone's, then a pick of a self-hosted or a Builderlab community (owner's ask), so each
 device's steps read on their own. The screens after the phone scans (the six digits, Phone
 paired, the phone's camera and code screens) appear only during a live pairing and weren't
-captured, so the site says that step in words and draws no screen for it (owner's call). Not yet
-checked against the app: the Invite tab, Mobile app for a Builderlab account (Buzz's source shows
-"Get Buzz on your phone" there instead of a QR code), first run, Create agent and agent chats.
+captured, so the site says that step in words and draws no screen for it (owner's call). The Invite
+tab (its menus included), Create agent and the New agent menu were captured later the same day. Not
+yet checked against the app: Mobile app for a Builderlab account (Buzz's source shows "Get Buzz on
+your phone" there instead of a QR code), first run and agent chats.
 How do you moderate? has a click-through of Buzz 1.0.5's Moderation screens
 (Read reports, Ban someone, Add a moderator), drawn from captures made after the owner let the class
 relay turn on its admin API (BUZZ_ADMIN_HOST, the skill's own moderation console steps). `site/mockups/frames.html` shows every
@@ -472,6 +473,28 @@ shows where instructions go: Agents, then the agent's Identity tab with Instruct
 both drawn from captures. The last-day checklist names the shared vault as the team's password
 manager vault that holds the server's `.env`. Pairing, a separate identity, single sign-on, who can
 read messages and what depends on Block gained cases too.
+
+Also 2026-11-23, from the owner's review of which answers are grounded: answers that came from
+brainstorming rather than from teams' questions or known practice were cut: "What hardware and
+hosting do you need?", "What should you monitor and maintain?" and "Where should you keep the relay
+key?" (the relay key's facts, in `.env` and in every backup, moved into the backup answer, and the
+backup steps no longer advise a two-maintainer password manager). "Which harness and model should you
+pick?" became "What are your choices for a harness?": the four built in, adding one with a plugin
+(Buzz's Add a plugin, captured) with Maple's plugin as the example, then which account to use. "How
+do you keep an agent answering?" became "always online". Backup, restore and upgrade lead with an
+overview and a prompt for your agent, and fold the step-by-step commands under "Do it yourself".
+"Who should have access to the server?" leads with server access being data access, says the
+two-factor badges mean the hosting provider's account, and lists the practices for that access.
+"What if a key leaks?" has a click-through of banning the key in Buzz's Moderation screens.
+
+Also 2026-11-23, from research in Buzz's source: "Can someone use a different identity in each
+community?" draws how Buzz desktop holds its key (one item in the system keychain per computer
+account, service `xyz.block.buzz.desktop.identity`, which every release and preview build shares, read
+at launch and used in every community, each with its own profile). "Can you move the community to a
+different domain?" replaces "Can you move or retire the community?": relay 0.3.0 maps each host to a
+community and makes a new, empty one for a new `RELAY_URL` host (migrations/0001, store/community.rs,
+router.rs), and second addresses are only requested (block/buzz#4952), so the answer says to keep the
+domain and move servers with a restore.
 
 Also 2026-11-23: Running your relay has a search over the questions (owner's ask). It searches each
 answer's text for the current setup, its folds and every click-through step, ranks title matches

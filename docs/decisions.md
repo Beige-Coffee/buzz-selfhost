@@ -417,6 +417,11 @@ setup-specific steps and commands (`site/src/scenes/operations.ts`); the rest ar
 answers (`site/src/scenes/faq.ts`). Our cadences: back up at least weekly and before every
 upgrade, upgrade about once a month, since new app features can need a recent relay.
 
+On 2026-11-23 the owner cut "Before the team arrives" and the Running on box: only 7 of the 29
+answers changed with the setup. Backing up, restoring and upgrading now open with a "For" menu of
+the seven setups, which also changes the guide's setup. Roles, moderation, adding people and
+phones say what differs in a sentence, so they hold for every setup.
+
 ## Phone notifications on by default (2026-10-23)
 
 A newcomer review named "no push notifications" as the likeliest reason a team would stay on Slack.

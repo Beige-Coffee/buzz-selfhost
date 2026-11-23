@@ -6,9 +6,9 @@ import { ICONS } from "./agent";
 import { PICK } from "./panel";
 
 /**
- * The answers that depend on the setup, for the relay the Running on box describes (faq.ts): backing
- * up and restoring are operations.md's commands, to run yourself; upgrading is a prompt for your
- * agent, its commands folded.
+ * The three answers that depend on the setup (faq.ts), each with a menu that picks it: backing up and
+ * restoring are operations.md's commands, to run yourself; upgrading is a prompt for your agent, its
+ * commands folded. The other answers say what differs in a sentence, so they hold for every setup.
  */
 
 const svg = (d: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -16,7 +16,7 @@ const SERVER = svg(`<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" 
 
 const promptOf = (t: Track, task: OpTask) => `${OP_WHERE[t]} Use the self-host-buzz skill to ${OP_TASKS[task].ask} The skill is at {{SKILL_URL}}.`;
 
-/** The domain is the Running on box's. Until it's typed there, it shows as a gap that jumps to its field. */
+/** The domain is the guide's. Until it's typed there, it shows as a gap that jumps to its field. */
 const hasDomain = () => Boolean(getValues().domain.trim());
 const gapName = (t: Track) => (isPrivate(t) ? "your Tailscale name" : "your domain");
 const gap = (t: Track) => `<span class="v unset" data-k="DOMAIN">${gapName(t)}</span>`;
@@ -45,11 +45,15 @@ const HOST_BACKUPS =
 const PRIVATE_MOVE =
   "On a private network, restoring onto a new machine isn't covered: the community's address is the old machine's Tailscale name. Restore onto the same machine.";
 
-/** The Running on box: which setup, at which address, the commands below are for. */
-export function runningOnHTML(track: Track): string {
-  // a practice relay has a fixed address
-  const at = track === "practice" ? "" : ` at ${hasDomain() ? fillRich("{{DOMAIN}}") : gap(track)}`;
-  return `<div class="opx-ctx">${SERVER}<span class="opx-ctx-l">Running on</span><span class="opx-ctx-v"><b>${PICK[track]}</b>${at}</span><a class="opx-ctx-a" href="#where">Change</a></div>`;
+/** The setups in the menu's order: the server ones, then the local test. */
+const ORDER: Track[] = ["vps", "vps-private", "own-public", "own-private", "k8s", "k8s-private", "practice"];
+const CHEV = svg(`<path d="m6 9 6 6 6-6"/>`);
+
+/** Which setup an answer's commands are for, as a menu. Picking one changes the guide's setup too. */
+function setupSwitchHTML(track: Track): string {
+  return `<div class="opx-for">${SERVER}<label class="opx-for-l" for="opx-for-sel">For</label><span class="opx-for-s"><select id="opx-for-sel" class="opx-for-sel">${ORDER.map(
+    (t) => `<option value="${t}"${t === track ? " selected" : ""}>${PICK[t]}</option>`,
+  ).join("")}</select>${CHEV}</span></div>`;
 }
 
 /**
@@ -66,7 +70,7 @@ export function taskHTML(task: OpTask, track: Track): string {
       : task === "restore" && isPrivate(track) && opSetup(track) === "compose"
         ? `<p class="opx-note">${PRIVATE_MOVE}</p>`
         : "";
-  const why = `<p class="opx-why">${d.why}</p>${note}`;
+  const why = `${setupSwitchHTML(track)}<p class="opx-why">${d.why}</p>${note}`;
   const flow = task === "backup" || task === "restore" ? OP_FLOWS[opSetup(track)][task] : undefined;
   if (flow && !d.manual) {
     const blocks = ops.flatMap((o) => o.html.match(/<pre[\s\S]*?<\/pre>/g) ?? []);

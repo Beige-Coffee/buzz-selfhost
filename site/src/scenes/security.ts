@@ -224,7 +224,7 @@ export function mountSecurity(host: HTMLElement): void {
         <div class="sq-text">
           <h3><i aria-hidden="true">01</i>Give each agent its own machine</h3>
           <p>An agent in Buzz can run on your own computer or on another machine. On your computer, it can reach anything your account can, private files included. It takes instructions only from you, but it reads channel history to do its work, and in a community open to anyone, a stranger could post text meant to trick it.</p>
-          <p>So in an open community, run each agent on a separate computer with nothing private on it, and don't connect it to your email, drives or code.</p>
+          <p>So in an open community, it's best practice to run each agent on a separate computer with nothing private on it, and not to connect it to your email, drives or code.</p>
           <p class="sq-links">${faq("agents", "How should we run agents?")}${faq("agent-remote", "Run one on its own server")}</p>
         </div>
       </article>

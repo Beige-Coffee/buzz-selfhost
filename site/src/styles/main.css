@@ -823,15 +823,19 @@ details.tl-fail { margin-top: 12px; }
 
 /* ── day two, not yet, footer ───────────────── */
 .cards3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-/* operations: the relay the Running on box describes, a task list, and the open task */
-.opx-ctx { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; padding: 10px 14px; border: 1px solid var(--line-2); border-radius: 14px; background: #fafaf7; font-size: 14.5px; color: var(--ink-2); }
-.opx-ctx > svg { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.opx-ctx-l { font: 600 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
-.opx-ctx-v b { font-weight: 500; color: var(--ink); }
-.opx-ctx-a { margin-left: auto; font-size: 13px; color: var(--ink-2); }
-.opx-ctx .v, .opx .v { background: rgb(215 215 46 / 45%); border-radius: 3px; padding: 0 2px; }
-/* a Running on value not typed yet: a gap like a blank, which jumps to its field */
-.opx-ctx .v.unset, .opx .v.unset { display: inline-block; padding: 0 5px; line-height: 1.3; background: none; border: 1.5px dashed #a9a99c; border-radius: 7px; color: #6b6b62; }
+/* operations: a task list, and the open task. An answer that depends on the setup opens with a menu for it. */
+.opx-for { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
+.opx-for > svg { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.opx-for-l { font: 600 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.opx-for-s { position: relative; display: inline-flex; align-items: center; }
+.opx-for-sel { appearance: none; -webkit-appearance: none; margin: 0; padding: 7px 34px 7px 14px; border: 1px solid var(--line-2); border-radius: 999px; background: #fafaf7; font: 500 14px var(--sans); color: var(--ink); cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+.opx-for-sel:hover { border-color: var(--ink-3); background: #fff; }
+.opx-for-sel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.opx-for-s > svg { position: absolute; right: 12px; width: 14px; height: 14px; fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.fq-rec + .opx-for { margin-top: 18px; }
+.opx .v { background: rgb(215 215 46 / 45%); border-radius: 3px; padding: 0 2px; }
+/* a value not typed yet: a gap like a blank, which jumps to its field */
+.opx .v.unset { display: inline-block; padding: 0 5px; line-height: 1.3; background: none; border: 1.5px dashed #a9a99c; border-radius: 7px; color: #6b6b62; }
 .opx { display: grid; grid-template-columns: minmax(0, 0.62fr) minmax(0, 1.6fr); background: #fff; border: 1px solid var(--line-2); border-radius: 22px; box-shadow: var(--shadow-1); overflow: hidden; }
 .opx-list { display: grid; align-content: start; gap: 4px; padding: 14px; border-right: 1px solid var(--line); background: #fbfbf9; }
 .opx-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 0; border-radius: 14px; background: none; text-align: left; cursor: pointer; font: inherit; color: var(--ink-2); transition: background 0.2s; }
@@ -1105,8 +1109,7 @@ h2 .hl svg { width: 19px; }
   .tl-fail dl { grid-template-columns: 1fr; }
   .ag-prompt { padding: 18px 18px 12px; }
   .ag-prompt-foot { flex-wrap: wrap; }
-  .opx-ctx { gap: 4px 8px; padding: 10px 12px; font-size: 14px; }
-  .opx-ctx-l { display: none; }
+  .opx-for-sel { font-size: 13.5px; }
   .opx { grid-template-columns: 1fr; }
   .opx-list { grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px; border-right: 0; border-bottom: 1px solid var(--line); }
   .opx-item { padding: 8px; gap: 9px; }

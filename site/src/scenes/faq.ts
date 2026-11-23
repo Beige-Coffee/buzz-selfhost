@@ -4,11 +4,12 @@ import { agentFlows, remoteFlows } from "./agentflow";
 import { agentQuestions, remotePrompt, useExampleInstructions } from "./agents";
 import { identityFlows, lostFlows } from "./identity";
 import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members";
-import { promptText, runningOnHTML, taskHTML } from "./operations";
+import { promptText, taskHTML } from "./operations";
+import { SETUPS } from "../data/decide";
 import { TABLER } from "./tabler";
 import { copyText, enhanceCode } from "../lib/code";
 import { jumpTo, registerAnchors } from "../lib/nav";
-import { getValues, isPrivate, onValues, setValues, skillURL, trackHash, trackOf, type Track } from "../lib/values";
+import { getValues, onValues, setValues, skillURL, trackHash, trackOf, type Track } from "../lib/values";
 
 /**
  * Running your relay: what we recommend for people, keys, data and the server, and how to set it up.
@@ -43,7 +44,7 @@ const ct = (name: string) => `<div class="fq-ct" data-ct="${name}"></div>`;
 
 /** On a private network, a new member needs the tailnet too. */
 const PRIVATE_PEOPLE =
-  "Your relay is on a private network, so each person also joins your Tailscale network, with every device they use Buzz on. A company pays Tailscale for each person, from $8 a month.";
+  "<b>On a private network</b>, each person also joins your Tailscale network, with every device they use Buzz on. A company pays Tailscale for each person, from $8 a month.";
 
 /**
  * The iPhone app's two starter channels (block/buzz mobile/lib/app.dart, the same in mobile-v1.0.0-rc.3,
@@ -76,8 +77,9 @@ const CLICK_THROUGHS: Record<string, Flow[]> = {
  * Buzz 1.0's Moderation screens (relay staff) need the relay to advertise an admin address
  * (BUZZ_ADMIN_HOST), which the skill offers on a public Compose setup only: the app refuses private and
  * local addresses (block/buzz-app src-tauri/src/relay_admin/net.rs), and Block's chart has no setting for it.
+ * The answers say so in a sentence rather than change with the setup (owner's call, 2026-11-23).
  */
-const hasConsole = (t: Track) => t === "vps" || t === "own-public";
+const SCREENS_WHERE = "a VPS or your own hardware, on the internet";
 
 /**
  * Who can do what: the app's own permission rules (block/buzz-app, src/bundled/moderation/api.ts). Any
@@ -88,36 +90,30 @@ const hasConsole = (t: Track) => t === "vps" || t === "own-public";
 const YES = `<span class="fq-y">Yes</span>`;
 const NO = `<span class="fq-n">No</span>`;
 const IF_STAFF = `<span class="fq-if">If on Staff</span>`;
-const roles = (t: Track) => `<div class="fq-vis"><table class="fq-roles">
+const ROLES = `<div class="fq-vis"><table class="fq-roles">
   <thead><tr><th></th><th>${icon("crown")}Owner</th><th>${icon("shield")}Admin</th><th>${icon("user")}Member</th></tr></thead>
   <tbody>
     <tr><td>Make invite links</td><td>${YES}</td><td>${YES}</td><td>${NO}</td></tr>
     <tr><td>Remove members</td><td>${YES}</td><td>${YES}</td><td>${NO}</td></tr>
     <tr><td>Add, promote or remove admins</td><td>${YES}</td><td>${NO}</td><td>${NO}</td></tr>
     <tr><td>Report a message</td><td>${YES}</td><td>${YES}</td><td>${YES}</td></tr>
-    <tr><td>Ban, time out, delete others' messages</td><td>${YES}</td>${hasConsole(t) ? `<td>${IF_STAFF}</td><td>${IF_STAFF}</td>` : `<td>${YES}</td><td>${NO}</td>`}</tr>
+    <tr><td>Ban, time out, delete others' messages</td><td>${YES}</td><td>${YES}</td><td>${IF_STAFF}</td></tr>
     <tr><td>Add someone by npub</td><td colspan="3" class="fq-srv">${icon("server")}On the server, by whoever runs it</td></tr>
     <tr><td>Change the owner</td><td colspan="3" class="fq-srv">${icon("server")}On the server, by whoever runs it</td></tr>
   </tbody></table></div>`;
 
-/** Moderating: in Buzz's screens on a public Compose relay, otherwise with the buzz command line. */
-const NO_CONSOLE: Partial<Record<Track, string>> = {
-  k8s: "Block's Helm chart has no setting yet for the address Buzz's moderation screens need.",
-  practice: "Buzz's moderation screens can't reach a local test.",
-};
-const moderation = (t: Track) =>
-  hasConsole(t)
-    ? rec("Turn on Buzz's moderation screens, add your moderators under Staff, and ban rather than only remove.") +
-      steps([
-        ["Turn on the moderation screens", "Your agent offers this during setup, or ask it later. It takes one more DNS record, for <code>admin.</code> in front of your domain."],
-        ["Add your moderators under Staff", "In Buzz, <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>: paste their npub, pick <b>moderator</b>, then choose <b>Add</b>. Being an admin isn't enough: Staff is a list of its own, which the owner manages."],
-        ["Work through reports", "Anyone can report a message. Moderators find reports under <b>Settings</b>, <b>Moderation</b>, <b>Reports</b>, where they can delete it, time the person out or ban them."],
-        ["Ban, don't only remove", "A ban keeps them out, even with an invite link, and cuts off their agents. Someone you only remove can come back with any link that hasn't expired."],
-      ])
-    : rec("Ban rather than only remove: a ban keeps someone out and cuts off their agents. Someone you only remove can come back with any invite link that hasn't expired.") +
-      note(
-        `${NO_CONSOLE[t] ?? "On a private network, Buzz's moderation screens can't reach your relay."} So the owner or an admin moderates with the <code>buzz</code> command line that comes with Buzz 1.0 (on a Mac, <code>/Applications/Buzz.app/Contents/Resources/bin/buzz</code>), signed with their own key: <code>buzz moderation</code> lists the reports members send, and bans or times people out, and <code>buzz messages delete</code> removes a message.`,
-      );
+/** Moderating: in Buzz's screens where the relay can offer them, otherwise with the buzz command line. */
+const MODERATION =
+  rec(`Ban rather than only remove. On ${SCREENS_WHERE}, turn on Buzz's moderation screens and add your moderators under Staff.`) +
+  steps([
+    ["Turn on the moderation screens", "Your agent offers this during setup, or ask it later. It takes one more DNS record, for <code>admin.</code> in front of your domain."],
+    ["Add your moderators under Staff", "In Buzz, <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>: paste their npub, pick <b>moderator</b>, then choose <b>Add</b>. Being an admin isn't enough: Staff is a list of its own, which the owner manages."],
+    ["Work through reports", "Anyone can report a message. Moderators find reports under <b>Settings</b>, <b>Moderation</b>, <b>Reports</b>, where they can delete it, time the person out or ban them."],
+  ]) +
+  note("<b>Ban, don't only remove.</b> A ban keeps them out, even with an invite link, and cuts off their agents. Someone you only remove can come back with any link that hasn't expired.") +
+  note(
+    "<b>On a private network, Kubernetes or a local test</b>, Buzz's moderation screens can't reach your relay. So the owner or an admin moderates with the <code>buzz</code> command line that comes with Buzz 1.0 (on a Mac, <code>/Applications/Buzz.app/Contents/Resources/bin/buzz</code>), signed with their own key: <code>buzz moderation</code> lists the reports members send, and bans or times people out, and <code>buzz messages delete</code> removes a message.",
+  );
 
 /**
  * Who lets agents in (block/buzz 0.3.0): with BUZZ_ALLOW_NIP_OA_AUTH on, as the bundle and the chart
@@ -126,19 +122,18 @@ const moderation = (t: Track) =>
  * instead of an agent's 120 (buzz-auth rate_limit.rs). Buzz 1.0.5 shows a refused agent's turn as
  * "Couldn't finish" (ActivityOutcome.tsx).
  */
-const DOOR = (t: Track) => {
-  const k8s = t === "k8s" || t === "k8s-private";
-  const line = (on: boolean) => (k8s ? `relay.allowNipOaAuth: ${on}` : `BUZZ_ALLOW_NIP_OA_AUTH=${on}`);
+const DOOR = (() => {
+  const line = (on: boolean) => `BUZZ_ALLOW_NIP_OA_AUTH=${on}`;
   return (
     note("<b>Approve each agent yourself?</b> A member's own agents get in with them, without anyone adding them. To approve each one, switch that off and add the agents you allow as members.") +
     `<div class="fq-vis fq-door">
       <div><code>${line(true)}</code><p><b>This guide's setting.</b> A member's agents get in with them.</p></div>
-      <div class="on"><code>${line(false)}</code><p><b>You approve.</b> Only agents you add as members get in.</p><small>Ask your agent to switch it and restart the relay.</small></div>
+      <div class="on"><code>${line(false)}</code><p><b>You approve.</b> Only agents you add as members get in.</p><small>Ask your agent to switch it and restart the relay. On Kubernetes, it's <code>relay.allowNipOaAuth</code> in the chart's values.</small></div>
     </div>` +
     note("Add the agents you keep as members first, or they're locked out. A member's new agent then ends with <b>Couldn't finish</b>, and Buzz doesn't say why, so tell members to ask an admin.") +
     note("An agent added as a member counts as a person: 60 messages a minute instead of an agent's 120, and Buzz doesn't record who owns it.")
   );
-};
+})();
 
 /** A lost device: one question decides everything, whether the key is exposed. */
 const CASES = `<div class="fq-vis fq-cases">
@@ -323,13 +318,9 @@ const phone = (title: string) => skill.mobile.find((x) => x.title === title)?.ht
 const fold = (title: string, html: string) => `<details class="fq-fold"><summary>${title}</summary><div class="fq-mobile">${html}</div></details>`;
 const PHONE_OPEN = ["Turn notifications on", "Pair a phone", "Test with the phone locked"];
 const PHONE_FOLDED = ["What Block and Apple see", "Android", "Run your own gateway"];
-const mobile = (t: Track) =>
+const MOBILE =
   rec("Turn notifications on and use Block's gateway with the App Store's Buzz app. You need no Apple developer account, no Apple push credentials and no gateway of your own.") +
-  (t === "practice"
-    ? note("A local test can't pair phones. Use a server setup to try this.")
-    : t === "k8s-private"
-      ? note("Pairing a phone on private Kubernetes isn't covered by this guide yet. The private VPS setup is.")
-      : "") +
+  note("Phones pair on every server setup except Kubernetes on a private network, which this guide doesn't cover yet. A local test can't pair phones.") +
   PUSH +
   // docs/research.md: Block's bundle notes name "the public gateway"; block/buzz#5206 is where self-hosters asked for it
   note(
@@ -337,24 +328,6 @@ const mobile = (t: Track) =>
   ) +
   `<div class="fq-mobile">${PHONE_OPEN.map((x) => `<h4>${x}</h4>${phone(x)}`).join("")}</div>` +
   PHONE_FOLDED.map((x) => fold(x, phone(x))).join("");
-
-/**
- * Before the team arrives: five things to have true, each a link to the answer that says how.
- */
-const PRELAUNCH: [id: string, title: string, text: string][] = [
-  ["server", "Two operators", "A primary and a backup, each with their own way in."],
-  ["add", "A working door", "A new account joins from a phone and from desktop with no error, and sees no private channel. A stranger can't get in."],
-  ["backup", "Keys and a backup", "Both keys saved, and a backup off the server that you have restored once."],
-  ["notifications", "Phones", "A locked phone shows a real notification."],
-  ["moderate", "An open community", "Moderators named, and agents on a machine of their own."],
-];
-const prelaunchHTML = () => `<div class="pl" role="group" aria-labelledby="pl-k">
-  <p class="pl-k" id="pl-k">Before the team arrives</p>
-  <ul class="pl-list">${PRELAUNCH.map(
-    ([id, title, text]) =>
-      `<li><div><a href="#operations" data-q-link="${id}">${title}</a><p>${text}</p></div></li>`,
-  ).join("")}</ul>
-</div>`;
 
 interface Question {
   id: string;
@@ -372,7 +345,7 @@ const GROUPS: [string, Question[]][] = [
         id: "add",
         icon: "users",
         q: "How should we add people?",
-        a: (t) =>
+        a:
           rec("Send an invite link that expires after a day, limited to the people you expect. To add someone without a link, add their npub on the server.") +
           ct("add") +
           note(
@@ -391,7 +364,7 @@ const GROUPS: [string, Question[]][] = [
           note(
             `For a public project, once you've set up <a href="#operations" data-q-link="moderate">moderation</a>, post an invite link on your site or README with a use limit, and replace it when it fills or expires. A link lasts 30 days at most, and Buzz can't cancel one early. Banning the person who made a link cancels every link they made.`,
           ) +
-          (isPrivate(t) ? note(PRIVATE_PEOPLE) : ""),
+          note(PRIVATE_PEOPLE),
       },
       {
         id: "welcome",
@@ -406,14 +379,15 @@ const GROUPS: [string, Question[]][] = [
           note("Buzz can't greet people by itself: workflows have no trigger for someone joining. For a personal welcome, have an agent watch for new members and message each one.") +
           note(`Both channels need those exact names, for phones: see <a href="#operations" data-q-link="add">How should we add people?</a>`),
       },
-      { id: "notifications", icon: "device-mobile", q: "How do phones and notifications work?", a: mobile },
+      { id: "notifications", icon: "device-mobile", q: "How do phones and notifications work?", a: MOBILE },
       {
         id: "roles",
         icon: "crown",
         q: "How should we set up roles?",
-        a: (t) =>
+        a:
           rec("Make the person who runs Buzz the owner, and name at least two admins, so someone can always add or remove people.") +
-          roles(t) +
+          ROLES +
+          note(`Staff is the moderation screens' list, so it exists only on ${SCREENS_WHERE}. Elsewhere, the owner and admins ban from the command line: see <a href="#operations" data-q-link="moderate">How do we moderate?</a>`) +
           note("<b>Keep invitations to yourself?</b> Make no admins: members can't make invite links.") +
           ct("role") +
           note(`The owner is set on the server, so whoever runs it changes it. The old owner stays on as an admin. Banning is a separate tool: see <a href="#operations" data-q-link="moderate">How do we moderate?</a>`) +
@@ -424,7 +398,7 @@ const GROUPS: [string, Question[]][] = [
         id: "moderate",
         icon: "shield",
         q: "How do we moderate?",
-        a: (t) => moderation(t) + DOOR(t),
+        a: MODERATION + DOOR,
       },
       {
         id: "leave",
@@ -652,7 +626,7 @@ const CHEV = `<svg class="fq-chev" viewBox="0 0 24 24" aria-hidden="true"><path 
  */
 export function mountFaq(host: HTMLElement): void {
   const all = GROUPS.flatMap(([, qs]) => qs);
-  host.innerHTML = `${prelaunchHTML()}${runningOnHTML(trackOf())}<div class="opx fq">
+  host.innerHTML = `<div class="opx fq">
     <div class="opx-list fq-list" role="group" aria-label="Questions">${GROUPS.map(
       ([group, qs], gi) =>
         `<div class="fq-grp" data-g="${gi}"><button type="button" class="fq-g fq-g-t" aria-expanded="true"><span>${group}</span><em aria-label="${qs.length} questions">${qs.length}</em>${CHEV}</button>${qs
@@ -810,6 +784,14 @@ export function mountFaq(host: HTMLElement): void {
       return;
     }
   });
+  // an answer's setup menu: picking one changes the guide's setup too, and onValues redraws the answer
+  host.addEventListener("change", (e) => {
+    const sel = (e.target as HTMLElement).closest<HTMLSelectElement>(".opx-for-sel");
+    if (!sel) return;
+    setValues(SETUPS[sel.value as Track].set);
+    showLink();
+    pane.querySelector<HTMLSelectElement>(".opx-for-sel")?.focus();
+  });
   // arrow keys move between questions, unfolding the group of the one they reach
   host.addEventListener("keydown", (e) => {
     if (!(e.target as HTMLElement).closest("[data-q]")) return;
@@ -845,9 +827,8 @@ export function mountFaq(host: HTMLElement): void {
   // every group starts folded; showing the first answer unfolds its own
   grps().forEach((g) => setShut(g, true));
   show(open);
-  // the Running on box changed: redraw it, and the answer if it depends on the setup
+  // the setup changed, here or in the guide: redraw the answer if it depends on it
   onValues(() => {
-    host.querySelector(".opx-ctx")!.outerHTML = runningOnHTML(trackOf());
     if (typeof all.find((x) => x.id === open)!.a !== "string") show(open);
     else pane.querySelector<HTMLAnchorElement>(".fq-h .hl")?.setAttribute("href", linkFor(all.find((x) => x.id === open)!));
   });

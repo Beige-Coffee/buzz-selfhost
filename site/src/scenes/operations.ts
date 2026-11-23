@@ -39,11 +39,11 @@ const stepsHTML = (rows: OpStep[]) =>
 
 /** A VPS can also be rolled back from the provider's own backups. */
 const HOST_BACKUPS =
-  "Also turn on your provider's automatic backups: DigitalOcean, Hetzner, AWS and Google Cloud all have them. They copy the whole server, so you can roll it back.";
+  "Also turn on your hosting provider's automatic backups. DigitalOcean, Hetzner, AWS and Google Cloud all offer them. They copy the whole server, and you can roll the server back to one of those copies.";
 
 /** On a private network the community's address is the machine's Tailscale name, so it can't move. */
 const PRIVATE_MOVE =
-  "On a private network, restoring onto a new machine isn't covered: the community's address is the old machine's Tailscale name. Restore onto the same machine.";
+  "This guide doesn't cover restoring a private-network relay onto a new machine. The community's address is the old machine's Tailscale name. Restore onto the same machine.";
 
 /** The setups in the menu's order: the server ones, then the local test. */
 const ORDER: Track[] = ["vps", "vps-private", "own-public", "own-private", "k8s", "k8s-private", "practice"];

@@ -1,5 +1,6 @@
 import { BACK, joinCard, onboardingStep } from "./joinmock";
 import { communityNav, CURSOR, invite, settings, settingsModal, ti, type Flow } from "./members";
+import { skillURL } from "../lib/values";
 
 /**
  * A person's identity in Buzz 1.0, as click-throughs of its own screens, in light mode. Drawn from
@@ -14,6 +15,8 @@ import { communityNav, CURSOR, invite, settings, settingsModal, ti, type Flow } 
 const NPUB = "npub1qm…8k3a";
 /** The new key after a lost device: the npub whoever runs the server adds, unless an admin sends a link. */
 const NEW_NPUB = "npub1qk3f8w…7x2a";
+/** This guide's key script, linked from the steps that use it, so a reader who skipped the skill can get it. */
+const KEYMAKER = skillURL("scripts/new-identity.py");
 
 /**
  * Buzz's first screen: the wordmark on Buzz's chartreuse among its bees, then Create account and Sign
@@ -129,15 +132,15 @@ export const identityFlows: Flow[] = [
     id: "identity",
     label: "Set up an identity",
     steps: [
-      { k: "Make your key", t: "Run this guide's key script on your own computer, not the server. It saves your private key in a file only you can read, and shows only your npub and where the file is.", frame: keyScript() },
-      { k: "Choose Other options", t: "On Buzz's first screen, choose <b>Other options</b>. <b>Create account</b> and <b>Sign in</b> are for a Builderlab account, which is Block's.", frame: welcome },
-      { k: "Paste your community's address", t: "Paste it, or an invite link an admin sent you, into <b>Community address or invite link</b>, then choose <b>Continue</b>.", frame: joinCard(ADDRESS, true) },
-      { k: "Use an existing key", t: "On <b>Connect to your community</b>, choose <b>Use an existing key</b>. <b>Sign in with Builderlab</b> would go through Block's service instead.", frame: connect },
-      { k: "Drop in your key file", t: "Drop the key file on the page, or choose <b>Browse</b> and pick it. Check that <b>Public identity</b> is your npub, choose <b>Continue with this key</b>, then <b>Join</b>, and enter your name under <b>Set up your profile</b>. If Buzz says the community needs an invite, an admin hasn't added your npub yet.", frame: keyImport },
-      { k: "Copy your private key", t: "Press ⌘, (Ctrl+, on Windows and Linux), or choose your profile picture, then <b>Settings</b>. Under <b>Buzz</b>, choose <b>Identity</b>. Open <b>More options</b> (the … on the Buzz ID card), choose the masked private-key field, then <b>Copy</b>.", frame: settingsModal(nav("Identity"), identityPage("nsec")) },
-      { k: "Save it in your password manager", t: "Paste it into your private vault and confirm the saved entry is recoverable. Avoid shared clipboard/history tools and clear the copied key. Then delete the temporary key file: <code>rm ~/buzz-identity.key</code>. Anyone with this key can act as you.", frame: vault },
-      { k: "Copy your npub for others", t: "On the front of the Buzz ID card, choose its copy icon, <b>Copy Buzz ID</b>. This copies your npub. It's public, so any channel works.", frame: settingsModal(nav("Identity"), identityPage("npub")) },
-      { k: "Lock your devices", t: "Turn on disk encryption and a screen lock on your computer, and a passcode on your phone.", frame: devices },
+      { k: "Make your key", t: `Run this guide's <a href="${KEYMAKER}">key script</a> on your own computer. Don't run it on the server. The script saves your private key in a file that only you can read. It shows your npub and where the file is. It never shows the private key.`, frame: keyScript() },
+      { k: "Choose Other options", t: "On Buzz's first screen, choose <b>Other options</b>. <b>Create account</b> and <b>Sign in</b> are for a Builderlab account. Builderlab is Block's service.", frame: welcome },
+      { k: "Paste your community's address", t: "Paste your community's address into <b>Community address or invite link</b>. If an admin sent you an invite link, paste the link instead. Then choose <b>Continue</b>.", frame: joinCard(ADDRESS, true) },
+      { k: "Use an existing key", t: "On the <b>Connect to your community</b> page, choose <b>Use an existing key</b>. <b>Sign in with Builderlab</b> would sign you in through Block's service.", frame: connect },
+      { k: "Drop in your key file", t: "Drop the key file on the page, or choose <b>Browse</b> and pick the file. Check that <b>Public identity</b> shows your npub, then choose <b>Continue with this key</b> and <b>Join</b>. Enter your name under <b>Set up your profile</b>. If Buzz says the community needs an invite, nobody has added your npub yet.", frame: keyImport },
+      { k: "Copy your private key", t: "Press ⌘, on a Mac or Ctrl+, on Windows and Linux to open <b>Settings</b>. You can also choose your profile picture, then <b>Settings</b>. Under <b>Buzz</b>, choose <b>Identity</b>. On the Buzz ID card, choose <b>More options</b>, the <b>…</b> button. Then choose the masked private key field and choose <b>Copy</b>.", frame: settingsModal(nav("Identity"), identityPage("nsec")) },
+      { k: "Save it in your password manager", t: "Paste the key into your private vault in your password manager. Check that you can open the saved entry and get the key back. Don't use a clipboard tool that shares your clipboard or keeps a history of it. Clear the key from your clipboard when you're done. Then run <code>rm ~/buzz-identity.key</code> to delete the key file. Anyone who has this key can act as you.", frame: vault },
+      { k: "Copy your npub to share", t: "On the front of the Buzz ID card, choose <b>Copy Buzz ID</b>, the copy icon next to your npub. Your npub is public. You can send it to people any way you like.", frame: settingsModal(nav("Identity"), identityPage("npub")) },
+      { k: "Lock your devices", t: "Turn on disk encryption and a screen lock on your computer. Set a passcode on your phone.", frame: devices },
     ],
   },
 ];
@@ -145,7 +148,7 @@ export const identityFlows: Flow[] = [
 /** A lost device: retire an exposed key for a new one, or sign in again with a safe one. */
 const pairAgain = {
   k: "Pair the phone again",
-  t: "<b>Settings</b>, <b>Mobile app</b>. On the phone, <b>Add community</b> and scan the code. Type the six digits if the phone asks, or check that they match, then choose <b>Codes match</b> on your computer.",
+  t: "On your computer, open <b>Settings</b> and choose <b>Mobile app</b>. On the phone, open Buzz, choose <b>Add community</b> and scan the code. If the phone asks for a code, type the six digits your computer shows. If the phone shows a code, check that the digits match. Then choose <b>Codes match</b> on your computer.",
   frame: settingsModal(nav("Mobile app"), pairPage),
 };
 export const lostFlows: Flow[] = [
@@ -153,18 +156,18 @@ export const lostFlows: Flow[] = [
     id: "exposed",
     label: "The key is exposed",
     steps: [
-      { k: "Remove the old key now", t: "An admin opens <b>Membership</b>, the <b>…</b> on the person's row, then <b>Remove</b>. That disconnects the key at once, but an invite link that hasn't expired would still let it back in.", frame: settings("remove") },
-      { k: "Make a new key", t: "On the new device, make a new key with the guide's key script. Not the saved copy: whoever has the old device has that key too.", frame: keyScript(NEW_NPUB) },
-      { k: "Get back in with a new link", t: "An admin sends you an invite link set to 1 use and 1 day, from <b>Membership</b>'s <b>Invite</b> tab. Or whoever runs the server adds the npub the script shows: Buzz can't add an npub itself.", frame: invite("copy", "1 day", "1") },
-      { k: "Sign in with the new key", t: "On the new device: <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>, and drop in the new key file. Save the new key in your password manager and delete the file, as when you first joined. Then pair the phone again, and start your agents again from the new identity.", frame: connect },
+      { k: "Remove the old key now", t: "An admin opens <b>Membership</b>, chooses the <b>…</b> button on the person's row, then chooses <b>Remove</b>. Buzz disconnects the old key right away. An invite link that hasn't expired would still let the old key back in.", frame: settings("remove") },
+      { k: "Make a new key", t: `On the new device, make a new key with this guide's <a href="${KEYMAKER}">key script</a>. Don't use the copy you saved. Whoever has the old device has that key too.`, frame: keyScript(NEW_NPUB) },
+      { k: "Get a new invite link", t: "An admin makes you a new link on the <b>Invite</b> tab in <b>Membership</b>. They set it to 1 use and to expire after 1 day, then send it to you. Or whoever runs the server can add the npub that the script showed you. The Buzz app can't add an npub itself.", frame: invite("copy", "1 day", "1") },
+      { k: "Sign in with the new key", t: "On the new device's first screen, choose <b>Other options</b>. Paste the new invite link or the community's address, then choose <b>Continue</b>. Choose <b>Use an existing key</b> and drop in the new key file. Save the new key in your password manager and delete the file, as you did the first time. Then pair your phone again. Start your agents again from the new identity.", frame: connect },
     ],
   },
   {
     id: "safe",
     label: "The key is safe",
     steps: [
-      { k: "Sign in with the saved copy", t: "On the new device's first screen: <b>Other options</b>, the community's address, <b>Continue</b>, then <b>Use an existing key</b>.", frame: connect },
-      { k: "Paste the saved key", t: "Paste it from your password manager, choose <b>Continue with this key</b>, then <b>Join</b>. You're still a member, so nobody has to add you again.", frame: keyImport },
+      { k: "Sign in with the saved copy", t: "On the new device's first screen, choose <b>Other options</b>. Paste the community's address and choose <b>Continue</b>. Then choose <b>Use an existing key</b>.", frame: connect },
+      { k: "Paste the saved key", t: "Copy the key from your password manager and paste it into the field. Choose <b>Continue with this key</b>, then <b>Join</b>. You're still a member with the same key. Nobody has to add you again.", frame: keyImport },
       pairAgain,
     ],
   },

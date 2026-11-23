@@ -56,34 +56,39 @@ const flow = (rows: AgentStep[]) =>
  * Three agents, by who they work for, as agents.md's opening list has them: where each runs, who can
  * ask it, how it gets in and where it belongs, with the answer that says how.
  */
-const WHO_ROWS = ["Runs on", "Who can ask", "Gets in", "Belongs in"];
+const WHO_ROWS = ["Where it runs", "Who can ask it", "How it gets in", "Which channels"];
 const who = (i: string, title: string, cells: string[], link: string, cls = "") =>
   `<div class="ga-who-c${cls}"><p class="ga-who-h"><i>${icon(i)}</i>${title}</p><dl>${cells
     .map((c, n) => `<div><dt>${WHO_ROWS[n]}</dt><dd>${c}</dd></div>`)
     .join("")}</dl>${link}</div>`;
 const WHO = () => `<div class="fq-vis ga-who">
-  ${who("user", "For you", ["A computer that stays on, with Buzz open", "Only you", "Through your membership", "The channels you add it to"], go("agent-on", "Keep it answering →"))}
-  ${who("users", "For your team", ["A server of its own", "The people you list", "Through your ownership proof", "Your team's channels"], go("agent-remote", "Run one on your server →"))}
-  ${who("world", "For the public", ["A machine with nothing private on it", "Anyone who mentions it", "Added as a member, on the server", "Open channels only"], go("agent-safe", "Keep it safe →"), " open")}
+  ${who("user", "For you", ["A computer that stays on, with Buzz open", "Only you", "It uses your membership", "The channels you add it to"], go("agent-on", "Keep it answering →"))}
+  ${who("users", "For your team", ["A server of its own", "The people you list", "It uses your membership, with an ownership proof you make in Buzz", "Your team's channels"], go("agent-remote", "Run one on your server →"))}
+  ${who("world", "For the public", ["A machine with nothing private on it", "Anyone who mentions it", "You add its key as a member on the server", "Open channels only"], go("agent-safe", "Keep it safe →"), " open")}
 </div>`;
 
 /* ── What should we tell an agent? ── */
 
 /** What each line of the skill's example is for, in its order (the build checks there are five). */
-const JOBS = ["Who it is for", "What it works from", "What needs your yes", "How it reports", "What stays out"];
+const JOBS = ["Who it works for", "What it works from", "What it checks with you first", "How it reports back", "What it never posts"];
 /** Buzz's own rules for every agent (agents.md, from base_prompt.md). */
-const SAID = ["Act only when mentioned or messaged directly", "Reply in the thread", "Keep channel messages brief", "Stay quiet with nothing to add"];
+const SAID = [
+  "It acts only when someone mentions it or sends it a direct message.",
+  "It replies in the thread where it was asked.",
+  "It keeps its messages to the channel brief.",
+  "It stays quiet when it has nothing to add.",
+];
 const INSTRUCTIONS = () => `<div class="fq-vis ga-ins-vis">
   <div class="ga-ins"><p class="ga-ins-h">Instructions <em>Optional</em></p>
     <div class="ga-ins-box">${skill.agents.instruction.map((line, i) => `<p class="ga-ins-l"><span class="ga-ins-t">${esc(line)}</span><span class="ga-ins-j">${JOBS[i]}</span></p>`).join("")}</div>
   </div>
-  <div class="fq-card dark ga-said"><p class="fq-card-h">${icon("message-circle")}Buzz already tells every agent</p><ul>${SAID.map((s) => `<li>${s}</li>`).join("")}</ul></div>
+  <div class="fq-card dark ga-said"><p class="fq-card-h">${icon("message-circle")}Buzz already gives every agent these rules</p><ul>${SAID.map((s) => `<li>${s}</li>`).join("")}</ul></div>
 </div>`;
 
 /* ── Which harness and model should we pick? ── */
 
 const HARNESS = () => `<div class="fq-vis"><table class="fq-roles ga-har">
-  <thead><tr><th>Harness</th><th>You need</th><th>Runs on</th></tr></thead>
+  <thead><tr><th>Harness</th><th>What you need</th><th>Runs on</th></tr></thead>
   <tbody>${skill.agents.harness.map(([h, need, on]) => `<tr><td>${h}</td><td>${need}</td><td>${on}</td></tr>`).join("")}</tbody></table></div>`;
 
 /* ── How do we keep an agent answering? ── */
@@ -92,32 +97,32 @@ const chip = (t: string, cls = "") => `<span class="ga-chip${cls}">${t}</span>`;
 const place = (i: string, title: string, text: string, chips: string, pick = false) =>
   `<div class="ga-on-row${pick ? " pick" : ""}"><span class="ga-on-i">${icon(i)}</span><div><b>${title}</b><p>${text}</p></div><div class="ga-on-s">${chips}</div></div>`;
 const PLACES = `<div class="fq-vis ga-on">
-  ${place("laptop", "Your laptop", "Answers while Buzz is open and the lid is up.", chip("Built into Buzz", " yes"))}
-  ${place("device-desktop", "A computer that stays on", "Buzz open on a spare computer, or a virtual machine with a desktop. Answers all day.", chip("Recommended", " rec") + chip("Built into Buzz", " yes"), true)}
-  ${place("cloud", "Hosted by Block", "Block calls these remote agents. They run on Block's machines through Builderlab, paid, in the United States only.", chip("Built into Buzz", " yes"))}
-  ${place("server", "Your own server, without Buzz", "Block's Sprig on a small server, set up by one prompt to your coding agent. Answers all day.", chip("Not built in yet", " no"))}
+  ${place("laptop", "Your laptop", "The agent answers only while Buzz is open and the lid is up.", chip("Built into Buzz", " yes"))}
+  ${place("device-desktop", "A computer that stays on", "Keep Buzz open on a spare computer, or on a virtual machine with a desktop. The agent then answers all day.", chip("Recommended", " rec") + chip("Built into Buzz", " yes"), true)}
+  ${place("cloud", "Hosted by Block", "Block calls these remote agents. Builderlab, a Block service, runs them on Block's machines. The paid ones are available only in the United States.", chip("Built into Buzz", " yes"))}
+  ${place("server", "Your own server, without Buzz", "You give an agent on a small server one prompt, and it sets itself up with Block's Sprig. The agent then answers all day.", chip("Not built into Buzz yet", " no"))}
 </div>`;
 
 /* ── How do we keep an agent safe? ── */
 
 const risk = (i: string, t: string, d: string) => `<li><span class="fq-dep-i">${icon(i)}</span><div><b>${t}</b><p>${d}</p></div></li>`;
 const RISKS = `<div class="fq-vis"><ul class="fq-check">${[
-  risk("lock", "No sandbox, no approval prompts", "Buzz starts every local agent that way, and has no setting for either. The agent can do whatever its person's account can on that computer."),
-  risk("user", "It takes requests from its owner", "Other people can't start its work. It still reads what they post, and that text can steer it. An ownership proof you make for an outside agent lets that agent ask too."),
-  risk("device-desktop", "A machine of its own", `For a community anyone can join, keep personal accounts, private repositories and production credentials off the agent's computer. <a href="#security">Drawn in Security</a>.`),
-  risk("eye", "What it reads leaves the computer", "It goes to the model's provider. Keep agents out of channels whose content shouldn't reach that computer or the provider."),
+  risk("lock", "It has no sandbox and no approval prompts", "Buzz starts every local agent this way, and has no setting to change it. The agent can do anything your user account can do on that computer."),
+  risk("user", "It takes requests from its owner", "Mentions and direct messages from other people don't start its work. The agent still reads what they post, and their words can steer it. If you make an ownership proof for an agent outside Buzz, that agent can give it requests too."),
+  risk("device-desktop", "Give it a machine of its own", `If anyone can join your community, keep personal accounts, private repositories and production credentials off the agent's computer. <a href="#security">The Security section</a> shows this in a drawing.`),
+  risk("eye", "What it reads leaves the computer", "The agent sends what it reads to its model's provider. Keep agents out of channels whose content shouldn't reach that computer or that provider."),
   // security.md: Give each audience its own agent (block/buzz-app docs/practical-information-flow-for-buzz-agents.md is a draft)
-  risk("users", "One agent per audience", "An agent that reads a private channel can repeat it in an open channel or a direct message, asked plainly or tricked. Buzz doesn't stop that yet. Keep the agent that serves an open channel out of private ones."),
-  risk("download", "Plugins are code", `Install only plugins you trust. A plugin is unsandboxed code, and <a href="https://buzz.xyz/support">Block's support page</a> says one can reach your files and your Buzz private key.`),
+  risk("users", "Give each audience its own agent", "An agent that reads a private channel can repeat what it read in an open channel or a direct message. It can do that when someone asks it plainly, or when someone tricks it. Buzz doesn't stop that yet. Keep the agent that serves an open channel out of private channels."),
+  risk("download", "A plugin is code", `Install only plugins you trust. A plugin runs as code with no sandbox. <a href="https://buzz.xyz/support">Block's support page</a> says a plugin can reach your files and your Buzz private key.`),
 ].join("")}</ul></div>`;
 
 /* ── How do we run an agent on our own server? ── */
 
 /** What happens, in the order the reader sees it: their chat with the agent, then Buzz, then Buzz again. */
 const THREE: [string, string, string][] = [
-  ["message-circle", "Paste the prompt to your agent", "In the chat you already use with it. It sets itself up on its server and replies there with a key."],
-  ["shield", "Approve the key in Buzz", "Settings, Security, Authorize external identity. Paste the key, copy the proof, and paste the proof back to your agent."],
-  ["robot", "Talk to it in Buzz", "It sends you a direct message in Buzz. Reply there, or mention it in a channel."],
+  ["message-circle", "Paste the prompt to your agent", "Paste it into the chat you already use with your agent. The agent sets itself up on its server. It then replies in that chat with its public key."],
+  ["shield", "Approve the key in Buzz", "In Buzz, open Settings, then Security, then Authorize external identity. Paste the key there, and copy the ownership proof that Buzz makes. Then paste the proof back to your agent."],
+  ["robot", "Talk to it in Buzz", "The agent sends you a direct message in Buzz. Reply to that message, or mention the agent in a channel."],
 ];
 const OVERVIEW = `<ol class="ga-three">${THREE.map(([i, t, d]) => `<li><span class="ga-three-h">${icon(i)}</span><b>${t}</b><p>${d}</p></li>`).join("")}</ol>`;
 
@@ -133,7 +138,7 @@ export const remotePrompt = () => fill(fillBlanks(withOrigin(skill.agents.prompt
 const INFO = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>`;
 const TIP = () => `<span class="ga-tip"><button type="button" class="ga-tip-b" aria-label="Example instructions" aria-expanded="false">${INFO}</button><span class="ga-tip-pop" role="note"><b>For example</b>${skill.agents.instruction
   .map((l) => `<span>${esc(l)}</span>`)
-  .join("")}<em>Change the names. Keep passwords and keys out.</em><button type="button" class="ga-tip-use">Use this example</button></span></span>`;
+  .join("")}<em>Change the names to your own. Don't put passwords or keys in the instructions.</em><button type="button" class="ga-tip-use">Use this example</button></span></span>`;
 /** "Use this example": the example goes into every instructions blank, as if typed. */
 export function useExampleInstructions(): void {
   document.querySelectorAll<HTMLInputElement>('input[data-blank="instructions"]').forEach((i, n) => {
@@ -158,7 +163,7 @@ const SYMPTOMS = () => `<div class="ga-fold-wrap"><details class="ga-fold" id="a
   <div class="fq-vis ga-sym">${skill.agents.symptoms.map(([s, f]) => `<div class="ga-sym-row"><b>${icon("alert")}<span>${s}</span></b><p>${f}</p></div>`).join("")}</div>
 </details></div>`;
 
-const WARN = `<div class="ga-warn" id="agent-remote-proof">${icon("alert")}<p><b>The proof can't be taken back.</b>${linkButton("#agent-remote-proof", "Copy a link to this part")} It never expires, and it isn't tied to one community. Whoever holds the agent's key and the proof can act as your agent, and your own Buzz agents take requests from it. Keep that key on the agent's server, and make a proof only for a key you made. To cut the agent off, delete its key. If the key may have leaked, ${go("moderate", "ban it")}.</p></div>`;
+const WARN = `<div class="ga-warn" id="agent-remote-proof">${icon("alert")}<p><b>You can't take back an ownership proof.</b>${linkButton("#agent-remote-proof", "Copy a link to this part")} The proof never expires. It isn't tied to one community. Whoever holds the agent's key and the proof can act as your agent. Your own Buzz agents also take requests from it. Keep the agent's key on the agent's server. Make a proof only for a key you made yourself. To cut the agent off, delete its key on the server. If the key may have leaked, ${go("moderate", "ban it")}.</p></div>`;
 
 export function agentQuestions({ rec, note, ct }: AnswerKit) {
   return [
@@ -169,11 +174,11 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       a: () =>
         rec("Start by deciding who the agent works for. That tells you where it should run, who can give it requests, and which channels it should join.") +
         WHO() +
-        note("<b>One agent per audience.</b> An agent that reads a private channel can repeat it anywhere it posts, and Buzz doesn't stop that yet.") +
+        note("<b>Give each audience its own agent.</b> An agent that reads a private channel can repeat what it read anywhere it posts. Buzz doesn't stop that yet.") +
         // block/buzz 0.3.0 crates/buzz-relay/src/handlers/auth.rs: an agent with its owner's proof is admitted ViaOwner, not as a member
-        note("<b>Not in Membership.</b> An agent that gets in through its owner doesn't appear in the member list: it uses its owner's membership, not one of its own.") +
+        note("<b>Your own agents don't appear in Membership.</b> An agent that gets in through its owner uses the owner's membership. It has no membership of its own. The member list doesn't show it.") +
         // block/buzz-app v1.0.5, src/features/agents/owner-attestation.ts: only the owner's messages start an agent's work
-        note(`An agent made in Buzz answers only its owner. A helper others can ask is a program you run: Buzz has no built-in one yet. Then: ${go("agent-brief", "what to tell it")} and ${go("agent-model", "which harness and model")}.`),
+        note(`An agent you make in Buzz answers only you. A helper that other people can ask has to be a program you run yourself, such as ${go("agent-remote", "an agent on your own server")}. Buzz has no built-in helper like that yet. Next, read ${go("agent-brief", "what to tell an agent")} and ${go("agent-model", "which harness and model to pick")}.`),
     },
     {
       id: "agent-brief",
@@ -184,8 +189,8 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
         ct("agents") +
         INSTRUCTIONS() +
         note("Instructions shape how the agent answers. They don't give it tools, logins or permissions.") +
-        note("Write them when you create the agent, or later: <b>Agents</b>, the agent, then its <b>Identity</b> tab.") +
-        note("The model's provider receives the instructions with each request. Keep passwords and keys out of them."),
+        note("You can write them when you create the agent. To change them later, open <b>Agents</b>, choose the agent, and open its <b>Identity</b> tab.") +
+        note("The model's provider receives the instructions with every request. Keep passwords and keys out of them."),
     },
     {
       id: "agent-model",
@@ -194,9 +199,9 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
       a: () =>
         rec("Use the harness your team already has an account for and has approved. Keep Model and Thinking on their defaults until you have a reason to change them.") +
         HARNESS() +
-        note("Block's README, help and support pages don't recommend one harness or model over another.") +
-        note("An agent sends what it reads to its model's provider, such as Anthropic for Claude or OpenAI for Codex. Use one your team has approved, or a model on your own computer through Goose.") +
-        note("Each agent keeps its own harness, model and thinking."),
+        note("Block doesn't recommend one harness or model over another in its README or its help and support pages.") +
+        note("An agent sends what it reads to its model's provider, such as Anthropic for Claude or OpenAI for Codex. Use a provider your team has approved. You can also run a model on your own computer through Goose.") +
+        note("Each agent has its own harness, model and Thinking setting."),
     },
     {
       id: "agent-on",
@@ -210,8 +215,8 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
         PLACES +
         part("agent-on-steps", "Set it up") +
         flow(skill.agents.stayOn) +
-        note(`This is also the safer place for an agent: ${go("agent-safe", "a machine of its own")}.`) +
-        note(`For a server with no desktop, or a helper that answers every member, see ${go("agent-remote", "an agent on your own server")}.`),
+        note(`This setup is also safer. It gives the agent ${go("agent-safe", "a machine of its own")}.`) +
+        note(`If your server has no desktop, or you want a helper that answers every member, see ${go("agent-remote", "how to run an agent on your own server")}.`),
     },
     {
       id: "agent-safe",
@@ -223,9 +228,9 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
           ["Open community", "Always run it on a separate computer with nothing private on it, and don't connect it to your email, drives or code. Anyone who joins can post messages written to trick it."],
         ]) +
         RISKS +
-        note("Agents hosted by Builderlab, Block's service, run on Block's machines, where what they read is processed. They can't open your files, and by default one person's hosted agents share a cloud computer.") +
+        note("Builderlab, a Block service, runs hosted agents on Block's machines. Those machines process what the agents read. A hosted agent can't open your files. By default, all of one person's hosted agents share one cloud computer.") +
         // block/buzz-app v1.0.0: docs/agent-protection.md
-        note(`Buzz's <a href="https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/agent-protection.md">experimental protection feature</a> for macOS limits who can approve an agent's actions. It is not a sandbox.`),
+        note(`Buzz has an <a href="https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/agent-protection.md">experimental protection feature</a> for macOS. It limits who can approve an agent's actions. It doesn't put the agent in a sandbox.`),
     },
     {
       id: "agent-remote",
@@ -235,11 +240,11 @@ export function agentQuestions({ rec, note, ct }: AnswerKit) {
         `<p class="ga-status">${icon("alert")}Not built into Buzz yet</p>` +
         rec("You give your agent one prompt, and it sets itself up and messages you in Buzz. It keeps running on its own server. You do three things:") +
         OVERVIEW +
-        part("agent-remote-prompt", "The prompt") +
+        part("agent-remote-prompt", "The prompt for your agent") +
         PROMPT() +
         part("agent-remote-buzz", "Step by step") +
         ct("remote") +
-        note(`It answers only you. For a team, ask it to set <code>BUZZ_ACP_RESPOND_TO=allowlist</code> with their public keys. For the public, read ${go("agent-safe", "keep it safe")} first.`) +
+        note(`The agent answers only you. To have it answer your team, ask it to set <code>BUZZ_ACP_RESPOND_TO=allowlist</code> and put your team's public keys in <code>BUZZ_ACP_RESPOND_TO_ALLOWLIST</code>. Before you let the public use it, read ${go("agent-safe", "how to keep an agent safe")}.`) +
         SYMPTOMS() +
         WARN,
     },

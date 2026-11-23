@@ -169,7 +169,7 @@ export interface Flow {
 }
 const OPEN: Step = {
   k: "Open Settings",
-  t: "Press ⌘, (Ctrl+, on Windows and Linux). Or choose your profile picture, then <b>Settings</b>.",
+  t: "Press ⌘, on a Mac or Ctrl+, on Windows and Linux. You can also choose your profile picture in the bottom left corner, then choose <b>Settings</b>.",
   frame: open,
   loop: true,
 };
@@ -186,18 +186,18 @@ export const peopleFlows = (expiry = "3 days", uses = "No limit"): Flow[] => [
     label: "Invite with a link",
     steps: [
       OPEN,
-      MEMBERS("invite", "Under <b>Community admin</b>, choose <b>Membership</b>, then the <b>Invite</b> tab. Only the owner and admins see Membership."),
+      MEMBERS("invite", "Under <b>Community admin</b>, choose <b>Membership</b>. Then open the <b>Invite</b> tab. Only the owner and admins can see Membership."),
       {
-        k: expiry === "3 days" ? "Copy the link" : "Set it, then copy it",
+        k: expiry === "3 days" ? "Copy the link" : "Set limits, then copy the link",
         t:
           expiry === "3 days"
-            ? "Copy it and send it. Anyone with it can join until it expires: after 3 days unless you pick 1, 7 or 30, and as many times as you allow: no limit, or 1, 5, 10 or 25 uses. A link can't be taken back, so for one person pick 1 use."
-            : `Set <b>Expires after</b> to <b>${expiry}</b> and <b>Max uses</b> to the number of people you expect, then <b>Copy link</b> and send it. Opening the tab made a link valid for 3 days with no use limit, and each change makes another. None can be taken back, so don't open the tab on a shared screen.`,
+            ? "Choose <b>Copy link</b> and send the link. Anyone who has it can join for 3 days, unless you pick 1, 7 or 30 days under <b>Expires after</b>. Any number of people can use it, unless you pick 1, 5, 10 or 25 uses under <b>Max uses</b>. You can't take a link back. To invite one person, pick 1 use."
+            : `Set <b>Expires after</b> to <b>${expiry}</b> and <b>Max uses</b> to the number of people you expect. Then choose <b>Copy link</b> and send the link. When you opened the tab, Buzz already made a link that lasts 3 days and has no use limit. Each change you make creates another link. You can't take any of these links back. Don't open this tab on a shared screen.`,
         frame: invite("copy", expiry, uses),
       },
       {
-        k: "They join",
-        t: "On Buzz's first screen they choose <b>Other options</b>, paste the link and choose <b>Continue</b>, then <b>Use an existing key</b> or <b>Sign in with Builderlab</b>. Already in Buzz? They open the link and choose <b>Accept invite in Buzz</b>.",
+        k: "The new member joins",
+        t: "On Buzz's first screen, they choose <b>Other options</b>, paste the link and choose <b>Continue</b>. Then they choose <b>Use an existing key</b> or <b>Sign in with Builderlab</b>. If they already use Buzz, they open the link and choose <b>Accept invite in Buzz</b>.",
         frame: join,
       },
     ],
@@ -207,13 +207,13 @@ export const peopleFlows = (expiry = "3 days", uses = "No limit"): Flow[] => [
     label: "Change a role",
     steps: [
       OPEN,
-      MEMBERS("dots", "Under <b>Community admin</b>, choose <b>Membership</b>, then the <b>…</b> on their row. The owner's own row has none."),
+      MEMBERS("dots", "Under <b>Community admin</b>, choose <b>Membership</b>. Then choose the <b>…</b> button on the person's row. The owner's row has no <b>…</b> button."),
       {
         k: "Pick the new role",
-        t: "<b>Make admin</b> for a member, or <b>Make member</b> for an admin. Only the owner can change roles.",
+        t: "Choose <b>Make admin</b> to make a member an admin. Choose <b>Make member</b> to make an admin a regular member again. Only the owner can change roles.",
         frame: settings("make-admin"),
       },
-      { k: "Confirm", t: "Admins can invite people and remove members. Making them a member again takes that away.", frame: settings("", confirm("admin")) },
+      { k: "Confirm", t: "Choose <b>Make admin</b> in the dialog. Admins can invite people and remove members. If you make an admin a member again, they can no longer do either.", frame: settings("", confirm("admin")) },
     ],
   },
   {
@@ -221,9 +221,9 @@ export const peopleFlows = (expiry = "3 days", uses = "No limit"): Flow[] => [
     label: "Remove someone",
     steps: [
       OPEN,
-      MEMBERS("dots", "Under <b>Community admin</b>, choose <b>Membership</b>, then the <b>…</b> on their row."),
-      { k: "Choose Remove", t: "The owner can remove anyone but themselves. Admins can remove members.", frame: settings("remove") },
-      { k: "Confirm", t: "It disconnects them and their agents. An invite link that hasn't expired still lets them back in.", frame: settings("", confirm("remove")) },
+      MEMBERS("dots", "Under <b>Community admin</b>, choose <b>Membership</b>. Then choose the <b>…</b> button on the person's row."),
+      { k: "Choose Remove", t: "Choose <b>Remove</b>. The owner can remove anyone except themselves. Admins can remove members.", frame: settings("remove") },
+      { k: "Confirm", t: "Choose <b>Remove</b> in the dialog. Buzz disconnects the person and their agents. They can still get back in with any invite link that hasn't expired.", frame: settings("", confirm("remove")) },
     ],
   },
 ];

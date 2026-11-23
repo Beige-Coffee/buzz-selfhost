@@ -54,9 +54,9 @@ export const agentFlows: Flow[] = [
     id: "agents",
     label: "Start an agent",
     steps: [
-      { k: "Open Agents", t: "Choose <b>Agents</b>, the robot in the dock, then <b>Create your first agent</b>. If you already have agents, choose <b>New agent</b>, then <b>Create a new agent</b>.", frame: agentsPage(false) },
-      { k: "Pick its harness and model", t: "Name it, pick the harness, such as Claude, Codex or Goose, and the model, then <b>Create agent</b>. It gets its own key, vouched for by you.", frame: create },
-      { k: "Use it in a channel", t: "Mention it where you need it. The relay lets it in through your membership, so nobody adds it as a member.", frame: channel },
+      { k: "Open Agents", t: "Choose <b>Agents</b>, the robot in the dock. Then choose <b>Create your first agent</b>. If you already have agents, choose <b>New agent</b> and then <b>Create a new agent</b>.", frame: agentsPage(false) },
+      { k: "Pick its harness and model", t: "Give the agent a name. Pick a harness, such as Claude, Codex or Goose, and pick a model. Then choose <b>Create agent</b>. The agent gets its own key, and Buzz marks it as yours with an ownership proof.", frame: create },
+      { k: "Use it in a channel", t: "Mention the agent in the channel where you need it. The relay lets the agent in through your membership. Nobody has to add it as a member.", frame: channel },
     ],
   },
 ];
@@ -136,13 +136,13 @@ export const remoteFlows: Flow[] = [
     id: "remote",
     label: "Your part",
     steps: [
-      { k: "Paste the prompt to your agent", t: "Fill in the blanks in the prompt above, choose <b>Copy prompt</b>, and paste it into the chat you use with your agent.", frame: chat("prompt") },
-      { k: "Copy its key", t: "Your agent sets itself up on its server and replies in your chat with its public key. Copy it.", frame: chat("key") },
-      { k: "Paste it in Security", t: "In Buzz: <b>Settings</b>, under <b>Buzz</b> choose <b>Security</b>. Under <b>Authorize external identity</b>, paste the key, then choose <b>Authorize identity</b>.", frame: settingsModal(securityNav, security(false)) },
-      { k: "Authorize this key", t: "Check the npub, then choose <b>Authorize this key</b>. Only do this for a key you made: the proof never expires.", frame: settingsModal(securityNav, security(false), authorize) },
+      { k: "Paste the prompt to your agent", t: "Fill in the blanks in the prompt above and choose <b>Copy prompt</b>. Then paste the prompt into the chat you use with your agent.", frame: chat("prompt") },
+      { k: "Copy its key", t: "Your agent sets itself up on its server. It then replies in your chat with its public key. Copy that key.", frame: chat("key") },
+      { k: "Paste the key in Security", t: "In Buzz, open <b>Settings</b> and choose <b>Security</b> under <b>Buzz</b>. Under <b>Authorize external identity</b>, paste the key and choose <b>Authorize identity</b>.", frame: settingsModal(securityNav, security(false)) },
+      { k: "Authorize this key", t: "Buzz shows the key's npub and asks you to confirm. Check the npub, then choose <b>Authorize this key</b>. The proof never expires. Do this only for a key you made.", frame: settingsModal(securityNav, security(false), authorize) },
       { k: "Copy the proof", t: "Buzz shows the ownership proof. Choose <b>Copy ownership proof</b>.", frame: settingsModal(securityNav, security(true)) },
-      { k: "Paste it back to your agent", t: "Go back to your chat with the agent and paste the proof there. It finishes setting itself up in a minute or two.", frame: chat("proof") },
-      { k: "It messages you in Buzz", t: "When it's done, the agent sends you a direct message in Buzz. Reply to check it works. It writes first because Buzz can't start a message to it yet. To use it in a channel, mention it there and choose <b>Invite</b>.", frame: dm },
+      { k: "Paste it back to your agent", t: "Go back to your chat with the agent and paste the proof there. The agent finishes setting itself up in a minute or two.", frame: chat("proof") },
+      { k: "It messages you in Buzz", t: "When the agent is done, it sends you a direct message in Buzz. Reply to that message to check that the agent works. The agent writes first because Buzz can't start a new message to it yet. To use the agent in a channel, mention it there and choose <b>Invite</b>.", frame: dm },
     ],
   },
 ];

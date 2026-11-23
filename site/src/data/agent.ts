@@ -334,9 +334,9 @@ export const OP_TASKS: Record<OpTask, { ask: string }> = {
   upgrade: { ask: "back it up, then upgrade it to the image the skill recommends." },
 };
 
-const SSH_VPS = "My Buzz relay is at {{DOMAIN}}. It's a VPS; SSH in as <user>@<server IP>.";
-const SSH_OWN = "My Buzz relay is at {{DOMAIN}}. It runs on my own machine; SSH in as <user>@<machine address>.";
-const KUBE = "My Buzz relay is at {{DOMAIN}}. It runs on my Kubernetes cluster; the values file is in <folder>.";
+const SSH_VPS = "My Buzz relay is at {{DOMAIN}}. It runs on a VPS. SSH in as <user>@<server IP>.";
+const SSH_OWN = "My Buzz relay is at {{DOMAIN}}. It runs on my own machine. SSH in as <user>@<machine address>.";
+const KUBE = "My Buzz relay is at {{DOMAIN}}. It runs on my Kubernetes cluster. The Helm values file is in <folder>.";
 /** The start of every operations prompt: which relay, and how the agent reaches it. */
 export const OP_WHERE: Record<Track, string> = {
   vps: SSH_VPS,
@@ -365,11 +365,11 @@ export type OpSetup = "compose" | "k8s";
 export const opSetup = (t: Track): OpSetup => (t === "k8s" || t === "k8s-private" ? "k8s" : "compose");
 
 const UPGRADE_WHY =
-  "Back up first: the relay changes its database when it starts on a new image, so going back to the old one means restoring the backup, which loses anything posted after it.";
+  "Back up first. The relay changes its database when it starts on a new image. Going back to the old image then means restoring the backup, and you lose anything posted after it.";
 const agent = (t: string): OpStep => ({ who: "agent", icon: "agent", t });
 const asks = (t: string): OpStep => ({ who: "you", icon: "ask", t });
 /** Migration 0083 (block/buzz#8787) refuses duplicate public channel names; operations.md checks first, on Compose and Kubernetes. */
-const RENAME = asks("Asks you to rename public channels that share a name, if any: the new image won't start with them");
+const RENAME = asks("If two public channels share a name, it asks you to rename one. The new image doesn't start while two channels share a name.");
 
 /**
  * Backing up and restoring, as numbered steps for a person to run. `code` picks a command block from
@@ -381,31 +381,36 @@ export interface FlowStep {
   d: string;
   code?: string;
 }
-const CHECK_BACK = "The relay check passes, and your messages, files and members are back.";
+const CHECK_BACK =
+  "The block prints <code>restored</code> and starts Buzz. <code>./run.sh list-members</code> then lists the members from before, and your messages and files are back. If <code>restored</code> doesn't print, Buzz stays stopped. Read the Restore step in the skill's <code>operations.md</code> before you start it again.";
 export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", FlowStep[]>>> = {
   compose: {
     backup: [
-      { t: "Run it where Buzz runs", d: "From <code>buzz/deploy/compose</code>. Each backup gets a folder named for the day, such as <code>~/buzz-backup/2026-11-06</code>, held in <code>BACKUP</code>. Members lose the connection for about half a minute.", code: "pg_dump" },
-      { t: "Check it", d: "<code>ls -la \"$BACKUP\"</code> shows four files, none of them empty, and Buzz reconnects." },
+      {
+        t: "Run it where Buzz runs",
+        d: "Run these commands from the bundle's folder, <code>buzz/deploy/compose</code>. Each backup gets its own folder, named for the day, such as <code>~/buzz-backup/2026-11-06</code>. <code>BACKUP</code> holds that folder's path. The block stops the relay while it copies the data, and members lose the connection for about half a minute.",
+        code: "pg_dump",
+      },
+      { t: "Check it", d: "Run <code>ls -la \"$BACKUP\"</code>. It shows four files, and none of them is empty. Buzz reconnects once the relay is back." },
       {
         t: "Keep it safe",
-        d: "It holds every secret. Encrypt it, for example with <code>gpg --symmetric</code>, keep a copy off the server, and keep the relay key where two people can open it.",
+        d: "The backup holds every secret. Encrypt it, for example with <code>gpg --symmetric</code>. Keep a copy off the server. Keep the relay key in a password manager that two maintainers can open.",
       },
     ],
     // operations.md: the backup is checked before anything is deleted, the empty volume after
     restore: [
       {
         t: "Check the backup",
-        d: "Set <code>BACKUP</code> to the backup's folder, such as <code>BACKUP=~/buzz-backup/2026-11-06</code> (<code>ls ~/buzz-backup</code> lists them). Then, before you change anything: its four files are there and none is empty, and its <code>env</code> shows this community's address. A backup from another install would swap your relay's identity and owner.",
+        d: "Set <code>BACKUP</code> to the backup's folder, such as <code>BACKUP=~/buzz-backup/2026-11-06</code>. <code>ls ~/buzz-backup</code> lists the folders. Before you change anything, check that <code>ls -la \"$BACKUP\"</code> shows four files and that none of them is empty. Then check that <code>grep '^RELAY_URL=' \"$BACKUP/env\"</code> shows this community's address. A backup from another install would swap your relay's identity and owner.",
       },
       {
-        t: "Clear the way",
-        d: "On this server, stop Buzz and delete the data the backup replaces; if you upgraded since the backup, first move the bundle back to the backup's version. On a new server, skip this: stop the old one if it still runs, install Docker and get the bundle at the backup's version, with its edits, as the setup does, without starting Buzz, and point your domain at the new server.",
+        t: "Prepare the machine",
+        d: "To restore onto the same server, stop Buzz and delete the data that the backup replaces. If you upgraded since the backup, first move the bundle back to the backup's version. To restore onto a new server, skip those commands. Stop the old server's relay if it still runs. Copy the backup's folder to the same path on the new server. Install Docker and get the bundle at the backup's version, with its edits, as the Compose setup's steps 3, 4 and 9 do. Don't start Buzz yet. Point your domain at the new server.",
         code: "volume rm",
       },
       {
-        t: "Put the backup back",
-        d: "From <code>buzz/deploy/compose</code>, with <code>BACKUP</code> set. First, <code>docker volume ls -q --filter name=buzz-prod_buzz-postgres-data</code> must print nothing; if it prints a name, this server still has its data, so stop. The block prints <code>restored</code> and starts Buzz only if the database was empty and the backup went in whole.",
+        t: "Restore the backup",
+        d: "Run this from <code>buzz/deploy/compose</code>, with <code>BACKUP</code> set. First check that <code>docker volume ls -q --filter name=buzz-prod_buzz-postgres-data</code> prints nothing. If it prints a name, this server still has its data. Stop there. The block below prints <code>restored</code> and starts Buzz only if the database was empty and the backup went in whole.",
         code: "pg_restore",
       },
       { t: "Check it", d: CHECK_BACK },
@@ -413,9 +418,16 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
   },
   k8s: {
     backup: [
-      { t: "Run it", d: "With <code>kubectl</code> connected to the intended cluster. The command creates a private dated directory and refuses to overwrite it. The relay keeps running, so these separate copies are not an atomic snapshot.", code: "pg_dump" },
-      { t: "Check it", d: "Every command must succeed and all four files must be nonempty. If an export fails, stop: the directory may contain partial files and must not be used for restore. Existing files alone do not prove recovery works." },
-      { t: "Keep it safe", d: "The Secret file holds the relay key. Encrypt the copies, keep one off this computer, and keep the relay key where two people can open it." },
+      {
+        t: "Run it",
+        d: "Connect <code>kubectl</code> to the right cluster first. The block creates a private folder named for the date and time, and it refuses to overwrite an existing one. The relay keeps running, and the four copies are made one at a time. Together they aren't an atomic snapshot.",
+        code: "pg_dump",
+      },
+      {
+        t: "Check it",
+        d: "Every command must succeed, and none of the four files may be empty. If an export fails, stop. The folder may hold partial files. Don't restore from it. Files that exist don't prove that recovery works.",
+      },
+      { t: "Keep it safe", d: "The Secret file holds the relay key. Encrypt the copies and keep one off this computer. Keep the relay key in a password manager that two maintainers can open." },
     ],
   },
 };
@@ -423,33 +435,39 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
 export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
   compose: {
     backup: {
-      why: "Saves the database, uploaded files, git repositories and the <code>.env</code> file, with the passwords and the relay key, into one folder.",
+      why: "The backup saves the database, uploaded files, git repositories and the <code>.env</code> file into one folder. The <code>.env</code> file holds the passwords and the relay key.",
     },
     restore: {
-      why: "Puts a backup back, on this server or a new one. It replaces the relay's current data.",
+      why: "A restore puts a backup back, on the same server or a new one. It replaces the relay's current data.",
     },
     upgrade: {
       why: UPGRADE_WHY,
       steps: [
-        asks("Asks before the backup stops the relay"),
+        asks("It asks for your OK before the backup stops the relay."),
         RENAME,
-        agent("Moves the relay to the image the skill recommends, with downtime that depends on the upgrade"),
-        agent("Turns on phone notifications, if the relay predates them"),
-        agent("Checks the members are still there and the relay answers"),
+        agent("It moves the relay to the image the skill recommends. Members lose the connection while the relay restarts, and database migrations can make that longer."),
+        agent("If phone notifications are off, it turns them on."),
+        agent("It checks that the members and files are still there and that the relay answers."),
       ],
     },
   },
   k8s: {
     backup: {
-      why: "The evaluation quickstart exports the database, file bucket, git volume and relay Secret separately. This is not a consistent disaster-recovery snapshot or a complete recovery procedure. For production, plan coordinated backups with your managed services and rehearse restoration.",
+      why: "On the chart's quickstart profile, this backup exports the database, the file bucket, the git volume and the relay Secret one at a time. That isn't a consistent snapshot, and it isn't a complete recovery procedure. For production, plan coordinated backups with your managed services, and practice restoring them.",
     },
     restore: {
-      why: "This guide does not provide a complete Kubernetes restore procedure. Plan and rehearse recovery of the database, bucket, git volume and relay Secret together before using the cluster for a team.",
+      why: "This guide has no complete restore procedure for Kubernetes. Before a team uses the cluster, plan how you would restore the database, the file bucket, the git volume and the relay Secret together, and practice it.",
       manual: true,
     },
     upgrade: {
       why: UPGRADE_WHY,
-      steps: [asks("Asks before the backup"), RENAME, agent("Sets the image the skill recommends in the values file"), agent("Upgrades with Helm and waits until the relay is ready")],
+      steps: [
+        asks("It asks for your OK before the backup."),
+        RENAME,
+        agent("It sets the image the skill recommends in your values file."),
+        agent("It runs <code>helm upgrade</code> and waits until the relay is ready."),
+        agent("It runs the install's checks again, the relay's image included."),
+      ],
     },
   },
 };

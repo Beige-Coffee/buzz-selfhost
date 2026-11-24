@@ -37,7 +37,11 @@ Reaching the relay, joining the community and reading a channel are three separa
   but the Buzz apps send that proof only to the sign-in services built into them, for communities
   Block hosts ([the app's routing](https://github.com/block/buzz-app/blob/f315ef59b87160d23f5789f4e1458d753674cd8a/src-tauri/src/federated_identity/mod.rs#L373-L376)).
   So for a private team, put the relay on a private network whose login asks for a second factor,
-  and keep the member list as the next check. For an open community, keep anything sensitive out.
+  and keep the member list as the next check. Tailscale asks for that second factor when a device
+  signs in, and again when the device's key expires, after 180 days by default. Until then, a lost
+  device that's unlocked carries both factors. So set a shorter key expiry for the tailnet in
+  Tailscale's admin console, and remove a lost device from the tailnet at once. For an open
+  community, keep anything sensitive out.
 
 On the relay image this guide installs, a file opens for
 [any member](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-relay/src/api/media.rs#L900) who has its link, even a file from a
@@ -54,7 +58,12 @@ An agent takes requests from its owner: the
 start its work. To answer, it reads what others wrote: the recent messages around the request,
 attached files, linked pages and repositories. Any of them can carry instructions that try to
 redirect it. This is prompt injection, and the person behind it never has to be allowed to ask the
-agent anything. Watches an agent sets up, and Settings, Security, Authorize external identity,
+agent anything. Your other agents count as you. Buzz accepts a request from any agent that carries
+your ownership proof
+([Buzz's rule](https://github.com/block/buzz-app/blob/5a21469faa8c53d20105d58c592a48f68c6dcf7c/src/features/agents/owner-attestation.ts#L159-L165),
+and [`buzz-acp`'s](https://github.com/block/buzz/blob/9bcb3e45a426bc4b232f4731f46d6015ed0781ab/crates/buzz-acp/src/lib.rs#L375-L432)),
+and every agent made in Buzz has one. So an agent that follows a prompt injection can direct your
+other agents. Watches an agent sets up, and Settings, Security, Authorize external identity,
 widen what can start its work.
 [agents.md](agents.md#run-an-agent-on-your-own-server) says what that authorization allows, and
 why it can't be taken back.
@@ -65,7 +74,10 @@ approval prompts
 [Claude](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/claude-code/claude.ts#L298)),
 and has no setting to change that. A Workspace is only the folder the agent starts in. So an agent
 can do what its person's account can do on that computer: read files, use saved logins and SSH
-keys, push code, reach the network. Its model provider's key is within its reach too.
+keys, push code, reach the network. Its model provider's key is within its reach too. On Linux and
+Windows, any program the person runs, an agent included, can read their Buzz private key from the
+system's key store, which doesn't keep programs apart
+([Buzz's identity design](https://github.com/block/buzz-app/blob/5a21469faa8c53d20105d58c592a48f68c6dcf7c/docs/identity.md#L599-L600)).
 
 - **For a community anyone can join, give agents a machine of their own:** a separate device or a
   virtual machine that holds only that project's files and narrowly scoped credentials. Not an
@@ -81,7 +93,9 @@ keys, push code, reach the network. Its model provider's key is within its reach
 - An agent hosted by Builderlab, Block's service, runs on Block's machines and
   [can't open files on your computer](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/bundled/builderlab/README.md#L9).
   By default one person's hosted agents share a cloud computer, and what they read is processed
-  there.
+  there. A hosted agent carries your ownership proof too, so it counts as you to your other agents,
+  and Block keeps its key and your proof
+  ([Builderlab's README](https://github.com/block/buzz-app/blob/5a21469faa8c53d20105d58c592a48f68c6dcf7c/src/bundled/builderlab/README.md#L81-L85)).
 - Install only plugins you trust. A plugin is
   [trusted, unsandboxed code](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/docs/plugin-architecture.md#L358).
   [Block's support page](https://buzz.xyz/support) says one can reach beyond the permissions its
@@ -102,7 +116,8 @@ the limits above still apply. This guide has not tested any isolation product.
   an identity kept apart needs a second user account on the computer, or another device. Removing
   the key to switch takes every community off that computer until it signs in again.
 - **The relay's private key.** It is the community's identity. It lives in the server's `.env` (a
-  Secret on Kubernetes), in a shared vault that two operators can open, and inside every backup.
+  Secret on Kubernetes) and inside every backup. If your team keeps a copy in a shared vault, only
+  operators should open it.
 - **An agent's files and credentials.** These are separate: a copy of a person's key does not back
   up an agent's workspace.
 
@@ -142,7 +157,10 @@ tailnet's policy to the people who use Buzz.
 someone could, the key is exposed: restoring a copy does not undo that. Have the old identity
 banned in every community it belongs to, then make a new one. For an owner, hand ownership over
 on the server first; the old owner key stays an admin after that, so remove and ban it. Pairing
-copies the same key to the phone, so a lost phone counts too.
+copies the same key to the phone, so a lost phone counts too. On a private network, remove the lost
+device from the tailnet at once (admin console, Machines). If a computer you keep still holds the
+exposed key, choose Remove from device in Settings, Identity on it, and sign in with the new key
+after Buzz restarts.
 
 **Someone leaves.** Remove them from the community, from Staff, from the private network, from the
 server and from the shared vault, and change any password they could have copied. Removing access
@@ -154,8 +172,16 @@ for good, and removing or demoting them does not; links in the older format foll
 So keep links short-lived and limited to the people you expect.
 
 **The relay key or the server.** If either is exposed, take the server off the network, change
-every other password it held and plan the recovery. Buzz has no clean way to change a relay's
-key yet: [a new one orphans the community's channels](https://github.com/block/buzz/issues/7357),
+every other password it held and plan the recovery. A leaked relay key also lets anyone make invite
+links the relay accepts. Relay 0.3.0 still accepts links in the older format, which are signed with
+a key made from the relay key
+([invite_token.rs](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/invite_token.rs#L20-L25)),
+and those links have no lifetime limit unless `BUZZ_INVITE_V1_INVALID_AFTER` is set
+([config.rs](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/config.rs#L433-L453)).
+Set it to the current time in UTC, written as `YYYY-MM-DDTHH:MM:SSZ`, in `.env` (on Kubernetes,
+under `relay.extraEnv`), and restart the relay, so it refuses older-format links from then on (not
+tested). Then check Membership in Buzz (Settings, Community admin, Membership), and ban every key
+you don't know (operations.md). Buzz has no clean way to change a relay's key yet: [a new one orphans the community's channels](https://github.com/block/buzz/issues/7357),
 and phones stop getting notifications until each signs up again. So never make a new relay key
 to fix an unrelated problem. Restoring the original from a backup undoes a mistaken change. It
 does not undo a leak.

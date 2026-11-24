@@ -1,11 +1,11 @@
 import maya from "../assets/avatars/maya.svg";
 import ops from "../assets/avatars/ops.webp";
 import reviewer from "../assets/avatars/reviewer.webp";
-// the marks Buzz shows for each harness (block/buzz-app src/shared/design-system/icons/HarnessLogos.tsx, claude.png)
-import claudeMark from "../assets/harness/claude.png";
+// the marks Buzz shows for each harness (block/buzz-app src/shared/design-system/icons/HarnessLogos.tsx); Claude's and
+// Builderlab's live in members.ts so moderation.ts can use them without importing this file
 import codexMark from "../assets/harness/codex.svg";
 import gooseMark from "../assets/harness/goose.svg";
-import { app, communityNav, settingsModal, sidebar, ti, type Flow } from "./members";
+import { app, CLAUDE_MARK, communityNav, MK_BL, settingsModal, sidebar, ti, type Flow } from "./members";
 import { ADDRESS, connect, keyImport, welcome } from "./identity";
 import { joinCard } from "./joinmock";
 
@@ -15,7 +15,6 @@ import { joinCard } from "./joinmock";
  * Identity tab: Harness, Model and Thinking, then Instructions. The pictures are from Buzz's own avatar
  * packs; the names and the instructions are illustrative (the skill's example, agents.md).
  */
-export const CLAUDE_MARK = `<img class="ax-mark" src="${claudeMark}" alt="">`;
 const tile = (img: string, name: string, tint: string, on = false) =>
   `<div class="ax-card ${tint}${on ? " hot" : ""}"><i class="ax-more">•••</i><img src="${img}" alt=""><b>${name}</b><span class="ax-chip">${CLAUDE_MARK}sonnet${ti("chevron-down")}</span></div>`;
 const INSTRUCTIONS_TEXT = "You help the Riverbend Tool Library volunteers in this community. Answer questions about opening hours and loans from the files in this workspace.";
@@ -55,7 +54,6 @@ const agentsPage = (open: boolean, menu = false) =>
  * this Mac awake, the page is shown scrolled to Agent behavior, set to Always (its options are Off, While
  * agents work and Always: block/buzz-app src/app/AgentSettings.tsx).
  */
-export const MK_BL = `<span class="as-mk bl">B</span>`;
 const MK_CODEX = `<img class="as-mk" src="${codexMark}" alt="">`;
 const MK_GOOSE = `<img class="as-mk" src="${gooseMark}" alt="">`;
 const setupNav = communityNav("Agent setup", false);
@@ -108,7 +106,7 @@ export const harnessFlows: Flow[] = [
 /**
  * Create agent as Buzz 1.0.5 shows it (captured 2026-11-23), scrolled to its fields: the pictures, Name,
  * Harness, Model and Thinking (here the Builderlab harness the capture had chosen, with its note), then
- * Instructions, optional, up to 20,000 characters.
+ * Instructions, optional (Builderlab's form adds "Up to 20,000 characters.", which the Codex form doesn't have).
  *
  * With Codex, as Buzz 1.0.6 shows it (captured 2026-11-24): Codex's default model and thinking level, and
  * no note. The Harness menu from the same capture: Builderlab under Remote, then Claude, Codex and Goose
@@ -137,7 +135,7 @@ const createAgentDlg = (harness: Harness, spot: "" | "instructions" | "create", 
   ${harness === "builderlab" ? `<p class="ax-note">Runs on your Builderlab account. Usage and billing are at <u>app.builderlab.xyz</u>.</p>` : ""}
   <p class="ax-lab">Instructions <em>Optional</em></p>
   <p class="ax-box${spot === "instructions" ? " hot" : ""}">${INSTRUCTIONS_TEXT}</p>
-  <p class="ax-note">Up to 20,000 characters.</p>
+  ${harness === "builderlab" ? `<p class="ax-note">Up to 20,000 characters.</p>` : ""}
   <div class="ax-go"><span class="mb-btn dark${spot === "create" ? " hot" : ""}">Create agent</span></div>
 </div>`;
 const createAgent = createAgentDlg("builderlab", "instructions");
@@ -159,7 +157,7 @@ export const agentFlows: Flow[] = [
     label: "A new agent",
     steps: [
       { k: "Create a new agent", t: "Choose <b>Agents</b>, the robot in the dock. Choose <b>New agent</b>, then <b>Create a new agent</b>.", frame: agentsPage(false, true) },
-      { k: "Write them in Instructions", t: "Give the agent a name and pick its harness. Then type a few plain sentences in <b>Instructions</b>, below Harness, Model and Thinking. Instructions can be up to 20,000 characters. Choose <b>Create agent</b>.", frame: overAgents(createAgent) },
+      { k: "Write them in Instructions", t: "Give the agent a name and pick its harness. Then type a few plain sentences in <b>Instructions</b>, below Harness, Model and Thinking. A Builderlab agent's instructions can be up to 20,000 characters. Choose <b>Create agent</b>.", frame: overAgents(createAgent) },
     ],
   },
 ];
@@ -192,7 +190,7 @@ const chat = (stage: ChatStage) => `<div class="rs-bub">
 </div>`;
 /**
  * Settings, Security as Buzz 1.0.5 shows it (captured 2026-11-23): Paired command-line tools, then
- * Authorize external identity in its own card. With the proof made, the page is shown scrolled to it
+ * Authorize external identity in its own card, with its subtitle as Buzz 1.0.6 words it (ExternalIdentityAuthorization.tsx). With the proof made, the page is shown scrolled to it
  * (that state comes from AgentAuthorization's source; it wasn't captured).
  */
 const security = (proof: boolean, scrolled = true) => `<section class="mb-page rs-page">
@@ -205,7 +203,7 @@ const security = (proof: boolean, scrolled = true) => `<section class="mb-page r
   <div class="rs-card rs-empty">${ti("lock")}<b>No paired tools</b><span>Run buzz auth desktop pair in a terminal to let a command-line tool use Buzz as you.</span></div>`
   }
   <p class="rs-h">Authorize external identity</p>
-  ${proof ? "" : `<p class="mb-sub">For an application such as Nexus that keeps its own agent key. Only authorize a public key you recognize: this ownership proof has no time or event-kind limits.</p>`}
+  ${proof ? "" : `<p class="mb-sub">Use this for an application that keeps its own agent key. Only authorize a public key you recognize. This ownership proof has no time or event-kind limits.</p>`}
   <div class="rs-card">
     <p class="rs-lab">Application public key (hex)</p>
     <span class="j1-input"><span class="mono">${AGENT_HEX}</span></span>
@@ -275,7 +273,7 @@ export const onLaptopFlows: Flow[] = [
       newAgent("Choose <b>Agents</b>, the robot in the dock. Choose <b>New agent</b>, then <b>Create a new agent</b>. In a community with no agents yet, choose <b>Create your first agent</b>."),
       { k: "Pick a harness under Local", t: `Open the <b>Harness</b> menu. Pick Claude, Codex or Goose under <b>Local</b>, so the agent runs on this computer. Builderlab, under <b>Remote</b>, is an agent Block hosts. Each harness signs in its own way. See ${HARNESS_LINK}.`, frame: overAgents(createAgentDlg("builderlab", "", "codex")) },
       { k: "Name it and create it", t: "Give the agent a name, and add instructions if you want to. Then choose <b>Create agent</b>.", frame: overAgents(createAgentDlg("codex", "create")) },
-      { k: "Keep your Mac awake", t: "Open <b>Settings</b> and choose <b>Agent setup</b>. Under <b>Agent behavior</b>, set <b>Keep this Mac awake</b> to <b>While agents work</b> or <b>Always</b>. Closing the lid still puts it to sleep, so keep the lid up and Buzz open. On Linux or Windows, turn off sleep in the system's own settings.", frame: AWAKE },
+      { k: "Keep your Mac awake", t: "Open <b>Settings</b> and choose <b>Agent setup</b>. Under <b>Agent behavior</b>, set <b>Keep this Mac awake</b> to <b>Always</b>. With <b>While agents work</b>, the Mac can sleep after the agents finish, and they stop answering. Closing the lid still puts it to sleep, so keep the lid up and Buzz open. On Linux or Windows, turn off sleep in the system's own settings.", frame: AWAKE },
     ],
   },
 ];

@@ -73,7 +73,7 @@ const chan = (lock: boolean, name: string, tag: string, cls = "") =>
   `<p class="fq-ch${cls}">${icon(lock ? "lock" : "hash")}<span>${name}</span><em>${tag}</em></p>`;
 const STARTERS = `<div class="fq-vis fq-starters">
   <div class="fq-side"><span class="fq-tag yes">Do</span>${chan(false, "general", "Open · Starter", " st")}${chan(false, "welcome-everyone", "Open · Starter", " st")}${chan(true, "team", "Private")}</div>
-  <div class="fq-side bad"><span class="fq-tag no">Avoid</span>${chan(true, "general", "It's private. Phones add an open one.")}${chan(false, "<s>general</s>", "It's archived. Phones may fail to join.")}${chan(false, "<s>welcome-everyone</s>", "It's missing. The first person to join by phone owns it.")}</div>
+  <div class="fq-side bad"><span class="fq-tag no">Avoid</span>${chan(true, "general", "It's private. Phones add an open one.")}${chan(false, "<s>general</s>", "It's archived. Phones skip it, so new members miss it.")}${chan(false, "<s>welcome-everyone</s>", "It's missing. The first person to join by phone owns it.")}</div>
 </div>`;
 
 const CLICK_THROUGHS: Record<string, Flow[]> = {
@@ -133,18 +133,18 @@ const MODERATION =
     "You can remove or ban members, time them out and delete their messages. A ban keeps someone out even if they have an invite link, and it disconnects their agents too. Removing someone doesn't keep them out.",
     [
       ["Moderation screens", `On ${SCREENS_WHERE}, Buzz's moderation screens show the owner and Staff the reports members send. From there, they ban someone, time them out or delete a message.`],
-      ["Command line", "On a private network, Kubernetes or a local test, the screens can't reach the relay. There, the owner or an admin moderates with the <code>buzz</code> command line that comes with Buzz."],
+      ["Command line", "The screens need an address on the internet, and this guide sets them up on a VPS or your own hardware only. On a private network, Kubernetes or a local test, the owner or an admin moderates with the <code>buzz</code> command line that comes with Buzz."],
     ],
     "How it works",
   ) +
   steps([
-    ["Turn on the moderation screens", "Buzz finds the screens at a second address for your relay, with <code>admin.</code> in front of your domain. On Block's Docker Compose bundle, that takes a DNS record for that address, <code>BUZZ_ADMIN_HOST</code> in the relay's <code>.env</code> and a route for it in the Caddyfile. If you set up with this guide's skill, your agent offers this during setup, and you can ask it later."],
-    ["Add your moderators under Staff", "In Buzz, open <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>. Paste the person's npub, pick <b>moderator</b> and choose <b>Add</b>. Making someone an admin doesn't put them on Staff. Staff is a separate list, and the owner manages it."],
+    ["Turn on the moderation screens", "Buzz finds the screens at a second address that your relay announces. This guide uses your domain with <code>admin.</code> in front. On Block's Docker Compose bundle, that takes a DNS record for that address, <code>BUZZ_ADMIN_HOST</code> in the relay's <code>.env</code> and a route for it in the Caddyfile. If you set up with this guide's skill, your agent offers this during setup, and you can ask it later."],
+    ["Add your moderators under Staff", "In Buzz, open <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>. Paste the person's npub, pick <b>moderator</b> and choose <b>Add</b>. Making someone an admin doesn't put them on Staff. Staff is a separate list. Its operators manage it, and the owner is one."],
     ["Work through reports", "Any member can report a message. Moderators find the reports in <b>Settings</b>, <b>Moderation</b>, <b>Reports</b>. To ban someone, time them out or delete a message, they open <b>Communities</b>, choose the community and use its <b>Actions</b> tab."],
   ]) +
   ct("moderate") +
   note(
-    "<b>On a private network, Kubernetes or a local test</b>, Buzz's moderation screens can't reach your relay. There, the owner or an admin moderates with the <code>buzz</code> command line that comes with Buzz 1.0. On a Mac, it's at <code>/Applications/Buzz.app/Contents/Resources/bin/buzz</code>. It signs with their own private key, so they run it in their own terminal. <code>buzz moderation</code> lists the reports members send, and it bans people or times them out. <code>buzz messages delete</code> removes a message.",
+    "<b>On a private network, Kubernetes or a local test</b>, Buzz's moderation screens can't reach your relay. There, the owner or an admin moderates with the <code>buzz</code> command line that comes with Buzz 1.0. On a Mac, it's at <code>/Applications/Buzz.app/Contents/Resources/bin/buzz</code>. It signs with their own private key, so they run it in their own terminal. Before the first command, they set <code>BUZZ_PRIVATE_KEY</code> and <code>BUZZ_RELAY_URL</code> in that terminal, as the skill's operations steps show. <code>buzz moderation reports</code> lists the reports members send. <code>buzz moderation ban</code> and <code>buzz moderation timeout</code> ban people or time them out, and <code>buzz moderation audit</code> lists past moderation actions. <code>buzz messages delete</code> removes a message.",
   );
 
 
@@ -155,13 +155,13 @@ const MODERATION =
  * (block/buzz#8594), not from add-member on the server.
  */
 /** The phone join bug, in red wherever the two channels come up (block/buzz#9377, filed 2026-11-13). */
-const PHONE_JOIN = `<div class="fq-alert" role="note">${icon("alert")}<div><p class="fq-alert-h">Phones can fail to join</p><p>After someone joins with a link, Buzz on iPhone looks for open channels named exactly <code>general</code> and <code>welcome-everyone</code>. Create both before you invite anyone, and keep them open. If either one is archived or is a forum, the join can stop with "Starter channels could not be set up". If either one is missing, the first phone that joins creates it, and that person owns it. The bug is tracked in <a href="https://github.com/block/buzz/issues/9377">block/buzz#9377</a>.</p></div></div>`;
+const PHONE_JOIN = `<div class="fq-alert" role="note">${icon("alert")}<div><p class="fq-alert-h">Phones can fail to join</p><p>After someone joins with a link, Buzz on iPhone looks for open channels named exactly <code>general</code> and <code>welcome-everyone</code>. Check that both exist before you invite anyone, and keep them open. If a starter channel that a phone created is later made private, every later phone join can stop with "Starter channels could not be set up" (<a href="https://github.com/block/buzz/issues/9377">block/buzz#9377</a>). An archived channel or a forum with either name doesn't stop the join, but the phone then skips that channel. If either one is missing, the first phone that joins creates it, and that person owns it.</p></div></div>`;
 
 const CHANNELS = `<div class="fq-chans">
   <h4 class="ga-h">Create two starter channels before anyone joins</h4>
-  <p class="fq-chans-p">In Buzz, create two open channels named exactly <code>general</code> and <code>welcome-everyone</code>. In each channel's settings, turn on <b>Starter channel for new members</b>. Everyone who joins with an invite link is then added to both.</p>
+  <p class="fq-chans-p">Buzz creates an open <code>general</code> channel the first time you open a new community, and makes it a starter channel. Create an open channel named exactly <code>welcome-everyone</code>, and in its settings turn on <b>Starter channel for new members</b>. Everyone who joins with an invite link is then added to both.</p>
   ${PHONE_JOIN}
-  <p class="fq-chans-p"><b>Use <code>welcome-everyone</code> as your welcome channel.</b> In an open community, make it view-only. Members can then read what you post there, but they can't reply. See <a href="#operations" data-q-link="welcome">How should you welcome new members?</a></p>
+  <p class="fq-chans-p"><b>Use <code>welcome-everyone</code> as your welcome channel.</b> You can make it view-only, so replies don't bury your welcome. Members can then read what you post there, but they can't reply. See <a href="#operations" data-q-link="welcome">How should you welcome new members?</a></p>
   ${STARTERS}
   <p class="fq-chans-p">People you add by npub on the server don't join the starter channels. Add them in Buzz to the channels they need. Don't give a private channel either starter name. Call a private team channel something else, such as <code>team</code>.</p>
 </div>`;
@@ -171,7 +171,7 @@ const CASES = `<div class="fq-vis fq-cases">
   <p class="fq-cases-q">${icon("device-mobile")}<span><b>Could someone get into the lost device?</b>For example, it was unlocked, it had no disk encryption, or someone knows its password.</span></p>
   <div class="fq-case bad">
     <p class="fq-case-h"><span class="fq-tag no">Yes, or not sure</span><b>Treat the key as exposed and retire it</b></p>
-    <ol><li>Ask the owner or a moderator to ban the old identity. Removing it isn't enough, because a live invite link lets it back in. If it was the owner's key, change the owner on the server first. The old key stays an admin after that, so remove it and ban it too.</li><li>Make a new key on the new device. Don't use the saved copy of the old key, because whoever has the lost device has that key too.</li><li>An admin sends them a 1-use invite link, or whoever runs the server adds the new npub.</li><li>Pair their phone and start their agents again. Ask any other community they joined to ban the old key too.</li></ol>
+    <ol><li>Make a new key on the new device. Don't use the saved copy of the old key, because whoever has the lost device has that key too.</li><li>Ask the owner, an admin or a moderator to ban the old identity. Removing it isn't enough, because a live invite link lets it back in. If it was the owner's key, whoever runs the server first makes the new key the owner. The old key stays an admin after that, so remove it and ban it too.</li><li>On a private network, remove the lost device from your Tailscale network. If a computer you kept still holds the old key, open <b>Settings</b>, <b>Identity</b> there and choose <b>Remove from device</b>, then sign in with the new key after Buzz restarts.</li><li>An admin sends them a 1-use invite link, or whoever runs the server adds the new npub.</li><li>Pair their phone and start their agents again. Ask any other community they joined to ban the old key too.</li></ol>
   </div>
   <div class="fq-case good">
     <p class="fq-case-h"><span class="fq-tag yes">No</span><b>The key is safe, and you can bring it back</b></p>
@@ -189,7 +189,7 @@ const NAK_KEY = "(set -C; umask 077; nak key generate | nak encode nsec &gt; ~/b
 const ADD_MEMBER = skillURL("references/operations.md");
 const KEYS =
   note(
-    `You can get a key in two ways. <a href="${NAK}">nak</a>, the open-source Nostr command-line tool, makes one on your computer. Install it with <code>brew install nak</code>, or download it from its releases page. The command below saves the key in <code>~/buzz-identity.key</code>, a file only you can read, and shows only the npub. It never overwrites a file that's already there. The other way is <b>Create account</b> on Buzz's first screen, which makes a key with a Builderlab account. Builderlab is Block's service. Block can keep a copy of the key, and creating the account asks for your details.`,
+    `You can get a key in two ways. <a href="${NAK}">nak</a>, the open-source Nostr command-line tool, makes one on your computer. Install it with <code>brew install nak</code>, or download it from its releases page, rename the file to <code>nak</code>, make it executable and put it in a folder on your PATH. The command runs in a macOS or Linux terminal. On Windows, run it in WSL. The command below saves the key in <code>~/buzz-identity.key</code>, a file only you can read, and shows only the npub. It never overwrites a file that's already there. The other way is <b>Create account</b> on Buzz's first screen, which makes a key with a Builderlab account. Builderlab is Block's service. Block keeps a copy of that key, and creating the account asks for your details.`,
   ) +
   `<pre class="cmd">${NAK_KEY}</pre>` +
   note(
@@ -200,7 +200,7 @@ const KEYS =
 const LOCKS = `<div class="fq-vis fq-locks">
   <div class="fq-lk-who"><span class="fq-av">${icon("user")}</span><b>Someone at your company</b></div>
   <div class="fq-lk"><span class="fq-lk-n">1</span>${icon("lock")}<b>Your company login</b><span>Tailscale signs them in with Google, Microsoft, Okta or GitHub.</span></div>
-  <div class="fq-lk"><span class="fq-lk-n">2</span>${icon("users")}<b>The member list</b><span>The relay lets in only the keys listed in Membership.</span></div>
+  <div class="fq-lk"><span class="fq-lk-n">2</span>${icon("users")}<b>The member list</b><span>The relay lets in only members and their agents.</span></div>
   <div class="fq-lk-end">${icon("server")}<b>Your relay</b><span>on a private network</span></div>
 </div>`;
 
@@ -218,7 +218,7 @@ const TWO_FACTOR = `<div class="fq-vis fq-tfa">
     ${tfaStep("key", "Their key", "Whoever holds the key signs in as them.")}
   </div>
   <div class="fq-tfa-col good"><p class="fq-tfa-h"><span class="fq-tag yes">With a private network</span>two factors</p>
-    ${tfaStep("lock", "Your company login", "They sign in to Tailscale with a password and a second factor before they can reach the relay.")}
+    ${tfaStep("lock", "Your company login", "They sign in to Tailscale with a password and a second factor. Tailscale asks again when the device's key expires.")}
     ${tfaStep("key", "Their key", "Then the relay checks their key against the member list.")}
   </div>
 </div>`;
@@ -280,7 +280,7 @@ const path = (i: string, title: string, items: PathItem[], hot = false) => {
 /** A leak: what to do, by which key leaked. */
 const LANES = `<div class="fq-vis fq-paths">
   ${path("key", "A person's key", ["Ban it", "Add their new identity"])}
-  ${path("server", "The relay key", ["Treat the server as exposed", "Ask in block/buzz before you replace it"])}
+  ${path("server", "The relay key", ["Treat the server as exposed", "Ban keys you don't know in Membership", "Ask in block/buzz before you replace it"])}
   ${path("alert", "The server itself", ["Change its logins", "Assume someone read every message"], true)}
 </div>`;
 
@@ -290,7 +290,7 @@ const LANES = `<div class="fq-vis fq-paths">
  * the domain kept everything in the readiness campaign's new-server run.
  */
 const MOVE = `<div class="fq-vis fq-paths two">
-  ${path("server", "Same domain, new server", ["Restore the backup there", "Point the domain at it", ["ok", "Everything comes along"]])}
+  ${path("server", "Same domain, new server", ["Back up and stop the old server", "Point the domain at the new one", "Restore the backup there", ["ok", "Everything comes along"]])}
   ${path("world", "A new domain", [["bad", "A new, empty community"], ["bad", "Everyone joins again"], ["bad", "The old one stays at the old address"]], true)}
 </div>`;
 
@@ -341,7 +341,7 @@ const LEDGER = `<div class="fq-vis fq-audit">
   </div>
   <div class="fq-audit-side">
     <div class="fq-card"><p class="fq-card-h">${icon("shield")}Moderation actions</p><p class="fq-le"><time>16:05</time><b>Sam banned Leo</b></p><p class="fq-dim">Who acted, on whom, and the reason.</p></div>
-    <div class="fq-card"><p class="fq-card-h">${icon("lock")}Your hosting provider's log</p><p class="fq-le"><time>08:58</time><b>Maya signed in to the server</b></p><p class="fq-dim">Who reached the server itself.</p></div>
+    <div class="fq-card"><p class="fq-card-h">${icon("lock")}The server's and your provider's logs</p><p class="fq-le"><time>08:58</time><b>Maya signed in over SSH</b></p><p class="fq-dim">Who reached the server itself.</p></div>
   </div>
 </div>`;
 /** What each audit log entry holds (crates/buzz-audit/src/entry.rs; the actor rule is handlers/event.rs's). */
@@ -363,11 +363,11 @@ const FIELDS_HTML = `<dl class="fq-fields">${FIELDS.map(([k, v]) => `<div><dt>${
 const svc = (i: string, t: string, d: string, off: string) =>
   `<div class="sv-card"><div class="sv-head"><i>${icon(i)}</i><b>${t}</b></div><p>${d}</p><p class="sv-off">${icon("settings")}<span>${off}</span></p></div>`;
 const DEPS = `<div class="fq-vis sv-wrap">
-  <p class="sv-banner">${icon("eye-off")}<span><b>None of these services receives your messages or files.</b> Messages, files and the member list stay on your server.</span></p>
+  <p class="sv-banner">${icon("eye-off")}<span><b>None of these services receives your messages or files.</b> Messages, files and the member list stay on your server. An agent Block hosts is the exception, because Block's machines process everything it reads.</span></p>
   <div class="sv-grid">
     ${svc("download", "Apps and images", "Block publishes the Buzz apps and the relay's images. The desktop app checks for updates every hour and downloads them. They install when you restart the app.", "You need the apps to use Buzz.")}
-    ${svc("bell", "iPhone notifications", "Notifications go through Block's gateway, <code>push.buzz.xyz</code>. No message text passes through it. The gateway sees only your relay's public key, your server's IP address and when it wakes which phone. Apple sees when a phone is woken. Block calls push experimental.", "Turn it off with <code>BUZZ_PUSH_ENABLED=false</code> on the relay.")}
-    ${svc("user", "Builderlab accounts", "When you sign in to Builderlab, Block's service, Block can get a copy of your key. It also learns which communities you join.", "Make your key with nak, and Builderlab isn't involved.")}
+    ${svc("bell", "iPhone notifications", "Notifications go through Block's gateway, <code>push.buzz.xyz</code>. No message text passes through it. The gateway sees your relay's public key, your server's IP address and when it wakes which phone. Each phone also signs up with the gateway, so Block keeps each phone's Apple push token and sees the phone's IP address and which relays it uses. Apple sees when a phone is woken. Block calls push experimental.", "Turn it off with <code>BUZZ_PUSH_ENABLED=false</code> on the relay.")}
+    ${svc("user", "Builderlab accounts", "When you sign in to Builderlab, Block's service, Block can get a copy of your key. It also learns which communities you join.", "Make your key with nak, and don't sign in to Builderlab with it.")}
   </div>
 </div>`;
 
@@ -396,7 +396,7 @@ const PUSH = `<div class="fq-vis fq-push">
  */
 const SEES = `<div class="fq-vis fq-sees">
   <div class="fq-sees-c no"><p class="fq-sees-h">${icon("eye-off")}Block never sees</p><ul><li>What a message says</li><li>Who sent it</li><li>Where it was posted</li><li>Your files</li></ul></div>
-  <div class="fq-sees-c yes"><p class="fq-sees-h">${icon("eye")}Block's gateway sees only</p><ul><li>Your relay's public key</li><li>Your server's IP address</li><li>When it wakes which phone</li></ul></div>
+  <div class="fq-sees-c yes"><p class="fq-sees-h">${icon("eye")}Block's gateway sees</p><ul><li>Your relay's public key</li><li>Your server's IP address</li><li>When it wakes which phone</li><li>Each phone's Apple push token, its IP address and which relays it uses</li></ul></div>
 </div>`;
 /** mobile.md's sections, by title: the ones a setup needs stay open, the rest fold. A missing one fails loudly. */
 const phone = (title: string) => skill.mobile.find((x) => x.title === title)?.html ?? `<p class="fq-missing">mobile.md lost its "${title}" section.</p>`;
@@ -419,15 +419,15 @@ const foldSetup = (html: string) => {
 const PHONE_FOLDED = ["Test with the phone locked", "What Block and Apple see", "Android", "Run your own gateway"];
 const MOBILE =
   rec("Buzz sends notifications through Block's push gateway to the Buzz app from the App Store. Block never sees your messages. You don't need an Apple developer account or a gateway of your own. Notifications work on iPhone, but not on Android yet.", [
-    ["Notifications on", "Members get a notification on their phone for direct messages and mentions. Block's gateway sees your relay's public key, your server's IP address and when it wakes which phone."],
+    ["Notifications on", "Members get a notification on their phone for direct messages and mentions. Block's gateway sees your relay's public key, your server's IP address and when it wakes which phone. Each phone also signs up with the gateway, so Block sees the phone's IP address and which relays it uses."],
     ["Notifications off", "Nothing goes through Block's gateway. People see new messages the next time they open Buzz."],
   ], "How it works") +
   SEES +
-  note(`Each phone has to be paired with the Buzz desktop app before it gets notifications. <a href="#operations" data-q-link="pair">How do you pair a phone?</a> shows each step.`) +
+  note(`A phone gets notifications once it's in the community. Pairing puts your identity on the phone, and <a href="#operations" data-q-link="pair">How do you pair a phone?</a> shows each step. A phone that joins with an invite link gets a new identity.`) +
   PUSH +
   // docs/research.md: Block's bundle notes name "the public gateway"; block/buzz#5206 is where self-hosters asked for it
   note(
-    `This guide tested notifications with relay 0.3.0 and the App Store's Buzz app on a locked iPhone. Block calls push experimental and doesn't promise any level of service (<a href="https://github.com/block/buzz/issues/5206">block/buzz#5206</a>). Run the locked-phone test below before your team relies on it.`,
+    `This guide tested notifications with relay 0.3.0 and the App Store's Buzz app on a locked iPhone. Block calls push <a href="https://github.com/block/buzz/blob/relay-v0.3.0/docs/buzz-push.md">experimental</a>. Run the locked-phone test below before your team relies on it.`,
   ) +
   `<div class="fq-mobile">${PHONE_OPEN.map((x) => `<h4>${x}</h4>${x === "Turn notifications on" ? foldSetup(phone(x)) : phone(x)}`).join("")}</div>` +
   PHONE_FOLDED.map((x) => fold(x, phone(x))).join("");
@@ -471,14 +471,14 @@ const GROUPS: [string, Question[]][] = [
         a:
           rec("When someone joins from a phone, Buzz opens <code>welcome-everyone</code> first, so a message posted there is the first thing they see.", [
             ["An open channel", "Members can reply to the welcome and ask questions there."],
-            ["A view-only channel", "People who join can read it but can't reply, so the welcome stays at the top."],
-            ["A welcome agent", "An agent can watch for new members and message each one, since Buzz can't greet them by itself."],
+            ["A view-only channel", "People who join can read it but can't reply, so replies don't bury the welcome."],
+            ["A welcome program", "Buzz's own agents can't greet new members, because they act only on mentions and direct messages. A welcome takes a program of your own that watches for new members, and this guide doesn't include one."],
           ], "How it works") +
           PHONE_JOIN +
-          note("To make a channel view-only, open it, choose <b>Manage members</b> at the top, and set <b>General access</b> to <b>View only</b>. People who join after that can read the channel, but they can't post or react. People already in it keep their role, so set it before you invite anyone.") +
+          note("To make a channel view-only, open it, choose its name at the top, and set <b>General access</b> to <b>View only</b>. People who join after that can read the channel, but they can't post or react. People already in it keep their role, so set it before you invite anyone.") +
           VIEW_ONLY +
           // block/buzz 0.3.0 crates/buzz-workflow/src/schema.rs TriggerDef: message_posted, reaction_added, diff_posted, schedule, webhook
-          note("Buzz can't greet new members by itself, because its workflows have no trigger for someone joining. For a personal welcome, set up an agent that watches for new members and messages each one."),
+          note("Buzz can't greet new members by itself, because its workflows have no trigger for someone joining."),
       },
       { id: "notifications", icon: "bell", q: "How do phones and notifications work?", a: MOBILE },
       {
@@ -522,7 +522,7 @@ const GROUPS: [string, Question[]][] = [
           ct("role") +
           note(`Staff is a list in Buzz's moderation screens, which work only on ${SCREENS_WHERE}. On other setups, the owner and admins ban people from the command line. See <a href="#operations" data-q-link="moderate">How do you moderate?</a>`) +
           note("With no admins, only the owner can make invite links, because members can't.") +
-          note(`The owner is set on the server, so only whoever runs the server can change it. After the change, the old owner stays on as an admin. Banning is done with the moderation tools instead. See <a href="#operations" data-q-link="moderate">How do you moderate?</a>`) +
+          note(`The owner is set on the server, so only whoever runs the server can change it. After the change, the old owner stays on as an admin. To keep the old owner out, remove them in Membership and ban them. See <a href="#operations" data-q-link="moderate">How do you moderate?</a>`) +
           // block/buzz 0.3.0 crates/buzz-core/src/channel.rs decide_member_put: anyone who can post adds; only owners and admins grant admin
           note("<b>Private channels have their own rules.</b> Anyone in a private channel can add people to it, except a guest. Only the channel's owners and admins can make someone an admin of it. So anyone you put in a private channel can decide who else joins it."),
       },
@@ -538,7 +538,7 @@ const GROUPS: [string, Question[]][] = [
         q: "What do you do when someone leaves?",
         a:
           rec("", [
-            ["They leave on their own", "Buzz needs nothing more from you. If they had access to the server, Staff, Tailscale or a shared vault, go through the checklist below."],
+            ["They leave on their own", "Buzz needs nothing more from you. If they were an admin, links they made keep working until they expire, and on relay 0.3.0 only a ban cancels them. If they had access to the server, Staff, Tailscale or a shared vault, go through the checklist below."],
             ["You remove them", "Ban them too, because removing them alone lets them rejoin with any invite link that's still active."],
           ]) +
           checklist([
@@ -547,8 +547,8 @@ const GROUPS: [string, Question[]][] = [
             ["Remove them from Tailscale", "Remove their devices from your Tailscale network too.", "private network"],
             ["Remove them from Staff", "In Buzz, open <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>, and remove them there.", "if they were on Staff"],
             ["Ban them to keep them out", "A ban keeps them out even if they have a live invite link, and it cancels every link they made. The current relay release, 0.3.0, can't cancel a single link on its own. Keep links short-lived and limited to the people you expect."],
-            ["Remove their server and hosting access", "Remove their SSH key from the server and their account with your hosting provider. A copy of <code>.env</code> or a backup they kept still holds the server's passwords. Change any password they could have copied.", "if they had it"],
-            ["Remove them from the shared password vault", "If your team keeps a copy of the server's <code>.env</code> file in a shared vault in your password manager, take away their access to that vault. The file holds the relay key and the server's passwords, so change those passwords too.", "if they could open it"],
+            ["Remove their server and hosting access", "Remove their SSH key from the server and their account with your hosting provider. A copy of <code>.env</code> or a backup they kept holds the server's passwords and the relay key. The passwords work only from inside the server, so removing their access is what protects them.", "if they had it"],
+            ["Remove them from the shared password vault", "If your team keeps a copy of the server's <code>.env</code> file in a shared vault in your password manager, take away their access to that vault. The file holds the relay key and the server's passwords, which work only from inside the server.", "if they could open it"],
           ]) +
           ct("remove") +
           note("Buzz can't wipe a device. Messages and files already on their devices stay there."),
@@ -566,7 +566,7 @@ const GROUPS: [string, Question[]][] = [
         q: "How should each person set up their identity?",
         a:
           rec("Each person has a private key, and that key is their identity in Buzz. Anyone who has the key can act as that person.", [
-            ["Making a key", "nak, the open-source Nostr tool, makes one on your computer, and Block never gets a copy. Create account in Buzz makes one with a Builderlab account, and Block can keep a copy."],
+            ["Making a key", "nak, the open-source Nostr tool, makes one on your computer. Block gets no copy unless you later sign in to Builderlab with it. Create account in Buzz makes one with a Builderlab account, and Block keeps a copy."],
             ["Keeping it", "Save the key in a password manager. Without a saved copy, a lost computer means a new identity."],
           ], "How it works") +
           ct("identity") +
@@ -609,6 +609,8 @@ const GROUPS: [string, Question[]][] = [
           ct("leak") +
           note(`Then let them back in with their new key. An admin sends them a 1-use invite link, as <a href="#operations" data-q-link="add">How should you add people?</a> shows.`) +
           note("A Buzz identity isn't tied to one community. The leaked key still works in any other community that person joined. Ask the owners of those communities to ban it too.") +
+          note("A leaked relay key also lets anyone make invite links your relay accepts, because relay 0.3.0 still accepts an older kind of link signed with a key made from it. Check Membership and ban keys you don't know.") +
+          note("For the owner's key, whoever runs the server makes a new key the owner first. For someone on Staff, remove them from Staff first, because the moderation screens can't ban Staff. An admin can't ban another admin.") +
           note("On a private network, Kubernetes or a local test, Buzz's moderation screens can't reach your relay. There, the owner or an admin bans the key with the <code>buzz</code> command line instead, as How do you moderate? says."),
       },
       {
@@ -642,11 +644,11 @@ const GROUPS: [string, Question[]][] = [
           TWO_FACTOR +
           steps([
             ["Run the relay on a private network", `Turn on <b>Private network</b> in this guide's setup. The relay then has no public address, and people reach it only through your Tailscale network. <a href="#guide" data-go-private>Set it up</a>.`],
-            ["Make your identity provider ask for a second factor", "Sign up for Tailscale with Google, Microsoft, Okta or GitHub, and require two-factor sign-in in that provider. Then nobody can reach the relay without a second factor."],
+            ["Make your identity provider ask for a second factor", "Sign up for Tailscale with Google, Microsoft, Okta or GitHub, and require two-factor sign-in in that provider. Tailscale asks for it when a device signs in, and again when the device's key expires, after 180 days by default. Shorten the key expiry, and remove a lost device from your Tailscale network at once."],
             ["Protect the key too", "The key is still the first factor. Keep it in a password manager that uses two-factor sign-in, and use disk encryption and a screen lock on every device."],
           ]) +
           note("A private network works for a team. It doesn't work well for an open community of thousands, because each member needs Tailscale on every device.") +
-          note(`The relay can require sign-in through a company identity provider. But the Buzz apps people download only do that for communities Block hosts, including Builderlab's. See <a href="#operations" data-q-link="sso">Can you use single sign-on?</a>`),
+          note(`The relay can require sign-in through a company identity provider. But the Buzz apps people download do that only for communities Block hosts on Builderlab. See <a href="#operations" data-q-link="sso">Can you use single sign-on?</a>`),
       },
     ],
   ],
@@ -693,16 +695,17 @@ const GROUPS: [string, Question[]][] = [
         icon: "list",
         q: "How do you keep a record of who did what?",
         a: () =>
-          rec("The relay records who did what in its database, in three places. Its audit log has an entry for every event it stores, such as a message, a reaction or a deletion, and for every file upload. Moderation actions and changes to relay staff each have a list of their own. Buzz has no screen for these records.", [
-            ["To keep them", "Leave the audit log on, which is the default, and include the database in your backups. Keep your hosting provider's logs too. They show who reached the server itself."],
+          rec("The relay records who did what in its database, in three places. Its audit log has an entry for every event it stores, such as a message, a reaction or a deletion, and for every file upload. Moderation actions and changes to relay staff each have a list of their own. Buzz has no screen for the audit log.", [
+            ["To keep them", "Leave the audit log on, which is the default, and include the database in your backups. Keep the server's SSH log and your hosting provider's activity log too, and copy them off the server. They show who reached the server itself."],
           ], "How it works") +
           LEDGER +
           // both fold, so the drawing stays the answer's one visible detail (owner's ask, 2026-11-24)
           `<details class="fq-more fq-fold"><summary><span>What the audit log stores</span></summary>${FIELDS_HTML}<p class="ga-p fq-after">It doesn't hold message text, which stays in the events themselves. It doesn't record sign-ins.</p></details>` +
-          `<details class="fq-more fq-fold"><summary><span>How to read the records</span></summary><p class="ga-p">Whoever runs the server reads the audit log from the relay's database. Your agent can do it with this prompt.</p>${askHTML(trackOf(), "audit-read")}<p class="ga-p fq-after">The owner or an admin can list moderation actions with <code>buzz moderation audit</code>, the command line that ships with Buzz. See <a href="#operations" data-q-link="moderate">how to moderate</a>. The Moderation screens in Buzz show open reports and current bans and timeouts. They don't list past actions.</p></details>` +
+          `<details class="fq-more fq-fold"><summary><span>How to read the records</span></summary><p class="ga-p">Whoever runs the server reads the audit log from the relay's database. Your agent can do it with this prompt.</p>${askHTML(trackOf(), "audit-read")}<p class="ga-p fq-after">The owner or an admin can list moderation actions with <code>buzz moderation audit</code>, the command line that ships with Buzz. See <a href="#operations" data-q-link="moderate">how to moderate</a>. Buzz's Reports screen lists every report, resolved ones too, with who resolved it and when.</p></details>` +
           note("Each entry stores a SHA-256 hash of its own fields and of the entry before it, so a changed or missing entry breaks the chain. Someone who can write to the database can still rebuild the whole chain, so keep copies with your backups, off the server.") +
           note("<code>BUZZ_AUDIT_ENABLED=false</code> in the relay's <code>.env</code> turns the audit log off. The moderation and staff records continue.") +
-          note("Changes to relay staff, its operators and moderators, go to the third list: who granted or revoked a role, and the role before and after."),
+          note("Changes to relay staff, its operators and moderators, go to the third list: who granted or revoked a role, and the role before and after.") +
+          note("Nothing records who removed a member or changed a role in a community. Sign-ins and reads show only in the relay's own log, which is capped, and which is lost when an upgrade or a restart replaces the relay's container."),
       },
     ],
   ],
@@ -712,12 +715,12 @@ const GROUPS: [string, Question[]][] = [
       {
         id: "move", icon: "restore", q: "Can you move the community to a different domain?",
         a: rec("Not with its history. The relay ties a community to the domain people connect to. A new domain starts a new, empty community, and everyone has to join it again. To move to a new server, keep the same domain and point it at the new server.", [
-            ["New server, same domain", `Restore a backup onto the new server and point the domain at it, as <a href="#operations" data-q-link="restore">How do you restore a backup?</a> shows. Messages, members, files and invite links come along, because the address and the relay key stay the same.`],
+            ["New server, same domain", `Make a fresh backup and stop Buzz on the old server. Point the domain at the new server, then restore the backup there, as <a href="#operations" data-q-link="restore">How do you restore a backup?</a> shows. Messages, members, files and invite links come along, because the address and the relay key stay the same.`],
             ["A new domain", "Pick the permanent domain before people join. If you change it anyway, set up the new address as a new community and invite everyone again. The old community stays at its old address, and nothing in Buzz moves it over."],
           ]) +
           MOVE +
           steps([
-            ["Move to a new server", "Keep the same domain and relay key. On the new server, restore the database, the file store, the git data and the configuration together from one backup, then point the domain's DNS at the new server. Let's Encrypt gives the new server its certificate. Practice the move before you rely on it."],
+            ["Move to a new server", "Keep the same domain and relay key. Make a fresh backup, stop Buzz on the old server, and point the domain's DNS at the new server. Then restore the database, the file store, the git data and the configuration together from that backup. Let's Encrypt gives the new server its certificate. Practice the move before you rely on it."],
             ["If you change the domain", "Don't change <code>RELAY_URL</code> on the server that holds your community. The relay would start a new, empty community at the new address, and the old messages would stay in the database where nobody can reach them. Set up the new domain as a separate community instead."],
             ["Tell members what changes", "Buzz on desktop and on phones saves each community by its address. A new domain shows up as a separate community, and a phone that joins it with an invite link makes a new key there."],
           ]) +
@@ -729,7 +732,7 @@ const GROUPS: [string, Question[]][] = [
         id: "upgrade",
         icon: "upgrade",
         q: "How should you upgrade the relay?",
-        a: (t) => rec("Upgrade about once a month, and soon after any security fix. Back up first, and check that the new relay version works with the Buzz app your members use.") + taskHTML("upgrade", t),
+        a: (t) => rec("Your agent upgrades to the relay version this guide has tested. Watch the relay releases in block/buzz on GitHub for security fixes. Back up first, and check that the new relay version works with the Buzz app your members use.") + taskHTML("upgrade", t),
       },
       {
         id: "server",
@@ -741,8 +744,8 @@ const GROUPS: [string, Question[]][] = [
           checklist([
             ["Give each person their own SSH key", "Add each person's public key to the server, as in the drawing. Never share one key or one password between people. Then you can see who logged in, and remove one person without changing anyone else's access."],
             ["Turn on two-factor sign-in at your hosting provider", "This is the account at DigitalOcean, Hetzner, AWS or wherever the server runs. It isn't your Buzz identity. Anyone who signs in there can open a console on the server or copy its disk, so require two-factor sign-in for everyone on that account."],
-            ["Turn off password logins over SSH", "Let people in with their SSH keys only. In <code>/etc/ssh/sshd_config</code>, set <code>PasswordAuthentication no</code>, then restart SSH. Keep your own session open until you've checked that your key still works."],
-            ["Remove access the day someone leaves", "Delete their key from the server's <code>authorized_keys</code> and remove them from the hosting account. If they could have copied <code>.env</code> or a backup, change the server's passwords too."],
+            ["Turn off password logins over SSH", "Let people in with their SSH keys only. Put <code>PasswordAuthentication no</code> in a file of its own, <code>/etc/ssh/sshd_config.d/00-no-passwords.conf</code>, because Ubuntu reads that folder first and another file there can turn passwords back on. Restart SSH, and check that <code>sudo sshd -T | grep -i passwordauthentication</code> prints <code>no</code>. Keep your own session open until you've checked that your key still works."],
+            ["Remove access the day someone leaves", "Delete their key from the server's <code>authorized_keys</code> and remove them from the hosting account. If they could have copied <code>.env</code> or a backup, they have the server's passwords and the relay key. Those passwords work only from inside the server, so removing their access is what protects them."],
           ]),
       },
       {
@@ -750,7 +753,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "link",
         q: "What still depends on Block?",
         a:
-          rec("Your relay runs without Block, but the Buzz apps, iPhone notifications and Builderlab accounts all come from Block. None of them gets your messages or files.", undefined, "How it works") +
+          rec("Your relay runs without Block, but the Buzz apps, iPhone notifications and Builderlab accounts all come from Block. None of them gets your messages or files, unless you use an agent Block hosts, whose machines process what it reads.", undefined, "How it works") +
           DEPS +
           note("If Block stopped running these services, your relay would keep running. You would lose app updates and phone notifications."),
       },

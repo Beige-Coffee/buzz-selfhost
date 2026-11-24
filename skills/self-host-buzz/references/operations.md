@@ -32,9 +32,13 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
   restart the relay with `BUZZ_COMPOSE_TLS=true ./run.sh restart`. Everyone else reconnects within
   about 20 seconds. Check: `./run.sh list-members` no longer lists them. A removed person can rejoin
   with any invite link that hasn't expired. This guide has no procedure for cancelling one link.
-  Banning the person who issued links revokes their v2 invite links, and legacy links work
-  differently. Keep links to 1 use and 1 day. A removed person's channel memberships stay. Adding
-  them back restores every private channel they were in.
+  Links that an owner or admin made keep working after that person leaves, is removed, or is made a
+  member again. On relay 0.3.0, a link stops working only when it expires or reaches its use limit,
+  or when the person who made it is banned, which revokes it
+  ([relay_invite.rs](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-db/src/store/relay_invite.rs#L522-L586)).
+  A timeout of that person pauses their links. Legacy links work differently. Keep links to 1 use
+  and 1 day. A removed person's channel memberships stay. Adding them back restores every private
+  channel they were in.
   **To ban someone or time them out**, use Buzz 1.0's Settings, Moderation, on a public setup with
   the moderation console (compose.md). Everywhere else, the owner or an admin uses the `buzz`
   command line that ships with Buzz 1.0 instead. That includes every private network, where Buzz's
@@ -48,10 +52,12 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
   - `buzz moderation reports` lists reports.
   - `buzz moderation ban --pubkey <hex>` bans someone. A ban disconnects them and their agents, and
     refuses them at any invite link.
-  - `buzz moderation timeout --pubkey <hex> --expires-in 3600` stops their posts for an hour.
+  - `buzz moderation timeout --pubkey <hex> --expires-in 3600` stops their posts for an hour. On
+    relay 0.3.0, a `--reason` is saved as the public reason, although the command's help calls it
+    private.
   - `buzz moderation restricted` lists bans and timeouts. `unban` and `untimeout` lift them.
-  - `buzz moderation audit` lists past moderation actions, newest first, with who took each one
-    (not tested).
+  - `buzz moderation audit` lists past moderation actions, newest first, with who took each one.
+    An admin can read it too (tested on relay 0.3.0).
   - `buzz messages delete --event <id>` deletes a message in a channel they own or administer (not
     tested).
 - **Local agents.** Buzz 1.0 can run agents on the owner's computer. Each agent has its own key and
@@ -68,10 +74,15 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
   with `BUZZ_COMPOSE_TLS=true ./run.sh restart`. After that, the relay refuses a member's own agent
   that isn't a member itself
   ([`restricted: not a relay member`](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/handlers/auth.rs#L787-L791)).
-  Buzz then shows only "Couldn't finish" when someone asks that agent to work. Tell members to ask
-  an admin to add their agent. The relay treats an agent added as a member as a person. It records
-  no owner for the agent
-  ([auth.rs](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/handlers/auth.rs#L44-L57)).
+  When someone asks that agent to work, Buzz then shows "Couldn't finish" under the agent's name.
+  Opening it shows the reason, "The community refused the agent event: You must be a relay member to
+  access this relay", with View activity and Retry. Tell members to ask an admin to add their agent.
+  While the setting is off, deleting a refused agent in Buzz doesn't finish either, because the
+  relay refuses the agent's own leave events. Buzz says the agent "isn't deleted yet" and to "Delete
+  it again to finish". In testing, the delete finished once the setting was back on. The relay
+  treats an agent added as a member as a person. It records
+  no owner for an agent that never got in through its owner
+  ([auth.rs](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/handlers/auth.rs#L367-L371)).
   It also gives the agent a person's limit of 60 messages a minute. An agent's limit is 120
   ([rate_limit.rs](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-auth/src/rate_limit.rs#L90-L103)).
   On Kubernetes, the same setting is the chart's `relay.allowNipOaAuth` value. Add an agent with
@@ -80,6 +91,20 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
   without relay membership gets `relay error 403: relay_membership_required`. Unless its profile
   carries the owner's proof or an agent flag, Buzz shows such a bot as a person, and a direct
   message doesn't wake it ([agents.md](agents.md#run-an-agent-on-your-own-server)).
+- **Read the audit log.** The relay's database has an `audit_log` table, where the relay records
+  every event it stores, such as a message, a reaction or a deletion, and every file upload
+  ([migration 0001](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/migrations/0001_initial_schema.sql#L606-L617)).
+  `BUZZ_AUDIT_ENABLED` turns it on, and it defaults to `true`
+  ([config.rs](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-relay/src/config.rs#L330-L333)).
+  This query shows the 50 newest entries, each with when it happened, what it was, who did it as a
+  key in hex, which object and the detail. It reads the table and changes nothing (tested on relay
+  0.3.0).
+  ```bash
+  docker compose exec -T postgres psql -U buzz -d buzz -c "select created_at, action, encode(actor_pubkey, 'hex') as actor, object_id, detail from audit_log order by created_at desc limit 50" < /dev/null
+  ```
+  To show an `actor` key as an npub, run `nak encode npub <hex>` on the user's own computer.
+  Moderation actions have a list of their own, which `buzz moderation audit` shows (To ban someone
+  or time them out, above).
 - **Back up** the data that can't be rebuilt, all at once, with the relay stopped. That's Postgres,
   the file store's volume, the git volume and `.env`. Ask the user first, because members lose the
   connection for about half a minute. The file store's volume keeps MinIO's name with Silo too, so
@@ -88,10 +113,11 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
   again on its own. That list also names an owner key that a bootstrap script makes. When the owner
   uses their own npub, from nak or the Buzz app, the owner holds that key themselves.
   Plain `docker compose` works in every mode, because these commands touch only the relay, Postgres
-  and the volumes. Each backup gets its own folder in `~/buzz-backup`, named for the day. `BACKUP`
-  holds that folder's path. If each command runs in a fresh shell, set `BACKUP` again in each call.
+  and the volumes. Each backup gets its own folder in `~/buzz-backup`, named for the date and time,
+  so a second backup on the same day gets a folder of its own. `BACKUP` holds that folder's path.
+  If each command runs in a fresh shell, set `BACKUP` again in each call.
   ```bash
-  BACKUP=~/buzz-backup/$(date +%F)
+  BACKUP=~/buzz-backup/$(date +%Y-%m-%d-%H%M%S)
   mkdir -p "$BACKUP" && chmod 700 ~/buzz-backup "$BACKUP"
   docker compose stop relay
   docker compose exec -T postgres pg_dump -U buzz -Fc buzz > "$BACKUP/postgres.dump" < /dev/null
@@ -104,7 +130,8 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
   ```
   Check: `check-relay.sh` passes again, run the same way the install ran it. It waits the half
   minute the relay takes to start. `ls -la "$BACKUP"` shows four files, none of them empty.
-  `git-data.tgz` stays tiny until someone hosts a repository.
+  `git-data.tgz` can be tiny. The relay keeps git repositories in the file store, and this volume
+  is its scratch space.
   `tar tzf "$BACKUP/minio-data.tgz" | grep -c buzz-media` prints a number above 0. A mistyped volume
   name would have made an empty volume and an empty archive.
   `docker compose exec -T postgres pg_restore -l < "$BACKUP/postgres.dump" | wc -l` prints a number
@@ -117,7 +144,7 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
   messages. The provider's own server backups narrow that gap, and so does a nightly backup
   (compose.md, For a server that runs for months).
 - **Restore** a backup into empty volumes. Ask the user first, because it replaces the data. Set
-  `BACKUP` to the folder to restore, such as `BACKUP=~/buzz-backup/2026-11-06`.
+  `BACKUP` to the folder to restore, such as `BACKUP=~/buzz-backup/2026-11-06-031500`.
   `ls ~/buzz-backup` lists the folders. A backup made before backups had dated folders is
   `~/buzz-backup` itself. A single server has no standby. Tell the user that nobody can send or read
   new messages until the restore ends. Before changing anything, check the backup (not tested).
@@ -233,7 +260,9 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
   Copy those lines from `.env.example` into `.env`. For a `CHANGE_ME_RANDOM` value, redo compose.md
   step 5. Ask the user about any other value. Phone notifications may be off. Block's bundle leaves
   them off, and so did this guide's setups before 2026-10-23. If `grep '^BUZZ_PUSH_ENABLED=' .env`
-  says `false`, turn them on as compose.md step 8 does, in `server` and `private` modes. Then set the
+  says `false`, ask the user whether to turn them on. They may have turned them off on purpose,
+  since [phones and notifications](mobile.md) offers `false` to keep Block's gateway out. Only if
+  they say yes, turn them on as compose.md step 8 does, in `server` and `private` modes. Then set the
   new image and upgrade.
   ```bash
   sed -i.bak "s|^BUZZ_IMAGE=.*|BUZZ_IMAGE=ghcr.io/block/buzz:$TAG|" .env && rm .env.bak
@@ -282,6 +311,14 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
   someone or time them out, use the `buzz` command line, as on a private network with Compose
   (above). The chart has no admin name for Buzz's moderation screens. This guide doesn't cover
   those screens on Kubernetes.
+- **Read the audit log.** As on Compose (above), this shows the 50 newest entries of the relay's
+  `audit_log` table. It reads the table and changes nothing (not tested).
+  ```bash
+  echo "select created_at, action, encode(actor_pubkey, 'hex') as actor, object_id, detail from audit_log order by created_at desc limit 50" |
+    kubectl -n buzz exec -i buzz-postgresql-0 -- sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U buzz -d buzz'
+  ```
+  `nak encode npub <hex>` on the user's own computer turns an `actor` key into an npub. To list
+  moderation actions, use `buzz moderation audit`, as on Compose.
 - **Back up** the quickstart's four stores into a folder only the user can read. Ask the user
   first. The relay keeps running during the backup.
   ```bash
@@ -333,4 +370,5 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
   was recorded. The pod tries again when it restarts. Don't go back to the old image on this
   database. Migrations 0084 and 0085 are already applied, and an older relay refuses migrations it
   doesn't know. Going back means restoring the complete backup from before the upgrade, with the
-  old image. Check: kubernetes.md step 6's checks pass again, the relay's digest included.
+  old image. Check: kubernetes.md step 6's checks (P6 on a private network) pass again, the relay's
+  digest included.

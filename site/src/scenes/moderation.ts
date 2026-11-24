@@ -1,5 +1,4 @@
-import { CLAUDE_MARK, MK_BL } from "./agentflow";
-import { settingsModal, ti, type Flow } from "./members";
+import { CLAUDE_MARK, MK_BL, settingsModal, ti, type Flow } from "./members";
 
 /**
  * Buzz 1.0.5's Moderation screens (the relay-staff plugin), drawn from captures of 2026-11-23 on a relay
@@ -78,7 +77,7 @@ export const moderationFlows: Flow[] = [
     label: "Ban someone",
     steps: [
       { k: "Open your community", t: "Under <b>Moderation</b>, choose <b>Communities</b>. Then choose your community.", frame: settingsModal(nav("Communities"), communities) },
-      { k: "Ban, time out or delete", t: "Choose <b>Actions</b>. Pick <b>Ban member</b>, <b>Time out member</b> or <b>Delete message</b>, and find the person by name or paste their npub. If you write a reason, Buzz sends it to that person word for word. Choose <b>Review</b>, check what Buzz will do, then choose <b>Confirm</b>.", frame: settingsModal(nav("Communities"), actions) },
+      { k: "Ban, time out or delete", t: "Choose <b>Actions</b>. Pick <b>Ban member</b>, <b>Time out member</b> or <b>Delete message</b>. For a ban or a time out, find the person by name or paste their npub, and give a time out its length in seconds. For <b>Delete message</b>, paste the message's event ID. If you write a reason, Buzz sends it to the person word for word, and a deletion's reason also shows in the channel. Choose <b>Review</b>, check what Buzz will do, then choose <b>Confirm</b>.", frame: settingsModal(nav("Communities"), actions) },
     ],
   },
   {
@@ -89,6 +88,10 @@ export const moderationFlows: Flow[] = [
     ],
   },
 ];
+
+/** A ban from the Actions tab, for flows elsewhere that ban a key (identity.ts, the exposed key). A function,
+ * because identity.ts and agentflow.ts import each other's modules and this one draws with agentflow's marks. */
+export const banFrame = () => settingsModal(nav("Communities"), actions);
 
 /** What if a key leaks?: banning a person's leaked key from Buzz's own screens. */
 export const leakFlows: Flow[] = [

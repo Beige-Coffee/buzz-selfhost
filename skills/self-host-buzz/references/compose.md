@@ -20,10 +20,10 @@ and the flag would start it on the public ports. `add-member` and `list-members`
 A server is Ubuntu 24.04 on x86 with 4 GB of RAM and at least 20 GB of disk, as root or a user
 whose sudo doesn't ask for a password: an agent can't type it. (x86 is what's tested. Silo's images
 also run on ARM, but a bundle from before 2026-10-07 needs x86: its MinIO image is amd64-only.) A
-local test runs on Linux the same way, or on macOS or Windows with Docker Desktop. On an Apple
-Silicon Mac the relay runs natively. A bundle from before 2026-10-07 runs MinIO through Docker's
-x86 emulation there (tested): Docker warns that the image's platform doesn't match, which is
-harmless.
+local test runs on Linux the same way, or on a Mac with Docker Desktop. Windows isn't tested. On an
+Apple Silicon Mac the relay runs natively. A bundle from before 2026-10-07 runs MinIO through
+Docker's x86 emulation there (tested): Docker warns that the image's platform doesn't match, which
+is harmless.
 
 1. **Machine.**
    - Server: `. /etc/os-release; echo $ID $VERSION_ID` → `ubuntu 24.04`. On anything else, stop
@@ -183,8 +183,8 @@ harmless.
    line). In `server` and `private` modes, turn on iPhone notifications and test a DM and an
    explicit mention with the official app. The relay sends wake-ups through Block's gateway, `push.buzz.xyz`. No message text
    passes through it or Apple: the phone fetches messages from this relay. The gateway does see this
-   relay's public key, its server's address and when it wakes which phone (SKILL.md section 4 has
-   what to tell the user):
+   relay's public key, its server's address and when it wakes which phone, and each phone signs up
+   with it directly (SKILL.md section 4 has what to tell the user):
    ```bash
    sed -i.bak "s/^BUZZ_PUSH_ENABLED=.*/BUZZ_PUSH_ENABLED=true/" .env && rm .env.bak
    ```

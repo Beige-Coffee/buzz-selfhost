@@ -211,7 +211,7 @@ function frames(L: Layout): string[] {
   const s5 = L.s5;
   // lost with no copy: what a replacement key costs (block/buzz#7357). With a copy, restoring it changes nothing.
   const LOST = ["Without a copy, it starts over with a new key", "Apps see a different relay", "Channels the old key signed no longer follow it"];
-  const LEAKED = ["Sign a member list", "Sign notices like “Mallory added by Maya”", "Sign git updates"];
+  const LEAKED = ["Sign a member list", "Sign notices like “Mallory added by Maya”", "Sign git updates", "Make invite links your relay accepts"];
   const f5 = `
     <span class="rk-key dark rk-vault" style="${at(s5.key.x, s5.key.y, s5.key.w, s5.key.w)}"${A(0.1, "stamp", 0.6)}>${KEY}</span>
     <p class="rk-vk" style="${at(0, s5.label, L.w)}"${A(0.4, "fade")}>your relay key</p>

@@ -572,6 +572,41 @@ Buzz 1.0's New chat needs channel labels, in images from 2026-10-15. The site's 
 follows `tested-image`, and a reader still on an older default gets the new one. Replaced on
 2026-11-06 by the pin in The launch review.
 
+## The launch review (2026-11-24)
+
+Before launch, six reviewers checked about 700 of the site's and the skill's claims against Buzz's
+source (relay 0.3.0, Buzz 1.0.5 and 1.0.6), the skill and the test logs. The owner chose to fix
+everything they found. The main changes:
+
+- Setup's step-by-step view captions each command with the sentence that leads into it, so a
+  condition such as "In server and private modes" stays next to its command. Each card shows the
+  skill's own step number, and the check step shows only the line for the reader's setup.
+- Your agents count as you. Buzz takes requests from any agent that carries your ownership proof,
+  so an agent that follows a prompt injection can direct your other agents. The agent answers say
+  so, and the hosted card says Block keeps a Builderlab agent's key and your proof.
+- A leaked relay key also makes invite links the relay accepts, since relay 0.3.0 still takes the
+  older invite format, signed with a key derived from the relay key. The relay-key drawing and the
+  leak answer say so.
+- An admin's invite links keep working after the admin leaves or becomes a member again. On relay
+  0.3.0, only a ban of the admin cancels them.
+- The lost-device steps start with a ban, because a live invite link can let a removed key back in.
+  They also remove the device from the tailnet.
+- Moving to a new server stops the old relay and moves the domain before the restore, as the skill
+  does. Upgrades no longer turn phone notifications back on without asking.
+- The Kubernetes setup needs a cluster with one x86 node, since a restart hung on two.
+- Smaller fixes: the Moderation click-through's fields, starter channels (Buzz creates general),
+  what Block's push gateway sees, the audit log's limits, the sshd drop-in, Tailscale's second
+  factor, the nak steps on Windows, the meta description and llms.txt.
+- On phones, the setup menu and the local test's agent rows no longer push the page sideways at
+  320px.
+- "Can you require approval before an agent joins?" shows what members see, drawn from a capture in
+  Buzz 1.0.5 on a local relay with `BUZZ_ALLOW_NIP_OA_AUTH=false`: the agent's turn ends in
+  "Couldn't finish", and opening it shows the relay's reason. The site had said Buzz doesn't say why.
+- The page drops the skill's "(not tested)" notes and says each "In testing" note as what happens
+  (`CURRENT` in `site/build/skill.ts`). The build fails on a new one, so each gets a rule.
+- Run logs stamp the time in UTC (`tests/lib/log.sh`), so a public log doesn't say which time zone
+  the person running it was in.
+
 ## Getting the skill
 
 Lead with the standard installer, which puts the skill into Claude Code, Codex, Goose and 70-odd
@@ -718,7 +753,7 @@ must point at block/buzz instead of Beige-Coffee/buzz-selfhost.
   notes. How do you moderate? links to it.
 - The site never talks about testing (2026-10-25): the tests are why its advice can be trusted,
   not part of the advice. The skill and these docs keep their test notes, since agents and
-  maintainers use them; `site/build/skill.ts` (`UNTESTED`) strips them from the skill text the
+  maintainers use them; `site/build/skill.ts` (`CURRENT`) strips them from the skill text the
   site shows.
 - No test dates anywhere in the guide, site or skill (owner's call of 2026-11-23): say what was
   tested and with which versions ("tested with relay 0.3.0"), never when. Dates that name a

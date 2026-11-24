@@ -110,7 +110,7 @@ const PRIVATE_READY: Ready[] = [
 ];
 const TS_HERE: Ready = { t: "<b>Tailscale on this computer</b>, signed in to the same tailnet. Your agent checks the relay from here, and you join from here." };
 const TS_NAME: Ready = {
-  t: "<b>The relay's Tailscale name</b>, like <code>buzz.your-tailnet.ts.net</code>.",
+  t: "<b>The relay's Tailscale name</b>, like <code>buzz.your-tailnet.ts.net</code>. The skill names the machine <code>buzz</code>, so the name is <code>buzz</code> followed by your tailnet's DNS name, which the DNS page of Tailscale's admin console shows.",
   warn: FOREVER("name", "Renaming the machine or your tailnet later changes it too, and a private community can't add a public address later."),
 };
 
@@ -155,7 +155,7 @@ const SERVER: Expect[] = [
   { who: "you", ask: true, icon: "ask", t: "Confirm the domain", d: "It asks you to confirm <code>{{DOMAIN}}</code>, which can't be changed later, and that the server takes connections on ports 80 and 443 from the internet." },
   INSTALL,
   SSH_KEY,
-  { who: "agent", icon: "agent", t: "Starts the relay and checks it", d: "It checks HTTPS, joining and chats, notifications, the closed ports, and that you're the owner." },
+  { who: "agent", icon: "agent", t: "Starts the relay and checks it", d: "It checks HTTPS, joining and chats, that notifications are turned on, the closed ports, and that you're the owner." },
   JOIN_AT("{{RELAY_URL}}"),
   PHONE(PAIR),
 ];
@@ -173,7 +173,7 @@ const PRIVATE: Expect[] = [
   { who: "you", ask: true, icon: "ask", t: "Confirm the name", d: "It asks you to confirm <code>{{DOMAIN}}</code>, which can't be changed later." },
   INSTALL,
   SSH_KEY,
-  { who: "agent", icon: "agent", t: "Starts the relay and checks it", d: "It checks HTTPS through Tailscale, joining and chats, notifications, that no ports are open to the internet, and that you're the owner." },
+  { who: "agent", icon: "agent", t: "Starts the relay and checks it", d: "It checks HTTPS through Tailscale, joining and chats, that notifications are turned on, that no ports are open to the internet, and that you're the owner." },
   TS_JOIN,
   PHONE(`${PAIR} Your phone needs Tailscale on.`),
 ];
@@ -278,7 +278,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
   k8s: {
     ready: [
       {
-        t: "<b>A Kubernetes cluster</b> with x86 nodes, and <code>kubectl</code> and <code>helm</code> on this computer connected to it, with the same <code>KUBECONFIG</code> for every command.",
+        t: "<b>A Kubernetes cluster</b> with one x86 node, and <code>kubectl</code> and <code>helm</code> on this computer connected to it, with the same <code>KUBECONFIG</code> for every command.",
         more: QUICKSTART_NOTE,
       },
       { t: "<b>An ingress controller and cert-manager.</b> If either is missing, your agent can install Traefik, cert-manager or both, once you approve a load balancer's cost." },
@@ -307,7 +307,7 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
   "k8s-private": {
     ready: [
       {
-        t: "<b>A Kubernetes cluster</b> with x86 nodes, and <code>kubectl</code> and <code>helm</code> on this computer connected to it, with the same <code>KUBECONFIG</code> for every command. No ingress or load balancer needed.",
+        t: "<b>A Kubernetes cluster</b> with one x86 node, and <code>kubectl</code> and <code>helm</code> on this computer connected to it, with the same <code>KUBECONFIG</code> for every command. No ingress or load balancer needed.",
         more: QUICKSTART_NOTE,
       },
       {
@@ -409,16 +409,16 @@ export interface FlowStep {
   code?: string;
 }
 const CHECK_BACK =
-  "The block prints <code>restored</code> and starts Buzz. <code>./run.sh list-members</code> then lists the members from before, and your messages and files are back. If <code>restored</code> doesn't print, Buzz stays stopped. Read the Restore step in the skill's <code>operations.md</code> before you start it again.";
+  "The block prints <code>restored</code> and starts Buzz. <code>./run.sh list-members</code> then lists the members from before, and your messages and files are back. Anything after the backup is gone, so add again anyone who joined since and make new invite links. If <code>restored</code> doesn't print, Buzz stays stopped. Read the Restore step in the skill's <code>operations.md</code> before you start it again.";
 export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", FlowStep[]>>> = {
   compose: {
     backup: [
       {
         t: "Run it where Buzz runs",
-        d: "Run these commands from the bundle's folder, <code>buzz/deploy/compose</code>. Each backup gets its own folder, named for the day, such as <code>~/buzz-backup/2026-11-06</code>. <code>BACKUP</code> holds that folder's path. The block stops the relay while it copies the data, and members lose the connection for about half a minute.",
+        d: "Run these commands from the bundle's folder, <code>buzz/deploy/compose</code>. Each backup gets its own folder, named for the date and time, such as <code>~/buzz-backup/2026-11-06-031500</code>. A second backup on the same day gets a folder of its own. <code>BACKUP</code> holds that folder's path. The block stops the relay while it copies the data, and members lose the connection for about half a minute.",
         code: "pg_dump",
       },
-      { t: "Check it", d: "Run <code>ls -la \"$BACKUP\"</code>. It shows four files, and none of them is empty. Buzz reconnects once the relay is back." },
+      { t: "Check it", d: "Run <code>ls -la \"$BACKUP\"</code>. It shows four files, and none of them is empty. The skill also checks that the file archive holds the uploads and that the database dump reads back. Buzz reconnects once the relay is back." },
       {
         t: "Keep it safe",
         d: "The backup holds every secret, the relay key included. Encrypt it, for example with <code>gpg --symmetric</code>, and keep a copy off the server.",
@@ -428,11 +428,11 @@ export const OP_FLOWS: Record<OpSetup, Partial<Record<"backup" | "restore", Flow
     restore: [
       {
         t: "Check the backup",
-        d: "Set <code>BACKUP</code> to the backup's folder, such as <code>BACKUP=~/buzz-backup/2026-11-06</code>. <code>ls ~/buzz-backup</code> lists the folders. Before you change anything, check that <code>ls -la \"$BACKUP\"</code> shows four files and that none of them is empty. Then check that <code>grep '^RELAY_URL=' \"$BACKUP/env\"</code> shows this community's address. A backup from another install would swap your relay's identity and owner.",
+        d: "Set <code>BACKUP</code> to the backup's folder, such as <code>BACKUP=~/buzz-backup/2026-11-06-031500</code>. <code>ls ~/buzz-backup</code> lists the folders. Before you change anything, check that <code>ls -la \"$BACKUP\"</code> shows four files and that none of them is empty. Then check that <code>grep '^RELAY_URL=' \"$BACKUP/env\"</code> shows this community's address. A backup from another install would swap your relay's identity and owner.",
       },
       {
         t: "Prepare the machine",
-        d: "To restore onto the same server, stop Buzz and delete the data that the backup replaces. If you upgraded since the backup, first move the bundle back to the backup's version. To restore onto a new server, skip those commands. Stop the old server's relay if it still runs. Copy the backup's folder to the same path on the new server. Install Docker and get the bundle at the backup's version, with its edits, as the Compose setup's steps 3, 4 and 9 do. Don't start Buzz yet. Point your domain at the new server.",
+        d: "To restore onto the same server, stop Buzz and delete the data that the backup replaces. If you upgraded since the backup, first move the bundle back to the backup's version. To restore onto a new server, skip those commands. Stop the old server's relay if it still runs. Copy the backup's folder to the same path on the new server. Install Docker and get the bundle at the backup's version, with its edits, as the Compose setup's steps 3, 4 and 9 do. The skill reads that version from the backup's image. Don't start Buzz yet. Point your domain at the new server, and the moderation console's <code>admin.</code> address too if you set one up. The skill adds the console's route again.",
         code: "volume rm",
       },
       {
@@ -473,7 +473,7 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
         asks("It asks for your OK before the backup stops the relay."),
         RENAME,
         agent("It moves the relay to the image the skill recommends. Members lose the connection while the relay restarts, and database migrations can make that longer."),
-        agent("If phone notifications are off, it turns them on."),
+        asks("If phone notifications are off, it asks whether you turned them off on purpose, and turns them on only if you say yes."),
         agent("It checks that the members and files are still there and that the relay answers."),
       ],
     },
@@ -487,7 +487,7 @@ export const OP_DETAILS: Record<OpSetup, Record<OpTask, OpDetail>> = {
       manual: true,
     },
     upgrade: {
-      why: UPGRADE_WHY,
+      why: "Back up first. The relay changes its database when it starts on a new image. This guide has no Kubernetes restore, so a failed upgrade may have no way back. Practice a restore before you upgrade a cluster a team uses.",
       steps: [
         asks("It asks for your OK before the backup."),
         RENAME,

@@ -190,7 +190,7 @@ export function derived(v: Values = state): Record<string, string> {
     HTTP_ORIGIN: practice ? "https://localhost" : `https://${domain}`,
     OWNER_HEX: hex ?? "CHANGE_ME_OWNER_PUBKEY_HEX",
     // the prompts' owner: the reader's own npub, or a key the skill makes for them with nak
-    OWNER: npub ? `Owner: ${npub}, copied from Buzz 1.0's Settings, Identity.` : "I have no Buzz key yet: make the owner key with nak, as the skill's Owner step says.",
+    OWNER: npub ? `Owner: ${npub}.` : "I have no Buzz key yet: make the owner key with nak, as the skill's Owner step says.",
     TAG: tag,
     // the skill's checks compare the pulled image with its digest, which SKILL.md gives for its own tag only
     DIGEST: tag === skill.pin.tag && skill.pin.digest ? skill.pin.digest : "<that image's digest>",

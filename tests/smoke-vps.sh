@@ -393,7 +393,7 @@ list-members)
 # ══ Day two: back up (the page's commands) ════════════════════════════
 backup)
   cd "$COMPOSE_DIR" || exit 1
-  run backup 'BACKUP=~/buzz-backup/$(date +%F)
+  run backup 'BACKUP=~/buzz-backup/$(date +%Y-%m-%d-%H%M%S)
 mkdir -p "$BACKUP" && chmod 700 ~/buzz-backup "$BACKUP"
 docker compose stop relay
 docker compose exec -T postgres pg_dump -U buzz -Fc buzz > "$BACKUP/postgres.dump" < /dev/null

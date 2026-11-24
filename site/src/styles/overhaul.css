@@ -504,6 +504,41 @@ a.mp-link:hover { background: #2b2724; }
 .fq-ch s { color: var(--ink-3); }
 
 /* ═══ How do we moderate? Who lets agents in ═══ */
+/* What a member sees when the relay refuses their agent (agents.ts REFUSED), from a Buzz 1.0.5 capture */
+.rf-win { display: grid; gap: 4px; padding: 16px 16px 18px; border-radius: 14px; background: #fff; border: 1px solid var(--line-2); }
+.rf svg { flex: none; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rf-who { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; color: var(--ink); }
+.rf-who b { font-weight: 600; }
+.rf-who time { font-size: 11.5px; color: #8b8b8b; }
+.rf-me { display: grid; justify-items: end; gap: 4px; margin-bottom: 14px; }
+.rf-me .rf-who { margin-right: 38px; }
+.rf-row { display: flex; align-items: flex-end; gap: 8px; min-width: 0; }
+.rf-me .rf-row { align-items: center; }
+.rf-agent { margin-left: 38px; }
+.rf-bub { margin: 0; padding: 7px 12px; border-radius: 16px; background: #e8efcd; font-size: 13px; color: var(--ink); }
+.rf-av { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #f1f1f3; font-size: 12px; color: #555; }
+.rf-av.sq { border-radius: 9px; }
+.rf-card { display: grid; gap: 8px; flex: 1 1 auto; min-width: 0; padding: 10px 12px; border-radius: 14px; background: #f0f0f2; }
+.rf-col { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12.5px; color: #6b6b6b; }
+.rf-col span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: #e6e6e9; }
+.rf-err { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; color: #a3333d; }
+.rf-why { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink); overflow-wrap: anywhere; }
+.rf-act { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12.5px; color: var(--ink); }
+.rf-act .rf-av { width: 22px; height: 22px; border-radius: 6px; background: #e6e6e9; font-size: 10px; }
+.rf-retry { margin-left: auto; padding: 4px 12px; border-radius: 999px; background: #e6e6e9; font-weight: 600; }
+.rf-va { white-space: nowrap; }
+@media (max-width: 400px) {
+  .fq-vis.rf { padding: 10px; }
+  .rf-win { padding: 12px 10px 14px; }
+  .rf-row { gap: 6px; }
+  .rf-av { width: 26px; height: 26px; }
+  .rf-agent { margin-left: 32px; }
+  .rf-me .rf-who { margin-right: 32px; }
+  .rf-card { padding: 10px 8px; }
+  .rf-act { gap: 5px; font-size: 12px; }
+  .rf-act .rf-av { width: 20px; height: 20px; }
+  .rf-retry { padding: 3px 9px; }
+}
 .fq-door { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .fq-door > div { display: grid; gap: 8px; align-content: start; padding: 13px 14px; border-radius: 14px; background: #fff; border: 1px solid var(--line-2); }
 .fq-door > div.on { border-color: rgb(215 215 46 / 85%); box-shadow: 0 0 0 3px rgb(215 215 46 / 20%); }
@@ -822,6 +857,7 @@ a.mp-link:hover { background: #2b2724; }
 .ag-n { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); font: 600 11.5px var(--mono); color: var(--accent); }
 .ag-card-s { margin: 6px 0 14px 38px; font-size: 15px; line-height: 1.5; color: var(--ink-2); }
 .ag-card > .ag-npx, .ag-card > .ag-alt, .ag-card > .ag-prompt, .ag-card > .ag-run { margin-left: 38px; }
+@media (max-width: 380px) { .ag-card > .ag-npx, .ag-card > .ag-alt, .ag-card > .ag-prompt, .ag-card > .ag-run { margin-left: 0; } }
 .ag-card .ag-npx .cmd-wrap { margin: 0; }
 .ag-card > .ag-alt { margin-top: 12px; }
 .ag-run { display: grid; margin: 0; padding: 0; list-style: none; }
@@ -838,11 +874,20 @@ a.mp-link:hover { background: #2b2724; }
 .ag-run-row summary .ag-chev { margin-left: auto; }
 .ag-run-d { margin: 0; padding: 0 2px 12px 42px; font-size: 14.5px; line-height: 1.55; color: var(--ink-2); }
 .ag-run-d code { font-size: 0.86em; overflow-wrap: anywhere; }
+/* On a phone, who does a step goes on its own line under the step's name, so a long label such as
+   "It asks you · if needed" can't push the row past the screen (the launch audit's L2, 2026-11-24). */
+@media (max-width: 480px) {
+  .ag-run-row > details > summary { flex-wrap: wrap; row-gap: 2px; }
+  .ag-run-row summary .ag-run-t { flex: 1 1 0; min-width: 0; }
+  .ag-run-row summary .ag-chev { order: 2; }
+  .ag-run-row summary .ag-tl-who { order: 3; flex-basis: 100%; padding-left: 40px; white-space: normal; }
+}
 
 ol.tl.st { display: grid; gap: 10px; }
 ol.tl.st::before { content: none; }
 .tl.st > .tl-step { grid-template-columns: 28px minmax(0, 1fr); gap: 14px; padding: 16px 18px 18px; border-radius: 16px; background: #fff; box-shadow: 0 0 0 1px var(--line-2), 0 6px 18px rgb(24 20 14 / 4%); }
 .tl.st .tl-n { width: 28px; height: 28px; font-size: 12px; }
+.tl.st .tl-n.wide { font-size: 10px; letter-spacing: -0.03em; }
 .tl.st .tl-body h3 { margin: 2px 0 4px; font-size: 18px; }
 .st-sum { margin: 0 0 12px; font-size: 15.5px; line-height: 1.5; color: var(--ink-2); }
 .st-sum:last-child { margin-bottom: 0; }

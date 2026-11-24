@@ -17,7 +17,7 @@ interface Option {
 const OPTIONS: Option[] = [
   { k: "vps", kind: "Rent", name: "A VPS", line: "A rented Linux server. Buzz runs on it with Docker Compose." },
   { k: "own", kind: "Own", name: "Your hardware", line: "A Linux machine you own, like a mini PC. Same Docker Compose setup as a VPS." },
-  { k: "k8s", kind: "Cluster", name: "Kubernetes", line: "For teams that already run a cluster. Installs with Block's Helm chart." },
+  { k: "k8s", kind: "Cluster", name: "Kubernetes", line: "For teams that already run a cluster. Installs with Block's Helm chart, on a cluster with one node." },
 ];
 
 const PUBLIC = "public URL, members only";
@@ -52,7 +52,7 @@ const FACTS: Record<CardTrack, { reach: string; facts: [string, string][] }> = {
     reach: "On: only devices on your Tailscale network",
     facts: [
       ["Relay key", "On your machine"],
-      ["Best for", "Teams that want hardware in their own custody and private network access: their own hardware, nothing public"],
+      ["Best for", "Teams that want their data on hardware they own, with nothing public"],
     ],
   },
   k8s: {

@@ -1,7 +1,12 @@
 import leo from "../assets/avatars/leo.svg";
 import maya from "../assets/avatars/maya.svg";
+// the marks Buzz shows for the Claude and Builderlab harnesses (block/buzz-app src/shared/design-system/icons/HarnessLogos.tsx, claude.png)
+import claudeMark from "../assets/harness/claude.png";
 import { joinCard } from "./joinmock";
 import { BUZZ_ROBOT, TABLER } from "./tabler";
+
+export const CLAUDE_MARK = `<img class="ax-mark" src="${claudeMark}" alt="">`;
+export const MK_BL = `<span class="as-mk bl">B</span>`;
 
 /**
  * Managing people, as click-throughs of Buzz 1.0's own screens, in light mode: three flows, each
@@ -229,7 +234,7 @@ export const peopleFlows = (expiry = "3 days", uses = "No limit"): Flow[] => [
         t: "Choose <b>Make admin</b> to make a member an admin. Choose <b>Make member</b> to make an admin a regular member again. Only the owner can change roles.",
         frame: settings("make-admin"),
       },
-      { k: "Confirm", t: "Choose <b>Make admin</b> in the dialog. Admins can invite people and remove members. If you make an admin a member again, they can no longer do either.", frame: settings("", confirm("admin")) },
+      { k: "Confirm", t: "Choose <b>Make admin</b> in the dialog. Admins can invite people and remove members. If you make an admin a member again, they can no longer do either. Links they made keep working until they expire, and on relay 0.3.0 only a ban cancels them.", frame: settings("", confirm("admin")) },
     ],
   },
   {

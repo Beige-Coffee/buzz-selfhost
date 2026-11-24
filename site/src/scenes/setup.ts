@@ -20,10 +20,23 @@ const UP = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/
 const CHEV = `<svg class="st-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
 
 /**
- * A step, lighter (the owner's pick of 2026-11-24): its commands stay in view, each later one under the
- * first sentence that leads into it, and every paragraph moves behind Show details, in order. Commands
- * nested in a list stay with their list, in the details.
+ * A step, lighter (the owner's pick of 2026-11-24): its commands stay in view, each under the sentence that
+ * leads into it, and every paragraph moves behind Show details, in order. Commands nested in a list stay
+ * with their list, in the details.
+ *
+ * A command's caption is the condition in front of it when there is one ("In `server` and `private`
+ * modes, …", "If it lacks one or both, …"), so a command meant for other setups never shows without it
+ * (the launch audit of 2026-11-24). Otherwise it's the sentence right before the command. Sentences that
+ * start with "Check" close the command before, so they're never a caption. The first command gets a
+ * caption only for a condition, since the step's summary already says what it does.
  */
+const COND = /^(In|If|On|Only|For|When|Unless|Skip|Without)\b/;
+function leadIn(text: string, first: boolean): string | undefined {
+  const said = text.trim().replace(/\s+/g, " ").split(/(?<=[.!?])\s+(?=[A-Z`(])/).filter((t) => !/^Check\b/.test(t));
+  const cond = [...said].reverse().find((t) => COND.test(t));
+  const lead = cond ?? (first ? undefined : said[said.length - 1]);
+  return lead && lead.replace(/[^a-z]/gi, "").length >= 12 ? lead : undefined;
+}
 function splitStep(html: string): { shown: string; details: string } {
   const box = document.createElement("template");
   box.innerHTML = html;
@@ -35,12 +48,46 @@ function splitStep(html: string): { shown: string; details: string } {
     const html = n instanceof Element ? n.outerHTML : `<p>${esc(n.textContent ?? "")}</p>`;
     if (isCmd(n)) return void shown.push(html);
     details.push(html);
-    if (isCmd(kids[i + 1]) && shown.length) {
-      const lead = (n.textContent ?? "").trim().split(/(?<=[.:])\s/)[0];
-      if (lead.replace(/[^a-z]/gi, "").length >= 12) shown.push(`<p class="st-cap">${esc(lead)}</p>`);
+    if (isCmd(kids[i + 1])) {
+      const lead = leadIn(n.textContent ?? "", !shown.length);
+      if (lead) shown.push(`<p class="st-cap">${esc(lead)}</p>`);
     }
   });
   return { shown: shown.join(""), details: details.join("") };
+}
+
+/**
+ * The check step's block has a line for each kind of setup, each named in a comment (SKILL.md section 3).
+ * Only the line for the reader's setup shows (the launch audit of 2026-11-24).
+ */
+const CHECK_LINE: Record<Track, string> = {
+  vps: "public server",
+  "own-public": "public server",
+  "vps-private": "private server",
+  "own-private": "private server",
+  practice: "local",
+  k8s: "Kubernetes",
+  "k8s-private": "Kubernetes",
+};
+function oneCheckLine(html: string, track: Track): string {
+  return html.replace(/<pre class="cmd"[^>]*>([\s\S]*?)<\/pre>/, (block, code: string) => {
+    const lines = code.split("\n").filter((l) => l.trim());
+    const mine = lines.filter((l) => new RegExp(`#\\s*${CHECK_LINE[track]}\\b`).test(l));
+    if (mine.length !== 1 || lines.length < 2) return block;
+    return block.replace(code, mine[0].replace(/\s+#.*$/, ""));
+  });
+}
+
+/**
+ * Each card shows the skill's own step number (compose.md's 10, 2P; kubernetes.md's P3), so "step 12" in
+ * the text points at card 12 (the launch audit of 2026-11-24). The skill's own sections show as S3 and S4,
+ * and the runbook and the unnumbered extras show a dot.
+ */
+function stepLabel(id: string): string {
+  const m = id.match(/^(?:compose|kubernetes)-(\d+P?|P\d+)$/);
+  if (m) return m[1];
+  const sk = id.match(/^skill-(\d+)$/);
+  return sk ? `S${sk[1]}` : "·";
 }
 
 export function mountSetup(host: HTMLElement): void {
@@ -62,12 +109,13 @@ export function mountSetup(host: HTMLElement): void {
     };
     const steps = STEPS.filter((s) => s.tracks.includes(track));
 
-    const stepHTML = (s: StepDef, n: number): string => {
-      const part = splitStep(s.html);
+    const stepHTML = (s: StepDef): string => {
+      const part = splitStep(s.id === "skill-3" ? oneCheckLine(s.html, track) : s.html);
+      const n = stepLabel(s.id);
       return `<li class="tl-step" id="step-${s.id}">
-        <span class="tl-n" aria-hidden="true"><span>${n}</span></span>
+        <span class="tl-n${n.length > 2 ? " wide" : ""}" aria-hidden="true"><span>${n}</span></span>
         <div class="tl-body">
-          <h3>${s.title}${s.badge ? ` <span class="badge">${s.badge}</span>` : ""}${linkButton(stepHash(track, s.id), `Copy a link to step ${n}`)}</h3>
+          <h3>${s.title}${s.badge ? ` <span class="badge">${s.badge}</span>` : ""}${linkButton(stepHash(track, s.id), n === "·" ? `Copy a link to ${s.title}` : `Copy a link to step ${n}`)}</h3>
           <p class="st-sum">${s.summary}</p>
           ${part.shown ? `<div class="tl-md" ${slot(part.shown, true)}></div>` : ""}
           ${s.joinMock ? joinMockHTML() : ""}
@@ -86,7 +134,7 @@ export function mountSetup(host: HTMLElement): void {
         <summary>Steps</summary>
         <div class="tl-in">
           <p class="tl-foot"><button type="button" class="tl-fold" aria-expanded="true" aria-controls="tl-steps">${UP}Collapse steps</button></p>
-          <ol class="tl st">${steps.map((s, i) => stepHTML(s, i + 1)).join("")}</ol>
+          <ol class="tl st">${steps.map((s) => stepHTML(s)).join("")}</ol>
           <details class="tl-fail tl-fixes" id="fixes">
             <summary>If a step fails</summary>
             <dl>${fixes.map((f) => `<dt ${slot(f.symptom, true)}></dt><dd ${slot(f.fix, true)}></dd>`).join("")}</dl>

@@ -97,13 +97,13 @@ export const QUESTIONS: Question[] = [
       {
         id: "invite",
         label: "Over the internet",
-        hint: "For a team or an open community. Anyone with an invite joins from any device, with nothing to install.",
+        hint: "For a team or an open community. Anyone with an invite joins from any device, with nothing to install but Buzz.",
         when: "Pick this if members join from anywhere, as in an open-source community.",
       },
       {
         id: "private",
         label: "Only through your VPN",
-        hint: "Tailscale. The relay has no public address, and every device needs Tailscale, phones included. Suits a private team, not a community.",
+        hint: "Tailscale. The relay has no public address, and every device needs Tailscale, phones included. It suits a private team. An open community would need Tailscale for every member.",
         when: "Pick this if only devices on your Tailscale network should reach it.",
       },
     ],
@@ -174,7 +174,7 @@ export const SETUPS: Record<Track, Setup> = {
     name: "Kubernetes",
     set: { path: "k8s", reach: "public" },
     why: "Runs beside your other services, on a cluster you already operate. The guide installs one relay, with Postgres, Redis and files in the cluster.",
-    need: "x86 nodes, <code>kubectl</code> and <code>helm</code>, a default StorageClass, an ingress and cert-manager or your OK to add them, and a domain pointed at the load balancer.",
+    need: "A cluster with one x86 node, <code>kubectl</code> and <code>helm</code>, a default StorageClass, an ingress and cert-manager or your OK to add them, and a domain pointed at the load balancer.",
     give: `${CHART} Use Helm for this generated-secret quickstart. Argo CD and Flux need stable, externally managed secrets; the upstream chart supports that advanced path.`,
     cost: `${VOLUMES} Add $12 for a load balancer if your agent adds an ingress.`,
   },
@@ -182,7 +182,7 @@ export const SETUPS: Record<Track, Setup> = {
     name: "Kubernetes on a private network",
     set: { path: "k8s", reach: "private" },
     why: "Runs beside your other services, on a cluster you already operate, with no load balancer and nothing public.",
-    need: "x86 nodes, <code>kubectl</code> and <code>helm</code>, a default StorageClass, and an OAuth client for Tailscale's Kubernetes operator, which your agent installs.",
+    need: "A cluster with one x86 node, <code>kubectl</code> and <code>helm</code>, a default StorageClass, and an OAuth client for Tailscale's Kubernetes operator, which your agent installs.",
     give: `Every device needs Tailscale, and phones can't pair on this setup yet. ${CHART}`,
     cost: `${VOLUMES} ${TAILSCALE}`,
     note: "Members on phones? A VPS on a private network pairs them.",
@@ -190,7 +190,7 @@ export const SETUPS: Record<Track, Setup> = {
 };
 
 /** "Something else": what the guide leaves out, shown above the closest setup. */
-export const NOT_COVERED = `This guide doesn't cover ARM machines such as a Raspberry Pi, a NAS's own apps, a Mac or Windows computer as the server, or app platforms such as Fly.io or Render. It also leaves out managed Postgres, Redis or S3, VPNs other than Tailscale, more than one relay, and moving a community from buzz.xyz ${issue(6803)}.`;
+export const NOT_COVERED = `This guide doesn't cover ARM machines such as a Raspberry Pi, a NAS's own apps, a Mac or Windows computer as the server, or app platforms such as Fly.io or Render. It also leaves out managed Postgres, Redis or S3, VPNs other than Tailscale, more than one relay, and moving a community from Builderlab ${issue(6803)}.`;
 
 /**
  * Block's servers: what Block's own pages say (buzz.xyz/support, read 2026-11-24). Hosted communities

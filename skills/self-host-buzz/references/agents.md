@@ -1,25 +1,32 @@
 # Agents: instructions, harness, staying on, and your own server
 
 Read "What an agent can touch" in [security.md](security.md) first. Everything here works inside
-those limits. Buzz 1.0 starts a local agent with no sandbox and no approval prompts.
+those limits. Buzz 1.0 starts a local agent with no sandbox and no approval prompts. On Linux and
+Windows, the agent can also read your Buzz private key from the system's key store.
 
 An agent made in Buzz answers its owner. The
 [owner's mentions and direct messages](https://github.com/block/buzz-app/blob/4fb386b0be5966f5ad9e930a33d1c75b432625fb/src/features/agents/owner-attestation.ts#L138-L150)
-start its work. A message that carries the owner's ownership proof starts its work too. Other
-members can't start it. A helper that answers every member has to be a program of your own. See
-"Run an agent on your own server".
+start its work. Your other agents count as you. Buzz accepts a request from any agent that carries
+your ownership proof
+([Buzz's rule](https://github.com/block/buzz-app/blob/5a21469faa8c53d20105d58c592a48f68c6dcf7c/src/features/agents/owner-attestation.ts#L159-L165)),
+and every agent made in Buzz has one. So an agent that follows a prompt injection can direct your
+other agents. Other members can't start an agent's work. A helper that answers every member has to
+be a program of your own. See "Run an agent on your own server".
 
 Decide who an agent works for before setting it up. That choice settles where it runs, who can ask
 it for things, and which channels it belongs in:
 
 - **For you.** Make it in Buzz on a computer that stays on, with Buzz open (see "Keep an agent
-  answering"). It gets in through your membership and takes requests only from you.
+  answering"). It gets in through your membership and takes requests only from you and your other
+  agents.
 - **For your team.** Run it on a server of its own, where it signs in with your ownership proof
-  (see "Run an agent on your own server"). It answers the people you list. It belongs in your
+  (see "Run an agent on your own server"). It answers the people you list when they mention it in
+  a channel, and it answers direct messages only from you and your other agents. It belongs in your
   team's channels.
-- **For the public.** In an open community, run the same kind of program on a machine with nothing
-  private on it, and have it answer anyone. It belongs in open channels only (security.md, Give
-  each audience its own agent).
+- **For the public.** In an open community, run a program of your own with no ownership proof on a
+  machine with nothing private on it, and have it answer anyone who mentions it (see "A shared
+  helper needs no proof"). With your proof, it would count as you to your other agents. It belongs
+  in open channels only (security.md, Give each audience its own agent).
 
 ## Tell an agent its job
 
@@ -126,7 +133,10 @@ Block's source and weren't tested on a second computer:
 
 **An agent Block hosts.** Block calls these remote agents. They run on Block's machines through
 Builderlab. [Block's support page](https://buzz.xyz/support) says the paid ones are available only
-in the United States. They weren't tested with a self-hosted community.
+in the United States. They weren't tested with a self-hosted community. Such an agent carries your
+ownership proof, so it counts as you to your other agents, and Block keeps its key and your proof
+([Builderlab's README](https://github.com/block/buzz-app/blob/5a21469faa8c53d20105d58c592a48f68c6dcf7c/src/bundled/builderlab/README.md#L81-L85)).
+It can't reach a relay that has no public address, such as one on a private network.
 
 **An agent on your own server**, with no Buzz app, is in the next section.
 
@@ -187,7 +197,8 @@ Never print or send your Buzz private key. Where a step says Stop, stop and wait
 
 Your part:
 
-1. **Give your agent the prompt.** The agent installs Sprig and makes its key. It then stops and
+1. **Give your agent the prompt.** On a private network, add the agent's server to your tailnet
+   first, so it can reach the relay. The agent installs Sprig and makes its key. It then stops and
    shows you its public key.
 2. **Authorize the key in Buzz.** In Buzz, open Settings, then Security, then Authorize external
    identity. Paste the public key and choose Authorize identity. Check the npub, choose Authorize
@@ -196,14 +207,22 @@ Your part:
 3. **Answer its message.** The agent sends you a direct message once it is online. Reply to that
    message. To use the agent in a channel, mention it there and choose Invite.
 
-**Who it answers.** `BUZZ_ACP_RESPOND_TO` in the agent's settings file sets who it answers. The
-prompt's setup uses `owner-only`, which is also `buzz-acp`'s default. It answers only its owner
-unless started with `--respond-to anyone` or an allowlist
+**Who it answers.** `BUZZ_ACP_RESPOND_TO` in the agent's settings file sets who it answers in
+channels. The prompt's setup uses `owner-only`, which is also `buzz-acp`'s default. It answers only
+its owner unless started with `--respond-to anyone` or an allowlist
 ([buzz-acp's README](https://github.com/block/buzz/blob/9bcb3e45a426bc4b232f4731f46d6015ed0781ab/crates/buzz-acp/README.md#L137-L198)).
-For a team, set it to `allowlist`, and set `BUZZ_ACP_RESPOND_TO_ALLOWLIST` to their public keys in
-hex, separated by commas. For the public, set it to `anyone`. Run that agent on a server with
-nothing private on it, and keep it in open channels only (security.md, Give each audience its own
-agent). Restart its service after a change.
+Your other agents count as its owner. Whatever the setting says, it answers a direct message only
+from its owner or the owner's agents
+([buzz-acp's source](https://github.com/block/buzz/blob/9bcb3e45a426bc4b232f4731f46d6015ed0781ab/crates/buzz-acp/src/lib.rs#L577-L581)),
+so other people ask it for things by mentioning it in a channel. For a team, set it to
+`allowlist`, and set `BUZZ_ACP_RESPOND_TO_ALLOWLIST` to their public keys as 64-character hex,
+separated by commas (`npub-to-hex.py` converts an npub). An npub in that list keeps the service
+from starting
+([config.rs](https://github.com/block/buzz/blob/9bcb3e45a426bc4b232f4731f46d6015ed0781ab/crates/buzz-acp/src/config.rs#L732-L746)).
+For the public, set it to `anyone`, and give that agent no ownership proof, because an agent with
+your proof counts as you to your other agents (A shared helper needs no proof, below). Run that
+agent on a server with nothing private on it, and keep it in open channels only (security.md, Give
+each audience its own agent). Restart its service after a change.
 
 **A community that keeps members' agents out.** Some communities set
 `BUZZ_ALLOW_NIP_OA_AUTH=false` in the relay's `.env`. In those communities, the proof alone gets
@@ -227,8 +246,10 @@ according to Block's source (not tested). Removing the owner from the community 
 owner's agents in testing.
 
 **A shared helper needs no proof.** An agent that answers everyone reads requests from anyone. Keep
-your proof out of it. Add its key as a member (operations.md, add a member). Then have its own
-client publish its profile with `"is_agent": true` in the profile's content. Buzz shows it as an
+your proof out of it. With `buzz-acp`, a helper with no ownership proof has no owner, so it never
+answers a direct message. People ask it for things by mentioning it in a channel. Add its key as a
+member (operations.md, add a member). Then have its own client publish its profile with
+`"is_agent": true` in the profile's content. Buzz shows it as an
 agent, with no owner, and nothing it does acts for you. This was seen in testing. The `buzz`
 command has no option for that field, and Buzz never sets it on its own agents. Buzz on phones
 doesn't read the flag. A phone shows the helper as an agent once the helper publishes an agent

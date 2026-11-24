@@ -17,7 +17,7 @@ const LAYERS: { name: string; is: string; holds: string }[] = [
   { name: "Postgres", is: "database", holds: "messages, channels, members" },
   { name: "Silo", is: "file storage (S3)", holds: "uploads, git repositories" },
   { name: ".env", is: "settings file", holds: "relay key, passwords" },
-  { name: "Redis", is: "in-memory cache", holds: "who's online, typing" },
+  { name: "Redis", is: "in memory", holds: "live messages, who's online" },
 ];
 /** Back to front, so nearer layers cover farther ones. */
 const BACK_TO_FRONT = [...LAYERS.keys()].reverse();
@@ -113,7 +113,8 @@ const LINES: [string, string][] = [
   ["git clone https://github.com/block/buzz", ""],
   ["cd buzz/deploy/compose", ""],
   ["cp .env.example .env", ""],
-  ["./run.sh start", ""],
+  ["$EDITOR .env", "  # replace every CHANGE_ME"],
+  ["BUZZ_COMPOSE_TLS=true ./run.sh start", ""],
 ];
 const CHAR_MS = 10;
 /* Each character is its own span with a reveal delay, so the final frame always shows the full line. */

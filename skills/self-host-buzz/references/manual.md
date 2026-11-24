@@ -4,7 +4,7 @@ Read the [security guidance](security.md), choose the setup and arrange operator
 On your computer, have a terminal with Python 3, Bash and curl (macOS or Linux). For a VPS or
 own hardware, use the guide's Ubuntu 24.04 x86 baseline, check SSH access, and decide the permanent
 address and network reach. A local trial needs Docker and free ports 80/443. Kubernetes needs
-`kubectl` and Helm pointed at the intended cluster, x86 nodes and a default StorageClass; the
+a cluster with one x86 node and a default StorageClass, with `kubectl` and Helm pointed at it; the
 public path also needs ingress and certificate management. Its single-replica quickstart is
 for evaluation, not production or high availability. The steps give the exact checks.
 

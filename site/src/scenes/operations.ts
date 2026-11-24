@@ -88,7 +88,7 @@ const BACKUP_VIS = `<div class="fq-vis fq-keyhome opx-bk">
     ${item(BK_ICON.db, "The database: messages, members and channels")}${item(BK_ICON.files, "Uploaded files")}${item(BK_ICON.git, "Git repositories")}${item(BK_ICON.key, "The relay's settings, with its key and passwords")}
   </div>
   <span class="fq-arrow">copy</span>
-  <div class="fq-card dark"><p class="fq-card-h">${BK_ICON.folder}One backup folder</p><p class="opx-bk-l"><code>~/buzz-backup/2026-11-23</code></p><p class="opx-bk-l"><span class="fq-dim">One folder for each backup</span></p></div>
+  <div class="fq-card dark"><p class="fq-card-h">${BK_ICON.folder}One backup folder</p><p class="opx-bk-l"><code>~/buzz-backup/2026-11-23-031500</code></p><p class="opx-bk-l"><span class="fq-dim">One folder for each backup</span></p></div>
   <span class="fq-arrow">encrypt</span>
   <div class="fq-card opx-bk-safe"><p class="fq-card-h">${BK_ICON.lock}Off the server</p><p class="opx-bk-l">Your computer, or storage you control</p><p class="opx-bk-badge">${BK_ICON.lock}Encrypted copy</p></div>
 </div>`;

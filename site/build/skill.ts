@@ -32,7 +32,7 @@ export interface SkillFix {
   fix: string;
 }
 /** An item from operations.md, as one of the page's operations cards shows it. */
-export type OpKind = "people" | "backup" | "restore" | "upgrade";
+export type OpKind = "people" | "audit" | "backup" | "restore" | "upgrade";
 export interface SkillOp {
   tracks: Track[];
   kind: OpKind;
@@ -103,6 +103,13 @@ const FILES: Record<string, (modes: string[], p: boolean, where: string) => Trac
   // the private section replaces the public steps, so a P step is private and a plain one public
   "kubernetes.md": (_modes, p) => (p ? ["k8s-private"] : ["k8s"]),
 };
+
+/**
+ * Steps the page shows on fewer setups than their file's rule gives them. On the page, compose.md step 9
+ * is only its phone pairing edit (MINIO_EDIT takes the other one out), and phones can't pair with a
+ * local test, so the step shows on the server and private setups.
+ */
+const SHOWN_ON: Record<string, Track[]> = { "compose-9": [...SERVER, ...PRIVATE] };
 
 /**
  * The skill's folder on a reader's computer: its first step on the page downloads it here, and the
@@ -181,13 +188,20 @@ const CURRENT: [RegExp, string][] = [
   [phrase(", or Buzz 0.X: `Not a member yet`"), ""],
   [phrase(" A local test at `ws://127.0.0.1:3000`, from before compose.md's local mode moved to `wss://localhost`, only takes Buzz 0.X."), ""],
   [phrase(", or Buzz 0.X `WebSocket connection failed: HTTP error: 404 Not Found`"), ""],
+  // the site never talks about testing (docs/decisions.md): the skill keeps its test notes, the page drops them
+  [/\s+\((?:not tested|untested)\)/g, ""],
+  // operations.md and kubernetes.md: each "In testing" note, said as what happens (the build fails on a new one)
+  [phrase(" In testing, an agent posted in a chat that named it. Its key without the attestation was refused, and so was an agent of a non-member."), " The relay refuses an agent's key that has no attestation, and an agent whose owner isn't a member."],
+  [phrase(" In testing, the delete finished once the setting was back on."), " The delete finishes once the setting is back on."],
+  [/\s+In testing, messages, files,[\s\S]*?worked with the good dump\./g, ""],
+  [phrase("In testing, deleting a DigitalOcean cluster didn't always delete its volumes"), "Deleting a DigitalOcean cluster doesn't always delete its volumes"],
   // "Buzz 1.0" is the only Buzz the page covers, so it says "Buzz". A full version, such as 1.0.0, stays.
   [/Buzz 1\.0(?![.\d])/g, "Buzz"],
 ];
 // troubleshooting.md rows that are only about Buzz 0.X, a preview build from before 1.0.0, or a bundle from before Silo
 const OLD_ROWS = /^\| (Pull fails for `quay\.io\/minio|Buzz 0\.X can't join|An older Buzz preview:|After an upgrade to a Silo bundle|Docker warns `The requested image's platform)/;
 // what the site must never show; a new note in the skill like these needs a rule above
-const OLD = /Buzz 0\.X|Buzz 1\.0(?![.\d])|older phones|before 2026-10-07|2026-10-07 on|MinIO for Silo|Silo or MinIO|quay\.io\/minio/;
+const OLD = /Buzz 0\.X|Buzz 1\.0(?![.\d])|older phones|before 2026-10-07|2026-10-07 on|MinIO for Silo|Silo or MinIO|quay\.io\/minio|\(not tested\)|\bIn testing\b/;
 
 function current(markdown: string): string {
   return markdown
@@ -313,7 +327,8 @@ function fileSteps(dir: string, file: string): SkillStep[] {
     }
     const html = toHTML(blockMarkdown(b), "references");
     if (!title || !html) fail(`${where}: empty title or body`);
-    return [{ id: `${name}-${b.num}`, title, tracks: rule(modes, b.num.includes("P"), where), html }];
+    const id = `${name}-${b.num}`;
+    return [{ id, title, tracks: SHOWN_ON[id] ?? rule(modes, b.num.includes("P"), where), html }];
   });
 }
 
@@ -352,7 +367,7 @@ function fixes(dir: string): SkillFix[] {
 
 /** operations.md: a section per setup, a bold-titled bullet per task. */
 const OP_SECTIONS: Record<string, Track[]> = { "Docker Compose": COMPOSE, Kubernetes: K8S };
-const OP_KINDS: Record<string, OpKind> = { "add a member": "people", "local agents": "people", "back up": "backup", restore: "restore", upgrade: "upgrade" };
+const OP_KINDS: Record<string, OpKind> = { "add a member": "people", "local agents": "people", "read the audit log": "audit", "back up": "backup", restore: "restore", upgrade: "upgrade" };
 
 /** Sentences of operations.md that "Can you require approval before an agent joins?" (agents.ts) rests on. */
 const OPERATIONS_SAYS = [
@@ -360,9 +375,10 @@ const OPERATIONS_SAYS = [
   "Agents you don't add are locked out",
   "set `BUZZ_ALLOW_NIP_OA_AUTH=false` in `.env`",
   "restricted: not a relay member",
-  "Buzz then shows only \"Couldn't finish\" when someone asks that agent to work",
+  "Buzz then shows \"Couldn't finish\" under the agent's name",
+  "The community refused the agent event: You must be a relay member to access this relay",
   "the same setting is the chart's `relay.allowNipOaAuth` value",
-  "It records no owner for the agent",
+  "It records no owner for an agent that never got in through its owner",
 ];
 
 function ops(dir: string): SkillOp[] {
@@ -551,6 +567,7 @@ export function parseSkill(dir: string): SkillData {
     if (ids.has(s.id)) fail(`two steps with the id ${s.id}`);
     ids.add(s.id);
   }
+  for (const id of Object.keys(SHOWN_ON)) if (!ids.has(id)) fail(`SHOWN_ON in build/skill.ts names ${id}, which the skill no longer has`);
   if (steps.filter((s) => s.id.startsWith("skill-")).length !== 2) fail("SKILL.md lost section 3 or 4");
   // Follow the steps yourself shows a one-line summary under each step's title
   for (const s of steps) if (!SUMMARIES[s.id]) fail(`step ${s.id} (${s.title}) has no one-line summary: add one to src/data/summaries.ts`);

@@ -64,8 +64,9 @@ service on your own server, at `/pair`. The push gateway plays no part in it. Bl
 bundle doesn't start the pairing service (block/buzz#7721). This guide's setups add it. On
 Compose, [compose.md](compose.md) step 9 adds it, and step 8 tells the relay where phones pair.
 On Kubernetes, `pairingRelay` in
-[kubernetes.md](kubernetes.md) step 3 turns it on and adds its `/pair` route. When the service
-works, `check-relay.sh` says `PASS` for phone pairing.
+[kubernetes.md](kubernetes.md) step 3 turns it on, and the extra Ingress under `extraManifests`
+there adds its `/pair` route. When the service works, `check-relay.sh` says `PASS` for phone
+pairing.
 
 1. In the Buzz desktop app, open Settings, Mobile app. The page is headed Pair mobile.
 2. In the Buzz app on the phone, choose Add community and scan the QR code.
@@ -103,8 +104,12 @@ fetches the new message from your relay. No message text, sender, channel or mem
 [passes through the gateway](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-push-gateway/src/model.rs#L15).
 
 Block does see your relay's public key, the address its requests come from, and when it wakes which
-phone. Block also keeps each phone's Apple push token. Apple sees when a phone is woken. On a
-private network, the phone needs Tailscale connected to fetch its messages.
+phone. Block also keeps each phone's Apple push token. Each phone signs up with `push.buzz.xyz`
+directly, so Block sees the phone's IP address and which relays it uses too
+([the gateway's records](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-push-gateway/src/model.rs#L59-L91),
+[Block's push spec](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/docs/nips/NIP-PL.md#L263)).
+Apple sees when a phone is woken. On a private network, the phone needs Tailscale connected to
+fetch its messages.
 
 If Block must not see when your team's phones wake, turn notifications off. Set
 `BUZZ_PUSH_ENABLED=false` and restart the relay, as Turn notifications on describes.

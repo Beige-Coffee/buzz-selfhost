@@ -15,7 +15,7 @@ export const SUMMARIES: Record<string, string> = {
   "compose-5": "Fill the bundle's passwords with random values, which never change after the first start.",
   "compose-6": "Make the relay's own key on the machine, without printing it.",
   "compose-7": "Make your npub the community's owner.",
-  "compose-8": "Set your community's permanent address and the relay version.",
+  "compose-8": "Set your community's permanent address and the relay version, and on a server turn on phone pairing and notifications.",
   "compose-8P": "Keep the relay's ports on this machine, so the network around it can't reach them.",
   "compose-9": "Add Buzz's phone pairing service, which the bundle doesn't start on its own.",
   "compose-10": "Start the relay, and check that every part of it is up.",
@@ -28,7 +28,7 @@ export const SUMMARIES: Record<string, string> = {
   "compose-shutting-a-server-down": "Back up, stop the relay and clean up its address when the community ends.",
   "compose-removing-the-local-test": "Stop the local test, and delete its data and its certificate.",
 
-  "kubernetes-1": "Check that the cluster has a default storage class and x86 nodes, and no earlier Buzz release.",
+  "kubernetes-1": "Check that the cluster has a default storage class, one x86 node and no earlier Buzz release, and add Traefik and cert-manager if it lacks them.",
   "kubernetes-2": "Point your domain at the cluster's load balancer.",
   "kubernetes-3": "Write the chart's values file, with the relay's image pinned and phone pairing on.",
   "kubernetes-4": "Install Block's Helm chart, and check that every pod runs.",

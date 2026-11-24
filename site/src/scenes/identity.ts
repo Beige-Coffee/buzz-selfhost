@@ -2,6 +2,7 @@ import maya from "../assets/avatars/maya.svg";
 import ops from "../assets/avatars/ops.webp";
 import { BACK, joinCard, onboardingStep } from "./joinmock";
 import { communityNav, CURSOR, invite, QR, settings, settingsModal, ti, type Flow } from "./members";
+import { banFrame } from "./moderation";
 
 /**
  * A person's identity in Buzz 1.0, as click-throughs of its own screens, in light mode. Drawn from
@@ -270,7 +271,7 @@ export const identityFlows: Flow[] = [
       { k: "Paste your community's address", t: "Paste your community's address into <b>Community address or invite link</b>. If an admin sent you an invite link, paste the link instead. Then choose <b>Continue</b>.", frame: joinCard(ADDRESS, true) },
       { k: "Use an existing key", t: "On the <b>Connect to your community</b> page, choose <b>Use an existing key</b>. <b>Sign in with Builderlab</b> would sign you in through Block's service.", frame: connect },
       { k: "Drop in your key file", t: "Drop the key file on the page, or choose <b>Browse</b> and pick the file. Check that <b>Public identity</b> shows your npub, then choose <b>Continue with this key</b> and <b>Join</b>. Enter your name under <b>Set up your profile</b>. If Buzz says the community needs an invite, nobody has added your npub yet.", frame: keyImport },
-      { k: "Copy your private key", t: "Press ⌘, on a Mac or Ctrl+, on Windows and Linux to open <b>Settings</b>. You can also choose your profile picture, then <b>Settings</b>. Under <b>Buzz</b>, choose <b>Identity</b>. On the Buzz ID card, choose <b>More options</b>, the <b>…</b> button. Then choose the masked private key field and choose <b>Copy</b>.", frame: settingsModal(nav("Identity"), identityPage("nsec")) },
+      { k: "Copy your private key", t: "Press ⌘, on a Mac or Ctrl+, on Windows and Linux to open <b>Settings</b>. You can also choose your profile picture, then <b>Settings</b>. Under <b>Buzz</b>, choose <b>Identity</b>. On the Buzz ID card, choose <b>More options</b>, the <b>…</b> button. Then choose the masked private key field and choose <b>Copy</b>. Buzz tries to clear it from your clipboard after a minute, so paste it soon.", frame: settingsModal(nav("Identity"), identityPage("nsec")) },
       { k: "Save it in your password manager", t: "Paste the key into your private vault in your password manager. Check that you can open the saved entry and get the key back. Don't use a clipboard tool that shares your clipboard or keeps a history of it. Clear the key from your clipboard when you're done. Then run <code>rm ~/buzz-identity.key</code> to delete the key file. Anyone who has this key can act as you.", frame: vault },
       { k: "Copy your npub to share", t: "On the front of the Buzz ID card, choose <b>Copy Buzz ID</b>, the copy icon next to your npub. Your npub is public. You can send it to people any way you like.", frame: settingsModal(nav("Identity"), identityPage("npub")) },
       { k: "Lock your devices", t: "Turn on disk encryption and a screen lock on your computer. Set a passcode on your phone.", frame: devices },
@@ -289,9 +290,9 @@ export const lostFlows: Flow[] = [
     id: "exposed",
     label: "The key is exposed",
     steps: [
-      { k: "Remove the old key now", t: "An admin opens <b>Membership</b>, chooses the <b>…</b> button on the person's row, then chooses <b>Remove</b>. Buzz disconnects the old key right away. An invite link that hasn't expired would still let the old key back in.", frame: settings("remove") },
+      { k: "Ban the old key now", t: "The owner or a moderator opens <b>Settings</b>, <b>Moderation</b>, <b>Communities</b>, chooses the community and bans the old key from <b>Actions</b>. A ban disconnects the key and keeps it out even with a live invite link. On a private network, Kubernetes or a local test, the owner or an admin bans it with the <code>buzz</code> command line instead.", get frame() { return banFrame(); } },
       { k: "Make a new key", t: `On the new device, make a new key with <a href="${NAK}">nak</a>. Don't use the copy you saved. Whoever has the old device has that key too.`, frame: keyScript(NEW_NPUB) },
-      { k: "Get a new invite link", t: "An admin makes you a new link on the <b>Invite</b> tab in <b>Membership</b>. They set it to 1 use and to expire after 1 day, then send it to you. Or whoever runs the server can add the npub that the script showed you. The Buzz app can't add an npub itself.", frame: invite("copy", "1 day", "1") },
+      { k: "Get a new invite link", t: "An admin makes you a new link on the <b>Invite</b> tab in <b>Membership</b>. They set it to 1 use and to expire after 1 day, then send it to you. Or whoever runs the server can add the npub that nak showed you. The Buzz app can't add an npub itself.", frame: invite("copy", "1 day", "1") },
       { k: "Sign in with the new key", t: "On the new device's first screen, choose <b>Other options</b>. Paste the new invite link or the community's address, then choose <b>Continue</b>. Choose <b>Use an existing key</b> and drop in the new key file. Save the new key in your password manager and delete the file, as you did the first time. Then pair your phone again. Start your agents again from the new identity.", frame: connect },
     ],
   },

@@ -17,10 +17,11 @@ metadata:
 # Self-host a Buzz relay
 
 A Buzz community lives on a relay: a Rust server, plus Postgres (messages, channels, members), an
-S3 store for uploaded files (Silo or MinIO), a git folder (repositories), Redis (who's online) and
-an `.env` file (the relay key and passwords). This skill installs one, checks every step, and runs
-day-two tasks. Test records name the versions and setups exercised; source review and syntax
-checks do not establish a successful install or restore on a newer image. Read the
+S3 store for uploaded files and git repositories (Silo or MinIO), a folder of scratch space for
+git, Redis (who's online) and an `.env` file (the relay key and passwords). This skill installs
+one, checks every step, and runs day-two tasks. Test records name the versions and setups
+exercised; source review and syntax checks do not establish a successful install or restore on a
+newer image. Read the
 [security guidance](references/security.md) before opening invitations or connecting an agent.
 This skill is a community project, not an official Buzz or Block skill.
 
@@ -93,10 +94,10 @@ Then read only the file for that setup:
 | Kubernetes, the chart's quickstart profile, public or private network | [kubernetes.md](references/kubernetes.md) | |
 
 On Kubernetes, the tested install is the chart's quickstart profile (Postgres, Redis and MinIO in
-the cluster, one replica); if the user asked for production, say so and point to the chart's
-production profile, which isn't tested here. A local test never migrates: a server gets a new URL,
-so a new community. For members, backups, restore and upgrades on a running relay, read
-[operations.md](references/operations.md).
+the cluster, one replica) on a cluster with one x86 node; if the user asked for production, say
+so and point to the chart's production profile, which isn't tested here. A local test never
+migrates: a server gets a new URL, so a new community. For members, backups, restore and upgrades
+on a running relay, read [operations.md](references/operations.md).
 
 ## 2. Inputs, for every setup
 
@@ -198,8 +199,10 @@ bash $SKILL/scripts/check-relay.sh "$ORIGIN" <public IP> 80 443 3000 5000  # pri
 CA_FILE=local-ca.crt bash $SKILL/scripts/check-relay.sh "$ORIGIN"     # local, from buzz/deploy/compose
 ```
 
-`<public IP>` is the server's public address, the one you SSH to. On Kubernetes, use the address
-and ports kubernetes.md gives. A local test's certificate comes from compose.md step 12. Every
+`<public IP>` is the server's public address. On a VPS, it's the one you SSH to. On your own
+hardware, it's the home network's public address, which `curl -4 -s https://checkip.amazonaws.com`
+shows on the machine. It isn't the address you SSH to. On Kubernetes, use the address and ports
+kubernetes.md gives. A local test's certificate comes from compose.md step 12. Every
 line must say `PASS`: the relay answers, reports its version, names its own identity and has
 channel labels (what Buzz 1.0 needs to join and to start chats), takes WebSocket connections
 (what Buzz joins over), lets Buzz 0.X in (CORS), phones can reach its pairing service, and it offers
@@ -227,7 +230,7 @@ private vault in a team-approved password manager (Settings, Identity, More opti
 card, then the masked private-key field and Copy). They confirm the saved entry is recoverable and
 clear the copied value from the clipboard before deleting the temporary file:
 `rm ~/buzz-identity.key`. To join another community later, it's the community button, then Join a
-community, whose box takes an address but not an invite link.
+community, whose box takes a community address or a whole invite link.
 
 **People.** Each member needs a key. They can make one on their own computer with nak, as the
 owner's step above does (the guide's site shows the same command), or with a
@@ -236,10 +239,10 @@ and Block can keep a copy of the key. The owner invites them from Buzz 1.0 with 
 Community admin, Membership, the Invite tab, then Copy link (in Buzz 1.0.0: Invite members, then
 "Invite with a link"). Anyone with the link can join until it expires: they paste it into Other
 options' "Community address or invite link", or open it and choose Accept invite in Buzz. To add
-someone without a link, they send the owner their npub: the script prints it, and Buzz 1.0 shows it
-on "This community needs an invite" before they've joined, and in Settings, Identity after. The
-owner adds it from the server ([operations.md](references/operations.md)): no Buzz release since
-1.0.1 can add an npub
+someone without a link, they send the owner their npub. The nak command prints it when it makes
+their key, and Buzz 1.0 shows it on "This community needs an invite" before they've joined, and in
+Settings, Identity after. The owner adds it from the server
+([operations.md](references/operations.md)): no Buzz release since 1.0.1 can add an npub
 ([features.ts](https://github.com/block/buzz-app/blob/f315ef59b87160d23f5789f4e1458d753674cd8a/src/bundled/moderation/features.ts#L2)),
 and Buzz 1.0.0 did it with "Add directly". In Buzz 0.X, the same things are in Settings, Invites. `Relay request failed (403)` in
 Buzz 1.0, or `Not a member yet` in Buzz 0.X, means the relay works but doesn't know that identity
@@ -255,14 +258,21 @@ legacy links differ. For one person choose 1 use and 1 day. Only the owner and a
 so with no admins, only the owner invites.
 
 **Before anyone joins by phone.** After someone joins with an invite link, Buzz on iPhone looks for
-open channels named exactly `general` and `welcome-everyone`, and creates any that's missing, which
-makes that person its owner
+open channels named `general` and `welcome-everyone`, and creates any that's missing, which makes
+that person its owner
 ([the app's setup](https://github.com/block/buzz/blob/5bfbda4c3355771601b921f90d8941a7c80c9899/mobile/lib/app.dart#L139-L215)).
-If the relay refuses, their join stops at "Starter channels could not be set up". So before the
-first invite, the owner creates both in Buzz as open channels, not forums, and turns on Starter
-channel for new members in both. Keep them unarchived, and give a private channel another name: a
-private `general` makes the phone add an open one beside it, and an archived channel or a forum with
-either name can stop the join. Pairing a phone from the desktop app doesn't run this.
+If the relay refuses, their join stops at "Starter channels could not be set up". Since Buzz 1.0.0,
+the owner's Buzz creates an open `general` and makes it a starter channel the first time it opens a
+new, empty community
+([first-channel.ts](https://github.com/block/buzz-app/blob/5a21469faa8c53d20105d58c592a48f68c6dcf7c/src/bundled/channels/first-channel.ts#L13-L26)),
+and the relay refuses a second open channel with that name. So before the first invite, the owner
+checks that `general` has Starter channel for new members turned on (if `general` is missing, they
+create it as an open channel), then creates `welcome-everyone` as an open channel and turns on the
+same setting there. Phones skip an archived channel or a forum with either name, so new members
+miss that channel. A join stops when a starter channel that a phone created is later made private
+(block/buzz#9377). Give a private channel another name. Phones ignore a private `general` or
+`welcome-everyone`, and add an open one if none exists. Pairing a phone from the desktop app
+doesn't run this.
 
 **A welcome channel.** Phones open `welcome-everyone` after joining, so it makes a good welcome
 channel, with `general` left open for talk. For an open community, make it view-only so the welcome
@@ -313,10 +323,12 @@ with the official iPhone app; other eligibility depends on client preferences an
 Wake-ups pass through Block's gateway,
 `push.buzz.xyz`. Tell the user what that shares: no message text, sender or channel passes through
 the gateway or Apple, because the phone fetches messages from this relay; but Block's gateway sees
-this relay's public key, its server's address and when it wakes which phone, and Apple sees when a
-phone is woken. Each member's iPhone signs up on its own while push is on. Block calls push
-experimental, and delivery is best effort. `BUZZ_PUSH_ENABLED=false` turns it off. Tested on public
-VPSs with relay 0.3.0.
+this relay's public key, its server's address and when it wakes which phone, and it keeps each
+phone's Apple push token. Each member's iPhone signs up with `push.buzz.xyz` directly while push is
+on, so Block also sees the phone's IP address and which relays it uses
+([the gateway's records](https://github.com/block/buzz/blob/75d38b6c2d5f357348288ded8c15aba15f765ea5/crates/buzz-push-gateway/src/model.rs#L59-L91)).
+Apple sees when a phone is woken. Block calls push experimental, and delivery is best effort.
+`BUZZ_PUSH_ENABLED=false` turns it off. Tested on public VPSs with relay 0.3.0.
 
 **Local agents.** Buzz 1.0 can run agents on the user's computer, each with its own key that the owner's
 identity vouches for. The relay admits them through the owner's membership, which every setup here

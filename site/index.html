@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Run Your Own Buzz</title>
-  <meta name="description" content="You're a grown-up. Run your own Buzz server.">
+  <meta name="description" content="A guide and an agent skill for running Buzz, the open-source workspace for people and their agents, on your own server.">
   <link rel="canonical" href="https://self-host.buzz/">
   <meta name="theme-color" content="#ffffff">
   <meta name="color-scheme" content="light">
@@ -70,7 +70,7 @@
   <noscript>
     <section class="block">
       <div class="text">
-        <p>This page draws its setup steps with JavaScript. Without it, install the agent skill: <code>npx skills add Beige-Coffee/buzz-selfhost --skill self-host-buzz -g</code>, or read it at <a href="https://self-host.buzz/skills/self-host-buzz/SKILL.md">self-host.buzz/skills/self-host-buzz/SKILL.md</a>. Then ask your agent, for example: "Use the self-host-buzz skill to set up a Buzz relay on my server, public on the internet. It's a fresh Ubuntu 24.04 VPS; SSH in as &lt;user&gt;@&lt;server IP&gt;. Domain: &lt;domain&gt;. I have no Buzz key yet: make the owner key with the skill's new-identity.py. The skill is at https://self-host.buzz/skills/self-host-buzz/SKILL.md."</p>
+        <p>This page draws its setup steps with JavaScript. Without it, install the agent skill: <code>npx skills add Beige-Coffee/buzz-selfhost --skill self-host-buzz -g</code>, or read it at <a href="https://self-host.buzz/skills/self-host-buzz/SKILL.md">self-host.buzz/skills/self-host-buzz/SKILL.md</a>. Then ask your agent, for example: "Use the self-host-buzz skill to set up a Buzz relay on my server, public on the internet. It's a fresh Ubuntu 24.04 VPS; SSH in as &lt;user&gt;@&lt;server IP&gt;. Domain: &lt;domain&gt;. I have no Buzz key yet: make the owner key with nak, as the skill's Owner step says. The skill is at https://self-host.buzz/skills/self-host-buzz/SKILL.md."</p>
       </div>
     </section>
   </noscript>
@@ -87,7 +87,7 @@
           <li><b>Postgres</b>The database: every message, channel and member.</li>
           <li><b>Silo</b>File storage, S3-compatible: the images and files people upload, and the git repositories they push to the relay.</li>
           <li><b>.env</b>The settings file: the relay's private key and the passwords.</li>
-          <li><b>Redis</b>A cache in memory: who's online and who's typing. It rebuilds itself on restart.</li>
+          <li><b>Redis</b>Passes each new message to everyone connected, and tracks who's online and typing. It rebuilds itself on restart.</li>
         </ul>
 </div>
       <div class="story-step" data-state="repo"><span class="n">05</span><p>Every part of Buzz is <b>open source</b>, under the Apache 2.0 license, on GitHub: the relay and the phone apps in <a href="https://github.com/block/buzz">block/buzz</a>, and the Buzz app in <a href="https://github.com/block/buzz-app">block/buzz-app</a>. That's what lets you clone the code and run it yourself.</p></div>
@@ -152,7 +152,7 @@
   <section class="block reveal" id="operations" data-mode="agent">
     <div class="text">
       <h2>Running your relay</h2>
-      <p class="sub">Recommended setups for membership, keys, data, agents, and your Buzz server. Best practices are based on community feedback from people already running Buzz.</p>
+      <p class="sub">Answers about membership, keys, data, agents and your Buzz server. They draw on Buzz's source and on people already running Buzz.</p>
     </div>
     <div class="wide" data-widget="faq"></div>
   </section>

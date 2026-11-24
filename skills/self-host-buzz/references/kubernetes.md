@@ -14,7 +14,7 @@ off ARM nodes, so every node must be x86. `RELAY_URL=wss://$DOMAIN`, `ORIGIN=htt
 anything that costs money or creates DNS records: Traefik's load balancer, and the quickstart's
 four volumes (34 GiB on DigitalOcean). Run the heredocs below as shown, unindented.
 For a relay reachable only over a private network (Tailscale), read **Private network** below
-first: it replaces steps 1, 2 and 6.
+first: it replaces steps 1 to 6.
 
 **1. Cluster.** `helm list -n buzz` must not show an existing `buzz` release.
 `kubectl get storageclass` must show one class marked `(default)`: without one, the quickstart's
@@ -195,9 +195,14 @@ so ask):
 Check: `wc -l < <file>` → `0` for each file (no newline; it prints nothing secret, and macOS pads
 the number with spaces), and `ls -l` shows `-rw-------` for both.
 
-**P2. Operator.** `helm list -n buzz` must not show an existing `buzz` release, and step 1's
-StorageClass and node checks apply here too. The Secret keeps
-the OAuth secret out of Helm's values, which `helm get values` shows:
+**P2. Operator.** `helm list -n buzz` must not show an existing `buzz` release.
+`kubectl get storageclass` must show one class marked `(default)`. The quickstart's four volumes
+wait forever without one, so ask the user which class to use.
+`kubectl get nodes -L kubernetes.io/arch` must show `amd64` for every node, because the
+quickstart's file store image is x86 only. It should also show one node, as Block's chart calls
+the quickstart single-node. With more nodes, a restart or an upgrade of the relay can hang, so tell
+the user before installing. The Secret keeps the OAuth secret out of Helm's values, which
+`helm get values` shows:
 ```bash
 kubectl create namespace tailscale
 kubectl -n tailscale create secret generic operator-oauth \
@@ -223,10 +228,12 @@ permanent, and renaming the tailnet later changes it too. Check that it's free:
 address, another machine has the name: Tailscale would call the relay `<name>-1` while the
 community's URL led to that machine. Pick another name.
 
-**P4. Values and install.** In the folder the user picked for the values file (step 3). Its
+**P4. Values and install.** The values file holds no secrets, and upgrades reuse it. Ask the user
+where to keep it, such as their infrastructure repository, and run this step from that folder
+(`cat >` replaces a file already there). Its
 `ingress:` takes the full name: Tailscale names the machine after its first part, and ignores the
-chart's rule unless the rule's host matches it exactly. The image lines are step 3's, with the same
-note about `digest:`.
+chart's rule unless the rule's host matches it exactly. `DIGEST` is unset when the user chose the
+newest image, so then delete the `digest:` line, and the chart follows the tag.
 ```bash
 cat > buzz-values.yaml <<YAML
 image:
@@ -274,18 +281,21 @@ the user to copy it into a password manager two maintainers can open, any time b
 joins, by running this in a terminal window of its own, not one inside the agent's app, with the
 same `KUBECONFIG` (it prints the key):
 `kubectl -n buzz get secret buzz-relay -o jsonpath='{.data.BUZZ_RELAY_PRIVATE_KEY}' | base64 -d`.
-Never replace it, as step 5 says.
+The key is the relay's identity, so never replace it ("do NOT rotate" in Block's chart).
 
 **P6. Checks.**
 - `kubectl -n buzz get ingress buzz` shows `$DOMAIN` under ADDRESS within a minute or so. If it
   shows `<name>-1`, the name was taken: uninstall, pick a free name, and start again at P3.
-- Nothing public: `kubectl get svc -A -o jsonpath='{range .items[*]}{.spec.type}{"\n"}{end}' | grep -vc ClusterIP`
-  → `0`, and `kubectl -n buzz get ingress buzz -o jsonpath='{.metadata.annotations}'` shows no
-  `tailscale.com/funnel` (Funnel would publish the relay to the internet).
+- Nothing public in the namespaces this setup made:
+  `for ns in buzz tailscale; do kubectl -n $ns get svc -o jsonpath='{range .items[*]}{.spec.type}{"\n"}{end}' || echo failed; done | grep -vc ClusterIP`
+  → `0` (not tested), and `kubectl -n buzz get ingress buzz -o jsonpath='{.metadata.annotations}'`
+  shows no `tailscale.com/funnel` (Funnel would publish the relay to the internet).
 - `kubectl -n buzz exec deploy/buzz -c relay -- /usr/local/bin/buzz-admin list-members` shows
   `$OWNER_HEX` with the role `owner`.
-- The relay's image ends with `@$DIGEST`, as in step 6 (not tested on a private network; skip it
-  for the newest image).
+- The relay runs the image SKILL.md section 2 names (not tested on a private network; skip it for
+  the newest image):
+  `kubectl -n buzz get pods -l app.kubernetes.io/component=relay -o jsonpath='{.items[*].status.containerStatuses[?(@.name=="relay")].imageID}'`
+  ends with `@$DIGEST`.
 - SKILL.md section 3 from this machine, with a node's public IP (`kubectl get nodes -o wide`,
   EXTERNAL-IP) and `80 443 3000 8080`. The first request makes the certificate; the script waits.
 

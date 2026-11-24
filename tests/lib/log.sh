@@ -11,10 +11,11 @@ run_logged() {
   local here log status changes=
   here=$(cd "$(dirname "$script")" && pwd)
   mkdir -p "$here/runs"
-  log=$here/runs/$(date +%Y-%m-%d-%H%M)-$setup-$tag.log
+  # UTC, so a log doesn't say which time zone the person running it was in
+  log=$here/runs/$(TZ=UTC date +%Y-%m-%d-%H%M)-$setup-$tag.log
   [[ -n $(git -C "$here" status --porcelain 2>/dev/null) ]] && changes=", plus uncommitted changes"
   {
-    echo "# $setup on $tag, $(date '+%Y-%m-%d %H:%M %Z')"
+    echo "# $setup on $tag, $(TZ=UTC date '+%Y-%m-%d %H:%M %Z')"
     echo "# skill and tests at $(git -C "$here" rev-parse --short HEAD 2>/dev/null || echo 'no commit')$changes"
     echo "# $(basename "$script") $*"
     SMOKE_LOGGING=1 bash "$script" "$@"

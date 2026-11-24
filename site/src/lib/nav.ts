@@ -157,7 +157,7 @@ function settleOnHash(): void {
 
 /**
  * Anchors a scene owns, such as an answer in Running your relay: the token a short link carries
- * (#agents, #agent-remote-steps), and the id of the element to land on once the scene has opened
+ * (#agent-on, #agent-remote-steps), and the id of the element to land on once the scene has opened
  * it. An element already on the page with that id wins, so older links keep their place.
  */
 const resolvers: ((token: string) => string | null)[] = [];
@@ -172,7 +172,9 @@ function landOnHash(): void {
   const token = h.match(/[#&]to=([\w-]+)/)?.[1] ?? h.slice(1).split("&")[0];
   if (!token) return;
   let to = token;
-  if (!SECTIONS.includes(token) && !document.getElementById(token))
+  // an anchor that isn't on the page yet, or sits in something hidden, such as one place's steps: its scene shows it
+  const there = document.getElementById(token);
+  if (!SECTIONS.includes(token) && (!there || there.closest("[hidden]")))
     for (const resolve of resolvers) {
       const id = resolve(token);
       if (id) {

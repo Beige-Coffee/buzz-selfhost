@@ -1,4 +1,4 @@
-import { NOT_COVERED, QUESTIONS, SETUPS, dimmed, pick, type Answers, type Outcome, type QuestionId } from "../data/decide";
+import { HOSTED, NOT_COVERED, QUESTIONS, SETUPS, dimmed, pick, type Answers, type Outcome, type QuestionId } from "../data/decide";
 import { jumpTo } from "../lib/nav";
 import { esc, setValues, trackHash, type Track } from "../lib/values";
 
@@ -35,6 +35,19 @@ const go = (track: Track, label: string) => `<button type="button" class="dr-go"
 
 /** The result card: why it fits, what you need, what you give up and the cost, then the way in. */
 function card(o: Outcome): string {
+  if (o.kind === "hosted")
+    return `<div class="dr-card">
+      <p class="dr-k">Recommended</p>
+      <p class="dr-name">${HOSTED.name}</p>
+      <p class="dr-why">${HOSTED.why}</p>
+      <dl class="dr-dl">
+        <div><dt>You need</dt><dd>${HOSTED.need}</dd></div>
+        <div><dt>You give up</dt><dd>${HOSTED.give}</dd></div>
+        <div><dt>Cost a month</dt><dd>${HOSTED.cost}</dd></div>
+      </dl>
+      <p class="dr-note">${HOSTED.note}</p>
+      <a class="dr-go" href="${HOSTED.link}" target="_blank" rel="noopener">Open Block's guide${ARROW}</a>
+    </div>`;
   const s = SETUPS[o.track];
   const closest = o.kind === "closest";
   return `<div class="dr-card">
@@ -54,6 +67,7 @@ function card(o: Outcome): string {
 /** What a screen reader hears when the result changes; the card itself is there to read. */
 const said = (o: Outcome | null): string => {
   if (!o) return "";
+  if (o.kind === "hosted") return `Recommended: ${HOSTED.name}.`;
   const name = SETUPS[o.track].name;
   return o.kind === "closest" ? `Not covered here. Closest: ${name}.` : `Recommended: ${name}.`;
 };

@@ -1,4 +1,4 @@
-import { OP_DETAILS, OP_FLOWS, OP_TASKS, OP_WHERE, opSetup, type FlowStep, type OpStep, type OpTask } from "../data/agent";
+import { OP_ASKS, OP_DETAILS, OP_FLOWS, OP_TASKS, OP_WHERE, opSetup, type AskKey, type FlowStep, type OpStep, type OpTask } from "../data/agent";
 import { OPS } from "../data/steps";
 import { blanksHTML, fillBlanks } from "../lib/blanks";
 import { esc, fill, fillRich, getValues, isPrivate, type Track } from "../lib/values";
@@ -28,6 +28,19 @@ function promptHTML(t: Track, task: OpTask): string {
 /** The prompt as plain text, for its copy button. */
 export function promptText(t: Track, task: OpTask): string {
   const text = fillBlanks(promptOf(t, task));
+  return fill(hasDomain() ? text : text.replace("{{DOMAIN}}", `<${gapName(t)}>`), false);
+}
+
+const askOf = (t: Track, key: AskKey) => `${OP_WHERE[t]} Use the self-host-buzz skill to ${OP_ASKS[key]} The skill is at {{SKILL_URL}}.`;
+/** One change for your agent, as a prompt to copy, under the menu that says which setup it's for. */
+export function askHTML(track: Track, key: AskKey): string {
+  const html = blanksHTML(esc(askOf(track, key)));
+  const text = fillRich(hasDomain() ? html : html.replace("{{DOMAIN}}", gap(track)));
+  return `${setupSwitchHTML(track)}<div class="mode-agent"><div class="ag-prompt opx-prompt"><p class="ag-prompt-text">${text}</p><div class="opx-foot"><button type="button" class="ag-copy" data-ask="${key}">Copy prompt</button></div></div></div>`;
+}
+/** That prompt as plain text, for its copy button. */
+export function askText(t: Track, key: AskKey): string {
+  const text = fillBlanks(askOf(t, key));
   return fill(hasDomain() ? text : text.replace("{{DOMAIN}}", `<${gapName(t)}>`), false);
 }
 

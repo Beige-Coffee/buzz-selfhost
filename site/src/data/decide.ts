@@ -5,7 +5,8 @@
  * - No upkeep question (owner's call, 2026-11-23): the guide is for the technical person who will
  *   run it. Each result's "You give up" says they run updates, backups and upgrades.
  * - Where it runs picks the skill's setup. "Something else" gets the closest one and what the guide
- *   doesn't cover.
+ *   doesn't cover. "Block's servers" (owner's call, 2026-11-24) is for someone who wants no
+ *   infrastructure: Builderlab, Block's hosted service. Its card sends them to Block's own guide.
  * - How people connect is the other real fork: over the internet (a team or an open community) or
  *   only through a VPN, which hides the relay but puts Tailscale on every device, phones included.
  * Each result says why it fits, what you need, what you give up and a rough monthly cost.
@@ -35,7 +36,7 @@ export const QUESTIONS: Question[] = [
   {
     id: "use",
     text: "What is it for?",
-    hint: `A test or a buzz.xyz community can't move to your server later: a server starts a new one ${issue(6803)}.`,
+    hint: `A test or a community hosted on Builderlab can't move to your server later. A server starts a new one ${issue(6803)}.`,
     options: [
       {
         id: "try",
@@ -73,6 +74,12 @@ export const QUESTIONS: Question[] = [
         label: "Your Kubernetes cluster",
         hint: "Block's Helm chart, on a cluster your team already runs.",
         when: "Pick this only if your team already runs a cluster. Your agent can add an ingress and cert-manager.",
+      },
+      {
+        id: "block",
+        label: "Block's servers",
+        hint: "Builderlab, Block's hosted service, runs the relay for you. Your messages and files live on Block's servers, where Block can read them, as any server's operator can.",
+        when: "Pick this if you don't want to run any infrastructure and you're fine with Block holding your data.",
       },
       {
         id: "other",
@@ -185,17 +192,35 @@ export const SETUPS: Record<Track, Setup> = {
 /** "Something else": what the guide leaves out, shown above the closest setup. */
 export const NOT_COVERED = `This guide doesn't cover ARM machines such as a Raspberry Pi, a NAS's own apps, a Mac or Windows computer as the server, or app platforms such as Fly.io or Render. It also leaves out managed Postgres, Redis or S3, VPNs other than Tailscale, more than one relay, and moving a community from buzz.xyz ${issue(6803)}.`;
 
-/** A setup, or the closest setup to one the guide doesn't cover. */
-export type Outcome = { kind: "setup" | "closest"; track: Track };
+/**
+ * Block's servers: what Block's own pages say (buzz.xyz/support, read 2026-11-24). Hosted communities
+ * are made in the Buzz app or on Builderlab's Communities page, and the pricing page starts free and
+ * charges for use. A hosted community can't move to a relay of your own (block/buzz#6803).
+ */
+export const HOSTED = {
+  name: "Builderlab",
+  why: "Block runs the relay for you on its servers, and you set up nothing.",
+  need: `A Builderlab account. You create the community in the Buzz app or on <a href="https://app.builderlab.xyz/buzz">Builderlab's Communities page</a>.`,
+  give: `Your messages, files and members live on Block's servers, under Block's hosted terms. Block can read them, as any server's operator can. A hosted community can't move to your own server later ${issue(6803)}.`,
+  cost: `Free to start, then you pay for what you use, as <a href="https://buzz.xyz/pricing">Block's pricing page</a> lists.`,
+  note: "This guide covers running your own relay. Block's guide covers hosted communities.",
+  link: "https://buzz.xyz/support#hosted-community",
+};
+
+/** A setup, the closest setup to one the guide doesn't cover, or Block's hosting. */
+export type Outcome = { kind: "setup" | "closest"; track: Track } | { kind: "hosted" };
 
 /** Questions an earlier answer has decided. They dim, and keep their answers for when they count again. */
 export function dimmed(a: Answers): QuestionId[] {
-  return a.use === "try" ? ["where", "reach"] : [];
+  if (a.use === "try") return ["where", "reach"];
+  // a hosted community is always on the internet
+  return a.where === "block" ? ["reach"] : [];
 }
 
 /** What these answers pick, or null while a question that counts is open. */
 export function pick(a: Answers): Outcome | null {
   if (a.use === "try") return { kind: "setup", track: "practice" };
+  if (a.use === "team" && a.where === "block") return { kind: "hosted" };
   if (a.use !== "team" || !a.reach) return null;
   const priv = a.reach === "private";
   switch (a.where) {

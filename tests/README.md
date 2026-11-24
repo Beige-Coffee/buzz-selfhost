@@ -101,6 +101,20 @@ adds Traefik and cert-manager), and a domain at the ingress; `<ip>.sslip.io` wor
 KUBECONFIG=path/to/kubeconfig BUZZ_CLI=path/to/buzz bash tests/smoke-k8s.sh <domain> [image-tag]
 ```
 
+## Results, 2026-11-23: Buzz 1.0.5's screens
+
+The site's drawings of Buzz were checked against Buzz 1.0.5 on a Mac, screen by screen: Settings,
+Agent setup with its harness rows and the Claude and Goose dialogs, the Agents page and an agent's
+panel, Create agent, Manage plugins and Add a plugin, Mobile app for pairing, and Community admin's
+Invite tab with its menus. The moderation console was turned on, with `BUZZ_ADMIN_HOST` and Caddy's
+route as compose.md says, on a public relay at 0.3.0 that the skill set up on 2026-11-13 (since
+deleted). As the owner, Settings, Moderation showed Reports, Communities and Staff, connected as
+operator. No moderation action was run.
+
+No setup was run again: each setup's last full run is in the 2026-11-12 results below, made with a
+preview build equal to Buzz 1.0.0 plus later commits. The site's line under each setup's heading says
+Buzz 1.0.5, the version these screens come from.
+
 ## Results, 2026-11-12: relay 0.3.0
 
 The five runs prepared on 2026-11-11, on the published `ghcr.io/block/buzz:0.3.0`: source

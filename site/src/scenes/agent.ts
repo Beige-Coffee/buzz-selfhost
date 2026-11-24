@@ -64,40 +64,57 @@ export const ICONS: Record<ExpectIcon, string> = {
 };
 
 type ReadyItem = AgentTrack["ready"][number];
-/** The item the skill takes care of: it makes the key, so the list leaves it out and the fold keeps its details. */
-const isKey = (r: ReadyItem) => /^<b>Your key<\/b>/.test(r.t);
-/** An item's bold name, for its line in the fold. */
-const named = (r: ReadyItem) => r.t.replace(/<\/b>[\s\S]*$/, "</b>");
+const CHEV = `<svg class="ag-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+const SERVER_ICON = icon(`<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>`);
+const SSH_ICON = icon(`<path d="m5 8 4 4-4 4M12 16h7"/>`);
+const APP_ICON = icon(`<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>`);
+/** An item's chip icon, by its name: the server, SSH, the address, the app, the agent, the key, Tailscale. */
+function prepIcon(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes("ssh")) return SSH_ICON;
+  if (n.includes("key")) return ICONS.key;
+  if (n.includes("domain") || n.includes("name") || n.includes("forwarding")) return ICONS.dns;
+  if (n.startsWith("buzz")) return APP_ICON;
+  if (n.includes("agent")) return ICONS.agent;
+  if (n.includes("tailscale") || n.includes("https")) return ICONS.lock;
+  return SERVER_ICON;
+}
+/** An item's bold name, without its closing punctuation, for its chip. */
+const nameOf = (r: ReadyItem) => (/^<b>(.*?)<\/b>/.exec(r.t)?.[1] ?? "").replace(/[.:]$/, "");
+/** What the chip opens to first: the item's own key facts, or the rest of its line. */
+const topOf = (r: ReadyItem) => r.key ?? r.t.replace(/^<b>.*?<\/b>[.:]?\s*/, "");
 
 /**
- * Get ready, kept short (the owner's pick of 2026-11-18, from three live options): one line per
- * item, with only a warning kept beside its item, such as the domain that can't change later. Every
- * other detail sits in one fold under the list.
+ * Before you start (the owner's pick of 2026-11-24, from three mockups): one chip per item. A chip
+ * opens to the item's key facts, with any warning beside them, and the rest in folds inside it.
  */
-function readyList(rs: ReadyItem[]): string {
-  const items = rs.filter((r) => !isKey(r));
-  const more = rs.filter((r) => r.more);
-  return `<ul class="ag-ready">${items
-    .map(
-      (r, i) =>
-        `<li><span data-rich="${attr(r.t)}"></span>${r.warn ? ` <button type="button" class="ag-fold ag-fold-warn" aria-expanded="false" aria-controls="ag-warn-${i}">${r.warn.label}</button><div class="ag-more-body" id="ag-warn-${i}" hidden data-rich="${attr(r.warn.t)}"></div>` : ""}</li>`,
-    )
-    .join("")}</ul>${
-    more.length
-      ? `<details class="ag-fine"><summary>More on each item</summary><dl>${more.map((r) => `<dt>${named(r)}: ${r.more!.label}</dt><dd data-rich="${attr(r.more!.t)}"></dd>`).join("")}</dl></details>`
-      : ""
-  }`;
+function prepHTML(rs: ReadyItem[]): string {
+  const chips = rs
+    .map((r, i) => `<button type="button" class="ag-chip" data-prep="${i}" aria-expanded="false" aria-controls="ag-prep-${i}"><span class="ag-chip-i">${prepIcon(nameOf(r))}</span>${nameOf(r)}${CHEV}</button>`)
+    .join("");
+  const fold = (label: string, t: string) => `<details class="ag-pfold"><summary><span>${label}</span>${CHEV}</summary><div class="ag-pfold-b" data-rich="${attr(t)}"></div></details>`;
+  const pops = rs
+    .map((r, i) => {
+      const folds = [r.more ? fold(r.more.label, r.more.t) : "", r.warn ? fold("Why it can't change", r.warn.t) : ""].join("");
+      return `<div class="ag-pop-i" id="ag-prep-${i}" hidden>
+        <p class="ag-pop-h"><b>${nameOf(r)}.</b> <span data-rich="${attr(topOf(r))}"></span></p>
+        ${r.warn ? `<p class="ag-warn"><b>${r.warn.label}</b>, so pick one you're happy to keep.</p>` : ""}
+        ${folds}
+      </div>`;
+    })
+    .join("");
+  return `<div class="ag-prep"><p class="ag-prep-k">Before you start</p><div class="ag-chips">${chips}</div><div class="ag-pop" hidden>${pops}</div></div>`;
 }
 
-/** What to expect: in order, what the agent does and where it stops for you. */
-function expectHTML(rows: Expect[]): string {
+/** Answer when it stops: everything the agent does, in order, each opening to what happens. */
+function runHTML(rows: Expect[]): string {
   const who = (r: Expect) => (r.who === "agent" ? "Your agent" : r.ask ? "It asks you" : "You") + (r.note ? ` · ${r.note}` : "");
-  return `<ol class="ag-tl">${rows
+  return `<ol class="ag-run">${rows
     .map(
-      (r) => `<li class="ag-tl-row ${r.who}${r.note ? " soft" : ""}">
-        <span class="ag-tl-dot">${ICONS[r.icon]}</span>
-        <div><p class="ag-tl-t">${r.t} <span class="ag-tl-who">${who(r)}</span></p>${r.who === "you" ? `<p class="ag-tl-d" data-rich="${attr(r.d)}"></p>` : ""}</div>
-      </li>`,
+      (r) => `<li class="ag-run-row ${r.who}${r.note ? " soft" : ""}"><details>
+        <summary><span class="ag-tl-dot">${ICONS[r.icon]}</span><span class="ag-run-t">${r.t}</span><span class="ag-tl-who">${who(r)}</span>${CHEV}</summary>
+        <p class="ag-run-d" data-rich="${attr(r.d)}"></p>
+      </details></li>`,
     )
     .join("")}</ol>`;
 }
@@ -131,20 +148,15 @@ export function mountAgent(host: HTMLElement): void {
   function render(): void {
     track = trackOf();
     const t = AGENT_TRACKS[track];
+    // a prompt with blanks (<user>, <server IP>) asks the reader to fill them in first
+    const blanks = /<[a-z][^>]*>/i.test(t.prompt);
     host.innerHTML = `
-      <ol class="tl ag">
-        <li class="tl-step ag-step">
-          <span class="tl-n" aria-hidden="true"><span>1</span></span>
-          <div class="tl-body">
-            <h3>Get ready</h3>
-            ${readyList(t.ready)}
-          </div>
-        </li>
-        <li class="tl-step ag-step">
-          <span class="tl-n" aria-hidden="true"><span>2</span></span>
-          <div class="tl-body">
-            <h3>Install the skill</h3>
-            <p class="tl-why">Run this once on the computer your agent runs on. It needs Node.js. Nothing runs until your agent uses the skill.</p>
+      <div class="ag ag-new">
+        ${prepHTML(t.ready)}
+        <ol class="ag-stack">
+          <li class="ag-card">
+            <h3 class="ag-card-h"><span class="ag-n">1</span>Install the skill</h3>
+            <p class="ag-card-s">Run this once on the computer your agent runs on. It needs Node.js. Nothing runs until your agent uses the skill.</p>
             <div class="ag-npx"><pre class="cmd">${esc(NPX_CMD)}</pre></div>
             <details class="ag-alt">
               <summary>No Node.js? Download the skill into your agent's skills folder instead</summary>
@@ -154,12 +166,10 @@ export function mountAgent(host: HTMLElement): void {
               <div class="ag-install"></div>
               <p class="ag-kind-note"></p>
             </details>
-          </div>
-        </li>
-        <li class="tl-step ag-step">
-          <span class="tl-n" aria-hidden="true"><span>3</span></span>
-          <div class="tl-body">
-            <h3>Ask your agent</h3>
+          </li>
+          <li class="ag-card">
+            <h3 class="ag-card-h"><span class="ag-n">2</span>Paste the prompt</h3>
+            <p class="ag-card-s">${blanks ? "Fill in the blanks, then paste it" : "Paste it"} into Claude Code, Codex or Goose.</p>
             <div class="ag-prompt">
               <p class="ag-prompt-text"></p>
               <div class="ag-prompt-foot">
@@ -167,17 +177,14 @@ export function mountAgent(host: HTMLElement): void {
                 <button type="button" class="ag-copy">Copy prompt</button>
               </div>
             </div>
-          </div>
-        </li>
-        <li class="tl-step ag-step">
-          <span class="tl-n" aria-hidden="true"><span>4</span></span>
-          <div class="tl-body">
-            <h3>What to expect</h3>
-            <p class="tl-why">In order: what your agent does, and where it stops for you. Your agent's part usually takes 5 to 10 minutes.</p>
-            ${expectHTML(t.expect)}
-          </div>
-        </li>
-      </ol>`;
+          </li>
+          <li class="ag-card">
+            <h3 class="ag-card-h"><span class="ag-n">3</span>Answer when it stops</h3>
+            <p class="ag-card-s">Your agent's part usually takes 5 to 10 minutes. It stops for you at the highlighted steps. Open any step to see what happens.</p>
+            ${runHTML(t.expect)}
+          </li>
+        </ol>
+      </div>`;
     enhanceCode(host.querySelector<HTMLElement>(".ag-npx")!);
     renderInstall();
     refill();
@@ -191,6 +198,19 @@ export function mountAgent(host: HTMLElement): void {
       saveKind(kind);
       host.querySelectorAll<HTMLButtonElement>("[data-kind]").forEach((b) => b.setAttribute("aria-selected", String(b === tab)));
       renderInstall();
+      return;
+    }
+    const chip = t.closest<HTMLButtonElement>("[data-prep]");
+    if (chip) {
+      const pop = host.querySelector<HTMLElement>(".ag-pop")!;
+      const was = chip.getAttribute("aria-expanded") === "true";
+      host.querySelectorAll("[data-prep]").forEach((c) => c.setAttribute("aria-expanded", "false"));
+      pop.querySelectorAll<HTMLElement>(".ag-pop-i").forEach((p) => (p.hidden = true));
+      pop.hidden = was;
+      if (!was) {
+        chip.setAttribute("aria-expanded", "true");
+        document.getElementById(chip.getAttribute("aria-controls")!)!.hidden = false;
+      }
       return;
     }
     const fold = t.closest<HTMLButtonElement>(".ag-fold");

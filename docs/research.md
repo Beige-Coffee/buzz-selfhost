@@ -215,7 +215,10 @@ here ran on real infrastructure, a real phone or the released app.
   hashes, and responses are cacheable for a year, so removal stops serving but recalls nothing.
   [No end-to-end encryption](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/VISION.md#L100).
 - **Invites.** 30 days at most, 1 to 10,000 uses or unlimited
-  ([limits](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-core/src/invite.rs#L12)). No route cancels one link. A ban
+  ([limits](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-core/src/invite.rs#L12)). No route cancels one link at relay 0.3.0. Block added `GET /api/invites` and
+  `POST /api/invites/revoke` on main on 2026-11-20 (block/buzz#9680): owners and admins revoke any v2 link,
+  members their own, and v1 links can't be revoked. The Buzz 1.0.7 previews show them in Moderation, Invite
+  links, with a Revoke button. No relay release has it yet (checked 2026-11-24). A ban
   [revokes every link the person made](https://github.com/block/buzz/blob/744f3946f6fe1ff7a649c132638d5af608900dbd/crates/buzz-db/src/store/relay_invite/revocation.rs#L12),
   permanently; removing or demoting them does not.
 - **Owner and relay key.** Each start makes the configured owner the owner and

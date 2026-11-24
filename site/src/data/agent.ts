@@ -21,8 +21,12 @@ export interface Expect {
 }
 
 export interface AgentTrack {
-  /** what the reader does before asking, a bold name first; `warn` and `more` fold out under it */
-  ready: { t: string; warn?: { label: string; t: string }; more?: { label: string; t: string } }[];
+  /**
+   * What the reader has before asking, each a chip under Before you start (the owner's pick of 2026-11-24).
+   * `t` starts with the bold name the chip shows; `key` is what the chip opens to first, when it isn't the
+   * rest of `t`; `warn` and `more` fold out under it.
+   */
+  ready: { t: string; key?: string; warn?: { label: string; t: string }; more?: { label: string; t: string } }[];
   prompt: string;
   expect: Expect[];
 }
@@ -36,6 +40,7 @@ const ALIASES = "https://github.com/block/buzz/pull/5410";
 // or Linux). The agent works as root on the server, so its approval prompts are the reader's brake.
 const AGENT: Ready = {
   t: "<b>A coding agent</b> on your Mac or Linux computer: Claude Code, Codex or Goose. Windows isn't covered yet.",
+  key: "Use Claude Code, Codex or Goose on your Mac or Linux computer. Windows isn't covered yet. Keep your agent's approval prompts on.",
   more: {
     label: "What it needs",
     t: "The skill runs scripts on your computer with <code>python3</code>, <code>bash</code> and <code>curl</code>. Most Linux systems have all three; install any that's missing. On a Mac, if <code>python3</code> asks you to install developer tools, run <code>xcode-select --install</code> first. Use a capable model: small, fast models tend to stop after every step. Keep your agent's approval prompts on, since it runs commands with admin rights, and keep cloud tokens it doesn't need off this computer.",
@@ -45,9 +50,10 @@ const AGENT: Ready = {
 // installer, and Linux x64 deb and AppImage builds (Ubuntu 24.04).
 const APP: Ready = {
   t: "<b>Buzz</b> on the computer you'll use it on. You join from it once the relay runs.",
+  key: `Install it on the computer you'll use it on, from <a href="${DESKTOP}">Block's latest stable release</a>. You join from it once the relay runs.`,
   more: {
-    label: "Where to get it",
-    t: `Download it from <a href="${DESKTOP}">Block's latest stable release</a>. Buzz 1.0 launched on 10 November 2026, with builds for a Mac with macOS 12 or later (Apple Silicon or Intel), Windows x64 and Linux x64 (Ubuntu 24.04 deb or AppImage). The Windows installer isn't signed yet, so Windows warns before it runs.`,
+    label: "Which computers it runs on",
+    t: "Buzz 1.0 has builds for a Mac with macOS 12 or later (Apple Silicon or Intel), Windows x64 and Linux x64 (Ubuntu 24.04 deb or AppImage). The Windows installer isn't signed yet, so Windows warns before it runs.",
   },
 };
 // decision 2 (owner's call of 2026-11-23): the skill makes the owner's key on this computer with nak, the
@@ -55,6 +61,7 @@ const APP: Ready = {
 // up with Block (#2325); Settings opens only once first run ends, so that route quits before a community.
 const OWNER_KEY: Ready = {
   t: "<b>Your key</b>, your identity in Buzz. Your agent makes it with nak and shows its npub, your public ID, which makes you the owner.",
+  key: "It's your identity in Buzz. Your agent makes it with nak and shows its npub, your public ID, which makes you the owner. Save the key in your password manager once you've joined.",
   more: {
     label: "How it works",
     t: "Your agent makes the key on this computer with <a href=\"https://github.com/fiatjaf/nak\">nak</a>, the open-source Nostr command-line tool, after it asks to install it. The key goes into a file only you can read, and only its npub shows. You join by dropping that file into Buzz. Then copy the key from <b>Settings</b>, <b>Identity</b>, the Buzz ID card’s <b>More options</b> (…), the masked private-key field, then <b>Copy</b> into your private password-manager vault. Verify that the saved entry is recoverable before deleting the file, and clear the copied key from the clipboard. Avoid shared clipboard/history tools. You need the key to use Buzz on another computer. Already have a key in Buzz? Type its npub into the Running on box: choose <b>Copy Buzz ID</b> on the card in <b>Settings</b>, <b>Identity</b> (press ⌘, or Ctrl+, on Windows and Linux). The other way to get a key is a Builderlab account, which is Block's: Block can keep a copy of the key, and creating the account asks for your details. For that, choose <b>Create account</b> on Buzz's first screen. When Buzz asks for a community, quit it, open it again, choose <b>Continue without signing in</b> and choose Copy Buzz ID in Settings, Identity to copy your npub.",
@@ -63,9 +70,10 @@ const OWNER_KEY: Ready = {
 // a first connection asks to trust the fingerprint, which an agent's shell can't answer (SKILL.md, SSH to a server)
 const SSH = (machine: string, address: string): Ready => ({
   t: `<b>SSH access</b> to the ${machine} with a key, as root or a user with passwordless <code>sudo</code>.`,
+  key: `You need a key that logs in as root, or as a user with passwordless <code>sudo</code>. Before you ask your agent, run <code>ssh &lt;user&gt;@&lt;${address}&gt; true</code> once yourself, and type <b>yes</b> when SSH asks to trust the ${machine}.`,
   more: {
-    label: "Connect once yourself first",
-    t: `Before you ask your agent, run <code>ssh &lt;user&gt;@&lt;${address}&gt; true</code> in your own terminal. The first time, SSH asks whether to trust the ${machine}'s fingerprint: type <b>yes</b>. Your agent can't answer that question, so its first connection would fail. If the command also asks for a passphrase, or needs a key file (AWS gives you a <code>.pem</code> file), run <code>chmod 400 &lt;key file&gt;</code> and <code>ssh-add &lt;key file&gt;</code> first, so your agent can use the key without asking.`,
+    label: "Why, and what if it asks for a passphrase",
+    t: `Your agent can't answer SSH's question about the ${machine}'s fingerprint, so its first connection would fail. If the command also asks for a passphrase, or needs a key file (AWS gives you a <code>.pem</code> file), run <code>chmod 400 &lt;key file&gt;</code> and <code>ssh-add &lt;key file&gt;</code> first, so your agent can use the key without asking.`,
   },
 });
 /** The address is the community's for good (block/buzz#4952): say so where the reader picks it, and why. */
@@ -80,7 +88,7 @@ const DNS = (target: string, when = "Add the record before you ask your agent, a
 });
 /** The clouds people name, and each one's catch. A private server opens no ports, so it skips those. */
 const CLOUDS = (open: boolean) => ({
-  label: "Which server to rent",
+  label: "Notes for four common providers",
   t: `<dl class="ag-clouds">
     <dt>DigitalOcean</dt><dd>A Basic Droplet with 4 GB of RAM.${open ? " Its IP address doesn't change, and nothing blocks ports 80 and 443 unless you add a Cloud Firewall." : ""}</dd>
     <dt>Hetzner</dt><dd>A CX or CPX server (x86), not CAX (ARM), with 4 GB of RAM. If they show as unavailable, try another location. Keep its IPv4 address when you create it: GitHub, where the install downloads from, has no IPv6.</dd>
@@ -173,7 +181,11 @@ const PRIVATE: Expect[] = [
 export const AGENT_TRACKS: Record<Track, AgentTrack> = {
   vps: {
     ready: [
-      { t: "<b>A server</b>: Ubuntu 24.04, x86, 4 GB of RAM, 20 GB of disk, ports 80 and 443 open.", more: CLOUDS(true) },
+      {
+        t: "<b>A server</b>: Ubuntu 24.04, x86, 4 GB of RAM, 20 GB of disk, ports 80 and 443 open.",
+        key: "It needs Ubuntu 24.04, x86, 4 GB of RAM and 20 GB of disk, with ports 80 and 443 open. Any provider works if the server matches this.",
+        more: CLOUDS(true),
+      },
       SSH("server", "server IP"),
       { t: "<b>A domain</b> with an A record pointing at the server.", warn: FOREVER("domain"), more: DNS("the server's public IPv4 address") },
       APP,
@@ -230,7 +242,11 @@ export const AGENT_TRACKS: Record<Track, AgentTrack> = {
   },
   "vps-private": {
     ready: [
-      { t: "<b>A server</b>: Ubuntu 24.04, x86, 4 GB of RAM, 20 GB of disk. Nothing open to the internet but SSH.", more: CLOUDS(false) },
+      {
+        t: "<b>A server</b>: Ubuntu 24.04, x86, 4 GB of RAM, 20 GB of disk. Nothing open to the internet but SSH.",
+        key: "It needs Ubuntu 24.04, x86, 4 GB of RAM and 20 GB of disk, with nothing open to the internet but SSH. Any provider works if the server matches this.",
+        more: CLOUDS(false),
+      },
       SSH("server", "server IP"),
       ...PRIVATE_READY,
       TS_HERE,
@@ -332,6 +348,17 @@ export const OP_TASKS: Record<OpTask, { ask: string }> = {
   backup: { ask: "back it up." },
   restore: { ask: "restore it from its backup." },
   upgrade: { ask: "back it up, then upgrade it to the image the skill recommends." },
+};
+
+/**
+ * Prompts for one change at a time, beyond the three operations (the owner's ask of 2026-11-24). The skill
+ * holds the steps: operations.md's "To approve each agent yourself" asks the user which agents to keep and
+ * adds them as members before it changes the setting.
+ */
+export type AskKey = "agent-approve" | "audit-read";
+export const OP_ASKS: Record<AskKey, string> = {
+  "audit-read": "show me the 50 newest entries of the relay's audit log, which is the audit_log table in its database. For each one, show when, who as an npub, what, and which object. Change nothing.",
+  "agent-approve": "make the relay admit only agents I add as members. Before you change the setting, ask me which agents to keep, and add them as members.",
 };
 
 const SSH_VPS = "My Buzz relay is at {{DOMAIN}}. It runs on a VPS. SSH in as <user>@<server IP>.";

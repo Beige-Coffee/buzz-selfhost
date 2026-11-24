@@ -15,6 +15,7 @@
 import { readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 import { Marked } from "marked";
+import { SUMMARIES } from "../src/data/summaries.ts";
 
 export type Track = "vps" | "vps-private" | "own-public" | "own-private" | "practice" | "k8s" | "k8s-private";
 export interface SkillStep {
@@ -353,8 +354,21 @@ function fixes(dir: string): SkillFix[] {
 const OP_SECTIONS: Record<string, Track[]> = { "Docker Compose": COMPOSE, Kubernetes: K8S };
 const OP_KINDS: Record<string, OpKind> = { "add a member": "people", "local agents": "people", "back up": "backup", restore: "restore", upgrade: "upgrade" };
 
+/** Sentences of operations.md that "Can you require approval before an agent joins?" (agents.ts) rests on. */
+const OPERATIONS_SAYS = [
+  "To approve each agent yourself",
+  "Agents you don't add are locked out",
+  "set `BUZZ_ALLOW_NIP_OA_AUTH=false` in `.env`",
+  "restricted: not a relay member",
+  "Buzz then shows only \"Couldn't finish\" when someone asks that agent to work",
+  "the same setting is the chart's `relay.allowNipOaAuth` value",
+  "It records no owner for the agent",
+];
+
 function ops(dir: string): SkillOp[] {
   const text = readFileSync(join(dir, "references", "operations.md"), "utf8");
+  const flat = text.replace(/\s+/g, " ");
+  for (const claim of OPERATIONS_SAYS) if (!flat.includes(claim)) fail(`operations.md no longer says "${claim}", which "Can you require approval before an agent joins?" rests on: change src/scenes/agents.ts to match, then OPERATIONS_SAYS in build/skill.ts`);
   const out: SkillOp[] = [];
   for (const sec of text.matchAll(/^## (.+)\n([\s\S]*?)(?=^## |(?![\s\S]))/gm)) {
     const name = sec[1].trim();
@@ -402,11 +416,18 @@ const SECURITY_SAYS = [
   "So an agent can do what its person's account can do on that computer",
   "Any of them can carry instructions that try to redirect it",
   "give agents a machine of their own",
+  // How do you keep your data and community safe with agents? (agents.ts): no limit to some files
+  "A Workspace is only the folder the agent starts in",
+  "A private community needs the same care with less urgency",
+  // its risks (agents.ts, RISKS)
+  "Watches an agent sets up",
+  "one can reach beyond the permissions its",
+  "Use a model provider your team has approved for what the agent can read",
+  "It is not a file or network sandbox",
   "share there only what you would publish",
   "A member's own agents get in through that member's membership, without anyone adding them",
   "Any member can read an open channel, its whole history included, and can see who else is a member",
   "who has its link",
-  "A private community needs the same care with less urgency",
   // the Agents answers' "One agent per audience" (src/scenes/agents.ts) rests on these two
   "Give each audience its own agent",
   "can repeat it in an open channel or a direct message, asked plainly or tricked",
@@ -414,7 +435,6 @@ const SECURITY_SAYS = [
   "Buzz has no second factor of its own",
   "put the relay on a private network whose login asks for a second factor",
   "Buzz on desktop holds one key at a time, for every community",
-  "an identity kept apart needs a second user account on the computer, or another device",
 ];
 function securityClaims(dir: string): void {
   const text = readFileSync(join(dir, "references", "security.md"), "utf8").replace(/\s+/g, " ");
@@ -437,6 +457,15 @@ const AGENTS_SAYS = [
   "They don't give it tools, logins or permissions",
   "Neither the README nor Block's help and support pages recommend one over another",
   "A local agent answers only while Buzz is open on its computer and that computer is awake",
+  // How do you keep an agent always online?: the steps for each place (agentflow.ts, onStayFlows and onLaptopFlows)
+  "Claude and Codex agents need macOS or Linux",
+  "If you use a Builderlab account, choose Sign in with Builderlab instead",
+  "An agent answers only its owner",
+  "Buzz keeps an agent's key on the computer where you created it",
+  "set Keep this Mac awake to Always",
+  "Closing a laptop's lid still puts it to sleep",
+  "Buzz has this setting on Macs only",
+  "On Linux or Windows, turn off sleep in the system's own settings",
   "Buzz 1.0 has no built-in way to do this",
   "A bot added as a member with no proof on its profile shows as a person",
   "It has no expiry",
@@ -450,11 +479,6 @@ const AGENTS_SAYS = [
   "This is the agent mark",
   "Buzz never sets it on its own agents",
   "Buzz on phones doesn't read the flag",
-  // "How should we run agents?": its three cards
-  "Decide who an agent works for before setting it up",
-  "It gets in through your membership and takes requests only from you",
-  "It answers the people you list",
-  "It belongs in open channels only",
   // "How do we run an agent on our own server?": the answer's own words
   "the agent can put them together itself",
   "Block publishes it as a",
@@ -528,6 +552,8 @@ export function parseSkill(dir: string): SkillData {
     ids.add(s.id);
   }
   if (steps.filter((s) => s.id.startsWith("skill-")).length !== 2) fail("SKILL.md lost section 3 or 4");
+  // Follow the steps yourself shows a one-line summary under each step's title
+  for (const s of steps) if (!SUMMARIES[s.id]) fail(`step ${s.id} (${s.title}) has no one-line summary: add one to src/data/summaries.ts`);
   for (const t of TRACKS) {
     const n = steps.filter((s) => s.tracks.includes(t)).length;
     if (n < 5) fail(`only ${n} steps for ${t}`);

@@ -2,6 +2,7 @@
 
 An agent skill, a guide and end-to-end tests for running your own [Buzz](https://github.com/block/buzz)
 relay: on a VPS, your own hardware, a private Tailscale network or Kubernetes.
+A community project, not an official Buzz or Block site or skill.
 
 - **Guide:** https://self-host.buzz
 - **Skill:** [`skills/self-host-buzz`](skills/self-host-buzz), in the open [Agent Skills](https://agentskills.io)

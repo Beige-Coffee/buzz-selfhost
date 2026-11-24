@@ -30,7 +30,7 @@ const BEES = Array.from({ length: 16 }, (_, i) => {
   const y = (0.5 + n / 1.324717957244746 ** 2) % 1;
   return `<svg class="id-bee${i % 2 ? " lime" : ""}" style="left:${(x * 92).toFixed(1)}%;top:${(y * 90).toFixed(1)}%;transform:rotate(${Math.round(seed * 360 + 90)}deg)" viewBox="0 0 466 309"><use href="#bee"/></svg>`;
 }).join("");
-const welcome = `<div class="j1-win id-wel">
+export const welcome = `<div class="j1-win id-wel">
   <div class="id-bees" aria-hidden="true">${BEES}</div>
   <div class="b1-lights" aria-hidden="true"><i></i><i></i><i></i></div>
   <svg class="id-word" viewBox="0 0 300 96" aria-hidden="true"><text x="150" y="74" text-anchor="middle" filter="url(#buzz-grain)">Buzz</text></svg>
@@ -40,14 +40,14 @@ const welcome = `<div class="j1-win id-wel">
 </div>`;
 
 /** Connect to your community: the found address, then Sign in with Builderlab or Use an existing key. */
-const connect = onboardingStep(`<h4 class="j1-h">Connect to your community</h4>
+export const connect = onboardingStep(`<h4 class="j1-h">Connect to your community</h4>
   <p class="j1-sub">Sign in to your Builderlab account with email, or use an existing private key to continue.</p>
   <p class="id-host"><span>B</span>buzz.yourteam.org</p>
   <div class="id-pick"><span class="j1-go">Sign in with Builderlab</span><span class="j1-btn hot">Use an existing key</span></div>
   <div class="j1-acts">${BACK}</div>`);
 
 /** Enter your private key: the key pasted, its npub shown under the field, then Continue with this key. */
-const keyImport = onboardingStep(
+export const keyImport = onboardingStep(
   `<h4 class="j1-h">Enter your private key</h4>
   <p class="j1-sub">Paste your private key to sign in to Buzz. You can also select or drop a text file with your key.</p>
   <p class="j1-lab">Private key (nsec)</p>
@@ -258,7 +258,7 @@ const devices = `<div class="id-devs">
   <div class="id-dev">${phone}<b>Phone</b><span>Passcode on</span></div>
 </div>`;
 
-const ADDRESS = `<span class="typed">buzz.yourteam.org</span>`;
+export const ADDRESS = `<span class="typed">buzz.yourteam.org</span>`;
 
 export const identityFlows: Flow[] = [
   {

@@ -1,4 +1,8 @@
-/** Copy buttons for every <pre class="cmd">. Copies the rendered text, so filled-in values come along. */
+/**
+ * Copy buttons for every <pre class="cmd">. Copies the rendered text, so filled-in values come along.
+ * The button sits in a column of its own beside the code, so it never covers the text; a command that is
+ * wider than its box scrolls, and its right edge fades while more of it is out of view.
+ */
 export function enhanceCode(root: ParentNode = document): void {
   root.querySelectorAll<HTMLPreElement>("pre.cmd").forEach((pre) => {
     pre.tabIndex = 0;
@@ -29,6 +33,10 @@ export function enhanceCode(root: ParentNode = document): void {
       } else fallback(text, done);
     });
     wrap.appendChild(btn);
+    const fade = () => pre.classList.toggle("more", pre.scrollLeft + pre.clientWidth < pre.scrollWidth - 2);
+    pre.addEventListener("scroll", fade, { passive: true });
+    new ResizeObserver(fade).observe(pre);
+    new MutationObserver(fade).observe(pre, { childList: true, characterData: true, subtree: true });
   });
 }
 

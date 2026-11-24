@@ -50,6 +50,8 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
     refuses them at any invite link.
   - `buzz moderation timeout --pubkey <hex> --expires-in 3600` stops their posts for an hour.
   - `buzz moderation restricted` lists bans and timeouts. `unban` and `untimeout` lift them.
+  - `buzz moderation audit` lists past moderation actions, newest first, with who took each one
+    (not tested).
   - `buzz messages delete --event <id>` deletes a message in a channel they own or administer (not
     tested).
 - **Local agents.** Buzz 1.0 can run agents on the owner's computer. Each agent has its own key and

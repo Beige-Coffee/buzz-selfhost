@@ -5,12 +5,15 @@
  */
 import skill from "virtual:skill-steps";
 import type { Track } from "../lib/values";
+import { SUMMARIES } from "./summaries";
 
 export interface StepDef {
   id: string;
   title: string;
   tracks: Track[];
   badge?: string;
+  /** what the step does, in one line (summaries.ts) */
+  summary: string;
   /** the step as HTML, with {{KEYS}} the panel fills in */
   html: string;
   joinMock?: boolean;
@@ -29,13 +32,14 @@ const GET_SKILL: StepDef = {
   id: "get-skill",
   title: "Get the runbook and prepare your identity",
   tracks: ALL,
+  summary: SUMMARIES["get-skill"],
   html: `<p>Download the shared runbook and its checks. The steps below use this local copy. Inspect it before granting server access.</p>
 <pre class="cmd">mkdir -p ${skill.home} &amp;&amp; curl -fsSL {{SKILL_ARCHIVE}} | tar -xz -C ${skill.home}</pre>${skill.preparation}`,
 };
 
 export const STEPS: StepDef[] = [
   GET_SKILL,
-  ...skill.steps.map((s) => ({ ...s, badge: s.optional ? "Optional" : undefined, joinMock: s.id === "skill-4" })),
+  ...skill.steps.map((s) => ({ ...s, summary: SUMMARIES[s.id], badge: s.optional ? "Optional" : undefined, joinMock: s.id === "skill-4" })),
 ];
 
 export const FIXES: FixDef[] = skill.fixes;

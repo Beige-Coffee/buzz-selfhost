@@ -1,14 +1,15 @@
 import skill from "virtual:skill-steps";
 import { linkButton } from "../lib/permalink";
-import { agentFlows, harnessFlows, remoteFlows } from "./agentflow";
-import { agentQuestions, remotePrompt, useExampleInstructions } from "./agents";
+import { agentFlows, harnessFlows, onHostedFlows, onLaptopFlows, onStayFlows, remoteFlows } from "./agentflow";
+import { agentQuestions, remotePrompt, showPlace, useExampleInstructions } from "./agents";
 import { identityFlows, lostFlows, pairFlows } from "./identity";
 import { leakFlows, moderationFlows } from "./moderation";
 import { pluginFlows } from "./plugins";
 import { clickThroughHTML, fitMembers, peopleFlows, type Flow } from "./members";
-import { promptText, taskHTML } from "./operations";
+import { askHTML, askText, promptText, taskHTML } from "./operations";
 import { SETUPS } from "../data/decide";
-import type { OpTask } from "../data/agent";
+import { bee } from "../defs";
+import type { AskKey, OpTask } from "../data/agent";
 import { TABLER } from "./tabler";
 import { copyText, enhanceCode } from "../lib/code";
 import { jumpTo, registerAnchors } from "../lib/nav";
@@ -37,14 +38,14 @@ const icon = (n: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${OWN[n
 
 // no tick here, or anywhere on the page (the owner's call, 2026-11-18)
 /**
- * What to do, in the dark card. Where the answer differs by kind of community, or by setup, each case
- * gets its own labeled row (the owner's ask of 2026-11-23: nuanced, not one assumed scenario).
+ * The dark card. Rows split an answer by situation or setup, each with its own label. Its label says
+ * Recommended where the advice follows from how Buzz works, and How it works where the card describes
+ * rather than advises (the owner's call of 2026-11-24: the guide hasn't worked with enough communities
+ * to advise a private team or an open community on how to run itself).
  */
 type Cases = [label: string, text: string][];
-const TEAM = "Private team";
-const OPEN = "Open community";
-const rec = (t: string, cases?: Cases) =>
-  `<div class="fq-rec"><div><b>Recommended</b>${t ? `<p>${t}</p>` : ""}${
+const rec = (t: string, cases?: Cases, label = "Recommended") =>
+  `<div class="fq-rec"><div><b>${label}</b>${t ? `<p>${t}</p>` : ""}${
     cases ? `<dl class="fq-rec-s">${cases.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>` : ""
   }</div></div>`;
 const note = (t: string) => `<p class="opx-note">${t}</p>`;
@@ -84,6 +85,9 @@ const CLICK_THROUGHS: Record<string, Flow[]> = {
   add: peopleFlows("1 day", "5").filter((f) => f.id === "link"),
   remove: peopleFlows().filter((f) => f.id === "remove"),
   agents: agentFlows,
+  "on-laptop": onLaptopFlows,
+  "on-stay": onStayFlows,
+  "on-hosted": onHostedFlows,
   harness: harnessFlows,
   moderate: moderationFlows,
   leak: leakFlows,
@@ -107,7 +111,7 @@ const SCREENS_WHERE = "a VPS or your own hardware, on the internet";
  */
 const YES = `<span class="fq-y">${icon("check")}<span class="sr">Yes</span></span>`;
 const NO = `<span class="fq-n">${icon("x")}<span class="sr">No</span></span>`;
-const IF_STAFF = `<span class="fq-if">If on Staff</span>`;
+const IF_STAFF = `<span class="fq-if">If a moderator</span>`;
 const ROLES = `<div class="fq-vis"><table class="fq-roles">
   <thead><tr><th></th><th><span class="rl-chip owner">${icon("crown")}Owner</span></th><th><span class="rl-chip admin">${icon("shield")}Admin</span></th><th><span class="rl-chip member">${icon("user")}Member</span></th></tr></thead>
   <tbody>
@@ -116,47 +120,33 @@ const ROLES = `<div class="fq-vis"><table class="fq-roles">
     <tr><td>Add, promote or remove admins</td><td>${YES}</td><td>${NO}</td><td>${NO}</td></tr>
     <tr><td>Report a message</td><td>${YES}</td><td>${YES}</td><td>${YES}</td></tr>
     <tr><td>Ban, time out, delete others' messages</td><td>${YES}</td><td>${YES}</td><td>${IF_STAFF}</td></tr>
-    <tr><td>Add someone by npub</td><td colspan="3" class="fq-srv">${icon("server")}On the server, by whoever runs it</td></tr>
-    <tr><td>Change the owner</td><td colspan="3" class="fq-srv">${icon("server")}On the server, by whoever runs it</td></tr>
-  </tbody></table></div>`;
+    <tr><td>Add someone by npub</td><td colspan="3" class="fq-srv">${icon("server")}With a command on the server</td></tr>
+    <tr><td>Change the owner</td><td colspan="3" class="fq-srv">${icon("server")}With a command on the server</td></tr>
+  </tbody></table>
+  <p class="fq-roles-k"><b>With a command on the server</b> means these two aren't in Buzz. Whoever can log in to the server does them, whatever their role in Buzz.</p>
+  <p class="fq-roles-k"><b>If a moderator</b> means a member can do this only after being added as a moderator, under Staff in Buzz's moderation screens.</p></div>`;
 
 /** Moderating: in Buzz's screens where the relay can offer them, otherwise with the buzz command line. */
 const MODERATION =
-  rec("Ban people instead of only removing them. A ban keeps them out even if they have an invite link, and it disconnects their agents too.", [
-    [TEAM, "The owner or an admin can deal with problems as they come up. You don't need moderators."],
-    [OPEN, `Set up moderation before you share an invite link. On ${SCREENS_WHERE}, turn on Buzz's moderation screens and add your moderators under Staff. They handle the reports members send.`],
-  ]) +
+  // what the tools do, without advice per kind of community (owner's call of 2026-11-24, as for roles)
+  rec(
+    "You can remove or ban members, time them out and delete their messages. A ban keeps someone out even if they have an invite link, and it disconnects their agents too. Removing someone doesn't keep them out.",
+    [
+      ["Moderation screens", `On ${SCREENS_WHERE}, Buzz's moderation screens show the owner and Staff the reports members send. From there, they ban someone, time them out or delete a message.`],
+      ["Command line", "On a private network, Kubernetes or a local test, the screens can't reach the relay. There, the owner or an admin moderates with the <code>buzz</code> command line that comes with Buzz."],
+    ],
+    "How it works",
+  ) +
   steps([
     ["Turn on the moderation screens", "Buzz finds the screens at a second address for your relay, with <code>admin.</code> in front of your domain. On Block's Docker Compose bundle, that takes a DNS record for that address, <code>BUZZ_ADMIN_HOST</code> in the relay's <code>.env</code> and a route for it in the Caddyfile. If you set up with this guide's skill, your agent offers this during setup, and you can ask it later."],
     ["Add your moderators under Staff", "In Buzz, open <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>. Paste the person's npub, pick <b>moderator</b> and choose <b>Add</b>. Making someone an admin doesn't put them on Staff. Staff is a separate list, and the owner manages it."],
     ["Work through reports", "Any member can report a message. Moderators find the reports in <b>Settings</b>, <b>Moderation</b>, <b>Reports</b>. To ban someone, time them out or delete a message, they open <b>Communities</b>, choose the community and use its <b>Actions</b> tab."],
   ]) +
   ct("moderate") +
-  note("<b>Removing someone doesn't keep them out.</b> They can come back with any invite link that hasn't expired. To keep them out, ban them.") +
   note(
     "<b>On a private network, Kubernetes or a local test</b>, Buzz's moderation screens can't reach your relay. There, the owner or an admin moderates with the <code>buzz</code> command line that comes with Buzz 1.0. On a Mac, it's at <code>/Applications/Buzz.app/Contents/Resources/bin/buzz</code>. It signs with their own private key, so they run it in their own terminal. <code>buzz moderation</code> lists the reports members send, and it bans people or times them out. <code>buzz messages delete</code> removes a message.",
   );
 
-/**
- * Who lets agents in (block/buzz 0.3.0): with BUZZ_ALLOW_NIP_OA_AUTH on, as the bundle and the chart
- * ship it, a member's agents get in with their owner's proof; off, only keys on the member list do
- * (handlers/auth.rs). A key on the list counts as a person: no owner recorded, 60 messages a minute
- * instead of an agent's 120 (buzz-auth rate_limit.rs). Buzz 1.0.5 shows a refused agent's turn as
- * "Couldn't finish" (ActivityOutcome.tsx).
- */
-const DOOR = (() => {
-  const line = (on: boolean) => `BUZZ_ALLOW_NIP_OA_AUTH=${on}`;
-  return (
-    `<div class="fq-chans"><h4 class="ga-h">Approve each agent yourself</h4>` +
-    `<p class="fq-chans-p">With Block's Compose bundle and Helm chart as they ship, a member's own agents get in through that member, and nobody has to add them. To approve each agent, turn that setting off and add the agents you allow as members.</p>` +
-    `<div class="fq-vis fq-door">
-      <div><code>${line(true)}</code><p><b>The default.</b> A member's agents get in through that member.</p></div>
-      <div class="on"><code>${line(false)}</code><p><b>You approve each agent.</b> Only agents you add as members get in.</p><small>Change it in the relay's <code>.env</code>, then restart the relay. On Kubernetes, set <code>relay.allowNipOaAuth</code> in the chart's values. If you set up with this guide's skill, you can ask your agent to do it.</small></div>
-    </div>` +
-    `<p class="fq-chans-p">Before you turn it off, add the agents you want to keep as members. Otherwise they're locked out. After that, when someone asks a member's new agent to do something, Buzz shows only <b>Couldn't finish</b> and doesn't say why. Tell members to ask an admin when that happens.</p>` +
-    `<p class="fq-chans-p">The relay treats an agent you add as a member like a person. It can send 60 messages a minute, where an agent can send 120, and the relay doesn't record who owns it.</p></div>`
-  );
-})();
 
 /**
  * The two starter channels, and why: phones look for them by name (block/buzz mobile/lib/app.dart; a
@@ -237,30 +227,20 @@ const TWO_FACTOR = `<div class="fq-vis fq-tfa">
  * How Buzz desktop holds a person's key (researched 2026-11-23 in block/buzz-app at v1.0.5): one item in the
  * system's secure store, service xyz.block.buzz.desktop.identity (crates/credential-store), read at launch;
  * every release, preview builds included, ships the same app ID, so a second copy shares the key; one key
- * signs into every community, each with its own profile; another computer account has its own store.
- * The npubs and names are illustrative.
+ * signs into every community, each with its own profile. The answer says one identity per computer, as most people
+ * have one account on theirs. The npub and names are illustrative.
  */
-const archBox = (i: string, t: string, d: string, cls = "") => `<div class="fq-ar-box${cls}">${icon(i)}<b>${t}</b><small>${d}</small></div>`;
-const archComm = (name: string, who: string) => `<em>${name}<small>${who}</small></em>`;
+const archBox = (mark: string, t: string, d: string, cls = "") => `<div class="fq-ar-box${cls}">${mark}<b>${t}</b><small>${d}</small></div>`;
+const archComm = (name: string, who: string) => `<em>${name}<small><span>${who}</span><mark>npub1qm…8k3a</mark></small></em>`;
 const ONE_KEY = `<div class="fq-vis fq-arch">
   <div class="fq-ar-acct">
-    <p class="fq-ar-h">${icon("user")}Your account on this computer</p>
+    <p class="fq-ar-h">${icon("device-desktop")}One identity on this computer</p>
     <div class="fq-ar-row">
-      ${archBox("lock", "The system keychain", "Holds one Buzz key")}
+      ${archBox(icon("lock"), "The system keychain", "Holds one Buzz key")}
       <span class="fq-ar-arrow">read at launch</span>
-      ${archBox("device-desktop", "Buzz", "Signs in with that key", " dark")}
+      ${archBox(bee('class="fq-ar-bee"'), "Buzz", "Signs in with that key", " dark")}
       <span class="fq-ar-arrow">same key</span>
-      <div class="fq-ar-comms">${archComm("Your team", "Maya · npub1qm…8k3a")}${archComm("An open community", "Maya R. · npub1qm…8k3a")}</div>
-    </div>
-  </div>
-  <div class="fq-ar-acct b">
-    <p class="fq-ar-h">${icon("user")}A second account, or another device</p>
-    <div class="fq-ar-row">
-      ${archBox("lock", "Its own keychain", "Holds its own Buzz key")}
-      <span class="fq-ar-arrow">read at launch</span>
-      ${archBox("device-desktop", "Buzz", "Signs in with that key", " dark")}
-      <span class="fq-ar-arrow">other key</span>
-      <div class="fq-ar-comms">${archComm("A community you keep separate", "Sam · npub1x7…2pqe")}</div>
+      <div class="fq-ar-comms">${archComm("Your team", "Maya")}${archComm("An open community", "Maya R.")}</div>
     </div>
   </div>
 </div>`;
@@ -280,13 +260,28 @@ const VIEW_ONLY = `<div class="fq-vis"><div class="fq-gaccess"><p class="fq-acc-
   </div>
 </div></div>`;
 
+/**
+ * A situation, then what to do or what happens, in order. A string is a step you take; ["ok", …] is how it
+ * ends well, and ["bad", …] is a cost.
+ */
+type PathItem = string | ["ok" | "bad", string];
+const path = (i: string, title: string, items: PathItem[], hot = false) => {
+  let n = 0;
+  const li = items
+    .map((it) =>
+      typeof it === "string"
+        ? `<li><span class="fq-path-n">${++n}</span><span>${it}</span></li>`
+        : `<li class="${it[0]}"><span class="fq-path-n">${it[0] === "ok" ? icon("check") : ""}</span><span>${it[1]}</span></li>`,
+    )
+    .join("");
+  return `<div class="fq-path${hot ? " hot" : ""}"><p class="fq-path-h"><span class="fq-path-i">${icon(i)}</span>${title}</p><ol class="fq-path-s">${li}</ol></div>`;
+};
+
 /** A leak: what to do, by which key leaked. */
-const lane = (head: string, cls: string, chips: string[]) =>
-  `<div class="fq-lane${cls}"><span class="fq-lane-k">${head}</span>${chips.map((c) => `<span class="fq-chip">${c}</span>`).join("")}</div>`;
-const LANES = `<div class="fq-vis fq-lanes">
-  ${lane(`${icon("key")}A person's key`, "", ["Ban it", "Add their new identity"])}
-  ${lane(`${icon("server")}The relay key`, "", ["Treat the server as exposed", "Ask in block/buzz before you replace it"])}
-  ${lane(`${icon("alert")}The server itself`, " hot", ["Change its logins", "Assume someone read every message"])}
+const LANES = `<div class="fq-vis fq-paths">
+  ${path("key", "A person's key", ["Ban it", "Add their new identity"])}
+  ${path("server", "The relay key", ["Treat the server as exposed", "Ask in block/buzz before you replace it"])}
+  ${path("alert", "The server itself", ["Change its logins", "Assume someone read every message"], true)}
 </div>`;
 
 /**
@@ -294,9 +289,9 @@ const LANES = `<div class="fq-vis fq-lanes">
  * makes a new one for a new RELAY_URL host (migrations/0001, store/community.rs, router.rs); a move that keeps
  * the domain kept everything in the readiness campaign's new-server run.
  */
-const MOVE = `<div class="fq-vis fq-lanes">
-  ${lane(`${icon("server")}Same domain, new server`, "", ["Restore the backup there", "Point the domain at it", "Everything comes along"])}
-  ${lane(`${icon("world")}A new domain`, " hot", ["A new, empty community", "Everyone joins again", "The old one stays at the old address"])}
+const MOVE = `<div class="fq-vis fq-paths two">
+  ${path("server", "Same domain, new server", ["Restore the backup there", "Point the domain at it", ["ok", "Everything comes along"]])}
+  ${path("world", "A new domain", [["bad", "A new, empty community"], ["bad", "Everyone joins again"], ["bad", "The old one stays at the old address"]], true)}
 </div>`;
 
 /** A short list to work through in order, numbered: nothing on the page ticks. */
@@ -329,16 +324,35 @@ const READ = `<div class="fq-vis fq-read">
   </div>
 </div>`;
 
-/** A record of who did what: the relay's chained audit log, and the hosting provider's own log. */
+/**
+ * A record of who did what (owner's ask of 2026-11-24: say what each record holds and how to read it). From
+ * block/buzz: the audit log (crates/buzz-audit; migrations/0001 audit_log; written for every stored event,
+ * handlers/event.rs, and every upload, api/media.rs; BUZZ_AUDIT_ENABLED, default true, config.rs), the
+ * moderation actions (migrations/0006 moderation_actions; GET /moderation/audit, `buzz moderation audit`) and
+ * the staff changes (migrations/0039 relay_operator_audit). The hosting provider's log is the host's own.
+ */
 const entry = (time: string, what: string, hash: string) => `<p class="fq-le"><time>${time}</time><b>${what}</b><code>${hash}</code></p>`;
 const LEDGER = `<div class="fq-vis fq-audit">
-  <div class="fq-card"><p class="fq-card-h">${icon("list")}The relay's audit log, in its database</p>
+  <div class="fq-card"><p class="fq-card-h">${icon("list")}The audit log</p>
     ${entry("09:12", "Leo posted in #release", "a41f…")}<span class="fq-ln">${icon("link")}</span>
-    ${entry("09:40", "plan.pdf uploaded", "7c02…")}<span class="fq-ln">${icon("link")}</span>
-    ${entry("16:05", "Sam removed Leo", "e9b8…")}
+    ${entry("09:40", "Maya uploaded plan.pdf", "7c02…")}<span class="fq-ln">${icon("link")}</span>
+    ${entry("11:03", "Leo deleted a message", "e9b8…")}
+    <p class="fq-dim">Every event the relay stores, and every upload. Each entry holds the hash of the one before it.</p>
   </div>
-  <div class="fq-card"><p class="fq-card-h">${icon("lock")}Your hosting provider's log</p><p class="fq-le"><time>08:58</time><b>Maya signed in to the server</b></p><p class="fq-dim">It shows who accessed the server itself.</p></div>
+  <div class="fq-audit-side">
+    <div class="fq-card"><p class="fq-card-h">${icon("shield")}Moderation actions</p><p class="fq-le"><time>16:05</time><b>Sam banned Leo</b></p><p class="fq-dim">Who acted, on whom, and the reason.</p></div>
+    <div class="fq-card"><p class="fq-card-h">${icon("lock")}Your hosting provider's log</p><p class="fq-le"><time>08:58</time><b>Maya signed in to the server</b></p><p class="fq-dim">Who reached the server itself.</p></div>
+  </div>
 </div>`;
+/** What each audit log entry holds (crates/buzz-audit/src/entry.rs; the actor rule is handlers/event.rs's). */
+const FIELDS: [string, string][] = [
+  ["When", "The time the relay recorded it."],
+  ["Who", "The public key of whoever did it. For a workflow's post, the person who started the workflow."],
+  ["What", "<code>event_created</code>, with the event's kind and channel, or <code>media_uploaded</code>, with the file's type and size."],
+  ["Object", "The event's ID, or the file's SHA-256."],
+  ["Chain", "A SHA-256 hash of the entry, and the hash of the entry before it."],
+];
+const FIELDS_HTML = `<dl class="fq-fields">${FIELDS.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`;
 
 /**
  * What still reaches Block from a self-hosted community: the apps' update checks (block/buzz-app
@@ -387,7 +401,7 @@ const SEES = `<div class="fq-vis fq-sees">
 /** mobile.md's sections, by title: the ones a setup needs stay open, the rest fold. A missing one fails loudly. */
 const phone = (title: string) => skill.mobile.find((x) => x.title === title)?.html ?? `<p class="fq-missing">mobile.md lost its "${title}" section.</p>`;
 const fold = (title: string, html: string) => `<details class="fq-fold"><summary>${title}</summary><div class="fq-mobile">${html}</div></details>`;
-const PHONE_OPEN = ["Turn notifications on", "Test with the phone locked"];
+const PHONE_OPEN = ["Turn notifications on"];
 /**
  * "Turn notifications on" shows the two settings and what this guide's setups do; how to set them on
  * Compose or Kubernetes folds under "How to set it up" (owner's ask of 2026-11-23).
@@ -401,12 +415,13 @@ const foldSetup = (html: string) => {
   const out = (els: Element[]) => els.map((k) => k.outerHTML).join("");
   return `${out(kids.slice(0, code + 2))}<details class="fq-more fq-setup"><summary><span>How to set it up</span></summary><div class="fq-mobile">${out(kids.slice(code + 2))}</div></details>`;
 };
-const PHONE_FOLDED = ["What Block and Apple see", "Android", "Run your own gateway"];
+// the locked-phone test folds like the sections after it (owner's ask of 2026-11-24)
+const PHONE_FOLDED = ["Test with the phone locked", "What Block and Apple see", "Android", "Run your own gateway"];
 const MOBILE =
   rec("Buzz sends notifications through Block's push gateway to the Buzz app from the App Store. Block never sees your messages. You don't need an Apple developer account or a gateway of your own. Notifications work on iPhone, but not on Android yet.", [
-    [TEAM, "Turn notifications on, unless Block can't be allowed to see your server's address and when your team's phones get notifications. If you leave them off, people see new messages the next time they open Buzz."],
-    [OPEN, "Turn notifications on. Members then get a notification on their phone for direct messages and mentions."],
-  ]) +
+    ["Notifications on", "Members get a notification on their phone for direct messages and mentions. Block's gateway sees your relay's public key, your server's IP address and when it wakes which phone."],
+    ["Notifications off", "Nothing goes through Block's gateway. People see new messages the next time they open Buzz."],
+  ], "How it works") +
   SEES +
   note(`Each phone has to be paired with the Buzz desktop app before it gets notifications. <a href="#operations" data-q-link="pair">How do you pair a phone?</a> shows each step.`) +
   PUSH +
@@ -434,9 +449,9 @@ const GROUPS: [string, Question[]][] = [
         icon: "users",
         q: "How should you add people?",
         a:
-          rec("Invite people with invite links. A link lasts at most 30 days, and Buzz can't cancel a single link early, so keep links short and limit how many people can use each one. You can also add someone by their npub on the server, without a link.", [
-            [TEAM, "Send each person their own link, set to one use and to expire after a day."],
-            [OPEN, `Set up <a href="#operations" data-q-link="moderate">moderation</a> first. Then share one link on your website or README with a use limit, and make a new one when it fills up or expires.`],
+          rec("Invite people with invite links. A link lasts at most 30 days, and the current relay release, 0.3.0, can't cancel a single link early, so keep links short and limit how many people can use each one. You can also add someone by their npub on the server, without a link.", [
+            ["For one person", "Make a link for 1 use that expires after 1 day, and send it to them."],
+            ["For a group", "Make a link with a use limit, and make a new one when it fills up or expires. Anyone who gets it can join while it lasts."],
           ]) +
           ct("add") +
           CHANNELS +
@@ -446,6 +461,7 @@ const GROUPS: [string, Question[]][] = [
           ) +
           // links last 30 days at most (block/buzz crates/buzz-core/src/invite.rs); nothing revokes one (#8529 open)
           note("To cancel every invite link someone made, ban them. A ban cancels all of their links.") +
+          note(`Block has added a way to revoke a single link (<a href="https://github.com/block/buzz/pull/9680">block/buzz#9680</a>), and the Buzz 1.0.7 previews have a <b>Revoke</b> button for it. It needs a relay newer than 0.3.0, and no relay release has it yet.`) +
           note(PRIVATE_PEOPLE),
       },
       {
@@ -453,10 +469,11 @@ const GROUPS: [string, Question[]][] = [
         icon: "message-circle",
         q: "How should you welcome new members?",
         a:
-          rec("When someone joins from a phone, Buzz opens <code>welcome-everyone</code> first. Post what a new member needs to know there in one message, and keep <code>general</code> open for conversation.", [
-            [TEAM, "One welcome message is usually enough. Leave the channel open so people can reply and ask questions."],
-            [OPEN, "Make <code>welcome-everyone</code> view-only so your message doesn't get buried under replies, and have an agent send each new member a personal welcome."],
-          ]) +
+          rec("When someone joins from a phone, Buzz opens <code>welcome-everyone</code> first, so a message posted there is the first thing they see.", [
+            ["An open channel", "Members can reply to the welcome and ask questions there."],
+            ["A view-only channel", "People who join can read it but can't reply, so the welcome stays at the top."],
+            ["A welcome agent", "An agent can watch for new members and message each one, since Buzz can't greet them by itself."],
+          ], "How it works") +
           PHONE_JOIN +
           note("To make a channel view-only, open it, choose <b>Manage members</b> at the top, and set <b>General access</b> to <b>View only</b>. People who join after that can read the channel, but they can't post or react. People already in it keep their role, so set it before you invite anyone.") +
           VIEW_ONLY +
@@ -486,25 +503,34 @@ const GROUPS: [string, Question[]][] = [
       {
         id: "roles",
         icon: "crown",
-        q: "How should you set up roles?",
+        // what each role is and can do, without advice on who should hold it (owner's call of 2026-11-24:
+        // the guide hasn't worked with enough communities to recommend a setup)
+        q: "What are the membership roles?",
         a:
-          rec("Make the person who runs the server the owner. Owners and admins can create invite links and remove members. Regular members can't.", [
-            [TEAM, "Choose at least two admins, so someone is always around to add or remove people."],
-            [OPEN, "Only make someone an admin if you trust them to hand out invite links. Add the people who handle reports and bans as moderators under Staff instead."],
-          ]) +
+          rec(
+            "Everyone in a Buzz community is the owner, an admin or a member. Staff is a separate list in Buzz's moderation screens, for the people who moderate.",
+            [
+              ["Owner", "There's one owner, set on the server by whoever runs it. The owner can do everything an admin can, and only the owner can change someone's role."],
+              ["Admin", "Admins make invite links and remove members. They can also ban someone, time them out or delete their messages."],
+              ["Member", "Members post and report messages. They can't make invite links or remove anyone."],
+              ["Staff", "Staff lists operators and moderators. Moderators handle reports, bans and timeouts, and operators also add and remove staff. The owner counts as an operator."],
+            ],
+            "The roles",
+          ) +
           ROLES +
+          `<h4 class="ga-h">Change someone's role in Buzz</h4>` +
           ct("role") +
           note(`Staff is a list in Buzz's moderation screens, which work only on ${SCREENS_WHERE}. On other setups, the owner and admins ban people from the command line. See <a href="#operations" data-q-link="moderate">How do you moderate?</a>`) +
-          note("<b>Do you want to be the only one who invites people?</b> Don't make anyone an admin. Regular members can't make invite links, so only the owner can.") +
+          note("With no admins, only the owner can make invite links, because members can't.") +
           note(`The owner is set on the server, so only whoever runs the server can change it. After the change, the old owner stays on as an admin. Banning is done with the moderation tools instead. See <a href="#operations" data-q-link="moderate">How do you moderate?</a>`) +
           // block/buzz 0.3.0 crates/buzz-core/src/channel.rs decide_member_put: anyone who can post adds; only owners and admins grant admin
-          note("<b>Private channels have their own rules.</b> Anyone in a private channel can add people to it, except a guest. Only the channel's owners and admins can make someone an admin of it. So only put people in a private channel if you trust them to decide who else joins it."),
+          note("<b>Private channels have their own rules.</b> Anyone in a private channel can add people to it, except a guest. Only the channel's owners and admins can make someone an admin of it. So anyone you put in a private channel can decide who else joins it."),
       },
       {
         id: "moderate",
         icon: "shield",
         q: "How do you moderate?",
-        a: MODERATION + DOOR,
+        a: MODERATION + note(`To let only the agents you approve into the community, see <a href="#operations" data-q-link="agent-approve">Can you require approval before an agent joins?</a>`),
       },
       {
         id: "leave",
@@ -512,15 +538,15 @@ const GROUPS: [string, Question[]][] = [
         q: "What do you do when someone leaves?",
         a:
           rec("", [
-            [TEAM, "On their last day, go through the checklist below. It covers Buzz, Tailscale, Staff, the server and your team's shared password vault."],
-            [OPEN, "If someone leaves on their own, you don't need to do anything. If you remove someone for cause, ban them too, because removing them alone lets them rejoin with any invite link that's still active."],
+            ["They leave on their own", "Buzz needs nothing more from you. If they had access to the server, Staff, Tailscale or a shared vault, go through the checklist below."],
+            ["You remove them", "Ban them too, because removing them alone lets them rejoin with any invite link that's still active."],
           ]) +
           checklist([
             ["Hand over ownership", "Whoever runs the server makes someone else the owner first. The current owner can't be removed.", "if they were the owner"],
             ["Remove them in Membership", "In Buzz, open <b>Settings</b>, <b>Community admin</b>, <b>Membership</b>, choose the … on their row, then <b>Remove</b>. The click-through below shows each screen. Removing them disconnects them and their agents. They can still come back with any invite link that hasn't expired."],
             ["Remove them from Tailscale", "Remove their devices from your Tailscale network too.", "private network"],
             ["Remove them from Staff", "In Buzz, open <b>Settings</b>, <b>Moderation</b>, <b>Staff</b>, and remove them there.", "if they were on Staff"],
-            ["Ban them to keep them out", "A ban keeps them out even if they have a live invite link, and it cancels every link they made. Buzz can't cancel a single link on its own. Keep links short-lived and limited to the people you expect."],
+            ["Ban them to keep them out", "A ban keeps them out even if they have a live invite link, and it cancels every link they made. The current relay release, 0.3.0, can't cancel a single link on its own. Keep links short-lived and limited to the people you expect."],
             ["Remove their server and hosting access", "Remove their SSH key from the server and their account with your hosting provider. A copy of <code>.env</code> or a backup they kept still holds the server's passwords. Change any password they could have copied.", "if they had it"],
             ["Remove them from the shared password vault", "If your team keeps a copy of the server's <code>.env</code> file in a shared vault in your password manager, take away their access to that vault. The file holds the relay key and the server's passwords, so change those passwords too.", "if they could open it"],
           ]) +
@@ -529,7 +555,7 @@ const GROUPS: [string, Question[]][] = [
       },
     ],
   ],
-  // the six agent answers live in agents.ts, "How should we run agents?" first
+  // the agent answers live in agents.ts
   ["Agents", agentQuestions({ rec, note, ct })],
   [
     "Identity and keys",
@@ -540,9 +566,9 @@ const GROUPS: [string, Question[]][] = [
         q: "How should each person set up their identity?",
         a:
           rec("Each person has a private key, and that key is their identity in Buzz. Anyone who has the key can act as that person.", [
-            [TEAM, "Give each person one work identity. Make the key with nak, the open-source Nostr tool, so Block never gets a copy, and have each person save it in their own vault in a password manager your team approves."],
-            [OPEN, "Members bring their own key. Suggest they make one only for Buzz and save it in their password manager."],
-          ]) +
+            ["Making a key", "nak, the open-source Nostr tool, makes one on your computer, and Block never gets a copy. Create account in Buzz makes one with a Builderlab account, and Block can keep a copy."],
+            ["Keeping it", "Save the key in a password manager. Without a saved copy, a lost computer means a new identity."],
+          ], "How it works") +
           ct("identity") +
           KEYS +
           note("Never put a private key in a chat, an agent prompt, an issue or a screenshot.") +
@@ -553,16 +579,12 @@ const GROUPS: [string, Question[]][] = [
         icon: "user",
         q: "Can someone use a different identity in each community?",
         a:
-          rec("No. Buzz on desktop keeps one private key for each account on the computer, in the system's keychain, and uses it in every community you join. Installing a second copy of Buzz doesn't help, because every copy reads the same keychain entry. Each community can show its own name and picture for you, but all of them see the same npub.", [
-            [TEAM, "Give each person a work identity made with nak, and use it only for work communities."],
-            [OPEN, "If you also join open communities, decide whether they should see your work identity. If not, join them from a second account on your computer or from another device, each with its own key."],
-          ]) +
+          rec("No. Buzz allows one identity per computer, and it uses that identity in every community you join. Each community can show its own name and picture for you, but all of them see the same npub, so anyone in two of your communities can tell it's you.") +
           ONE_KEY +
           note("The keychain is the Keychain on a Mac, Credential Manager on Windows and the Secret Service on Linux. Buzz reads the key from there when it starts. It never keeps the key in a file.") +
           note("Preview builds of Buzz use the same keychain entry too. While a key is saved, Buzz won't create or import another one.") +
-          note("To use a different name or picture in one community, open <b>Settings</b>, <b>Profile</b> while that community is open. Other communities keep theirs. They still see the same npub, so anyone in two of your communities can tell it's you.") +
-          note("<b>Remove from device</b>, in <b>Settings</b>, <b>Identity</b>, deletes the key after Buzz restarts, for every community on that computer account. Sign in again with a saved copy of the key to get them back.") +
-          note("The <code>buzz</code> command line that comes with Buzz can run with a different key for scripts, set in <code>BUZZ_PRIVATE_KEY</code>. The app itself can't."),
+          note("To use a different name or picture in one community, open <b>Settings</b>, <b>Profile</b> while that community is open. Other communities keep theirs.") +
+          note("<b>Remove from device</b>, in <b>Settings</b>, <b>Identity</b>, deletes the key after Buzz restarts, for every community on that computer. Sign in again with a saved copy of the key to get them back."),
       },
       {
         id: "lost",
@@ -595,10 +617,11 @@ const GROUPS: [string, Question[]][] = [
         q: "Can you use single sign-on?",
         a:
           rec("Not yet. On your own relay, everyone signs in with their own key. The closest option is a private network, where your company login controls who can reach the relay at all.", [
-            [TEAM, "Put the relay on a private network and sign up for Tailscale with your company's identity provider. Then a person needs their company login and their key."],
-            [OPEN, "You don't need it. Members bring their own keys, and invite links and the member list decide who gets in."],
-          ]) +
+            ["The closest option", "Put the relay on a private network, and sign up for Tailscale with your company's identity provider. Then a person needs their company login and their key."],
+          ], "How it works") +
           `<div class="fq-status"><span class="fq-status-k">${icon("bolt")}In progress in Buzz</span><p>Buzz has company sign-in based on a draft standard, <a href="https://github.com/block/buzz/blob/main/docs/nips/NIP-FI.md">NIP-FI</a>. With it, your identity provider vouches for each person's key. The relay supports it behind a setting that's off by default. The Buzz app that Block publishes uses it only with Block's own sign-in service, for communities Block hosts. Another company's sign-in needs a build of the app made for it. A self-hosted community can't turn it on yet.</p></div>` +
+          // the owner's framing (2026-11-24): what follows is the next-best option while single sign-on can't be turned on
+          `<h4 class="ga-h">Without single sign-on, the next-best option is a private network</h4>` +
           LOCKS +
           steps([
             ["Run the relay on a private network", `Put the relay on a VPS, your own hardware or Kubernetes, and turn on <b>Private network</b> in this guide's setup. <a href="#guide" data-go-private>Set it up</a>.`],
@@ -612,9 +635,10 @@ const GROUPS: [string, Question[]][] = [
         q: "Can you require two-factor sign-in?",
         a:
           rec("Not yet. In Buzz, members sign in with their key only.", [
-            [TEAM, "Put the relay on a private network that asks for a second factor when people sign in."],
-            [OPEN, "Don't share anything sensitive in the community."],
-          ]) +
+            ["The closest option", "Put the relay on a private network whose login asks for a second factor. Then a person needs that login and their key."],
+          ], "How it works") +
+          // the same framing as single sign-on (owner's call, 2026-11-24)
+          `<h4 class="ga-h">Without two-factor sign-in, the next-best option is a private network</h4>` +
           TWO_FACTOR +
           steps([
             ["Run the relay on a private network", `Turn on <b>Private network</b> in this guide's setup. The relay then has no public address, and people reach it only through your Tailscale network. <a href="#guide" data-go-private>Set it up</a>.`],
@@ -652,10 +676,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "eye",
         q: "Who can read your messages?",
         a:
-          rec("Anyone who can get into the server, its database or its backups can read every message, including direct messages. Protect the server as carefully as you would the messages on it.", [
-            [TEAM, "Give two or three people access to the server, and consider a private network. Tell your team who can read direct messages."],
-            [OPEN, "Tell members that whoever runs the server can read every message, including direct messages. Don't promise them more privacy than that."],
-          ]) +
+          rec("Anyone who can get into the server, its database or its backups can read every message, including direct messages. Protect the server as carefully as you would the messages on it.") +
           READ +
           note(
             `Give as few people as possible access to the server. Turn on your provider's disk encryption, and encrypt your backups. Consider a private network, where the relay has no public address. Phone notifications carry no message text. Block's gateway does see your relay's public key, your server's IP address and when it wakes which phone. See <a href="#operations" data-q-link="block">What still depends on Block?</a>`,
@@ -671,12 +692,17 @@ const GROUPS: [string, Question[]][] = [
         id: "audit",
         icon: "list",
         q: "How do you keep a record of who did what?",
-        a:
-          rec("Keep the relay's audit log turned on, include it in your database backups, and keep your hosting provider's access logs.") +
+        a: () =>
+          rec("The relay records who did what in its database, in three places. Its audit log has an entry for every event it stores, such as a message, a reaction or a deletion, and for every file upload. Moderation actions and changes to relay staff each have a list of their own. Buzz has no screen for these records.", [
+            ["To keep them", "Leave the audit log on, which is the default, and include the database in your backups. Keep your hosting provider's logs too. They show who reached the server itself."],
+          ], "How it works") +
           LEDGER +
-          note(
-            "The audit log is on by default. It records each message, change and upload, with who made it. Each entry is chained to the one before it, so you can tell when an entry was damaged or edited. The log doesn't record sign-ins. Someone who can write to the database could rewrite the whole chain, so keep copies with your backups, off the server. Buzz has no screen for the audit log yet. Whoever runs the server reads it from the database.",
-          ),
+          // both fold, so the drawing stays the answer's one visible detail (owner's ask, 2026-11-24)
+          `<details class="fq-more fq-fold"><summary><span>What the audit log stores</span></summary>${FIELDS_HTML}<p class="ga-p fq-after">It doesn't hold message text, which stays in the events themselves. It doesn't record sign-ins.</p></details>` +
+          `<details class="fq-more fq-fold"><summary><span>How to read the records</span></summary><p class="ga-p">Whoever runs the server reads the audit log from the relay's database. Your agent can do it with this prompt.</p>${askHTML(trackOf(), "audit-read")}<p class="ga-p fq-after">The owner or an admin can list moderation actions with <code>buzz moderation audit</code>, the command line that ships with Buzz. See <a href="#operations" data-q-link="moderate">how to moderate</a>. The Moderation screens in Buzz show open reports and current bans and timeouts. They don't list past actions.</p></details>` +
+          note("Each entry stores a SHA-256 hash of its own fields and of the entry before it, so a changed or missing entry breaks the chain. Someone who can write to the database can still rebuild the whole chain, so keep copies with your backups, off the server.") +
+          note("<code>BUZZ_AUDIT_ENABLED=false</code> in the relay's <code>.env</code> turns the audit log off. The moderation and staff records continue.") +
+          note("Changes to relay staff, its operators and moderators, go to the third list: who granted or revoked a role, and the role before and after."),
       },
     ],
   ],
@@ -710,10 +736,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "terminal-2",
         q: "Who should have access to the server?",
         a:
-          rec("Anyone who can log in to the server can read every message, including direct messages, and every file. Give that access to as few people as possible: the person who runs Buzz and one backup.", [
-            [TEAM, "Pick two people from your team. Each one logs in with their own SSH key, and both turn on two-factor sign-in at your hosting provider."],
-            [OPEN, "Keep access to the maintainers who run the community, and tell members who they are. Members are trusting those people with their direct messages."],
-          ]) +
+          rec("Anyone who can log in to the server can read every message, including direct messages, and every file. Give that access to as few people as possible.") +
           ACCESS +
           checklist([
             ["Give each person their own SSH key", "Add each person's public key to the server, as in the drawing. Never share one key or one password between people. Then you can see who logged in, and remove one person without changing anyone else's access."],
@@ -727,10 +750,7 @@ const GROUPS: [string, Question[]][] = [
         icon: "link",
         q: "What still depends on Block?",
         a:
-          rec("Your relay runs without Block, but the Buzz apps, iPhone notifications and Builderlab accounts all come from Block. None of them gets your messages or files.", [
-            [TEAM, "Make keys with nak, so Block never gets a copy. Turn notifications off if Block can't be allowed to see when your team's phones get them."],
-            [OPEN, "Keep notifications on, so members hear about mentions and direct messages. Members can choose for themselves whether to sign in with a Builderlab account."],
-          ]) +
+          rec("Your relay runs without Block, but the Buzz apps, iPhone notifications and Builderlab accounts all come from Block. None of them gets your messages or files.", undefined, "How it works") +
           DEPS +
           note("If Block stopped running these services, your relay would keep running. You would lose app updates and phone notifications."),
       },
@@ -738,10 +758,13 @@ const GROUPS: [string, Question[]][] = [
   ],
 ];
 
+/** Answers taken out, and the answer their old links open: #agents is linked from a post (2026-11-24). */
+const MOVED: Record<string, string> = { agents: "agent-safe" };
+
 /** Answers whose details are steps to take; the break before the rest reads "Details". */
 const HOW_TO = new Set([
-  "add", "welcome", "notifications", "pair", "roles", "moderate", "leave",
-  "agent-brief", "agent-on", "agent-remote",
+  "add", "welcome", "notifications", "pair", "moderate", "leave",
+  "agent-brief", "agent-on", "agent-approve", "agent-remote",
   "identity", "lost", "leak", "sso", "two-factor",
   "backup", "restore", "upgrade", "move",
 ]);
@@ -878,14 +901,38 @@ export function mountFaq(host: HTMLElement): void {
     results.hidden = true;
     results.innerHTML = "";
   };
-  /** In the opened answer, mark what the search matched; open a fold that holds the first, and go to it. */
+  /** Whether this text holds the search: the whole phrase, or every word of it. */
+  const holds = (low: string) => (phrase().includes(" ") && low.includes(phrase())) || words.every((alts) => alts.some((t) => has(low, t)));
+  /**
+   * When only a click-through step that isn't drawn holds the search, go to that step, and show its place's
+   * steps if they're hidden (How do you keep an agent always online?). What's on screen already wins.
+   */
+  const toMatchingStep = () => {
+    if (holds(pane.innerText.toLowerCase())) return;
+    for (const slot of pane.querySelectorAll<HTMLElement>("[data-ct]")) {
+      const flows = CLICK_THROUGHS[slot.dataset.ct!] ?? [];
+      for (const [fi, f] of flows.entries()) {
+        const si = f.steps.findIndex((st) => holds(plain(`${st.k} ${st.t}`).toLowerCase()));
+        if (si < 0) continue;
+        state[slot.dataset.ct!] = [fi, si];
+        const steps = slot.closest<HTMLElement>(".ga-on-p[hidden]");
+        if (steps) showPlace(pane, steps.dataset.on!);
+        draw(slot);
+        return;
+      }
+    }
+  };
+  /** In the opened answer, mark what the search matched; open every fold that holds the first, and go to it. */
   const markHits = () => {
-    const low = (pane.textContent ?? "").toLowerCase().replace(/\s+/g, " ");
     if (!words.length) return;
+    toMatchingStep();
+    const low = (pane.textContent ?? "").toLowerCase().replace(/\s+/g, " ");
     if (!mark(marksFor(low)) && marksFor(low).length === 1) mark(words.flat());
     const first = pane.querySelector<HTMLElement>(".fq-mark");
     if (!first) return;
-    first.closest<HTMLDetailsElement>("details.fq-more")?.setAttribute("open", "");
+    for (let d = first.closest("details"); d; d = d.parentElement?.closest("details") ?? null) d.open = true;
+    const steps = first.closest<HTMLElement>(".ga-on-p[hidden]");
+    if (steps) showPlace(pane, steps.dataset.on!)?.querySelectorAll<HTMLElement>("[data-ct]").forEach(draw);
     const r = first.getBoundingClientRect();
     if (r.top < 80 || r.bottom > innerHeight - 40)
       first.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
@@ -930,14 +977,17 @@ export function mountFaq(host: HTMLElement): void {
   });
 
   // on a phone the answer opens under its question, like an accordion
-  const narrow = matchMedia("(max-width: 640px)");
+  // phones and tablets: the answer opens under its question (main.css has the same width)
+  const narrow = matchMedia("(max-width: 900px)");
   /**
-   * Which answer a link opens: #…&q=<id> as before, a short link, #<id> (#agents), or a part of an
-   * answer, #<id>-<part> (#agent-remote-steps). The longest id that fits wins, so #agent-remote is
-   * never read as a part of #agents. An element already on the page with the token as its id wins.
+   * Which answer a link opens: #…&q=<id> as before, a short link, #<id> (#agent-on), or a part of an
+   * answer, #<id>-<part> (#agent-remote-steps). The longest id that fits wins, so a longer id is never
+   * read as a part of a shorter one. An element already on the page with the token as its id wins.
+   * An answer taken out sends its old links to the nearest one (MOVED).
    */
   const byLength = [...all].sort((a, b) => b.id.length - a.id.length);
-  const target = (token: string): { q: string; part?: string } | null => {
+  const target = (raw: string): { q: string; part?: string } | null => {
+    const token = MOVED[raw] ?? raw;
     if (all.some((x) => x.id === token)) return { q: token };
     const owner = byLength.find((x) => token.startsWith(`${x.id}-`));
     return owner ? { q: owner.id, part: token } : null;
@@ -1017,8 +1067,8 @@ export function mountFaq(host: HTMLElement): void {
   };
 
   /**
-   * Two or more notes in a row fold under "Good to know" (the owner's ask of 2026-11-23: more compact).
-   * A single note stays out: it's often the step. Drawings and click-throughs never fold: they stay
+   * Notes in a row fold under "Good to know" (the owner's ask of 2026-11-23: more compact), a single
+   * note too (2026-11-24: detail notes get in the way). Drawings and click-throughs never fold: they stay
    * visible where the answer puts them (owner's call, 2026-11-23).
    * A click-through measures itself, so one inside a fold is drawn again when the fold opens.
    */
@@ -1032,10 +1082,6 @@ export function mountFaq(host: HTMLElement): void {
       }
       let j = i;
       while (isNote(kids[j])) j++;
-      if (j - i < 2) {
-        i = j;
-        continue;
-      }
       const group = kids.slice(i, j);
       const fold = document.createElement("details");
       fold.className = "fq-more";
@@ -1065,6 +1111,16 @@ export function mountFaq(host: HTMLElement): void {
       show(jump.dataset.qLink!, true);
       return showLink();
     }
+    // How do you keep an agent always online?: a place shows its own steps under the cards; again, hides them
+    const place = t.closest<HTMLButtonElement>(".ga-on-row[data-on]");
+    if (place) {
+      const steps = showPlace(pane, place.getAttribute("aria-pressed") === "true" ? null : place.dataset.on!);
+      if (!steps) return;
+      steps.querySelectorAll<HTMLElement>("[data-ct]").forEach(draw);
+      const r = steps.getBoundingClientRect();
+      if (r.top > innerHeight - 160) scrollTo({ top: r.top + scrollY - 90, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      return;
+    }
     // the example beside the instructions blank: a tap opens and closes it; its button fills the blank
     const tipUse = t.closest<HTMLButtonElement>(".ga-tip-use");
     if (tipUse) {
@@ -1084,7 +1140,7 @@ export function mountFaq(host: HTMLElement): void {
     // the upgrade prompt, for your agent
     const copy = t.closest<HTMLButtonElement>(".ag-copy");
     if (copy) {
-      copyText(copy.dataset.prompt === "agent-remote" ? remotePrompt() : promptText(trackOf(), (copy.dataset.task ?? "upgrade") as OpTask), () => {
+      copyText(copy.dataset.prompt === "agent-remote" ? remotePrompt() : copy.dataset.ask ? askText(trackOf(), copy.dataset.ask as AskKey) : promptText(trackOf(), (copy.dataset.task ?? "upgrade") as OpTask), () => {
         copy.textContent = "Copied";
         window.setTimeout(() => (copy.textContent = "Copy prompt"), 1600);
       });
@@ -1177,6 +1233,8 @@ export function mountFaq(host: HTMLElement): void {
     if (open !== t.q) show(t.q);
     const part = t.part ? document.getElementById(t.part) : null;
     part?.closest<HTMLDetailsElement>("details.fq-more")?.setAttribute("open", "");
+    const steps = part?.closest<HTMLElement>(".ga-on-p[hidden]");
+    if (steps) showPlace(pane, steps.dataset.on!)?.querySelectorAll<HTMLElement>("[data-ct]").forEach(draw);
     if (t.part) return part ? t.part : null;
     return narrow.matches ? `fq-tab-${t.q}` : "fq-pane";
   });

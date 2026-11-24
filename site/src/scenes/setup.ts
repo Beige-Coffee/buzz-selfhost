@@ -1,5 +1,5 @@
 import { FIXES, STEPS, type StepDef } from "../data/steps";
-import { fill, fillRich, getValues, setValues, onValues, renderTemplates, stepHash, trackOf, type Track } from "../lib/values";
+import { esc, fill, fillRich, getValues, setValues, onValues, renderTemplates, stepHash, trackOf, type Track } from "../lib/values";
 import { linkButton } from "../lib/permalink";
 import { enhanceCode } from "../lib/code";
 import { joinMockHTML } from "./joinmock";
@@ -17,6 +17,31 @@ interface Slot {
  * step. Collapsed, one line where they were brings them back.
  */
 const UP = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+const CHEV = `<svg class="st-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+
+/**
+ * A step, lighter (the owner's pick of 2026-11-24): its commands stay in view, each later one under the
+ * first sentence that leads into it, and every paragraph moves behind Show details, in order. Commands
+ * nested in a list stay with their list, in the details.
+ */
+function splitStep(html: string): { shown: string; details: string } {
+  const box = document.createElement("template");
+  box.innerHTML = html;
+  const kids = [...box.content.childNodes].filter((n) => n.nodeType === Node.ELEMENT_NODE || (n.textContent ?? "").trim()) as (Element | Text)[];
+  const isCmd = (n: Node | undefined) => n instanceof Element && n.matches("pre.cmd");
+  const shown: string[] = [];
+  const details: string[] = [];
+  kids.forEach((n, i) => {
+    const html = n instanceof Element ? n.outerHTML : `<p>${esc(n.textContent ?? "")}</p>`;
+    if (isCmd(n)) return void shown.push(html);
+    details.push(html);
+    if (isCmd(kids[i + 1]) && shown.length) {
+      const lead = (n.textContent ?? "").trim().split(/(?<=[.:])\s/)[0];
+      if (lead.replace(/[^a-z]/gi, "").length >= 12) shown.push(`<p class="st-cap">${esc(lead)}</p>`);
+    }
+  });
+  return { shown: shown.join(""), details: details.join("") };
+}
 
 export function mountSetup(host: HTMLElement): void {
   const guide = document.getElementById("guide")!;
@@ -38,12 +63,15 @@ export function mountSetup(host: HTMLElement): void {
     const steps = STEPS.filter((s) => s.tracks.includes(track));
 
     const stepHTML = (s: StepDef, n: number): string => {
+      const part = splitStep(s.html);
       return `<li class="tl-step" id="step-${s.id}">
         <span class="tl-n" aria-hidden="true"><span>${n}</span></span>
         <div class="tl-body">
           <h3>${s.title}${s.badge ? ` <span class="badge">${s.badge}</span>` : ""}${linkButton(stepHash(track, s.id), `Copy a link to step ${n}`)}</h3>
-          <div class="tl-md" ${slot(s.html, true)}></div>
+          <p class="st-sum">${s.summary}</p>
+          ${part.shown ? `<div class="tl-md" ${slot(part.shown, true)}></div>` : ""}
           ${s.joinMock ? joinMockHTML() : ""}
+          ${part.details ? `<details class="st-more"><summary>${CHEV}<span class="st-show">Show details</span><span class="st-hide">Hide details</span></summary><div class="tl-md st-rest" ${slot(part.details, true)}></div></details>` : ""}
         </div>
       </li>`;
     };
@@ -58,7 +86,7 @@ export function mountSetup(host: HTMLElement): void {
         <summary>Steps</summary>
         <div class="tl-in">
           <p class="tl-foot"><button type="button" class="tl-fold" aria-expanded="true" aria-controls="tl-steps">${UP}Collapse steps</button></p>
-          <ol class="tl">${steps.map((s, i) => stepHTML(s, i + 1)).join("")}</ol>
+          <ol class="tl st">${steps.map((s, i) => stepHTML(s, i + 1)).join("")}</ol>
           <details class="tl-fail tl-fixes" id="fixes">
             <summary>If a step fails</summary>
             <dl>${fixes.map((f) => `<dt ${slot(f.symptom, true)}></dt><dd ${slot(f.fix, true)}></dd>`).join("")}</dl>

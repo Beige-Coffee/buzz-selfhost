@@ -7,7 +7,8 @@ import { onValues, trackOf } from "../lib/values";
  * the chart. No dates (owner's call of 2026-11-23: versions, not when tests ran). The image and the chart come from the skill, so they can't drift
  * from the commands. What each setup's tests cover stays one click away, in tests/README.md.
  */
-const APP = "1.0.0";
+// Buzz 1.0.5: the version the drawings and the moderation console were last checked against (tests/README.md, 2026-11-23)
+const APP = "1.0.5";
 const COVERAGE = "https://github.com/Beige-Coffee/buzz-selfhost/blob/main/tests/README.md";
 
 export function mountChecked(host: HTMLElement): void {

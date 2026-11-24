@@ -504,6 +504,28 @@ under a banner that none of them receives your messages or files; roles have rol
 marks; the backup drawing has an icon for each thing it holds. The phones answer says plainly that
 Block never sees your messages, with what its gateway sees and never sees side by side.
 
+Also 2026-11-23, the owner's review: "Can someone use a different identity in each community?" says
+plainly that Buzz allows one identity per computer, and offers no workarounds such as a second
+computer account or another device. Its drawing shows that one identity and the same npub in two
+communities. "How do you run an agent on your own server?" opens with a sentence instead of a status
+pill: the Buzz app has no simple way to launch an agent on a server you host, so you set it up
+yourself, and the agent needs Sprig and an ownership proof. The leak and move drawings are path
+cards: a situation, then its steps in order, with a check for how a move ends well and red dots for
+what a new domain costs.
+
+Also 2026-11-23, from three mockups, the owner picked titles first for keeping an agent safe: each
+risk is a row with its icon and level, and opens to its explanation; the first starts open. Search
+opens every fold that holds its first match, these rows included.
+
+Also 2026-11-23, a phone pass over every section and answer (owner's ask, after the copy button
+covered a command on an iPhone): a code block's copy button sits in its own column beside the code,
+and a command wider than its box scrolls with a fade at its edge. The header and the menu are solid
+white on phones, because text showed through them. At 900px and narrower, each answer opens under
+its question, because a tablet's side list squeezed the questions. The relay key's note stays inside
+its card on a 320px screen, which had made the whole page scroll sideways. Smaller fixes: the relay
+key card, the setup switch, the three steps of running your own agent, and the drawings for who can
+read messages, one identity and General access.
+
 Also 2026-11-23: Running your relay has a search over the questions (owner's ask). It searches each
 answer's text for the current setup, its folds and every click-through step, ranks title matches
 first, and shows a snippet per result; opening one marks the matches and opens a fold that holds the
@@ -608,7 +630,92 @@ must point at block/buzz instead of Beige-Coffee/buzz-selfhost.
   Spiral's open-source PMs asked for the why up front; a longer two-by-two version took too much
   room. Reworded on 2026-11-06 (The launch review). On 2026-11-23 the owner cut "even if Block
   moves on" and replaced "your decisions, free to switch to a fork" as vague: no lock-in now
-  reads "Your data, your code. Free to change anything you like".
+  reads "Your data, your code. Free to change anything you like". On 2026-11-24 the owner
+  picked "Your data sits in your own database, and the code is open source" instead, since
+  changing anything was already the customize card's point.
+- Block's hosted option is named Builderlab (owner's call, 2026-11-24). Block's support pages
+  call it hosted communities, run through Builderlab, and buzz.xyz is the product and support
+  site. How it works, the setup question's hint and the skill now say Builderlab.
+- Choose by requirements recommends Builderlab to someone who wants no infrastructure (owner's
+  call, 2026-11-24). "Where will it run?" has a Block's servers answer. It hides the connect
+  question, and its card says what Block holds, that a hosted community can't move later
+  (#6803), and links to Block's own guide.
+- The Setup section is calmer (owner's pick of 2026-11-24, from three mockups, with his changes). The
+  agent path opens with Before you start: one chip per item, each opening to its key facts, any
+  warning, and the rest in folds inside it. The server chip says the four providers are examples
+  and any provider works if the server matches. Then three stacked steps: Install the skill, Paste
+  the prompt (the whole prompt, with its blanks), and Answer when it stops, which lists everything
+  the agent does in order, each opening to what happens. Follow the steps yourself shows each step
+  as a card: its title, a one-line summary (src/data/summaries.ts, which the build requires for
+  every step), its commands, and the paragraphs behind a Show details button.
+- The site says it isn't Block's (owner's call, 2026-11-24), as plugins.buzz does: "A community
+  project, not an official Buzz or Block site." in a dark line above the nav and in the footer. The
+  README and SKILL.md say the same, with no one named as the author.
+- "How should you set up roles?" became "What are the membership roles?" (owner's call, 2026-11-24): the guide
+  hasn't worked with enough communities to recommend who should hold which role. Its dark card,
+  labeled The roles instead of Recommended, says what the owner, admins, members and Staff are and
+  can do. The table and the click-through stay, and the notes describe rather than advise. "How do
+  you moderate?" got the same treatment: its card, labeled How it works, says what the tools do and
+  where each works (the moderation screens, or the buzz command line), with no advice per kind of
+  community. The other Operations answers lost their Private team and Open community rows the same
+  day. Where a card describes, it's labeled How it works, and its rows split by situation (one person
+  or a group, notifications on or off, an open or view-only welcome channel); where its advice follows
+  from how Buzz works (keep links short, ban when you remove, keep server access small), it stays
+  Recommended. The agent answers keep their rows: they rest on the security guidance (what a
+  stranger's message can make an agent do) and on the providers' own terms, not on how a community
+  runs.
+- How do you keep a record of who did what? now says what the relay records and how to read it
+  (owner's ask, 2026-11-24), from block/buzz's source: the audit log (every stored event and every
+  upload, with who, what, which object and a hash chain; `BUZZ_AUDIT_ENABLED`, on by default; no
+  message text and no sign-ins), the moderation actions and the staff changes. Buzz has no screen for
+  any of them; its Moderation screens show open reports and current restrictions only. A prompt asks
+  your agent to read the audit log, and operations.md gained `buzz moderation audit` (not tested).
+- Can you require approval before an agent joins? says plainly that it's a relay setting,
+  `BUZZ_ALLOW_NIP_OA_AUTH`, on in Block's bundle and chart (owner's question, 2026-11-24). Adding the
+  agents to keep comes first in its drawing, since the rest are locked out. A prompt for your agent
+  follows, with the setup menu the operations answers use; the skill's operations.md holds the steps
+  and asks which agents to keep. "What members see" names the relay's refusal and Buzz's Couldn't
+  finish. The build checks the operations.md sentences it rests on (OPERATIONS_SAYS). No drawing of
+  the error yet: none was captured, and drawings follow real captures.
+- "How do you keep an agent safe?" became "How do you keep your data and community safe with agents?"
+  (owner's calls, 2026-11-24): the risk is to your data and your community, not to the agent, and the
+  answer explains rather than picks. Its card, labeled How it works, says an agent runs with no sandbox
+  and doesn't ask before it acts, and gives each community's threat profile: in a private team, a
+  shared document or a taken-over account can still carry a trick, and in an open community anyone
+  can (security.md: the same care, with less urgency). "Where it can run" then gives four places, each
+  with what the agent can reach there and what that puts at risk: the computer you use every day, a
+  spare computer or a virtual machine, Block's hosting and your own server. "The risks" keeps to
+  risks. Nothing suggests giving an agent only some files on your own computer: Buzz gives it no
+  sandbox (Codex runs with danger-full-access and approval policy never, Claude with
+  bypassPermissions), and its workspace is only the folder it starts in. The wording stays with what
+  the source shows: your files, your SSH keys and the tools you're signed in to, not every file or
+  every saved login, since macOS still asks before some folders and most saved passwords.
+- How do you keep an agent always online? lets you choose a place (owner's ask of 2026-11-24): each card
+  shows its own steps under the cards, and choosing it again hides them. Your laptop, A computer that
+  stays on and Hosted by Block are click-throughs of Buzz's screens; Your own server leads to its own
+  answer. A computer that stays on is no longer Recommended or highlighted. The click-throughs reuse
+  the first-run drawings from the identity answer and the Agents drawings, plus two from a capture of
+  Buzz 1.0.6 that day: the Harness menu (Builderlab under Remote; Claude, Codex and Goose under Local)
+  and Create agent with Codex. Nothing was created during the capture. The hosted steps follow
+  Builderlab's README (block/buzz-app, 2026-11-19), and the build checks the skill sentences the other
+  steps rest on. A link to a part inside hidden steps (`#agent-on-steps`) shows them, and a search that
+  only a click-through's later step holds opens that step.
+- How should you run agents? is out for now (owner's call, 2026-11-24). Its overview of four kinds of
+  agent read as vague, and a rewrite as four rules per community, behind a Private team and Open
+  community switch, didn't make the cut either. The rules were: a computer of its own, only what its
+  job needs, a provider the team approves and a team agent on a server; in an open community, always
+  a separate computer, never a private channel, a helper's own key, and a choice about members' agents.
+  The Security section's first rule links to How do you keep an agent safe? instead, and an old
+  `#agents` link opens that answer too (faq.ts, MOVED), since a post links to it.
+- "How should you write an agent's instructions?" became "How can you instruct your agents?" (owner's
+  call, 2026-11-24): what to write is a matter of taste. Its card, labeled How it works, says where the
+  instructions go and that Buzz's own rules come first. Tips follow the click-through: each line of the
+  skill's example carries the tip from Block's support page it follows, the dark card lists the rules
+  you can leave out, and a card says what to add in an open community.
+- Every note folds under Good to know, a single one too (owner's ask, 2026-11-24: detail notes get in
+  the way). Approving each agent left How do you moderate? for a question of its own in Agents, "Can
+  you require approval before an agent joins?", with the two settings as cards and the catches as
+  notes. How do you moderate? links to it.
 - The site never talks about testing (2026-10-25): the tests are why its advice can be trusted,
   not part of the advice. The skill and these docs keep their test notes, since agents and
   maintainers use them; `site/build/skill.ts` (`UNTESTED`) strips them from the skill text the

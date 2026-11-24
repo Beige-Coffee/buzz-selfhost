@@ -12,7 +12,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Run your own Buzz">
   <meta property="og:title" content="Run your own Buzz">
-  <meta property="og:description" content="Set up Buzz, open-source team chat for people and their agents, on your own server with an agent skill, plus best practices for people, agents and security.">
+  <meta property="og:description" content="Buzz is an open-source workspace for people and their agents, running on a relay you own. This guide sets one up on a VPS, your own hardware or Kubernetes, with practices for people, agents and security.">
   <meta property="og:url" content="https://self-host.buzz/">
   <meta property="og:image" content="https://self-host.buzz/og.png">
   <meta property="og:image:width" content="1200">
@@ -26,6 +26,7 @@
 </head>
 <body>
 
+<p class="notice">A community project, not an official Buzz or Block site.</p>
 <header class="hd">
   <a class="hd-brand" href="#top" aria-label="Run your own Buzz home"><svg viewBox="0 0 466 309" aria-hidden="true"><use href="#bee"/></svg><span>Run your own Buzz</span></a>
   <nav class="hd-nav" aria-label="Sections">
@@ -53,14 +54,14 @@
 
   <section class="hero">
     <h1>Run Buzz on <mark>your own</mark> server</h1>
-    <p class="lede">Buzz is open-source team chat for people and their agents. This guide sets it up on a VPS, your own hardware or Kubernetes, with best practices for people, agents and security. Hand the steps to your coding agent, or run them yourself.</p>
+    <p class="lede">Buzz is an open-source workspace for people and their agents, running on a relay you own. This guide sets one up on a VPS, your own hardware or Kubernetes, with practices for people, agents and security. Give the steps to your coding agent, or follow them yourself.</p>
     <div class="hero-cta">
       <a class="btn" href="#where">Set it up<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9.5M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       <a class="btn ghost" href="#how">How it works</a>
     </div>
     <ul class="why" aria-label="Why run your own">
       <li><b>Independent of Block</b><span>Your relay keeps running without Block</span></li>
-      <li><b>No lock-in</b><span>Your data, your code. Free to change anything you like</span></li>
+      <li><b>No lock-in</b><span>Your data sits in your own database, and the code is open source</span></li>
       <li><b>Yours to customize</b><span>Need a feature? Build it yourself instead of waiting</span></li>
       <li><b>Control your data</b><span>You choose the server, membership and access rules</span></li>
     </ul>
@@ -78,7 +79,7 @@
     <div class="story-stage"></div>
     <div class="story-steps">
       <div class="story-step" data-state="intro"><span class="n">01</span><p>A <b>relay</b> is the server a Buzz community runs on. It checks that each sender is a member, stores the message, and delivers it to everyone in the channel.</p></div>
-      <div class="story-step" data-state="hosted"><span class="n">02</span><p>On <b>buzz.xyz</b>, Block runs the relay for you: nothing to install, and your data lives on Block's servers. It's one way to run Buzz, not the only one.</p></div>
+      <div class="story-step" data-state="hosted"><span class="n">02</span><p>On <b>Builderlab</b>, Block's hosted service, Block runs the relay for you. You install nothing, and your data lives on Block's servers. It's one way to run Buzz.</p></div>
       <div class="story-step" data-state="self"><span class="n">03</span><p><b>Self-hosted</b>, the same message goes to a relay you run, on a rented server or your own hardware. The messages, the files and the relay's key live on your server.</p></div>
       <div class="story-step" data-state="inside"><span class="n">04</span><p>What's inside your relay<span class="parts-lead">:</span><span class="parts-alt">, layer by layer.</span></p>
         <ul class="parts">
@@ -90,7 +91,7 @@
         </ul>
 </div>
       <div class="story-step" data-state="repo"><span class="n">05</span><p>Every part of Buzz is <b>open source</b>, under the Apache 2.0 license, on GitHub: the relay and the phone apps in <a href="https://github.com/block/buzz">block/buzz</a>, and the Buzz app in <a href="https://github.com/block/buzz-app">block/buzz-app</a>. That's what lets you clone the code and run it yourself.</p></div>
-      <div class="story-step" data-state="run"><span class="n">06</span><p>So you don't need Block to run it. Clone block/buzz, add your values, and start the relay on a machine you control. Your team joins from the Buzz app. The guide below walks you through it.</p></div>
+      <div class="story-step" data-state="run"><span class="n">06</span><p>So Block doesn't have to run it for you. Clone block/buzz, set your domain, and start the relay on a machine you control. Your team joins from the Buzz app. The guide below walks you through it.</p></div>
     </div>
   </section>
 
@@ -151,7 +152,7 @@
   <section class="block reveal" id="operations" data-mode="agent">
     <div class="text">
       <h2>Running your relay</h2>
-      <p class="sub">Recommended setups for people, keys, data and the server, and how to set them up. Best practices are based on community feedback from people already running Buzz. Treat them as a starting point, and feel free to experiment.</p>
+      <p class="sub">Recommended setups for membership, keys, data, agents, and your Buzz server. Best practices are based on community feedback from people already running Buzz.</p>
     </div>
     <div class="wide" data-widget="faq"></div>
   </section>
@@ -175,7 +176,7 @@
       <p class="ft-links"><a href="https://github.com/Beige-Coffee/buzz-selfhost">Source on GitHub</a><a href="https://github.com/Beige-Coffee/buzz-selfhost/issues/new">Report a problem</a></p>
     </div>
   </div>
-  <p class="ft-base">An <a href="https://agentskills.io">Agent Skill</a> in the open standard, for <a href="https://github.com/block/buzz">Buzz</a>, Block's open-source team chat. <a href="https://github.com/Beige-Coffee/buzz-selfhost/blob/main/LICENSE">Apache-2.0</a>.</p>
+  <p class="ft-base">A community project, not an official Buzz or Block site. An <a href="https://agentskills.io">Agent Skill</a> in the open standard, for <a href="https://github.com/block/buzz">Buzz</a>, Block's open-source workspace for people and their agents. <a href="https://github.com/Beige-Coffee/buzz-selfhost/blob/main/LICENSE">Apache-2.0</a>.</p>
 </footer>
 
 </body>

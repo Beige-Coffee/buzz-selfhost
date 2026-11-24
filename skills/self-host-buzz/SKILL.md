@@ -22,6 +22,7 @@ an `.env` file (the relay key and passwords). This skill installs one, checks ev
 day-two tasks. Test records name the versions and setups exercised; source review and syntax
 checks do not establish a successful install or restore on a newer image. Read the
 [security guidance](references/security.md) before opening invitations or connecting an agent.
+This skill is a community project, not an official Buzz or Block skill.
 
 People use the relay from the Buzz desktop app. These steps describe Buzz 1.0
 ([block/buzz-app](https://github.com/block/buzz-app/releases/latest)), released as stable v1.0.0 on
@@ -73,8 +74,9 @@ Unless the user already said, ask the guide's three questions, in order, and ski
 settles:
 
 1. **What it's for:** trying Buzz themselves, or a community people will use. Trying it is a local
-   test on this computer, and the other two don't apply. Neither a test nor a community on
-   buzz.xyz can move to a server later: a server starts a new community.
+   test on this computer, and the other two don't apply. Neither a test nor a community
+   hosted on Builderlab, Block's hosted service, can move to a server later: a server starts a new
+   community.
 2. **Where it runs:** a server they rent (a VPS), a machine they own, or their Kubernetes cluster.
    Anything else isn't covered here; the closest is a VPS.
 3. **How people connect:** over the internet, for a team or an open community, or only through

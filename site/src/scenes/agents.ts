@@ -53,7 +53,7 @@ export interface AnswerKit {
  * Who lets agents in (block/buzz 0.3.0): with BUZZ_ALLOW_NIP_OA_AUTH on, as the bundle and the chart
  * ship it, a member's agents get in with their owner's proof; off, only keys on the member list do
  * (handlers/auth.rs). A key on the list counts as a person: no owner recorded, 60 messages a minute
- * instead of an agent's 120 (buzz-auth rate_limit.rs). Buzz 1.0.5 shows a refused agent's turn as
+ * instead of an agent's 120 (buzz-auth rate_limit.rs). Buzz 1.0.6 shows a refused agent's turn as
  * "Couldn't finish", and opening it shows the relay's reason (ActivityOutcome.tsx; REFUSED draws the
  * capture). Its own question since 2026-11-24 (owner's ask).
  */
@@ -66,7 +66,7 @@ const DOOR = (() => {
 })();
 
 /**
- * What a member sees when the relay refuses their agent, as Buzz 1.0.5 shows it (captured 2026-11-24 on a
+ * What a member sees when the relay refuses their agent, as Buzz 1.0.6 shows it (captured 2026-11-24 on a
  * local relay with BUZZ_ALLOW_NIP_OA_AUTH=false): the agent's turn ends in "Couldn't finish", and opening
  * it shows the relay's reason, with View activity, Retry and a close button. An agent or person with no
  * picture shows its first letter. The names and the question are placeholders.

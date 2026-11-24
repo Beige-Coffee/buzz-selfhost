@@ -600,7 +600,7 @@ everything they found. The main changes:
 - On phones, the setup menu and the local test's agent rows no longer push the page sideways at
   320px.
 - "Can you require approval before an agent joins?" shows what members see, drawn from a capture in
-  Buzz 1.0.5 on a local relay with `BUZZ_ALLOW_NIP_OA_AUTH=false`: the agent's turn ends in
+  Buzz 1.0.6 on a local relay with `BUZZ_ALLOW_NIP_OA_AUTH=false`: the agent's turn ends in
   "Couldn't finish", and opening it shows the relay's reason. The site had said Buzz doesn't say why.
 - The page drops the skill's "(not tested)" notes and says each "In testing" note as what happens
   (`CURRENT` in `site/build/skill.ts`). The build fails on a new one, so each gets a rule.

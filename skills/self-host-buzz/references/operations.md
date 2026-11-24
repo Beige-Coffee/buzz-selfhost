@@ -312,7 +312,7 @@ Run these commands from `buzz/deploy/compose`, the bundle's folder. In `private`
   (above). The chart has no admin name for Buzz's moderation screens. This guide doesn't cover
   those screens on Kubernetes.
 - **Read the audit log.** As on Compose (above), this shows the 50 newest entries of the relay's
-  `audit_log` table. It reads the table and changes nothing (not tested).
+  `audit_log` table. It reads the table and changes nothing (tested on relay 0.3.0).
   ```bash
   echo "select created_at, action, encode(actor_pubkey, 'hex') as actor, object_id, detail from audit_log order by created_at desc limit 50" |
     kubectl -n buzz exec -i buzz-postgresql-0 -- sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U buzz -d buzz'

@@ -101,6 +101,31 @@ adds Traefik and cert-manager), and a domain at the ingress; `<ip>.sslip.io` wor
 KUBECONFIG=path/to/kubeconfig BUZZ_CLI=path/to/buzz bash tests/smoke-k8s.sh <domain> [image-tag]
 ```
 
+## Results, 2026-11-24: the launch review
+
+After the launch review's fixes to the skill, on the published `0.3.0` image at the digest in
+SKILL.md. The owner approved the runs and their cost first. Both ran on DigitalOcean in sfo2,
+driven from an Apple Silicon Mac with the `buzz` CLI from Buzz 1.0.6, and both were deleted after.
+Run logs now stamp the time in UTC.
+
+| Run | Result | Record |
+| --- | --- | --- |
+| Public VPS, a fresh install | **Passed**, 112 of 112 | [log](runs/2026-11-24-2224-vps-0.3.0.log) |
+| Kubernetes, on one node, after kubernetes.md step 1 installed Traefik and cert-manager | **Passed**, 28 of 28 | [log](runs/2026-11-24-2236-k8s-0.3.0.log) |
+
+Deleting the cluster with `doctl kubernetes cluster delete --dangerous` removed its node and its load
+balancer, but left its four volumes, as kubernetes.md warns. They were then deleted by hand.
+
+After each run, operations.md's audit-log query, on Compose and on Kubernetes, listed the relay's
+newest entries (`event_created` and `media_uploaded`). On the VPS, `buzz moderation audit`, run with a key added as an admin,
+listed a timeout given with `--reason`. The relay saved that reason as the public reason, although
+the command's help calls it private.
+
+On a local test relay with `BUZZ_ALLOW_NIP_OA_AUTH=false`, a new agent made in Buzz 1.0.6 couldn't
+connect. Its turn ended in "Couldn't finish", and opening that showed "The community refused the
+agent event: You must be a relay member to access this relay". Deleting the agent didn't finish
+until the setting was back on. The setting and the agent were then put back as they were.
+
 ## Results, 2026-11-23: Buzz 1.0.5's screens
 
 The site's drawings of Buzz were checked against Buzz 1.0.5 on a Mac, screen by screen: Settings,

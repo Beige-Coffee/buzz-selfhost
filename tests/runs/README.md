@@ -10,6 +10,8 @@ on Oct 5, with secrets masked.
 
 | When (PDT) | Run | Relay version | Result |
 |---|---|---|---|
+| Nov 24 22:36 UTC | [Script: Kubernetes, on one node](2026-11-24-2236-k8s-0.3.0.log) | `0.3.0` | 28 of 28, after the launch review's skill changes. kubernetes.md step 1's install block ran first, as written. The audit-log query in operations.md then listed the relay's newest entries. |
+| Nov 24 22:24 UTC | [Script: public VPS, a fresh install](2026-11-24-2224-vps-0.3.0.log) | `0.3.0` | 112 of 112, after the launch review's skill changes, with backup folders named for the date and time. Then the audit-log query listed the newest entries, and `buzz moderation audit` as an admin listed a timeout. |
 | Nov 12 16:54 PST | [Script: private network](2026-11-12-1654-private-0.3.0.log) | `0.3.0` | 55 of 55, with the image, its digest and its commit taken from SKILL.md after the pin moved. Nothing public answered, and the relay offered phone notifications over the tailnet. |
 | Nov 12 16:33 PST | [The owner's checks on a public VPS: Staff, phone pairing, a locked phone](2026-11-12-1633-owner-checks-public-vps.md) | `0.3.0` | Passed. As owner he saw Reports, Feedback, Communities and Staff, with himself under Staff. His iPhone asked for the six digits and paired with Codes match. Locked, it showed a DM and a mention with their text, and Block's gateway accepted both wakes. About $0.11, then the droplet was deleted. |
 | Nov 12 16:31 PST | [Script: Kubernetes, on one node](2026-11-12-1631-k8s-0.3.0.log) | `0.3.0` | 28 of 28. The test runs kubernetes.md step 3's own values block: the relay and the file store both ran at their pinned digests, and step 6's image check passed. |

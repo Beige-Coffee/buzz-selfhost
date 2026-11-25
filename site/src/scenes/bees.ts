@@ -15,7 +15,7 @@ const HOMES: [number, number, number, number][] = [
 ];
 const COLORS = ["#231e1e", "#d7d72e", "#8d8d2c", "#7093cc"];
 
-const BEE = `<span class="bee-sprite">
+export const BEE = `<span class="bee-sprite">
   <span class="bee-wing-layer bee-wing-layer-left"><svg class="bee-wing bee-wing-left" viewBox="0 0 183.4 183.4"><circle cx="91.7" cy="91.7" r="91.7"/></svg></span>
   <span class="bee-wing-layer bee-wing-layer-right"><svg class="bee-wing bee-wing-right" viewBox="0 0 183.4 183.4"><circle cx="91.7" cy="91.7" r="91.7"/></svg></span>
   <svg class="bee-body" viewBox="0 0 466 309"><rect x="128" y="0" width="210" height="309" rx="34" mask="url(#bee-mask)"/></svg>

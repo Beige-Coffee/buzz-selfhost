@@ -63,20 +63,18 @@ done: the work they call for is listed where it is still owed.
 - **Upgrades into migration 0086 follow Block's note**, as corrected below.
 - **The launch gets a version tag.** Done on 2026-11-13: `v1.0.0` on the commit deployed to
   self-host.buzz that day, after the owner approved publishing.
-- **A place to ask** is the page's last section, and in the menu as Ask. It shows how to join
-  Block's feedback community for Buzz in three steps, each under a still drawing: Block's invite
-  page, Buzz's community list, and the channel. The owner picked the look from three mockups. The
-  invite is Block's public one, from the Buzz app's README. Step 1 says what the invite asks: 18
-  or older, and Buzz's terms. One line carries the skill's caution about keys: signed in to
-  Builderlab, Buzz backs up a key to Block once its owner joins a community Block hosts. Two ways
-  round follow: pasting the invite into Join a community, and a GitHub issue for someone who
-  would rather not join. Joining needs no Builderlab sign-in for someone who already has a Buzz
-  identity: the community's public settings say so and Buzz 1.0.0 follows them
-  ([research.md](research.md)), so the section does not ask for one. Held back from the page on
-  2026-11-13: the section, its menu entries and `ask` in `site/src/lib/nav.ts` came out in one
-  commit, and its code stays, so reverting that commit brings it back. Owed before it returns: the
-  channel's real name (`CHANNEL` in `site/src/scenes/ask.ts` is a placeholder, since the channel
-  does not exist yet) and Block's agreement to send readers there.
+- **Community** is the page's last section, in the menu as Community, and the hero links to it.
+  It sends readers to #self-hosting, a channel in the buzz community that Block hosts
+  (`buzz.communities.buzz.xyz`), at the owner's request on 2026-11-24, with the invite the owner
+  gave. The owner picked the look from six mockups: a drawing of Buzz 1.0.6 open on the channel,
+  with the invite pinned to its corner (Open the invite, Copy invite, and Share, which opens the
+  device's share sheet where there is one), then three steps. The opening screen's flapping bees
+  buzz around the drawing, behind it, only while it's on screen, and not for reduced motion. The
+  earlier section's notes stay: what the invite asks (18 or older, and Buzz's terms), the skill's
+  caution that Buzz backs up a Builderlab-signed key to Block once its owner joins a community
+  Block hosts, and a GitHub issue for someone who would rather not join. Owed before it goes live:
+  the channel itself, and step 2's clicks checked in Buzz once it exists. This replaces A place to
+  ask, held back on 2026-11-13, which pointed at Block's feedback community.
 - **Agents get their own group in Running your relay.** People asked what to tell an agent, which
   harness to pick, how to keep one answering, how to keep it safe, and how to run one on a server
   without Buzz, including one that showed as a person and never answered. The owner picked the

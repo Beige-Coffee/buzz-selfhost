@@ -1,107 +1,127 @@
 import leo from "../assets/avatars/leo.svg";
 import maya from "../assets/avatars/maya.svg";
 import { copyText } from "../lib/code";
-import { TABLER } from "./tabler";
+import "../styles/ask.css";
+import { swarm } from "./swarm";
+import { BUZZ_ROBOT, TABLER } from "./tabler";
 
 /**
- * Held back on 2026-11-13 (docs/decisions.md): published without this section until Block agrees
- * and the channel exists. Its markup is in the commit that held it back; reverting that commit
- * brings it back. index.html has no #ask now, so mountAsk never runs.
+ * Community: where to ask about self-hosting. The page's last section, in the menu as Community, and
+ * linked from the hero. Readers join the buzz community that Block hosts and ask in its #self-hosting
+ * channel, at the owner's request (docs/decisions.md, 2026-11-24). The invite is the one the owner gave.
  *
- * A place to ask, the page's last section: how to join Block's feedback community for Buzz, and
- * where self-hosting questions go. Three steps, each under a still drawing of the screen it happens
- * on: Block's invite page, Buzz's community list, and the channel. Nothing in a drawing is operated.
- *
- * The heading, the invite link and the copy button are in index.html, so the link works without
- * JavaScript. This scene draws the steps under them and makes the button copy that link.
- *
- * Sources. The invite page is drawn from the page itself, seen on 2026-11-12: both of its boxes
- * (18 or older, and the terms) must be ticked before its button works. The community list is drawn
- * from block/buzz-app v1.0.0 (CommunityPicker.tsx: each community, then Join a community), not from
- * a screenshot. The channel and its messages are illustrative. The note about keys is the skill's
- * own caution, from references/security.md ("Two kinds of keys"), said where it applies.
+ * A Buzz window open on the channel, with the invite pinned to its corner, then three steps. The window
+ * is drawn from Buzz 1.0.6 as it looked on 2026-11-24: the dock, then Activity, Solo, Starred, Team,
+ * Forums and Direct messages. The messages are illustrative. The opening screen's flapping bees buzz
+ * around it (scenes/swarm.ts). index.html holds a plain invite link for readers without JavaScript.
  */
 
-/** The channel self-hosting questions go in. A placeholder: it does not exist yet (docs/decisions.md, Launch decisions). */
+const INVITE = "https://buzz.communities.buzz.xyz/invite/v2.EeLHaUAe23P7qK0NuWnsdfnH-6L0wJLDnnzpFzrG7rQ";
 const CHANNEL = "self-hosting";
 /** The footer's Report a problem link: the two move together. */
 const ISSUES = "https://github.com/Beige-Coffee/buzz-selfhost/issues/new";
 
-const USERS_PLUS = `<path d="M5 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4c.96 0 1.84 .34 2.53 .9"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M16 19h6M19 16v6"/>`;
-const ic = (n: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${n === "users-plus" ? USERS_PLUS : TABLER[n]}</svg>`;
+const EXTRA: Record<string, string> = {
+  pencil: `<path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/>`,
+  star: `<path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"/>`,
+  share: `<path d="M6 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M18 6m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M18 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M8.7 10.7l6.6 -3.4"/><path d="M8.7 13.3l6.6 3.4"/>`,
+};
+const ic = (n: string) => `<svg class="cm-i" viewBox="0 0 24 24" aria-hidden="true">${EXTRA[n] ?? TABLER[n]}</svg>`;
+const ROBOT = `<svg class="cm-i" viewBox="0 0 24 24" aria-hidden="true">${BUZZ_ROBOT}</svg>`;
+const ARROW = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9.5M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-/* ── 1 · Block's invite page: the community, the two boxes, the button ── */
+/** Buzz's tile for the buzz community: the bee on chartreuse, as the invite page and the dock show it. */
+const TILE = `<span class="cm-tile"><svg viewBox="0 0 466 309" aria-hidden="true"><use href="#bee"/></svg></span>`;
 
-const INVITE_PAGE = `
-  <div class="aq-ip" role="img" aria-label="Block's invite page. You're invited: the community named feedback, two ticked boxes (18 or older, and the terms), and a button, Accept invite in Buzz.">
-    <div class="aq-ip-card">
-      <span class="aq-ip-h">You're invited</span>
-      <span class="aq-ip-s">Join your community on Buzz.</span>
-      <span class="aq-ip-c"><span class="aq-tile b">f</span>feedback</span>
-      <span class="aq-ip-chk"><span><i>${ic("check")}</i>I am 18 years of age or older.</span><span><i>${ic("check")}</i>I agree to the Buzz Terms of Service and Privacy Policy.</span></span>
-      <span class="aq-ip-go">Accept invite in Buzz</span>
-    </div>
-  </div>`;
+/** Ink and olive bees on the paper backdrop. */
+const BEES = ["#231e1e", "#8d8d2c", "#231e1e", "#d7d72e", "#231e1e", "#8d8d2c"];
 
-/* ── 2 · Buzz's community button, at the foot of the dock, with its list open ── */
-
-const communityList = (host: string) => `
-  <div class="aq-pkw" role="img" aria-label="Buzz's community button, at the foot of the dock, with its list open: your own community, feedback, and Join a community.">
-    <div class="aq-dock"><span class="aq-cb">f</span><img src="${maya}" alt=""></div>
-    <div class="aq-pk">
-      <div class="aq-pk-row"><span class="aq-tile">Y</span><span><b>Your community</b><small>buzz.yourteam.org</small></span></div>
-      <div class="aq-pk-row on"><span class="aq-tile b">f</span><span><b>feedback</b><small>${host}</small></span></div>
-      <div class="aq-pk-add"><span>${ic("users-plus")}</span>Join a community</div>
-    </div>
-  </div>`;
-
-/* ── 3 · the channel, in the guide's own drawing of Buzz (scenes/buzzapp.ts) ── */
+/* ── Buzz 1.0.6, open on the channel ── */
 
 const msg = (av: string, name: string, time: string, body: string) =>
-  `<div class="b1-msg"><img class="b1-av" src="${av}" alt=""><div class="b1-col"><div class="b1-meta"><b>${name}</b><time>${time}</time></div><div class="b1-bub">${body}</div></div></div>`;
-const CHANNEL_VIEW = `
-  <div class="aq-ch" role="img" aria-label="The ${CHANNEL} channel in the feedback community: someone says which setup they picked and which check failed, and gets an answer.">
-    <div class="b1-head"><b><span class="b1-stack"><img src="${maya}" alt=""><img src="${leo}" alt=""></span>${CHANNEL}</b></div>
-    <div class="b1-msgs">
-      ${msg(maya, "Maya", "10:02 AM", "VPS, public. The check fails on phone pairing.")}
-      ${msg(leo, "Leo", "10:09 AM", "Paste the FAIL line here.")}
+  `<div class="cw-msg"><img src="${av}" alt=""><div><div class="cw-meta"><b>${name}</b><time>${time}</time></div><div class="cw-bub">${body}</div></div></div>`;
+
+const WINDOW = `
+  <div class="cw" role="img" aria-label="A Buzz window open on the ${CHANNEL} channel in the buzz community, with a short conversation about pairing a phone. Illustrative.">
+    <div class="cw-top"><span class="cw-lights"><i></i><i></i><i></i></span><span class="cw-nav">${ic("layout-sidebar")}${ic("arrow-left")}${ic("arrow-right")}</span><span class="cw-find">${ic("search")}Search<kbd>⌘K</kbd></span></div>
+    <div class="cw-body">
+      <div class="cw-dock"><span class="on">${ic("messages")}</span><span>${ic("alarm")}</span><span>${ROBOT}</span><span>${ic("bolt")}</span><span class="cw-comm">${TILE}</span><img class="cw-me" src="${leo}" alt=""></div>
+      <aside class="cw-side">
+        <div class="cw-row">${ic("bell")}Activity</div>
+        <div class="cw-sub">Solo</div><div class="cw-row">${ic("pencil")}New chat</div>
+        <div class="cw-row cw-gap">${ic("star")}Starred</div>
+        <div class="cw-sub">Team</div><div class="cw-row on">${ic("hash")}${CHANNEL}</div>
+        <div class="cw-sub">Forums</div>
+        <div class="cw-sub">Direct messages</div>
+      </aside>
+      <section class="cw-main">
+        <div class="cw-head"><span class="cw-stack"><img src="${maya}" alt=""><img src="${leo}" alt=""></span>${CHANNEL}</div>
+        <div class="cw-msgs">
+          ${msg(maya, "Maya", "10:02 AM", "Set up on a VPS with the skill. The check passed, but my phone won't pair.")}
+          ${msg(leo, "Leo", "10:05 AM", "Is the pairing service running? Paste the FAIL line here.")}
+          ${msg(maya, "Maya", "10:07 AM", "That was it. Paired now 🎉")}
+        </div>
+        <div class="cw-compose"><span>Message #${CHANNEL}</span><span class="cw-tools">${ic("at")}${ic("paperclip")}${ic("mood-smile")}${ic("microphone")}${ic("letter-case")}<i>${ic("arrow-up")}</i></span></div>
+      </section>
     </div>
-    <div class="b1-compose"><span class="b1-ph">Message #${CHANNEL}</span></div>
   </div>`;
 
 /* ── the section ── */
 
-const step = (n: number, drawing: string, title: string, text: string) => `
-  <li>
-    <div class="aq-shot">${drawing}</div>
-    <div class="aq-text"><h3><i aria-hidden="true">${n}</i>${title}</h3><p>${text}</p></div>
-  </li>`;
+const STEPS = [
+  ["Open the invite", "Tick both boxes, then choose <b>Accept invite in Buzz</b>. No app yet? The page links the download."],
+  [`Join #${CHANNEL}`, `In Buzz, open the buzz community and join <b>#${CHANNEL}</b>.`],
+  ["Bring someone along", "Send the invite to anyone else running a relay. Anyone with the link can join."],
+];
 
-export function mountAsk(host: HTMLElement): void {
-  // index.html holds the invite, Block's public one: its link is the one thing copied and its host the one shown
-  const invite = document.querySelector<HTMLAnchorElement>("#aq-invite")!;
-  const community = new URL(invite.href).host;
-
-  host.innerHTML = `
-  <div class="aq">
-    <ol class="aq-steps">
-      ${step(1, INVITE_PAGE, "Open the invite", "Confirm you are 18 or older and agree to Buzz's terms. Then choose <strong>Accept invite in Buzz</strong>.")}
-      ${step(2, communityList(community), "Find it beside your community", "The community button now lists both. Your own community stays as it was.")}
-      ${step(3, CHANNEL_VIEW, `Ask in #${CHANNEL}`, "Say which setup you picked and what the check printed. Anyone can join, so leave out keys and passwords.")}
-    </ol>
-    <p class="aq-also"><b>Signed in to Builderlab?</b> Once you join a community Block hosts, Buzz backs up your key to Block without asking. If you answered "I will manage my own key" before, that still stands. <a href="#operations" data-q-link="identity">Set up an identity</a></p>
-    <p class="aq-more"><span>Buzz did not open? Copy the invite, then paste it into <b>Join a community</b>.</span><a class="aq-gh" href="${ISSUES}">Rather not join? Open an issue on GitHub</a></p>
+const SECTION = `
+  <div class="cm">
+    <div class="cm-stage">
+      ${WINDOW}
+      <div class="cm-join">
+        <span class="cm-kicker">${TILE}buzz community · hosted by Block</span>
+        <h3>Join <span>#${CHANNEL}</span></h3>
+        <div class="cm-acts">
+          <a class="cm-go" href="${INVITE}" target="_blank" rel="noopener">Open the invite${ARROW}</a>
+          <button type="button" class="cm-btn" data-copy>${ic("copy")}<span>Copy invite</span></button>
+          <button type="button" class="cm-btn" data-share>${ic("share")}<span>Share</span></button>
+        </div>
+      </div>
+    </div>
+    <ol class="cm-steps">${STEPS.map(([h, p], n) => `<li><i aria-hidden="true">${n + 1}</i><div><h3>${h}</h3><p>${p}</p></div></li>`).join("")}</ol>
+    <div class="cm-fine">
+      <p>Anyone can join, so leave out keys, passwords and server addresses. <b>Signed in to Builderlab?</b> Once you join a community Block hosts, Buzz backs up your key to Block without asking. <a href="#operations" data-q-link="identity">About identities</a></p>
+      <a class="cm-gh" href="${ISSUES}">${ic("brand-github")}Rather not join? Open an issue on GitHub</a>
+    </div>
   </div>`;
 
-  const copy = document.querySelector<HTMLButtonElement>(".aq-copy");
-  if (!copy) return;
-  copy.innerHTML = `${ic("copy")}<span>Copy invite</span>`;
-  copy.hidden = false;
-  copy.addEventListener("click", () =>
-    copyText(invite.href, () => {
-      const label = copy.querySelector("span")!;
-      label.textContent = "Copied";
-      window.setTimeout(() => (label.textContent = "Copy invite"), 1600);
-    }),
-  );
+function flash(btn: HTMLButtonElement, text: string): void {
+  const label = btn.querySelector("span")!;
+  const was = label.textContent;
+  label.textContent = text;
+  btn.classList.add("done");
+  window.setTimeout(() => {
+    label.textContent = was;
+    btn.classList.remove("done");
+  }, 1600);
+}
+
+export function mountAsk(host: HTMLElement): void {
+  host.innerHTML = SECTION;
+  swarm(host.querySelector<HTMLElement>(".cm-stage")!, BEES, ".cw, .cm-join");
+
+  host.querySelector<HTMLButtonElement>("[data-copy]")!.addEventListener("click", (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    copyText(INVITE, () => flash(b, "Copied"));
+  });
+  host.querySelector<HTMLButtonElement>("[data-share]")!.addEventListener("click", async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    const data = { title: `#${CHANNEL} on Buzz`, text: `Running Buzz on your own server? Ask in #${CHANNEL}.`, url: INVITE };
+    if (!navigator.share) return copyText(INVITE, () => flash(b, "Link copied"));
+    try {
+      await navigator.share(data);
+    } catch {
+      /* closed without sharing */
+    }
+  });
 }

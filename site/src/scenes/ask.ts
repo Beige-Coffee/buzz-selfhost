@@ -90,7 +90,7 @@ const SECTION = `
     </div>
     <ol class="cm-steps">${STEPS.map(([h, p], n) => `<li><i aria-hidden="true">${n + 1}</i><div><h3>${h}</h3><p>${p}</p></div></li>`).join("")}</ol>
     <div class="cm-fine">
-      <p>Anyone can join, so leave out keys, passwords and server addresses. <b>Signed in to Builderlab?</b> Once you join a community Block hosts, Buzz backs up your key to Block without asking. <a href="#operations" data-q-link="identity">About identities</a></p>
+      <p>Anyone can join, so leave out keys, passwords and server addresses. <b>Signed in to Builderlab?</b> Once you join a community Block hosts, Buzz backs up your key to Block without asking, unless you already chose "I will manage my own key". <a href="#operations" data-q-link="identity">About identities</a></p>
       <a class="cm-gh" href="${ISSUES}">${ic("brand-github")}Rather not join? Open an issue on GitHub</a>
     </div>
   </div>`;
